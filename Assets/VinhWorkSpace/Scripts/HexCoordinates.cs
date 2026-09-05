@@ -60,6 +60,28 @@ public struct HexCoordinates : IEquatable<HexCoordinates>
         return Distance(this, other);
     }
 
+    // Xoay tọa độ 60 độ theo chiều kim đồng hồ quanh gốc (0,0) n lần (n từ 0 đến 5)
+    public HexCoordinates Rotate60Clockwise(int steps = 1)
+    {
+        steps = ((steps % 6) + 6) % 6; // Luôn nằm trong [0..5]
+        int curQ = this.q;
+        int curR = this.r;
+        int curS = this.S;
+
+        for (int i = 0; i < steps; i++)
+        {
+            int nextQ = -curR;
+            int nextR = -curS;
+            int nextS = -curQ;
+
+            curQ = nextQ;
+            curR = nextR;
+            curS = nextS;
+        }
+
+        return new HexCoordinates(curQ, curR);
+    }
+
     // Nạp chồng toán tử cộng trừ tọa độ
     public static HexCoordinates operator +(HexCoordinates a, HexCoordinates b)
     {
