@@ -9,13 +9,18 @@ public class CardDeskController : MonoBehaviour
     [SerializeField] private Transform cardContainer;
 
     [Header("Cards")]
-    [SerializeField] private int cardCount = 5;
+    [SerializeField] private List<CardData> cardsToSpawn = new();
 
     [Header("Layout")]
-    [SerializeField] private float spacing = 170f;
+    [SerializeField] private float maxSpacing = 170f;
+    [SerializeField] private float minSpacing = 80f;
+    [SerializeField] private float handWidth = 900f;
 
     [Header("Appear Animation")]
     [SerializeField] private float appearDelay = 0.15f;
+
+    [Header("Rearrange Animation")]
+    [SerializeField] private float rearrangeDuration = 0.25f;
 
     private readonly List<GameObject> cards = new();
 
@@ -26,30 +31,72 @@ public class CardDeskController : MonoBehaviour
 
     private IEnumerator SpawnCards()
     {
+        int cardCount =
+            cardsToSpawn.Count;
+
+        if (cardCount == 0)
+        {
+            Debug.LogWarning(
+                "CardDeskController: No CardData assigned."
+            );
+
+            yield break;
+        }
+
+        float spacing =
+            CalculateSpacing(cardCount);
+
+        float totalWidth =
+            (cardCount - 1) * spacing;
+
         for (int i = 0; i < cardCount; i++)
         {
-            // Tạo Card
             GameObject card =
-                Instantiate(cardPrefab, cardContainer);
+                Instantiate(
+                    cardPrefab,
+                    cardContainer
+                );
 
-            RectTransform cardRect =
-                card.GetComponent<RectTransform>();
+            // -------------------------
+            // CARD DATA
+            // -------------------------
 
-            // Tính vị trí
-            float totalWidth =
-                (cardCount - 1) * spacing;
+            CardUI cardUI =
+                card.GetComponent<CardUI>();
+
+            if (cardUI != null)
+            {
+                cardUI.Setup(
+                    cardsToSpawn[i]
+                );
+            }
+
+            // -------------------------
+            // POSITION
+            // -------------------------
 
             float x =
-                i * spacing - totalWidth / 2f;
+                i * spacing -
+                totalWidth / 2f;
 
             Vector2 targetPosition =
                 new Vector2(x, 0f);
 
-            // Đưa Card về vị trí đích
-            cardRect.anchoredPosition =
-                targetPosition;
+            // Tell Card its Home Position
+            CardHandSlot handSlot =
+                card.GetComponent<CardHandSlot>();
 
-            // Chạy animation
+            if (handSlot != null)
+            {
+                handSlot.SetTargetPosition(
+                    targetPosition
+                );
+            }
+
+            // -------------------------
+            // APPEAR
+            // -------------------------
+
             CardAppear appear =
                 card.GetComponent<CardAppear>();
 
@@ -57,14 +104,129 @@ public class CardDeskController : MonoBehaviour
             {
                 appear.Play(
                     targetPosition,
-                    0f
+                    i * appearDelay
                 );
+            }
+            else
+            {
+                RectTransform rect =
+                    card.GetComponent<RectTransform>();
+
+                rect.anchoredPosition =
+                    targetPosition;
             }
 
             cards.Add(card);
 
-            // Chờ trước khi tạo Card tiếp theo
-            yield return new WaitForSeconds(appearDelay);
+            yield return new WaitForSeconds(
+                appearDelay
+            );
         }
+    }
+
+    // =========================================
+    // REMOVE CARD
+    // =========================================
+
+    public void RemoveCard(
+        GameObject card
+    )
+    {
+        if (!cards.Contains(card))
+        {
+            return;
+        }
+
+        cards.Remove(card);
+
+        Destroy(card);
+
+        RearrangeCards();
+    }
+
+    // =========================================
+    // REARRANGE CARDS
+    // =========================================
+
+    public void RearrangeCards()
+    {
+        int cardCount =
+            cards.Count;
+
+        if (cardCount == 0)
+        {
+            return;
+        }
+
+        float spacing =
+            CalculateSpacing(cardCount);
+
+        float totalWidth =
+            (cardCount - 1) * spacing;
+
+        for (int i = 0; i < cardCount; i++)
+        {
+            float x =
+                i * spacing -
+                totalWidth / 2f;
+
+            Vector2 targetPosition =
+                new Vector2(x, 0f);
+
+            // Update Home Position
+            CardHandSlot handSlot =
+                cards[i].GetComponent<CardHandSlot>();
+
+            if (handSlot != null)
+            {
+                handSlot.SetTargetPosition(
+                    targetPosition
+                );
+            }
+
+            // Move Card
+            CardMoveToPosition mover =
+                cards[i].GetComponent<CardMoveToPosition>();
+
+            if (mover != null)
+            {
+                mover.MoveTo(
+                    targetPosition,
+                    rearrangeDuration
+                );
+            }
+            else
+            {
+                RectTransform rect =
+                    cards[i].GetComponent<RectTransform>();
+
+                rect.anchoredPosition =
+                    targetPosition;
+            }
+        }
+    }
+
+    // =========================================
+    // CALCULATE SPACING
+    // =========================================
+
+    private float CalculateSpacing(
+        int cardCount
+    )
+    {
+        if (cardCount <= 1)
+        {
+            return 0f;
+        }
+
+        float spacing =
+            handWidth /
+            (cardCount - 1);
+
+        return Mathf.Clamp(
+            spacing,
+            minSpacing,
+            maxSpacing
+        );
     }
 }

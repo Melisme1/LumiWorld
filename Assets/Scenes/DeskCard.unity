@@ -205,13 +205,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 128420293}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.32191092, y: -0, z: -0, w: 0.94677}
-  m_LocalPosition: {x: 0.15, y: 4.17, z: -8.45}
+  m_LocalRotation: {x: 0.48834252, y: -0, z: -0, w: 0.87265205}
+  m_LocalPosition: {x: 0.01, y: 10.66, z: -6.64}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 37.557, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 58.463, y: 0, z: 0}
 --- !u!114 &128420297
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -405,8 +405,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardDeskController
   cardPrefab: {fileID: 3296435945646191664, guid: 90ea1562e9b96fa4c868961ac74e12d4, type: 3}
   cardContainer: {fileID: 1437082036}
-  cardCount: 5
-  spacing: 170
+  cardsToSpawn:
+  - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  maxSpacing: 190
+  minSpacing: 80
+  handWidth: 900
   appearDelay: 0.1
 --- !u!1001 &901706491
 PrefabInstance:
