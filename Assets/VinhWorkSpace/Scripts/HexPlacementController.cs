@@ -13,18 +13,27 @@ public class HexPlacementController : MonoBehaviour
     [SerializeField] private LayerMask mapLayerMask = ~0; // Layer dùng cho Raycast
 
     [Header("Cài đặt")]
-    [SerializeField] private float stepHeight = 0.6f;
+    [SerializeField] private float stepHeight = 0f;
     [SerializeField] private float smoothSpeed = 25f; // Tốc độ trượt bám theo chuột của Ghost
 
-    // 6 Vector ghép cạnh hoàn hảo cho khối Hexagon bán kính R = 3 (Edge-to-Edge Flush Offset)
+    // 12 Vector ghép cạnh hoàn hảo cho khối Hexagon bán kính R = 3 (Bao gồm cả 6 hướng lệch phải và 6 hướng lệch trái)
     private static readonly HexCoordinates[] SuperHexOffsetsR3 = new HexCoordinates[]
     {
+        // 6 hướng ghép lệch phải (Right-chiral / Clockwise shift)
         new HexCoordinates(4, 3),   // Hướng 0: Phải - Trên
         new HexCoordinates(7, -3),  // Hướng 1: Phải - Dưới
         new HexCoordinates(3, -7),  // Hướng 2: Dưới
         new HexCoordinates(-4, -3), // Hướng 3: Trái - Dưới
         new HexCoordinates(-7, 3),  // Hướng 4: Trái - Trên
-        new HexCoordinates(-3, 7)   // Hướng 5: Trên
+        new HexCoordinates(-3, 7),  // Hướng 5: Trên
+
+        // 6 hướng ghép lệch trái (Left-chiral / Counter-clockwise shift)
+        new HexCoordinates(3, 4),   // Hướng 6: Trên - Phải
+        new HexCoordinates(7, -4),  // Hướng 7: Dưới - Phải
+        new HexCoordinates(4, -7),  // Hướng 8: Dưới - Trái
+        new HexCoordinates(-3, -4), // Hướng 9: Trái - Dưới
+        new HexCoordinates(-7, 4),  // Hướng 10: Trái - Trên
+        new HexCoordinates(-4, 7)   // Hướng 11: Trên - Trái
     };
 
     // Quản lý các tâm vùng lục giác đã đặt trên bản đồ
@@ -203,7 +212,7 @@ public class HexPlacementController : MonoBehaviour
         {
             HexCoordinates rawMouseHex = HexMetrics.WorldToHex(hitPoint);
 
-            // TÌM VỊ TRÍ SNAP NAM CHÂM GHÉP CẠNH HOÀN HẢO (SUPER-HEX MAGNET SNAP)
+            // TÌM VỊ TRÍ SNAP NAM CHÂM GHÉP CẠNH HOÀN HẢO (12 HƯỚNG LỆCH TRÁI + PHẢI)
             if (TryFindBestSuperHexSnap(rawMouseHex, out HexCoordinates bestSnapCenter))
             {
                 currentHoverHex = bestSnapCenter;
@@ -229,27 +238,26 @@ public class HexPlacementController : MonoBehaviour
     }
 
     /// <summary>
-    /// Tìm vị trí ghép cạnh khít 100% gần nhất với con trỏ chuột
+    /// Tìm vị trí ghép cạnh khít 100% gần nhất với con trỏ chuột (quét đầy đủ 12 hướng ghép)
     /// </summary>
     private bool TryFindBestSuperHexSnap(HexCoordinates mouseHex, out HexCoordinates bestSnapCenter)
     {
         bestSnapCenter = mouseHex;
-        if (worldGenerator == null || worldGenerator.MapTiles == null) return false;
+        if (worldGenerator == null || worldGenerator.MapTiles == null || currentCluster == null) return false;
 
-        var existingTiles = worldGenerator.MapTiles;
         HashSet<HexCoordinates> candidateCenters = new HashSet<HexCoordinates>();
 
-        // 1. Quét tất cả các vị trí ghép cạnh quanh các tâm vùng đã có
+        // 1. Quét tất cả 12 vị trí ghép cạnh (6 hướng lệch phải + 6 hướng lệch trái) quanh các tâm vùng đã có
         foreach (var center in placedClusterCenters)
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < SuperHexOffsetsR3.Length; i++)
             {
                 HexCoordinates candidate = center + SuperHexOffsetsR3[i];
 
                 // Nếu tâm này chưa từng được đặt
                 if (!placedClusterCenters.Contains(candidate))
                 {
-                    // Kiểm tra xem vị trí này có bị đè lên bất kỳ ô nào đã có trên Map không
+                    // Kiểm tra xem vị trí này có hợp lệ không (không trùng đè và dính liền bản đồ)
                     if (IsRegionPlacementValid(candidate))
                     {
                         candidateCenters.Add(candidate);
@@ -275,27 +283,52 @@ public class HexPlacementController : MonoBehaviour
             }
         }
 
+        // Nếu chuột ở quá xa đảo (khoảng cách > 9 bước lục giác), không tự hút snap
+        if (minDistance > 9)
+        {
+            return false;
+        }
+
         return found;
     }
 
     /// <summary>
-    /// Kiểm tra 37 ô của vùng R=3 tại vị trí candidateCenter có hoàn toàn trống không
+    /// Kiểm tra 37 ô của vùng R=3 tại vị trí candidateCenter có hoàn toàn trống và tiếp giáp map không
     /// </summary>
     private bool IsRegionPlacementValid(HexCoordinates candidateCenter)
     {
-        if (worldGenerator == null || worldGenerator.MapTiles == null) return false;
+        if (worldGenerator == null || worldGenerator.MapTiles == null || currentCluster == null) return false;
         var existingTiles = worldGenerator.MapTiles;
+
+        bool touchesMap = false;
 
         foreach (var tile in currentCluster.tiles)
         {
-            HexCoordinates worldHex = candidateCenter + tile.relativeCoord;
+            // Tọa độ tương đối đã qua phép xoay
+            HexCoordinates rotatedRel = tile.relativeCoord.Rotate60Clockwise(currentRotationStep);
+            HexCoordinates worldHex = candidateCenter + rotatedRel;
+
+            // 1. Tuyệt đối không được trùng đè lên bất kỳ ô nào đã có
             if (existingTiles.ContainsKey(worldHex))
             {
-                return false; // Bị trùng đè lên ô có sẵn
+                return false;
+            }
+
+            // 2. Phải có ít nhất 1 ô tiếp xúc với bản đồ hiện tại
+            if (!touchesMap)
+            {
+                for (int d = 0; d < 6; d++)
+                {
+                    HexCoordinates neighborHex = worldHex.GetNeighbor(d);
+                    if (existingTiles.ContainsKey(neighborHex))
+                    {
+                        touchesMap = true;
+                    }
+                }
             }
         }
 
-        return true;
+        return touchesMap;
     }
 
     /// <summary>
@@ -314,21 +347,11 @@ public class HexPlacementController : MonoBehaviour
             int levelIndex = Mathf.Clamp(tile.prefabIndex, 0, terrainPrefabs.Length - 1);
             GameObject prefabToSpawn = terrainPrefabs[levelIndex];
 
-            float topSurfaceOffset = 0f;
-            MeshFilter mf = prefabToSpawn.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-            {
-                topSurfaceOffset = mf.sharedMesh.bounds.center.y + (mf.sharedMesh.bounds.size.y / 2f);
-            }
-
-            float targetTopY = tile.heightLevel * stepHeight;
-            float finalSpawnY = targetTopY - topSurfaceOffset;
-
-            Vector3 worldPos = HexMetrics.HexToWorldPosition(targetCoord, finalSpawnY);
+            Vector3 worldPos = HexMetrics.HexToWorldPosition(targetCoord, 0f);
             Quaternion spawnRot = Quaternion.Euler(0f, currentRotationStep * 60f, 0f);
 
             GameObject tileInstance = Instantiate(prefabToSpawn, worldPos, spawnRot, worldGenerator.transform);
-            tileInstance.name = $"Hex_{targetCoord.Q}_{targetCoord.R}_Lvl{levelIndex}";
+            tileInstance.name = $"Hex_{targetCoord.Q}_{targetCoord.R}_Type{levelIndex}";
 
             // Lưu vào dữ liệu Map
             worldGenerator.MapTiles.Add(targetCoord, tileInstance);

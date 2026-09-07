@@ -7,7 +7,7 @@ public class HexCameraController : MonoBehaviour
     [Header("Tốc độ & Độ nhạy")]
     [SerializeField] private float moveSpeed = 25f;
     [SerializeField] private float boostMultiplier = 2.5f;   // Giữ Shift để tăng tốc
-    [SerializeField] private float panSensitivity = 0.04f;   // Kéo rê mặt phẳng bằng Chuột trái / Chuột giữa
+    [SerializeField] private float panSensitivity = 0.10f;   // Kéo rê mặt phẳng bằng Chuột trái / Chuột giữa (nhạy và mượt)
     [SerializeField] private float orbitSensitivity = 0.25f; // Xoay quanh tâm (Orbit)
     [SerializeField] private float lookSensitivity = 0.2f;   // Xoay góc nhìn tự do (Look around)
     [SerializeField] private float zoomSensitivity = 0.05f;  // Zoom bằng Alt + Chuột phải
@@ -18,7 +18,7 @@ public class HexCameraController : MonoBehaviour
     [SerializeField] private float maxHeight = 80f;
 
     [Header("Độ mượt mà (Damping)")]
-    [SerializeField] private float smoothTime = 14f;
+    [SerializeField] private float smoothTime = 16f;
 
     private Vector3 targetPosition;
     private Vector3 targetEulerRotation;
@@ -121,11 +121,22 @@ public class HexCameraController : MonoBehaviour
 
     private void HandlePan(Vector2 delta)
     {
-        // Kéo chuột trái/phải: dịch chuyển theo trục ngang (transform.right)
-        // Kéo chuột lên/xuống: dịch chuyển theo trục dọc màn hình (transform.up) - không chạm trục forward nên tuyệt đối không bị phóng to/nhỏ
-        Vector3 move = (-transform.right * delta.x - transform.up * delta.y) * panSensitivity * (Mathf.Max(targetPosition.y, 5f) * 0.06f);
+        // 1. Tính vector mặt đất phẳng (XZ) theo góc xoay ngang của camera
+        Vector3 right = transform.right;
+        right.y = 0f;
+        right.Normalize();
+
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        forward.Normalize();
+
+        // 2. Tự động thích ứng tỉ lệ theo độ cao zoom hiện tại
+        float heightScale = Mathf.Clamp(targetPosition.y * 0.08f, 0.5f, 4.0f);
+
+        // 3. Kéo chuột trái/giữa: dịch chuyển mượt mà trên mặt phẳng đất
+        Vector3 move = (-right * delta.x - forward * delta.y) * (panSensitivity * heightScale);
+
         targetPosition += move;
-        targetPosition.y = Mathf.Clamp(targetPosition.y, minHeight, maxHeight);
         orbitPivotPoint += move;
     }
 

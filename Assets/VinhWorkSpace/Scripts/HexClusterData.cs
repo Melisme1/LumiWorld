@@ -83,14 +83,14 @@ public class HexClusterData : ScriptableObject
             }
         }
 
-        // 4. Lưu danh sách dữ liệu
+        // 4. Lưu danh sách dữ liệu (Độ cao phẳng Y = 0)
         for (int i = 0; i < tileNoiseList.Count; i++)
         {
             cluster.tiles.Add(new HexTileData
             {
                 relativeCoord = tileNoiseList[i].coords,
                 prefabIndex = tileLevels[i],
-                heightLevel = tileLevels[i]
+                heightLevel = 0
             });
         }
 

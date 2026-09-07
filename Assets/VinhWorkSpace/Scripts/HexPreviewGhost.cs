@@ -3,13 +3,32 @@ using UnityEngine;
 
 public class HexPreviewGhost : MonoBehaviour
 {
-    private List<MeshRenderer> renderers = new List<MeshRenderer>();
+    private struct GhostTileInfo
+    {
+        public MeshRenderer renderer;
+        public int prefabIndex;
+        public int heightLevel;
+    }
+
+    private List<GhostTileInfo> ghostTiles = new List<GhostTileInfo>();
     private MaterialPropertyBlock propBlock;
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
 
-    [Header("Màu sắc báo hiệu")]
-    [SerializeField] private Color validColor = new Color(0.2f, 0.9f, 0.4f, 0.6f);   // Xanh lá (Hợp lệ)
-    [SerializeField] private Color invalidColor = new Color(0.95f, 0.2f, 0.2f, 0.6f); // Đỏ (Không hợp lệ)
+    [Header("Màu Hologram Hợp Lệ theo Từng Loại Địa Hình")]
+    [Tooltip("Tầng 0 / Nước: Xanh lam pha lê / ngọc bích")]
+    [SerializeField] private Color waterValidColor = new Color(0.18f, 0.72f, 1.0f, 0.75f);
+
+    [Tooltip("Tầng 1 / Cỏ: Xanh lá lục bảo tươi")]
+    [SerializeField] private Color grassValidColor = new Color(0.28f, 0.95f, 0.40f, 0.75f);
+
+    [Tooltip("Tầng 2 / Núi & Đá: Vàng cam hổ phách rực rỡ")]
+    [SerializeField] private Color mountainValidColor = new Color(1.0f, 0.68f, 0.18f, 0.82f);
+
+    [Tooltip("Màu mặc định nếu có thêm tầng khác")]
+    [SerializeField] private Color defaultValidColor = new Color(0.85f, 0.40f, 1.0f, 0.75f);
+
+    [Header("Màu Hologram Không Hợp Lệ (Bị Trùng Đè)")]
+    [SerializeField] private Color invalidColor = new Color(0.95f, 0.22f, 0.22f, 0.75f); // Đỏ cảnh báo
 
     private void Awake()
     {
@@ -26,7 +45,7 @@ public class HexPreviewGhost : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
-        renderers.Clear();
+        ghostTiles.Clear();
 
         if (clusterData == null || prefabs == null || prefabs.Length == 0) return;
 
@@ -38,22 +57,13 @@ public class HexPreviewGhost : MonoBehaviour
             int prefabIdx = Mathf.Clamp(tile.prefabIndex, 0, prefabs.Length - 1);
             GameObject prefab = prefabs[prefabIdx];
 
-            // Căn chỉnh bù trừ Pivot mặt phẳng trên cùng
-            float topSurfaceOffset = 0f;
-            MeshFilter mf = prefab.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-            {
-                topSurfaceOffset = mf.sharedMesh.bounds.center.y + (mf.sharedMesh.bounds.size.y / 2f);
-            }
-
-            float targetTopY = tile.heightLevel * stepHeight;
-            float localY = targetTopY - topSurfaceOffset;
-            Vector3 localPos = HexMetrics.HexToWorldPosition(rotatedCoord, localY);
+            Vector3 localPos = HexMetrics.HexToWorldPosition(rotatedCoord, 0f);
 
             // Xoay hướng mô hình 60 độ quanh trục thẳng đứng Y
             Quaternion localRot = Quaternion.Euler(0f, rotationStep * 60f, 0f);
 
             GameObject ghostPart = Instantiate(prefab, transform);
+            ghostPart.name = $"Ghost_{rotatedCoord.Q}_{rotatedCoord.R}_Type{prefabIdx}";
             ghostPart.transform.localPosition = localPos;
             ghostPart.transform.localRotation = localRot;
 
@@ -64,7 +74,7 @@ public class HexPreviewGhost : MonoBehaviour
                 col.enabled = false;
             }
 
-            // Gán Material mô phỏng
+            // Gán Material mô phỏng và lưu thông tin mảnh
             MeshRenderer[] mrList = ghostPart.GetComponentsInChildren<MeshRenderer>();
             foreach (var mr in mrList)
             {
@@ -72,7 +82,12 @@ public class HexPreviewGhost : MonoBehaviour
                 {
                     mr.material = ghostMaterial;
                 }
-                renderers.Add(mr);
+                ghostTiles.Add(new GhostTileInfo
+                {
+                    renderer = mr,
+                    prefabIndex = prefabIdx,
+                    heightLevel = tile.heightLevel
+                });
             }
         }
     }
@@ -82,16 +97,42 @@ public class HexPreviewGhost : MonoBehaviour
     /// </summary>
     public void SetPlacementValidity(bool isValid)
     {
-        Color targetColor = isValid ? validColor : invalidColor;
-
-        for (int i = 0; i < renderers.Count; i++)
+        for (int i = 0; i < ghostTiles.Count; i++)
         {
-            if (renderers[i] != null)
+            var tileInfo = ghostTiles[i];
+            if (tileInfo.renderer == null) continue;
+
+            Color targetColor;
+            if (isValid)
             {
-                renderers[i].GetPropertyBlock(propBlock);
-                propBlock.SetColor(ColorProperty, targetColor);
-                renderers[i].SetPropertyBlock(propBlock);
+                targetColor = GetBiomeValidColor(tileInfo.prefabIndex);
             }
+            else
+            {
+                // Khi không hợp lệ: màu đỏ cảnh báo với sắc thái nhận diện từng tầng
+                float intensity = 0.75f + (tileInfo.prefabIndex * 0.15f);
+                targetColor = new Color(
+                    invalidColor.r * intensity,
+                    invalidColor.g * (0.5f + tileInfo.prefabIndex * 0.2f),
+                    invalidColor.b * (0.5f + tileInfo.prefabIndex * 0.2f),
+                    invalidColor.a
+                );
+            }
+
+            tileInfo.renderer.GetPropertyBlock(propBlock);
+            propBlock.SetColor(ColorProperty, targetColor);
+            tileInfo.renderer.SetPropertyBlock(propBlock);
+        }
+    }
+
+    private Color GetBiomeValidColor(int prefabIndex)
+    {
+        switch (prefabIndex)
+        {
+            case 0: return waterValidColor;      // Nước: Xanh lam pha lê
+            case 1: return grassValidColor;      // Cỏ: Xanh lá tươi
+            case 2: return mountainValidColor;   // Núi/Đá: Vàng hổ phách
+            default: return defaultValidColor;   // Tầng khác
         }
     }
 }

@@ -553,7 +553,7 @@ MonoBehaviour:
   - {fileID: 919132149155446097, guid: b63bdd86ddf5b7847babbbfa55d227a9, type: 3}
   minRadius: 3
   maxRadius: 3
-  stepHeight: 0.6
+  stepHeight: 0
   noiseScale: 0.15
 --- !u!4 &832299768
 Transform:
@@ -609,7 +609,7 @@ MonoBehaviour:
   mapLayerMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  stepHeight: 0.6
+  stepHeight: 0
   smoothSpeed: 25
 --- !u!4 &1038811525
 Transform:

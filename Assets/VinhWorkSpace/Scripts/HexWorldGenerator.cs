@@ -14,8 +14,8 @@ public class HexWorldGenerator : MonoBehaviour
     [SerializeField] private int maxRadius = 3;
 
     [Header("Địa hình & Độ cao")]
-    [Tooltip("Khoảng cách thực tế giữa mặt phẳng trên cùng của các tầng")]
-    [SerializeField] private float stepHeight = 0.6f;
+    [Tooltip("Độ cao bậc giữa các tầng (0 = tất cả cùng nằm trên một mặt phẳng)")]
+    [SerializeField] private float stepHeight = 0f;
 
     [Tooltip("Độ mượt của đồi núi")]
     [SerializeField] private float noiseScale = 0.15f;
@@ -105,7 +105,7 @@ public class HexWorldGenerator : MonoBehaviour
             }
         }
 
-        // 3. Khởi tạo vật thể
+        // 3. Khởi tạo vật thể trên cùng mặt phẳng độ cao (Y = 0)
         for (int i = 0; i < tileNoiseList.Count; i++)
         {
             HexCoordinates coords = tileNoiseList[i].coords;
@@ -114,20 +114,10 @@ public class HexWorldGenerator : MonoBehaviour
             levelIndex = Mathf.Clamp(levelIndex, 0, terrainPrefabs.Length - 1);
             GameObject prefabToSpawn = terrainPrefabs[levelIndex];
 
-            float topSurfaceOffset = 0f;
-            MeshFilter mf = prefabToSpawn.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-            {
-                topSurfaceOffset = mf.sharedMesh.bounds.center.y + (mf.sharedMesh.bounds.size.y / 2f);
-            }
-
-            float targetTopY = levelIndex * stepHeight;
-            float finalSpawnY = targetTopY - topSurfaceOffset;
-
-            Vector3 worldPosition = HexMetrics.HexToWorldPosition(coords, finalSpawnY);
+            Vector3 worldPosition = HexMetrics.HexToWorldPosition(coords, 0f);
 
             GameObject tileInstance = Instantiate(prefabToSpawn, worldPosition, Quaternion.identity, transform);
-            tileInstance.name = $"Hex_{coords.Q}_{coords.R}_Lvl{levelIndex}";
+            tileInstance.name = $"Hex_{coords.Q}_{coords.R}_Type{levelIndex}";
 
             MapTiles.Add(coords, tileInstance);
         }
