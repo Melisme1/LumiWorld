@@ -10,8 +10,8 @@ public class HexWorldGenerator : MonoBehaviour
     [SerializeField] private GameObject[] terrainPrefabs;
 
     [Header("Kích thước bản đồ ngẫu nhiên")]
-    [SerializeField] private int minRadius = 3;
-    [SerializeField] private int maxRadius = 3;
+    [SerializeField] private int minRadius = 2;
+    [SerializeField] private int maxRadius = 2;
 
     [Header("Địa hình & Độ cao")]
     [Tooltip("Độ cao bậc giữa các tầng (0 = tất cả cùng nằm trên một mặt phẳng)")]
@@ -91,8 +91,8 @@ public class HexWorldGenerator : MonoBehaviour
             }
         }
 
-        // 2. Bảo hiểm: Bắt buộc phải có núi (tối thiểu 3 - 5 ô tại các đỉnh noise cao nhất)
-        int minMountains = Mathf.Max(3, tileNoiseList.Count / 10);
+        // 2. Bảo hiểm: Bắt buộc phải có núi (tối thiểu 2 ô tại các đỉnh noise cao nhất)
+        int minMountains = Mathf.Max(2, tileNoiseList.Count / 10);
         if (mountainCount < minMountains)
         {
             List<int> sortedIndices = new List<int>();

@@ -13,28 +13,24 @@ public class HexPlacementController : MonoBehaviour
     [SerializeField] private LayerMask mapLayerMask = ~0; // Layer dùng cho Raycast
 
     [Header("Cài đặt")]
+    [SerializeField] private int clusterRadius = 2;
     [SerializeField] private float stepHeight = 0f;
     [SerializeField] private float smoothSpeed = 25f; // Tốc độ trượt bám theo chuột của Ghost
 
-    // 12 Vector ghép cạnh hoàn hảo cho khối Hexagon bán kính R = 3 (Bao gồm cả 6 hướng lệch phải và 6 hướng lệch trái)
-    private static readonly HexCoordinates[] SuperHexOffsetsR3 = new HexCoordinates[]
+    /// <summary>
+    /// 6 Vector ghép cạnh tạo thành mạng lưới tinh thể Super-Hexagon chuẩn xác (Single Consistent Lattice).
+    /// Tuyệt đối KHÔNG trộn lẫn 2 hệ xoay (Chiralities) để tránh tạo ra các lỗ hổng/kẽ hở 1-2 ô ở giữa đảo như Preserve.
+    /// </summary>
+    public static HexCoordinates[] GetSuperHexOffsets(int radius)
     {
-        // 6 hướng ghép lệch phải (Right-chiral / Clockwise shift)
-        new HexCoordinates(4, 3),   // Hướng 0: Phải - Trên
-        new HexCoordinates(7, -3),  // Hướng 1: Phải - Dưới
-        new HexCoordinates(3, -7),  // Hướng 2: Dưới
-        new HexCoordinates(-4, -3), // Hướng 3: Trái - Dưới
-        new HexCoordinates(-7, 3),  // Hướng 4: Trái - Trên
-        new HexCoordinates(-3, 7),  // Hướng 5: Trên
-
-        // 6 hướng ghép lệch trái (Left-chiral / Counter-clockwise shift)
-        new HexCoordinates(3, 4),   // Hướng 6: Trên - Phải
-        new HexCoordinates(7, -4),  // Hướng 7: Dưới - Phải
-        new HexCoordinates(4, -7),  // Hướng 8: Dưới - Trái
-        new HexCoordinates(-3, -4), // Hướng 9: Trái - Dưới
-        new HexCoordinates(-7, 4),  // Hướng 10: Trái - Trên
-        new HexCoordinates(-4, 7)   // Hướng 11: Trên - Trái
-    };
+        HexCoordinates baseOffset = new HexCoordinates(radius + 1, radius);
+        HexCoordinates[] offsets = new HexCoordinates[6];
+        for (int i = 0; i < 6; i++)
+        {
+            offsets[i] = baseOffset.Rotate60Clockwise(i);
+        }
+        return offsets;
+    }
 
     // Quản lý các tâm vùng lục giác đã đặt trên bản đồ
     private HashSet<HexCoordinates> placedClusterCenters = new HashSet<HexCoordinates>();
@@ -101,8 +97,8 @@ public class HexPlacementController : MonoBehaviour
 
         if (clusterData == null)
         {
-            // Tạo trọn vẹn một vùng hexagon có bán kính Radius = 3 (37 khối lục giác)
-            currentCluster = HexClusterData.CreateSampleCluster(3);
+            // Tạo trọn vẹn một vùng hexagon có bán kính Radius = clusterRadius (mặc định 2: 19 khối lục giác)
+            currentCluster = HexClusterData.CreateSampleCluster(clusterRadius);
         }
         else
         {
@@ -238,7 +234,7 @@ public class HexPlacementController : MonoBehaviour
     }
 
     /// <summary>
-    /// Tìm vị trí ghép cạnh khít 100% gần nhất với con trỏ chuột (quét đầy đủ 12 hướng ghép)
+    /// Tìm vị trí ghép cạnh khít 100% gần nhất với con trỏ chuột theo mạng lưới Super-Hexagon chuẩn
     /// </summary>
     private bool TryFindBestSuperHexSnap(HexCoordinates mouseHex, out HexCoordinates bestSnapCenter)
     {
@@ -246,13 +242,14 @@ public class HexPlacementController : MonoBehaviour
         if (worldGenerator == null || worldGenerator.MapTiles == null || currentCluster == null) return false;
 
         HashSet<HexCoordinates> candidateCenters = new HashSet<HexCoordinates>();
+        HexCoordinates[] offsets = GetSuperHexOffsets(clusterRadius);
 
-        // 1. Quét tất cả 12 vị trí ghép cạnh (6 hướng lệch phải + 6 hướng lệch trái) quanh các tâm vùng đã có
+        // 1. Quét 6 vị trí ghép cạnh chuẩn trên mạng lưới quanh các tâm vùng đã có
         foreach (var center in placedClusterCenters)
         {
-            for (int i = 0; i < SuperHexOffsetsR3.Length; i++)
+            for (int i = 0; i < offsets.Length; i++)
             {
-                HexCoordinates candidate = center + SuperHexOffsetsR3[i];
+                HexCoordinates candidate = center + offsets[i];
 
                 // Nếu tâm này chưa từng được đặt
                 if (!placedClusterCenters.Contains(candidate))
@@ -283,8 +280,9 @@ public class HexPlacementController : MonoBehaviour
             }
         }
 
-        // Nếu chuột ở quá xa đảo (khoảng cách > 9 bước lục giác), không tự hút snap
-        if (minDistance > 9)
+        // Nếu chuột ở quá xa đảo (khoảng cách > bán kính hút nam châm), không tự hút snap
+        int maxSnapDist = clusterRadius * 3 + 2;
+        if (minDistance > maxSnapDist)
         {
             return false;
         }
@@ -332,7 +330,7 @@ public class HexPlacementController : MonoBehaviour
     }
 
     /// <summary>
-    /// Đặt thực tế 37 khối của vùng vào bản đồ
+    /// Đặt thực tế các khối của vùng vào bản đồ
     /// </summary>
     private void ConfirmPlacement()
     {

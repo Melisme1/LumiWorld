@@ -16,11 +16,11 @@ public class HexClusterData : ScriptableObject
     public List<HexTileData> tiles = new List<HexTileData>();
 
     /// <summary>
-    /// Sinh trọn vẹn một vùng lục giác bán kính radius = 3 (37 khối)
+    /// Sinh trọn vẹn một vùng lục giác bán kính radius = 2 (19 khối) hoặc tùy chỉnh
     /// Sử dụng phân phối Perlin tự nhiên (Cỏ chiếm đa số ~60%, Nước ~25%, Núi ~15%)
-    /// Đồng thời đảm bảo LUÔN CÓ NÚI (ít nhất 2 - 4 ô tại đỉnh cao nhất)
+    /// Đồng thời đảm bảo LUÔN CÓ NÚI
     /// </summary>
-    public static HexClusterData CreateSampleCluster(int radius = 3)
+    public static HexClusterData CreateSampleCluster(int radius = 2)
     {
         var cluster = ScriptableObject.CreateInstance<HexClusterData>();
         cluster.clusterName = $"Hex Region R{radius}";
@@ -69,8 +69,8 @@ public class HexClusterData : ScriptableObject
             }
         }
 
-        // 3. Đảm bảo BẮT BUỘC PHẢI CÓ NÚI: Nếu ngẫu nhiên ít hơn 3 ô núi, lấy 3 ô có đỉnh noise cao nhất làm núi
-        const int minMountains = 3;
+        // 3. Đảm bảo BẮT BUỘC PHẢI CÓ NÚI: Nếu ngẫu nhiên ít hơn mức tối thiểu, lấy các ô có đỉnh noise cao nhất làm núi
+        int minMountains = Mathf.Max(2, tileNoiseList.Count / 10);
         if (mountainCount < minMountains)
         {
             List<int> sortedIndices = new List<int>();
