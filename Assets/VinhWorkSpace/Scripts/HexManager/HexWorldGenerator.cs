@@ -117,7 +117,12 @@ public class HexWorldGenerator : MonoBehaviour
             Vector3 worldPosition = HexMetrics.HexToWorldPosition(coords, 0f);
 
             GameObject tileInstance = Instantiate(prefabToSpawn, worldPosition, Quaternion.identity, transform);
-            tileInstance.name = $"Hex_{coords.Q}_{coords.R}_Type{levelIndex}";
+            tileInstance.name = $"Hex_{coords.Q}_{coords.R}_[{prefabToSpawn.name}]_Type{levelIndex}";
+
+            HexTileInfo tileInfo = tileInstance.AddComponent<HexTileInfo>();
+            tileInfo.sourcePrefab = prefabToSpawn;
+            tileInfo.terrainTypeIndex = levelIndex;
+            tileInfo.coordinates = coords;
 
             MapTiles.Add(coords, tileInstance);
         }

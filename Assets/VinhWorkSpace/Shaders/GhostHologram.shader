@@ -73,16 +73,14 @@ Shader "Custom/HexGhostHologram"
                 float3 normalWS = normalize(input.normalWS);
                 float3 viewDirWS = normalize(input.viewDirWS);
 
-                // 1. Tương phản bề mặt 3D (Mặt trên sáng rõ, các mặt cạnh bên tối nhẹ hơn giúp nổi bật hình khối từng mảnh lục giác)
-                float faceShading = saturate(normalWS.y * 0.35 + 0.65);
-
-                // 2. Hiệu ứng viền sáng Fresnel định hình đường viền bên ngoài
+                // Hiệu ứng viền sáng Fresnel định hình đường viền bên ngoài
                 float NdotV = 1.0 - saturate(dot(normalWS, viewDirWS));
                 float rim = pow(NdotV, _FresnelPower) * _FresnelIntensity;
 
-                float4 finalColor = _BaseColor;
-                finalColor.rgb = _BaseColor.rgb * faceShading + rim * (_BaseColor.rgb + half3(0.15, 0.15, 0.15));
-                finalColor.a = saturate(_BaseColor.a + rim * 0.35);
+                // Phủ màu ĐỀU 100% trên toàn bộ mọi mặt (không bị chia cắt bởi góc normal hay mặt trên/mặt bên)
+                half4 finalColor;
+                finalColor.rgb = _BaseColor.rgb + rim * half3(0.20, 0.30, 0.20);
+                finalColor.a = saturate(_BaseColor.a + rim * 0.15);
 
                 return finalColor;
             }

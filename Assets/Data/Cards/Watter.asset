@@ -16,3 +16,8 @@ MonoBehaviour:
   cardName: Watter
   cardImage: {fileID: 1813264508, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
   cardType: 1
+  prefabToPlace: {fileID: 0}
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 0
+  allowedTilePrefabs:
+  - {fileID: 919132149155446097, guid: 05a797eec4841b94888f08cdea233791, type: 3}

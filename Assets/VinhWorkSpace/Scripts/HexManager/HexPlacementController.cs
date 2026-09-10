@@ -349,7 +349,12 @@ public class HexPlacementController : MonoBehaviour
             Quaternion spawnRot = Quaternion.Euler(0f, currentRotationStep * 60f, 0f);
 
             GameObject tileInstance = Instantiate(prefabToSpawn, worldPos, spawnRot, worldGenerator.transform);
-            tileInstance.name = $"Hex_{targetCoord.Q}_{targetCoord.R}_Type{levelIndex}";
+            tileInstance.name = $"Hex_{targetCoord.Q}_{targetCoord.R}_[{prefabToSpawn.name}]_Type{levelIndex}";
+
+            HexTileInfo tileInfo = tileInstance.AddComponent<HexTileInfo>();
+            tileInfo.sourcePrefab = prefabToSpawn;
+            tileInfo.terrainTypeIndex = levelIndex;
+            tileInfo.coordinates = targetCoord;
 
             // Lưu vào dữ liệu Map
             worldGenerator.MapTiles.Add(targetCoord, tileInstance);
