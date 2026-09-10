@@ -148,9 +148,30 @@ public class HexSinglePlacementController : MonoBehaviour
         ghostRoot = new GameObject("SingleHexPlacementRoot");
 
         // Tạo mô hình vật phẩm xem trước (Cây / Đá /...) nếu có
-        if (currentCardData != null && currentCardData.prefabToPlace != null)
+        GameObject previewPrefab = null;
+        if (currentCardData != null)
         {
-            itemGhostInstance = Instantiate(currentCardData.prefabToPlace, ghostRoot.transform);
+            if (currentCardData.prefabToPlace != null)
+            {
+                previewPrefab = currentCardData.prefabToPlace;
+            }
+            else if (currentCardData.HasHabitatProps())
+            {
+                // Lấy 1 mẫu prop tiêu biểu làm preview
+                foreach (var rule in currentCardData.habitatProps)
+                {
+                    if (rule != null && rule.prefabs != null && rule.prefabs.Count > 0 && rule.prefabs[0] != null)
+                    {
+                        previewPrefab = rule.prefabs[0];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (previewPrefab != null)
+        {
+            itemGhostInstance = Instantiate(previewPrefab, ghostRoot.transform);
             itemGhostInstance.name = "GhostItemPreview";
             itemGhostInstance.transform.localPosition = Vector3.zero;
 
@@ -370,13 +391,22 @@ public class HexSinglePlacementController : MonoBehaviour
             spawnWorldPos += cardData.placementOffset;
         }
 
-        // Sinh vật phẩm lên đỉnh ô
-        if (cardData != null && cardData.prefabToPlace != null)
+        // Sinh vật phẩm / hệ sinh thái Props lên đỉnh ô
+        if (cardData != null)
         {
-            GameObject placedObject = Instantiate(cardData.prefabToPlace, spawnWorldPos, Quaternion.identity, targetTileObj.transform);
-            placedObject.name = $"{cardData.cardName}_{currentHoverHex.Q}_{currentHoverHex.R}";
+            if (cardData.HasHabitatProps())
+            {
+                // Sinh tổ hợp props ngẫu nhiên phong cách Preserve
+                HexHabitatSpawner.Instance.SpawnHabitat(cardData, targetTileObj.transform, spawnWorldPos);
+            }
+            else if (cardData.prefabToPlace != null)
+            {
+                // Sinh vật phẩm đơn lẻ thông thường
+                GameObject placedObject = Instantiate(cardData.prefabToPlace, spawnWorldPos, Quaternion.identity, targetTileObj.transform);
+                placedObject.name = $"{cardData.cardName}_{currentHoverHex.Q}_{currentHoverHex.R}";
 
-            StartCoroutine(AnimatePopIn(placedObject.transform));
+                StartCoroutine(AnimatePopIn(placedObject.transform));
+            }
         }
 
         CancelPreview();
