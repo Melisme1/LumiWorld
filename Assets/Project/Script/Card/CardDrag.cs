@@ -19,6 +19,7 @@ public class CardDrag : MonoBehaviour,
     private int originalSiblingIndex;
 
     private Coroutine returnCoroutine;
+    private HexCameraController cameraController;
 
     // Important:
     // CardHover uses this to know whether
@@ -38,12 +39,20 @@ public class CardDrag : MonoBehaviour,
 
         handSlot =
             GetComponent<CardHandSlot>();
+
+        cameraController =
+            FindAnyObjectByType<HexCameraController>();
     }
 
     public void OnBeginDrag(
         PointerEventData eventData)
     {
         IsDragging = true;
+
+        if (cameraController != null)
+        {
+            cameraController.SetCardDragging(true);
+        }
 
         if (returnCoroutine != null)
         {
@@ -54,7 +63,6 @@ public class CardDrag : MonoBehaviour,
         originalSiblingIndex =
             transform.GetSiblingIndex();
 
-        // Put card above other cards
         transform.SetAsLastSibling();
 
         if (canvasGroup != null)
@@ -79,6 +87,11 @@ public class CardDrag : MonoBehaviour,
         PointerEventData eventData)
     {
         IsDragging = false;
+
+        if (cameraController != null)
+        {
+            cameraController.SetCardDragging(false);
+        }
 
         if (canvasGroup != null)
         {
