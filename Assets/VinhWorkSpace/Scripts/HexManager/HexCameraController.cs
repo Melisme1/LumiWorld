@@ -24,6 +24,8 @@ public class HexCameraController : MonoBehaviour
     private Vector3 targetEulerRotation;
     private Vector3 orbitPivotPoint;
 
+    private bool isCardDragging;
+
     private HexPlacementController placementController;
 
     private void Start()
@@ -48,43 +50,45 @@ public class HexCameraController : MonoBehaviour
         bool isInPlacement = placementController != null && placementController.IsInPlacementMode;
 
         // 1. ĐIỀU KHIỂN CHUỘT
-        if (isAltHeld)
+        if (!isCardDragging)
         {
-            // Alt + Chuột trái: Xoay quanh tâm nhìn (Orbit quanh tâm đảo)
-            if (mouse.leftButton.isPressed)
+            if (isAltHeld)
             {
-                HandleOrbit(mouseDelta);
+                // Alt + Chuột trái: Xoay quanh tâm nhìn (Orbit quanh tâm đảo)
+                if (mouse.leftButton.isPressed)
+                {
+                    HandleOrbit(mouseDelta);
+                }
+                // Alt + Chuột phải: Zoom mượt mà theo chuyển động kéo chuột
+                else if (mouse.rightButton.isPressed)
+                {
+                    HandleAltZoom(mouseDelta);
+                }
+                // Alt + Chuột giữa: Kéo rê màn hình (Pan)
+                else if (mouse.middleButton.isPressed)
+                {
+                    HandlePan(mouseDelta);
+                }
             }
-            // Alt + Chuột phải: Zoom mượt mà theo chuyển động kéo chuột
-            else if (mouse.rightButton.isPressed)
+            else
             {
-                HandleAltZoom(mouseDelta);
-            }
-            // Alt + Chuột giữa: Kéo rê màn hình (Pan)
-            else if (mouse.middleButton.isPressed)
-            {
-                HandlePan(mouseDelta);
+                // Chuột giữa: Luôn luôn kéo rê (Pan)
+                if (mouse.middleButton.isPressed)
+                {
+                    HandlePan(mouseDelta);
+                }
+                // Chuột phải: Xoay góc nhìn tự do (Free Look)
+                else if (mouse.rightButton.isPressed && !isInPlacement)
+                {
+                    HandleFreeLook(mouseDelta);
+                }
+                // Chuột trái: Kéo ngang qua lại (Pan) khi KHÔNG trong chế độ đặt và không bấm UI
+                else if (mouse.leftButton.isPressed && !isInPlacement && !isOverUI)
+                {
+                    HandlePan(mouseDelta);
+                }
             }
         }
-        else
-        {
-            // Chuột giữa: Luôn luôn kéo rê (Pan)
-            if (mouse.middleButton.isPressed)
-            {
-                HandlePan(mouseDelta);
-            }
-            // Chuột phải: Xoay góc nhìn tự do (Free Look)
-            else if (mouse.rightButton.isPressed && !isInPlacement)
-            {
-                HandleFreeLook(mouseDelta);
-            }
-            // Chuột trái: Kéo ngang qua lại (Pan) khi KHÔNG trong chế độ đặt và không bấm UI
-            else if (mouse.leftButton.isPressed && !isInPlacement && !isOverUI)
-            {
-                HandlePan(mouseDelta);
-            }
-        }
-
         // 2. DI CHUYỂN BẰNG PHÍM (WASD / Mũi tên)
         HandleKeyboardMovement(keyboard);
 
@@ -227,5 +231,10 @@ public class HexCameraController : MonoBehaviour
         {
             orbitPivotPoint = transform.position + transform.forward * 20f;
         }
+    }
+
+    public void SetCardDragging(bool dragging)
+    {
+        isCardDragging = dragging;
     }
 }
