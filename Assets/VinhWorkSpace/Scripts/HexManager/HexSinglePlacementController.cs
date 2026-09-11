@@ -58,6 +58,8 @@ public class HexSinglePlacementController : MonoBehaviour
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
 
     private GameObject currentActiveTileObj;
+    private readonly List<MeshRenderer> cachedGhostRenderers = new List<MeshRenderer>();
+    private Coroutine snapPunchCoroutine;
 
     public bool IsPreviewing => isPreviewing;
     public bool IsHoveringValidTile => isHoveringValidTile;
@@ -180,6 +182,7 @@ public class HexSinglePlacementController : MonoBehaviour
         }
 
         ghostRoot.SetActive(false);
+        RefreshCachedRenderers();
         ApplyColorToAllRenderers(invalidColor);
     }
 
@@ -220,9 +223,11 @@ public class HexSinglePlacementController : MonoBehaviour
             MeshRenderer mr = part.AddComponent<MeshRenderer>();
             if (ghostMaterial != null)
             {
-                mr.material = ghostMaterial;
+                mr.sharedMaterial = ghostMaterial;
             }
         }
+
+        RefreshCachedRenderers();
     }
 
     /// <summary>
@@ -339,7 +344,11 @@ public class HexSinglePlacementController : MonoBehaviour
             AnimatePulseVisuals();
 
             // Hiệu ứng nảy nhẹ khi snap trúng ô
-            StartCoroutine(AnimateSnapPunch());
+            if (snapPunchCoroutine != null)
+            {
+                StopCoroutine(snapPunchCoroutine);
+            }
+            snapPunchCoroutine = StartCoroutine(AnimateSnapPunch());
         }
         else
         {
@@ -423,6 +432,13 @@ public class HexSinglePlacementController : MonoBehaviour
         hasValidPreviousHex = false;
 
         ResetActiveTile();
+        cachedGhostRenderers.Clear();
+
+        if (snapPunchCoroutine != null)
+        {
+            StopCoroutine(snapPunchCoroutine);
+            snapPunchCoroutine = null;
+        }
 
         if (ghostRoot != null)
         {
@@ -446,13 +462,23 @@ public class HexSinglePlacementController : MonoBehaviour
         return HexMetrics.TileHeight;
     }
 
+    private void RefreshCachedRenderers()
+    {
+        cachedGhostRenderers.Clear();
+        if (ghostRoot != null)
+        {
+            ghostRoot.GetComponentsInChildren(true, cachedGhostRenderers);
+        }
+    }
+
     private void ApplyColorToAllRenderers(Color targetColor)
     {
         if (ghostRoot == null) return;
 
-        MeshRenderer[] renderers = ghostRoot.GetComponentsInChildren<MeshRenderer>();
-        foreach (var mr in renderers)
+        for (int i = 0; i < cachedGhostRenderers.Count; i++)
         {
+            var mr = cachedGhostRenderers[i];
+            if (mr == null) continue;
             mr.GetPropertyBlock(propBlock);
             propBlock.SetColor(ColorProperty, targetColor);
             mr.SetPropertyBlock(propBlock);
@@ -475,7 +501,7 @@ public class HexSinglePlacementController : MonoBehaviour
         MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>();
         foreach (var mr in renderers)
         {
-            mr.material = ghostMaterial;
+            mr.sharedMaterial = ghostMaterial;
         }
     }
 

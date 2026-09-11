@@ -68,6 +68,8 @@ public class HexHabitatSpawner : MonoBehaviour
         // Bán kính vùng an toàn của ô hex (Pointed-top: InnerRadius = 1.0f)
         float maxHexRadius = HexMetrics.InnerRadius * Mathf.Clamp(cardData.habitatSpawnMargin, 0.6f, 0.90f);
 
+        WaitForSeconds waitStagger = (staggerDelay > 0f) ? new WaitForSeconds(staggerDelay) : null;
+
         // Duyệt qua từng quy tắc prop đã cấu hình trong lá bài
         foreach (var rule in cardData.habitatProps)
         {
@@ -159,6 +161,23 @@ public class HexHabitatSpawner : MonoBehaviour
                 propInstance.name = $"{selectedPrefab.name}_{spawnedThisGroup}";
                 propInstance.transform.localScale = Vector3.zero; // Bắt đầu từ 0 để diễn hoạt nảy lên
 
+                // Tự động tắt Collider trên các props trang trí để giải phóng CPU Physics
+                Collider[] propColliders = propInstance.GetComponentsInChildren<Collider>();
+                for (int c = 0; c < propColliders.Length; c++)
+                {
+                    propColliders[c].enabled = false;
+                }
+
+                // Tắt đổ bóng cho các prop nhỏ (cỏ, hoa, sỏi đá nhỏ) để tiết kiệm draw calls
+                if (randomScale < 0.75f || rule.minDistance < 0.35f)
+                {
+                    Renderer[] propRenderers = propInstance.GetComponentsInChildren<Renderer>();
+                    for (int r = 0; r < propRenderers.Length; r++)
+                    {
+                        propRenderers[r].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    }
+                }
+
                 // Bán kính vùng cấm của prop này để các prop tiếp theo tránh ra
                 float footprint = Mathf.Clamp(rule.minDistance * 0.75f, 0.15f, 0.35f);
                 placedProps.Add((candidatePos2D, footprint));
@@ -167,9 +186,9 @@ public class HexHabitatSpawner : MonoBehaviour
                 // Hoạt ảnh trồi nảy nẩy (Pop-in EaseOutBack)
                 StartCoroutine(AnimatePropPopIn(propInstance.transform, targetScale));
 
-                if (staggerDelay > 0f)
+                if (waitStagger != null)
                 {
-                    yield return new WaitForSeconds(staggerDelay);
+                    yield return waitStagger;
                 }
             }
         }

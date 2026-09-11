@@ -1256,8 +1256,8 @@ MonoBehaviour:
   - {fileID: 919132149155446097, guid: 769f355a5fdfe6f47836fdecea3ff3d9, type: 3}
   cloudCount: 20
   areaSize: {x: 100, y: 100}
-  minHeight: 25
-  maxHeight: 30
+  minHeight: 20
+  maxHeight: 25
   scaleRange: {x: 1, y: 3}
   windDirection: {x: 1, y: 0.2}
   minSpeed: 0.8
