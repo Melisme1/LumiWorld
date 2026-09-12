@@ -85,7 +85,7 @@ public class HexSinglePlacementController : MonoBehaviour
             var multiPlacement = FindAnyObjectByType<HexPlacementController>();
             if (multiPlacement != null)
             {
-                var field = typeof(HexPlacementController).GetField("ghostMaterial", 
+                var field = typeof(HexPlacementController).GetField("ghostMaterial",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 if (field != null)
                 {
@@ -243,8 +243,8 @@ public class HexSinglePlacementController : MonoBehaviour
         {
             HexCoordinates targetHex = HexMetrics.WorldToHex(hitPoint);
 
-            bool isTileInMap = (worldGenerator != null && 
-                                worldGenerator.MapTiles != null && 
+            bool isTileInMap = (worldGenerator != null &&
+                                worldGenerator.MapTiles != null &&
                                 worldGenerator.MapTiles.ContainsKey(targetHex));
 
             GameObject tileObj = null;
@@ -376,7 +376,25 @@ public class HexSinglePlacementController : MonoBehaviour
             GameObject placedObject = Instantiate(cardData.prefabToPlace, spawnWorldPos, Quaternion.identity, targetTileObj.transform);
             placedObject.name = $"{cardData.cardName}_{currentHoverHex.Q}_{currentHoverHex.R}";
 
+            //LƯU THÔNG TIN CARD VÀO OBJECT ĐÃ ĐẶT
+            PlacedCard placedCard =
+                placedObject.GetComponent<PlacedCard>();
+
+            if (placedCard == null)
+            {
+                placedCard = placedObject.AddComponent<PlacedCard>();
+            }
+
+            placedCard.cardData = cardData;
+            placedCard.placedHex = currentHoverHex;
+
             StartCoroutine(AnimatePopIn(placedObject.transform));
+
+            //BaseScore
+            if (ScoreCalculator.Instance != null)
+            {
+                ScoreCalculator.Instance.RecalculateScore();
+            }
         }
 
         CancelPreview();
