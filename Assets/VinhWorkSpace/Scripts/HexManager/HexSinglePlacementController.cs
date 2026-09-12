@@ -58,6 +58,8 @@ public class HexSinglePlacementController : MonoBehaviour
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
 
     private GameObject currentActiveTileObj;
+    private readonly List<MeshRenderer> cachedGhostRenderers = new List<MeshRenderer>();
+    private Coroutine snapPunchCoroutine;
 
     public bool IsPreviewing => isPreviewing;
     public bool IsHoveringValidTile => isHoveringValidTile;
@@ -148,9 +150,30 @@ public class HexSinglePlacementController : MonoBehaviour
         ghostRoot = new GameObject("SingleHexPlacementRoot");
 
         // Tạo mô hình vật phẩm xem trước (Cây / Đá /...) nếu có
-        if (currentCardData != null && currentCardData.prefabToPlace != null)
+        GameObject previewPrefab = null;
+        if (currentCardData != null)
         {
-            itemGhostInstance = Instantiate(currentCardData.prefabToPlace, ghostRoot.transform);
+            if (currentCardData.prefabToPlace != null)
+            {
+                previewPrefab = currentCardData.prefabToPlace;
+            }
+            else if (currentCardData.HasHabitatProps())
+            {
+                // Lấy 1 mẫu prop tiêu biểu làm preview
+                foreach (var rule in currentCardData.habitatProps)
+                {
+                    if (rule != null && rule.prefabs != null && rule.prefabs.Count > 0 && rule.prefabs[0] != null)
+                    {
+                        previewPrefab = rule.prefabs[0];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (previewPrefab != null)
+        {
+            itemGhostInstance = Instantiate(previewPrefab, ghostRoot.transform);
             itemGhostInstance.name = "GhostItemPreview";
             itemGhostInstance.transform.localPosition = Vector3.zero;
 
@@ -159,6 +182,7 @@ public class HexSinglePlacementController : MonoBehaviour
         }
 
         ghostRoot.SetActive(false);
+        RefreshCachedRenderers();
         ApplyColorToAllRenderers(invalidColor);
     }
 
@@ -199,9 +223,11 @@ public class HexSinglePlacementController : MonoBehaviour
             MeshRenderer mr = part.AddComponent<MeshRenderer>();
             if (ghostMaterial != null)
             {
-                mr.material = ghostMaterial;
+                mr.sharedMaterial = ghostMaterial;
             }
         }
+
+        RefreshCachedRenderers();
     }
 
     /// <summary>
@@ -318,7 +344,11 @@ public class HexSinglePlacementController : MonoBehaviour
             AnimatePulseVisuals();
 
             // Hiệu ứng nảy nhẹ khi snap trúng ô
-            StartCoroutine(AnimateSnapPunch());
+            if (snapPunchCoroutine != null)
+            {
+                StopCoroutine(snapPunchCoroutine);
+            }
+            snapPunchCoroutine = StartCoroutine(AnimateSnapPunch());
         }
         else
         {
@@ -370,27 +400,42 @@ public class HexSinglePlacementController : MonoBehaviour
             spawnWorldPos += cardData.placementOffset;
         }
 
-        // Sinh vật phẩm lên đỉnh ô
-        if (cardData != null && cardData.prefabToPlace != null)
+        // Sinh vật phẩm / hệ sinh thái Props lên đỉnh ô
+        if (cardData != null)
         {
-            GameObject placedObject = Instantiate(cardData.prefabToPlace, spawnWorldPos, Quaternion.identity, targetTileObj.transform);
-            placedObject.name = $"{cardData.cardName}_{currentHoverHex.Q}_{currentHoverHex.R}";
-
-            //LƯU THÔNG TIN CARD VÀO OBJECT ĐÃ ĐẶT
-            PlacedCard placedCard =
-                placedObject.GetComponent<PlacedCard>();
-
-            if (placedCard == null)
+            if (cardData.HasHabitatProps())
             {
-                placedCard = placedObject.AddComponent<PlacedCard>();
+                // Sinh tổ hợp props ngẫu nhiên phong cách Preserve
+                HexHabitatSpawner.Instance.SpawnHabitat(cardData, targetTileObj.transform, spawnWorldPos);
+
+                // Lưu thông tin card vào tile đã đặt cho hệ thống tính điểm
+                PlacedCard placedCard = targetTileObj.GetComponent<PlacedCard>();
+                if (placedCard == null)
+                {
+                    placedCard = targetTileObj.AddComponent<PlacedCard>();
+                }
+                placedCard.cardData = cardData;
+                placedCard.placedHex = currentHoverHex;
+            }
+            else if (cardData.prefabToPlace != null)
+            {
+                // Sinh vật phẩm đơn lẻ thông thường
+                GameObject placedObject = Instantiate(cardData.prefabToPlace, spawnWorldPos, Quaternion.identity, targetTileObj.transform);
+                placedObject.name = $"{cardData.cardName}_{currentHoverHex.Q}_{currentHoverHex.R}";
+
+                // LƯU THÔNG TIN CARD VÀO OBJECT ĐÃ ĐẶT
+                PlacedCard placedCard = placedObject.GetComponent<PlacedCard>();
+                if (placedCard == null)
+                {
+                    placedCard = placedObject.AddComponent<PlacedCard>();
+                }
+                placedCard.cardData = cardData;
+                placedCard.placedHex = currentHoverHex;
+
+                StartCoroutine(AnimatePopIn(placedObject.transform));
             }
 
-            placedCard.cardData = cardData;
-            placedCard.placedHex = currentHoverHex;
-
-            StartCoroutine(AnimatePopIn(placedObject.transform));
-
-            //BaseScore
+            // Tính toán lại điểm số
             if (ScoreCalculator.Instance != null)
             {
                 ScoreCalculator.Instance.RecalculateScore();
@@ -411,6 +456,13 @@ public class HexSinglePlacementController : MonoBehaviour
         hasValidPreviousHex = false;
 
         ResetActiveTile();
+        cachedGhostRenderers.Clear();
+
+        if (snapPunchCoroutine != null)
+        {
+            StopCoroutine(snapPunchCoroutine);
+            snapPunchCoroutine = null;
+        }
 
         if (ghostRoot != null)
         {
@@ -434,13 +486,23 @@ public class HexSinglePlacementController : MonoBehaviour
         return HexMetrics.TileHeight;
     }
 
+    private void RefreshCachedRenderers()
+    {
+        cachedGhostRenderers.Clear();
+        if (ghostRoot != null)
+        {
+            ghostRoot.GetComponentsInChildren(true, cachedGhostRenderers);
+        }
+    }
+
     private void ApplyColorToAllRenderers(Color targetColor)
     {
         if (ghostRoot == null) return;
 
-        MeshRenderer[] renderers = ghostRoot.GetComponentsInChildren<MeshRenderer>();
-        foreach (var mr in renderers)
+        for (int i = 0; i < cachedGhostRenderers.Count; i++)
         {
+            var mr = cachedGhostRenderers[i];
+            if (mr == null) continue;
             mr.GetPropertyBlock(propBlock);
             propBlock.SetColor(ColorProperty, targetColor);
             mr.SetPropertyBlock(propBlock);
@@ -463,7 +525,7 @@ public class HexSinglePlacementController : MonoBehaviour
         MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>();
         foreach (var mr in renderers)
         {
-            mr.material = ghostMaterial;
+            mr.sharedMaterial = ghostMaterial;
         }
     }
 
