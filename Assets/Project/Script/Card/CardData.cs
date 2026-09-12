@@ -23,9 +23,6 @@ public class CardData : ScriptableObject
     [Header("Type")]
     public CardType cardType;
 
-    [Header("Score")]
-    public int baseScore = 1;
-
     [Header("Placement")]
     [Tooltip("Prefab to instantiate on the hex tile when played")]
     public GameObject prefabToPlace;

@@ -12,12 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
   m_Name: chitan
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardID: cat_001
-  cardName: Cat
+  cardID: chitan_001
+  cardName: Chitan
   cardImage: {fileID: -278153563, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
   cardType: 0
-  baseScore: 1
-  prefabToPlace: {fileID: 0}
-  placementOffset: {x: 0, y: 0, z: 0}
-  replacesTile: 0
-  allowedTilePrefabs: []
