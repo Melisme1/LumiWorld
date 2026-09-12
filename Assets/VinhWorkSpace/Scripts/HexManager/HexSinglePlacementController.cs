@@ -87,7 +87,7 @@ public class HexSinglePlacementController : MonoBehaviour
             var multiPlacement = FindAnyObjectByType<HexPlacementController>();
             if (multiPlacement != null)
             {
-                var field = typeof(HexPlacementController).GetField("ghostMaterial", 
+                var field = typeof(HexPlacementController).GetField("ghostMaterial",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 if (field != null)
                 {
@@ -269,8 +269,8 @@ public class HexSinglePlacementController : MonoBehaviour
         {
             HexCoordinates targetHex = HexMetrics.WorldToHex(hitPoint);
 
-            bool isTileInMap = (worldGenerator != null && 
-                                worldGenerator.MapTiles != null && 
+            bool isTileInMap = (worldGenerator != null &&
+                                worldGenerator.MapTiles != null &&
                                 worldGenerator.MapTiles.ContainsKey(targetHex));
 
             GameObject tileObj = null;
@@ -407,6 +407,15 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 // Sinh tổ hợp props ngẫu nhiên phong cách Preserve
                 HexHabitatSpawner.Instance.SpawnHabitat(cardData, targetTileObj.transform, spawnWorldPos);
+
+                // Lưu thông tin card vào tile đã đặt cho hệ thống tính điểm
+                PlacedCard placedCard = targetTileObj.GetComponent<PlacedCard>();
+                if (placedCard == null)
+                {
+                    placedCard = targetTileObj.AddComponent<PlacedCard>();
+                }
+                placedCard.cardData = cardData;
+                placedCard.placedHex = currentHoverHex;
             }
             else if (cardData.prefabToPlace != null)
             {
@@ -414,7 +423,22 @@ public class HexSinglePlacementController : MonoBehaviour
                 GameObject placedObject = Instantiate(cardData.prefabToPlace, spawnWorldPos, Quaternion.identity, targetTileObj.transform);
                 placedObject.name = $"{cardData.cardName}_{currentHoverHex.Q}_{currentHoverHex.R}";
 
+                // LƯU THÔNG TIN CARD VÀO OBJECT ĐÃ ĐẶT
+                PlacedCard placedCard = placedObject.GetComponent<PlacedCard>();
+                if (placedCard == null)
+                {
+                    placedCard = placedObject.AddComponent<PlacedCard>();
+                }
+                placedCard.cardData = cardData;
+                placedCard.placedHex = currentHoverHex;
+
                 StartCoroutine(AnimatePopIn(placedObject.transform));
+            }
+
+            // Tính toán lại điểm số
+            if (ScoreCalculator.Instance != null)
+            {
+                ScoreCalculator.Instance.RecalculateScore();
             }
         }
 
