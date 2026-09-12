@@ -67,37 +67,23 @@ public class CardHover : MonoBehaviour,
         // SCALE
         // =====================================
 
-        if ((rectTransform.localScale - targetScale).sqrMagnitude > 0.0001f)
-        {
-            rectTransform.localScale =
-                Vector3.Lerp(
-                    rectTransform.localScale,
-                    targetScale,
-                    Time.deltaTime * animationSpeed
-                );
-        }
-        else if (rectTransform.localScale != targetScale)
-        {
-            rectTransform.localScale = targetScale;
-        }
+        rectTransform.localScale =
+            Vector3.Lerp(
+                rectTransform.localScale,
+                targetScale,
+                Time.deltaTime * animationSpeed
+            );
 
         // =====================================
         // POSITION
         // =====================================
 
-        if ((rectTransform.anchoredPosition - targetPosition).sqrMagnitude > 0.01f)
-        {
-            rectTransform.anchoredPosition =
-                Vector2.Lerp(
-                    rectTransform.anchoredPosition,
-                    targetPosition,
-                    Time.deltaTime * animationSpeed
-                );
-        }
-        else if (rectTransform.anchoredPosition != targetPosition)
-        {
-            rectTransform.anchoredPosition = targetPosition;
-        }
+        rectTransform.anchoredPosition =
+            Vector2.Lerp(
+                rectTransform.anchoredPosition,
+                targetPosition,
+                Time.deltaTime * animationSpeed
+            );
     }
 
     public void OnPointerEnter(

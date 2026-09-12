@@ -20,18 +20,9 @@ public class HexCameraController : MonoBehaviour
     [Header("Độ mượt mà (Damping)")]
     [SerializeField] private float smoothTime = 16f;
 
-    [Header("Góc nhìn khởi đầu (Top-Down Isometric)")]
-    [Tooltip("Tự động đặt góc nhìn nghiêng từ trên xuống chuẩn Preserve khi bắt đầu game")]
-    [SerializeField] private bool autoSetupStartingView = true;
-    [SerializeField] private Vector3 startingEulerAngles = new Vector3(50f, -30f, 0f);
-    [SerializeField] private float startingDistance = 14f;
-    [SerializeField] private Vector3 lookAtCenter = new Vector3(0f, 0f, 0f);
-
     private Vector3 targetPosition;
     private Vector3 targetEulerRotation;
     private Vector3 orbitPivotPoint;
-    private float currentOrbitDistance = 14f;
-    private bool isOrbiting = false;
 
     private bool isCardDragging;
 
@@ -39,23 +30,9 @@ public class HexCameraController : MonoBehaviour
 
     private void Start()
     {
-        if (autoSetupStartingView)
-        {
-            Quaternion rot = Quaternion.Euler(startingEulerAngles);
-            rot.Normalize();
-            Vector3 offset = rot * (Vector3.back * startingDistance);
-            transform.position = lookAtCenter + offset;
-            transform.rotation = rot;
-            orbitPivotPoint = lookAtCenter;
-            currentOrbitDistance = startingDistance;
-        }
-        else
-        {
-            UpdateOrbitPivot();
-        }
-
         targetPosition = transform.position;
         targetEulerRotation = transform.eulerAngles;
+        UpdateOrbitPivot();
 
         placementController = FindAnyObjectByType<HexPlacementController>();
     }
@@ -80,32 +57,21 @@ public class HexCameraController : MonoBehaviour
                 // Alt + Chuột trái: Xoay quanh tâm nhìn (Orbit quanh tâm đảo)
                 if (mouse.leftButton.isPressed)
                 {
-                    if (!isOrbiting || mouse.leftButton.wasPressedThisFrame)
-                    {
-                        StartOrbit();
-                    }
                     HandleOrbit(mouseDelta);
                 }
-                else
+                // Alt + Chuột phải: Zoom mượt mà theo chuyển động kéo chuột
+                else if (mouse.rightButton.isPressed)
                 {
-                    isOrbiting = false;
-
-                    // Alt + Chuột phải: Zoom mượt mà theo chuyển động kéo chuột
-                    if (mouse.rightButton.isPressed)
-                    {
-                        HandleAltZoom(mouseDelta);
-                    }
-                    // Alt + Chuột giữa: Kéo rê màn hình (Pan)
-                    else if (mouse.middleButton.isPressed)
-                    {
-                        HandlePan(mouseDelta);
-                    }
+                    HandleAltZoom(mouseDelta);
+                }
+                // Alt + Chuột giữa: Kéo rê màn hình (Pan)
+                else if (mouse.middleButton.isPressed)
+                {
+                    HandlePan(mouseDelta);
                 }
             }
             else
             {
-                isOrbiting = false;
-
                 // Chuột giữa: Luôn luôn kéo rê (Pan)
                 if (mouse.middleButton.isPressed)
                 {
@@ -123,11 +89,6 @@ public class HexCameraController : MonoBehaviour
                 }
             }
         }
-        else
-        {
-            isOrbiting = false;
-        }
-
         // 2. DI CHUYỂN BẰNG PHÍM (WASD / Mũi tên)
         HandleKeyboardMovement(keyboard);
 
@@ -145,41 +106,14 @@ public class HexCameraController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(targetEulerRotation), Time.deltaTime * smoothTime);
     }
 
-    private void StartOrbit()
-    {
-        isOrbiting = true;
-
-        // Bắn tia từ camera xuống mặt đất để tìm đúng tâm nhìn hiện tại
-        Ray ray = new Ray(transform.position, transform.forward);
-        Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
-
-        if (groundPlane.Raycast(ray, out float enter) && enter > 0.5f && enter < 150f)
-        {
-            orbitPivotPoint = ray.GetPoint(enter);
-            currentOrbitDistance = enter;
-        }
-        else
-        {
-            currentOrbitDistance = Mathf.Clamp(targetPosition.y * 1.5f, minHeight * 1.5f, 35f);
-            orbitPivotPoint = transform.position + transform.forward * currentOrbitDistance;
-            orbitPivotPoint.y = 0f;
-            currentOrbitDistance = Vector3.Distance(transform.position, orbitPivotPoint);
-        }
-
-        // Đồng bộ để loại bỏ hoàn toàn hiện tượng nhảy vị trí đột ngột
-        targetEulerRotation = transform.eulerAngles;
-        targetPosition = transform.position;
-    }
-
     private void HandleOrbit(Vector2 delta)
     {
         targetEulerRotation.y += delta.x * orbitSensitivity;
         targetEulerRotation.x = Mathf.Clamp(targetEulerRotation.x - delta.y * orbitSensitivity, 10f, 85f);
 
         Quaternion rot = Quaternion.Euler(targetEulerRotation);
-        Vector3 newPos = orbitPivotPoint - (rot * Vector3.forward * currentOrbitDistance);
-        newPos.y = Mathf.Clamp(newPos.y, minHeight, maxHeight);
-        targetPosition = newPos;
+        float distance = Vector3.Distance(targetPosition, orbitPivotPoint);
+        targetPosition = orbitPivotPoint - (rot * Vector3.forward * distance);
     }
 
     private void HandleFreeLook(Vector2 delta)
@@ -212,7 +146,7 @@ public class HexCameraController : MonoBehaviour
 
     private void HandleAltZoom(Vector2 delta)
     {
-        float zoomDelta = delta.y * zoomSensitivity;
+        float zoomDelta = (delta.x + delta.y) * zoomSensitivity;
         ApplyZoom(zoomDelta);
     }
 
@@ -234,10 +168,7 @@ public class HexCameraController : MonoBehaviour
     private void ApplyZoom(float amount)
     {
         Vector3 newPos = targetPosition + transform.forward * amount;
-        if (newPos.y < minHeight || newPos.y > maxHeight)
-        {
-            return;
-        }
+        newPos.y = Mathf.Clamp(newPos.y, minHeight, maxHeight);
         targetPosition = newPos;
     }
 
