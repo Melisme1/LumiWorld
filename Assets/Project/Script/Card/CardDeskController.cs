@@ -4,6 +4,19 @@ using UnityEngine;
 
 public class CardDeskController : MonoBehaviour
 {
+
+    public static CardDeskController Instance;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
     [Header("References")]
     [SerializeField] private GameObject cardPrefab;
     [SerializeField] private Transform cardContainer;
@@ -206,6 +219,111 @@ public class CardDeskController : MonoBehaviour
         }
     }
 
+    // =========================================
+    // ADD REWARD CARD
+    // =========================================
+
+public void AddRewardCard(CardData cardData)
+{
+    if (cardData == null)
+    {
+        Debug.LogWarning(
+            "CardDeskController: Reward CardData is null."
+        );
+        return;
+    }
+
+    if (cardPrefab == null)
+    {
+        Debug.LogError(
+            "CardDeskController: Card Prefab is not assigned."
+        );
+        return;
+    }
+
+    if (cardContainer == null)
+    {
+        Debug.LogError(
+            "CardDeskController: Card Container is not assigned."
+        );
+        return;
+    }
+
+    GameObject card =
+        Instantiate(
+            cardPrefab,
+            cardContainer
+        );
+
+    CardUI cardUI =
+        card.GetComponent<CardUI>();
+
+    if (cardUI != null)
+    {
+        cardUI.Setup(cardData);
+    }
+
+    cards.Add(card);
+
+    // Tính lại vị trí cho toàn bộ hand
+    int cardCount = cards.Count;
+
+    float spacing =
+        CalculateSpacing(cardCount);
+
+    float totalWidth =
+        (cardCount - 1) * spacing;
+
+    int newCardIndex =
+        cards.Count - 1;
+
+    float x =
+        newCardIndex * spacing -
+        totalWidth / 2f;
+
+    Vector2 targetPosition =
+        new Vector2(x, 0f);
+
+    // Card mới
+    CardHandSlot handSlot =
+        card.GetComponent<CardHandSlot>();
+
+    if (handSlot != null)
+    {
+        handSlot.SetTargetPosition(
+            targetPosition
+        );
+    }
+
+    CardAppear appear =
+        card.GetComponent<CardAppear>();
+
+    if (appear != null)
+    {
+        appear.Play(
+            targetPosition,
+            0f
+        );
+    }
+    else
+    {
+        RectTransform rect =
+            card.GetComponent<RectTransform>();
+
+        if (rect != null)
+        {
+            rect.anchoredPosition =
+                targetPosition;
+        }
+    }
+
+    // Các card cũ tự sắp xếp lại
+    RearrangeCards();
+
+    Debug.Log(
+        $"Reward Card added: {cardData.cardName}"
+    );
+}
     // =========================================
     // CALCULATE SPACING
     // =========================================
