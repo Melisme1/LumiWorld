@@ -1,9 +1,23 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class CardDeskController : MonoBehaviour
 {
+
+    public static CardDeskController Instance;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
     [Header("References")]
     [SerializeField] private GameObject cardPrefab;
     [SerializeField] private Transform cardContainer;
@@ -31,8 +45,11 @@ public class CardDeskController : MonoBehaviour
 
     private IEnumerator SpawnCards()
     {
+        List<CardData> sortedCards = new List<CardData>(cardsToSpawn);
+        sortedCards.Sort(CompareCardData);
+
         int cardCount =
-            cardsToSpawn.Count;
+            sortedCards.Count;
 
         if (cardCount == 0)
         {
@@ -67,7 +84,7 @@ public class CardDeskController : MonoBehaviour
             if (cardUI != null)
             {
                 cardUI.Setup(
-                    cardsToSpawn[i]
+                    sortedCards[i]
                 );
             }
 
@@ -150,6 +167,13 @@ public class CardDeskController : MonoBehaviour
 
     public void RearrangeCards()
     {
+        RearrangeCards(null);
+    }
+
+    private void RearrangeCards(GameObject cardAlreadyAnimating)
+    {
+        SortCardsByTypeAndName();
+
         int cardCount =
             cards.Count;
 
@@ -188,7 +212,11 @@ public class CardDeskController : MonoBehaviour
             CardMoveToPosition mover =
                 cards[i].GetComponent<CardMoveToPosition>();
 
-            if (mover != null)
+            if (cards[i] == cardAlreadyAnimating)
+            {
+                continue;
+            }
+            else if (mover != null)
             {
                 mover.MoveTo(
                     targetPosition,
@@ -206,6 +234,113 @@ public class CardDeskController : MonoBehaviour
         }
     }
 
+    // =========================================
+    // ADD REWARD CARD
+    // =========================================
+
+public void AddRewardCard(CardData cardData)
+{
+    if (cardData == null)
+    {
+        Debug.LogWarning(
+            "CardDeskController: Reward CardData is null."
+        );
+        return;
+    }
+
+    if (cardPrefab == null)
+    {
+        Debug.LogError(
+            "CardDeskController: Card Prefab is not assigned."
+        );
+        return;
+    }
+
+    if (cardContainer == null)
+    {
+        Debug.LogError(
+            "CardDeskController: Card Container is not assigned."
+        );
+        return;
+    }
+
+    GameObject card =
+        Instantiate(
+            cardPrefab,
+            cardContainer
+        );
+
+    CardUI cardUI =
+        card.GetComponent<CardUI>();
+
+    if (cardUI != null)
+    {
+        cardUI.Setup(cardData);
+    }
+
+    cards.Add(card);
+
+    SortCardsByTypeAndName();
+
+    // Tính lại vị trí cho toàn bộ hand
+    int cardCount = cards.Count;
+
+    float spacing =
+        CalculateSpacing(cardCount);
+
+    float totalWidth =
+        (cardCount - 1) * spacing;
+
+    int newCardIndex =
+        cards.IndexOf(card);
+
+    float x =
+        newCardIndex * spacing -
+        totalWidth / 2f;
+
+    Vector2 targetPosition =
+        new Vector2(x, 0f);
+
+    // Card mới
+    CardHandSlot handSlot =
+        card.GetComponent<CardHandSlot>();
+
+    if (handSlot != null)
+    {
+        handSlot.SetTargetPosition(
+            targetPosition
+        );
+    }
+
+    CardAppear appear =
+        card.GetComponent<CardAppear>();
+
+    if (appear != null)
+    {
+        appear.Play(
+            targetPosition,
+            0f
+        );
+    }
+    else
+    {
+        RectTransform rect =
+            card.GetComponent<RectTransform>();
+
+        if (rect != null)
+        {
+            rect.anchoredPosition =
+                targetPosition;
+        }
+    }
+
+    // Các card cũ tự sắp xếp lại
+    RearrangeCards(card);
+
+    Debug.Log(
+        $"Reward Card added: {cardData.cardName}"
+    );
+}
     // =========================================
     // CALCULATE SPACING
     // =========================================
@@ -227,6 +362,46 @@ public class CardDeskController : MonoBehaviour
             spacing,
             minSpacing,
             maxSpacing
+        );
+    }
+
+    private void SortCardsByTypeAndName()
+    {
+        cards.Sort((left, right) => CompareCardData(
+            left != null ? left.GetComponent<CardUI>()?.CardData : null,
+            right != null ? right.GetComponent<CardUI>()?.CardData : null
+        ));
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            if (cards[i] != null)
+            {
+                cards[i].transform.SetSiblingIndex(i);
+            }
+        }
+    }
+
+    // Hand order: type first, then card name, then ID for a deterministic tie-break.
+    private static int CompareCardData(CardData left, CardData right)
+    {
+        if (left == right) return 0;
+        if (left == null) return 1;
+        if (right == null) return -1;
+
+        int typeComparison = left.cardType.CompareTo(right.cardType);
+        if (typeComparison != 0) return typeComparison;
+
+        int nameComparison = string.Compare(
+            left.cardName,
+            right.cardName,
+            StringComparison.OrdinalIgnoreCase
+        );
+        if (nameComparison != 0) return nameComparison;
+
+        return string.Compare(
+            left.cardID,
+            right.cardID,
+            StringComparison.OrdinalIgnoreCase
         );
     }
 }

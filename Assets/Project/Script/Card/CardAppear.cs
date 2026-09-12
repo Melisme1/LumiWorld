@@ -12,21 +12,36 @@ public class CardAppear : MonoBehaviour
     private CanvasGroup canvasGroup;
 
     private Vector2 targetPosition;
+    private Coroutine appearCoroutine;
 
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
 
+        if (canvasGroup == null)
+        {
+            canvasGroup =
+                gameObject.AddComponent<CanvasGroup>();
+        }
+
         canvasGroup.alpha = 0f;
-        rectTransform.localScale = Vector3.one * startScale;
+
+        rectTransform.localScale =
+            Vector3.one * startScale;
     }
 
     public void Play(Vector2 finalPosition, float delay)
     {
         targetPosition = finalPosition;
 
-        StartCoroutine(Appear(delay));
+        if (appearCoroutine != null)
+        {
+            StopCoroutine(appearCoroutine);
+        }
+
+        appearCoroutine =
+            StartCoroutine(Appear(delay));
     }
 
     private IEnumerator Appear(float delay)
@@ -34,10 +49,14 @@ public class CardAppear : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         Vector2 startPosition =
-            targetPosition + Vector2.up * startOffsetY;
+            targetPosition +
+            Vector2.up * startOffsetY;
 
-        rectTransform.anchoredPosition = startPosition;
-        rectTransform.localScale = Vector3.one * startScale;
+        rectTransform.anchoredPosition =
+            startPosition;
+
+        rectTransform.localScale =
+            Vector3.one * startScale;
 
         canvasGroup.alpha = 0f;
 
@@ -47,9 +66,15 @@ public class CardAppear : MonoBehaviour
         {
             time += Time.deltaTime;
 
-            float t = time / duration;
+            float t =
+                Mathf.Clamp01(time / duration);
 
-            t = Mathf.SmoothStep(0f, 1f, t);
+            t =
+                Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    t
+                );
 
             rectTransform.anchoredPosition =
                 Vector2.Lerp(
@@ -70,8 +95,34 @@ public class CardAppear : MonoBehaviour
             yield return null;
         }
 
-        rectTransform.anchoredPosition = targetPosition;
-        rectTransform.localScale = Vector3.one;
+        // Đảm bảo trạng thái cuối cùng luôn đúng
+        rectTransform.anchoredPosition =
+            targetPosition;
+
+        rectTransform.localScale =
+            Vector3.one;
+
+        canvasGroup.alpha = 1f;
+
+        appearCoroutine = null;
+    }
+
+    public void ShowImmediately(Vector2 position)
+    {
+        if (appearCoroutine != null)
+        {
+            StopCoroutine(appearCoroutine);
+            appearCoroutine = null;
+        }
+
+        targetPosition = position;
+
+        rectTransform.anchoredPosition =
+            position;
+
+        rectTransform.localScale =
+            Vector3.one;
+
         canvasGroup.alpha = 1f;
     }
 }

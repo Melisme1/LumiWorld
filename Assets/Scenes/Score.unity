@@ -533,6 +533,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
@@ -733,6 +735,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   currentScore: 0
+  rewardMilestones:
+  - scoreThreshold: 10
+    rewardCards:
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - scoreThreshold: 15
+    rewardCards:
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  - scoreThreshold: 15
+    rewardCards: []
 --- !u!4 &691234272
 Transform:
   m_ObjectHideFlags: 0
@@ -1142,6 +1157,10 @@ MonoBehaviour:
   minHeight: 5
   maxHeight: 40
   smoothTime: 8
+  autoSetupStartingView: 1
+  startingEulerAngles: {x: 50, y: -30, z: 0}
+  startingDistance: 14
+  lookAtCenter: {x: 0, y: 0, z: 0}
 --- !u!1 &1357980047
 GameObject:
   m_ObjectHideFlags: 0
