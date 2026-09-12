@@ -16,9 +16,8 @@ public class HexGroupDetector : MonoBehaviour
         Instance = this;
     }
 
-    // =========================================================
+
     // TÌM TOÀN BỘ GROUP CÙNG LOẠI
-    // =========================================================
 
     public List<PlacedCard> FindGroup(PlacedCard startCard)
     {
@@ -51,9 +50,8 @@ public class HexGroupDetector : MonoBehaviour
             }
         }
 
-        // =====================================================
+
         // FLOOD FILL / BFS
-        // =====================================================
 
         Queue<PlacedCard> queue =
             new Queue<PlacedCard>();
@@ -104,9 +102,8 @@ public class HexGroupDetector : MonoBehaviour
         return group;
     }
 
-    // =========================================================
+
     // KIỂM TRA 2 CARD CÓ CÙNG LOẠI KHÔNG
-    // =========================================================
 
     private bool IsSameCardType(
         PlacedCard a,
