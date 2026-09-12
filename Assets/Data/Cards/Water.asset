@@ -10,14 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
-  m_Name: Tree
+  m_Name: Water
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardID: tree_001
-  cardName: Tree
-  cardImage: {fileID: -866576416, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardID: water_001
+  cardName: Water
+  cardImage: {fileID: 1813264508, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
   cardType: 1
-  prefabToPlace: {fileID: 919132149155446097, guid: 762f38dcbc864e24eafd509bca45a87d, type: 3}
+  prefabToPlace: {fileID: 0}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
+  habitatSpawnMargin: 0.8
+  habitatProps: []
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: ec8ae420f24764d4390be6e29aba6bcf, type: 3}
+  - {fileID: 919132149155446097, guid: 05a797eec4841b94888f08cdea233791, type: 3}

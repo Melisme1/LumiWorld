@@ -86,6 +86,12 @@ public class FloatingCloudsManager : MonoBehaviour
             GameObject obj = Instantiate(prefab, transform);
             obj.name = $"Cloud_{i}";
 
+            foreach (var rend in obj.GetComponentsInChildren<Renderer>())
+            {
+                rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                rend.receiveShadows = false;
+            }
+
             CloudInstance cloud = new CloudInstance
             {
                 GameObject = obj,
@@ -128,7 +134,11 @@ public class FloatingCloudsManager : MonoBehaviour
                 float baseSize = Random.Range(1.2f, 2.0f);
                 puff.transform.localScale = new Vector3(baseSize * 1.2f, baseSize * 0.55f, baseSize * 1.0f);
 
-                puff.GetComponent<Renderer>().sharedMaterial = cloudMat;
+                Renderer r = puff.GetComponent<Renderer>();
+                r.sharedMaterial = cloudMat;
+                // Mây trời KHÔNG được đổ bóng đen xuống mặt biển
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
                 
                 // Tắt collider
                 Destroy(puff.GetComponent<Collider>());
