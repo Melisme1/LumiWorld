@@ -480,12 +480,10 @@ MonoBehaviour:
   cardPrefab: {fileID: 3296435945646191664, guid: 90ea1562e9b96fa4c868961ac74e12d4, type: 3}
   cardContainer: {fileID: 116974594}
   cardsToSpawn:
-  - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
   - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
-  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
-  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
-  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
-  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
@@ -1221,7 +1219,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::OceanFollowCamera
   targetCamera: {fileID: 1110052839}
   waterLevelY: -0.3
-  snapStep: 1
 --- !u!1 &1896951812
 GameObject:
   m_ObjectHideFlags: 0
