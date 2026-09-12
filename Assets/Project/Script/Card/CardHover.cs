@@ -48,7 +48,7 @@ public class CardHover : MonoBehaviour,
         // =====================================
 
         if (cardDrag != null &&
-            cardDrag.IsDragging)
+            (cardDrag.IsDragging || cardDrag.IsReturningToHand))
         {
             return;
         }
@@ -105,7 +105,7 @@ public class CardHover : MonoBehaviour,
     {
         // Don't activate hover while dragging
         if (cardDrag != null &&
-            cardDrag.IsDragging)
+            (cardDrag.IsDragging || cardDrag.IsReturningToHand))
         {
             return;
         }
@@ -140,6 +140,22 @@ public class CardHover : MonoBehaviour,
         transform.SetSiblingIndex(
             originalSiblingIndex
         );
+    }
+
+    // Called by CardDrag before it records the card's original sibling index.
+    // Without this, a hovered card is recorded as the last sibling and stays
+    // above every other card after a failed placement.
+    public void EndHoverForDrag()
+    {
+        if (!isHovering)
+        {
+            return;
+        }
+
+        isHovering = false;
+        targetScale = normalScale;
+        targetPosition = GetHomePosition();
+        transform.SetSiblingIndex(originalSiblingIndex);
     }
 
     private Vector2 GetHomePosition()

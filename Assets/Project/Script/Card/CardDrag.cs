@@ -53,6 +53,7 @@ public class CardDrag : MonoBehaviour,
     // CardHover uses this to know whether
     // the card is currently being dragged.
     public bool IsDragging { get; private set; }
+    public bool IsReturningToHand { get; private set; }
 
     private void Awake()
     {
@@ -124,6 +125,7 @@ public class CardDrag : MonoBehaviour,
     public void OnBeginDrag(PointerEventData eventData)
     {
         IsDragging = true;
+        IsReturningToHand = false;
         targetTilt = 0f;
         currentTilt = 0f;
         currentPointerPosition = eventData.position;
@@ -154,6 +156,14 @@ public class CardDrag : MonoBehaviour,
         {
             StopCoroutine(returnCoroutine);
             returnCoroutine = null;
+        }
+
+        // Hover moves a card to the last sibling. Restore its normal hand
+        // order before remembering the index used to return from dragging.
+        CardHover cardHover = GetComponent<CardHover>();
+        if (cardHover != null)
+        {
+            cardHover.EndHoverForDrag();
         }
 
         originalSiblingIndex = transform.GetSiblingIndex();
@@ -226,6 +236,7 @@ public class CardDrag : MonoBehaviour,
     {
         if (handSlot == null) return;
 
+        IsReturningToHand = true;
         Vector2 targetPosition = handSlot.TargetPosition;
 
         if (returnCoroutine != null)
@@ -273,6 +284,7 @@ public class CardDrag : MonoBehaviour,
         }
 
         transform.SetSiblingIndex(originalSiblingIndex);
+        IsReturningToHand = false;
         returnCoroutine = null;
     }
 }
