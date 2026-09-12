@@ -13,4 +13,7 @@ public class HexTileInfo : MonoBehaviour
 
     [Tooltip("Tọa độ của ô trên bản đồ")]
     public HexCoordinates coordinates;
+
+    [Tooltip("Trạng thái ô đã được đặt card / prop lên chưa")]
+    public bool isOccupied;
 }

@@ -205,11 +205,12 @@ public class HexSinglePlacementController : MonoBehaviour
         hologramShellObj.transform.localRotation = targetTileObj.transform.localRotation;
         hologramShellObj.transform.localScale = previewScale;
 
-        // Sao chép toàn bộ các MeshFilter và MeshRenderer từ khối đang trỏ tới sang vỏ bọc
+        // Sao chép toàn bộ các MeshFilter và MeshRenderer từ khối đang trỏ tới sang vỏ bọc (bỏ qua các prop/vật phẩm đã đặt trên ô)
         MeshFilter[] sourceFilters = targetTileObj.GetComponentsInChildren<MeshFilter>();
         foreach (var srcMf in sourceFilters)
         {
             if (srcMf == null || srcMf.sharedMesh == null) continue;
+            if (IsPartOfPlacedProp(srcMf.transform, targetTileObj.transform)) continue;
 
             GameObject part = new GameObject(srcMf.name);
             part.transform.SetParent(hologramShellObj.transform, false);
@@ -278,11 +279,14 @@ public class HexSinglePlacementController : MonoBehaviour
             Vector3 baseTilePos = HexMetrics.HexToWorldPosition(targetHex, 0f);
 
             bool isAllowedByCard = true;
+            bool isOccupied = false;
             if (isTileInMap)
             {
                 tileObj = worldGenerator.MapTiles[targetHex];
                 surfaceY = GetTileSurfaceY(tileObj);
                 baseTilePos = tileObj.transform.position;
+
+                isOccupied = IsTileOccupied(tileObj);
 
                 if (currentCardData != null)
                 {
@@ -290,7 +294,7 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
             }
 
-            bool isValid = isTileInMap && isAllowedByCard;
+            bool isValid = isTileInMap && !isOccupied && isAllowedByCard;
             bool hexChanged = (!hasValidPreviousHex || targetHex != currentHoverHex);
 
             currentHoverHex = targetHex;
@@ -384,6 +388,12 @@ public class HexSinglePlacementController : MonoBehaviour
             return false;
         }
 
+        if (IsTileOccupied(targetTileObj))
+        {
+            CancelPreview();
+            return false;
+        }
+
         if (cardData != null && !cardData.IsTileAllowed(targetTileObj, worldGenerator))
         {
             CancelPreview();
@@ -434,6 +444,24 @@ public class HexSinglePlacementController : MonoBehaviour
 
                 StartCoroutine(AnimatePopIn(placedObject.transform));
             }
+            else
+            {
+                // Trường hợp lá bài không có prefab lẫn habitat props nhưng vẫn tính là đã đặt
+                PlacedCard placedCard = targetTileObj.GetComponent<PlacedCard>();
+                if (placedCard == null)
+                {
+                    placedCard = targetTileObj.AddComponent<PlacedCard>();
+                }
+                placedCard.cardData = cardData;
+                placedCard.placedHex = currentHoverHex;
+            }
+
+            // Đánh dấu ô đã bị chiếm dụng trong HexTileInfo
+            HexTileInfo tileInfo = targetTileObj.GetComponent<HexTileInfo>();
+            if (tileInfo != null)
+            {
+                tileInfo.isOccupied = true;
+            }
 
             // Tính toán lại điểm số
             if (ScoreCalculator.Instance != null)
@@ -473,14 +501,77 @@ public class HexSinglePlacementController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Kiểm tra xem ô lục giác đã được đặt bài / vật phẩm từ trước hay chưa
+    /// </summary>
+    public bool IsTileOccupied(HexCoordinates coords)
+    {
+        if (worldGenerator == null || worldGenerator.MapTiles == null) return false;
+        if (worldGenerator.MapTiles.TryGetValue(coords, out GameObject tileObj))
+        {
+            return IsTileOccupied(tileObj);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem Game Object của ô lục giác đã được đặt bài / vật phẩm từ trước hay chưa
+    /// </summary>
+    public bool IsTileOccupied(GameObject tileObj)
+    {
+        if (tileObj == null) return false;
+
+        // 1. Kiểm tra cờ isOccupied trong HexTileInfo nếu có
+        HexTileInfo tileInfo = tileObj.GetComponent<HexTileInfo>();
+        if (tileInfo != null && tileInfo.isOccupied)
+        {
+            return true;
+        }
+
+        // 2. Kiểm tra xem tile hoặc các object con của tile đã gắn PlacedCard chưa
+        if (tileObj.GetComponentInChildren<PlacedCard>() != null)
+        {
+            return true;
+        }
+
+        // 3. Kiểm tra xem tile có chứa container Habitat_ không
+        for (int i = 0; i < tileObj.transform.childCount; i++)
+        {
+            Transform child = tileObj.transform.GetChild(i);
+            if (child != null && child.name.StartsWith("Habitat_"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsPartOfPlacedProp(Transform t, Transform tileTransform)
+    {
+        Transform curr = t;
+        while (curr != null && curr != tileTransform)
+        {
+            if (curr.GetComponent<PlacedCard>() != null || curr.name.StartsWith("Habitat_"))
+            {
+                return true;
+            }
+            curr = curr.parent;
+        }
+        return false;
+    }
+
     private float GetTileSurfaceY(GameObject tileObj)
     {
         if (tileObj != null)
         {
-            Renderer r = tileObj.GetComponentInChildren<Renderer>();
-            if (r != null)
+            Renderer[] renderers = tileObj.GetComponentsInChildren<Renderer>();
+            foreach (var r in renderers)
             {
-                return r.bounds.max.y;
+                if (r != null && !IsPartOfPlacedProp(r.transform, tileObj.transform))
+                {
+                    return r.bounds.max.y;
+                }
             }
         }
         return HexMetrics.TileHeight;
