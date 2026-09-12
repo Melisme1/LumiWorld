@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
+  m_Name: Mountain
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardID: mountain_001
+  cardName: Mountain
+  cardImage: {fileID: -1485477234, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardType: 1
+  prefabToPlace: {fileID: 0}
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 0
+  habitatSpawnMargin: 0.9
+  habitatProps:
+  - groupName: Main Mountain Peak
+    prefabs:
+    - {fileID: 919132149155446097, guid: 747efa9f15a0edc4aa8d72719ba930e2, type: 3}
+    - {fileID: 919132149155446097, guid: a1d0f45912bc0194b80cade2bcab7fac, type: 3}
+    - {fileID: 919132149155446097, guid: 9dab0a6c5e4d24546aa5321697fbc04f, type: 3}
+    - {fileID: 919132149155446097, guid: ae80935d2ff673642a16be666f938749, type: 3}
+    - {fileID: 919132149155446097, guid: fa3d5bcf680d00e488f0547151eeb32c, type: 3}
+    - {fileID: 919132149155446097, guid: 4e725932b43beb14ab736754c0653bba, type: 3}
+    - {fileID: 919132149155446097, guid: b563fa8daadb9584f93b5a5222a02496, type: 3}
+    - {fileID: 919132149155446097, guid: e2805a023190de2469e452f1a3d4ab03, type: 3}
+    - {fileID: 919132149155446097, guid: e512c0935501cf042a64e3eed5bcd272, type: 3}
+    countRange: {x: 1, y: 1}
+    minDistance: 0
+    scaleRange: {x: 0.95, y: 1.05}
+    maxTiltAngle: 0
+    placeAtCenter: 1
+  - groupName: Foothill Boulders
+    prefabs:
+    - {fileID: 919132149155446097, guid: b553bcdd35e9a664cb31ce98899c2841, type: 3}
+    - {fileID: 919132149155446097, guid: 4c1dbfe52dc272f4faa17f7940d03cdb, type: 3}
+    - {fileID: 919132149155446097, guid: 7f246a37cd386ea499007b3fe85120b9, type: 3}
+    - {fileID: 919132149155446097, guid: bd7f86f7985dbbd4d915ba49ff2f7d62, type: 3}
+    - {fileID: 919132149155446097, guid: 3f6b3a6269e016a499a6fc83408a2a1e, type: 3}
+    countRange: {x: 2, y: 4}
+    minDistance: 0.35
+    scaleRange: {x: 0.7, y: 1.1}
+    maxTiltAngle: 6
+    placeAtCenter: 0
+  allowedTilePrefabs:
+  - {fileID: 919132149155446097, guid: b63bdd86ddf5b7847babbbfa55d227a9, type: 3}
