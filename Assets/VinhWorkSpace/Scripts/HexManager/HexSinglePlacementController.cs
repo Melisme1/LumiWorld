@@ -400,9 +400,6 @@ public class HexSinglePlacementController : MonoBehaviour
             spawnWorldPos += cardData.placementOffset;
         }
 
-        // Ghi lại điểm trước khi đặt để tính lượng điểm tăng thêm (hiệu ứng +X)
-        int scoreBefore = ScoreManager.Instance != null ? ScoreManager.Instance.CurrentScore : 0;
-
         // Sinh vật phẩm / hệ sinh thái Props lên đỉnh ô
         if (cardData != null)
         {
@@ -445,10 +442,10 @@ public class HexSinglePlacementController : MonoBehaviour
             }
 
             // Hiệu ứng cộng điểm "+X" (Preserve style)
-            // Hiển thị tại TỪNG khối trong nhóm với điểm riêng của nó:
-            //  - Nhóm < 3 khối  -> mỗi khối +1 (baseScore)
-            //  - Nhóm >= 3 khối -> mỗi khối +2 (baseScore x hệ số nhóm)
-            ShowGroupScorePopups();
+            // Chỉ hiển thị 1 lần tại khối vừa đặt, giá trị theo quy tắc nhóm:
+            //  - Nhóm < 3 khối  -> +1 (baseScore)
+            //  - Nhóm >= 3 khối -> +2 (baseScore x hệ số nhóm)
+            ShowPlacementScorePopup(spawnWorldPos);
         }
 
         CancelPreview();
@@ -456,10 +453,12 @@ public class HexSinglePlacementController : MonoBehaviour
     }
 
     /// <summary>
-    /// Hiển thị hiệu ứng "+X" tại từng khối trong nhóm của card vừa đặt.
-    /// Điểm mỗi khối được tính lại đúng theo quy tắc nhóm hiện tại.
+    /// Hiển thị hiệu ứng "+X" MỘT LẦN DUY NHẤT tại khối vừa đặt.
+    /// Giá trị điểm tính theo quy tắc nhóm hiện tại của khối đó:
+    ///  - Nhóm < 3 khối  -> +1 (baseScore)
+    ///  - Nhóm >= 3 khối -> +2 (baseScore x groupMultiplier)
     /// </summary>
-    private void ShowGroupScorePopups()
+    private void ShowPlacementScorePopup(Vector3 worldPosition)
     {
         if (HexGroupDetector.Instance == null) return;
 
@@ -470,14 +469,16 @@ public class HexSinglePlacementController : MonoBehaviour
             worldGenerator.MapTiles.TryGetValue(currentHoverHex, out tileObj);
         }
 
-        PlacedCard placedCard = tileObj != null ? tileObj.GetComponent<PlacedCard>() : null;
+        // PlacedCard có thể nằm ngay trên tile (habitat props) hoặc trên object con (prefabToPlace)
+        PlacedCard placedCard = tileObj != null
+            ? tileObj.GetComponentInChildren<PlacedCard>()
+            : null;
+
         if (placedCard == null || placedCard.cardData == null) return;
 
         // Tìm toàn bộ nhóm cùng loại chứa khối vừa đặt
         System.Collections.Generic.List<PlacedCard> group =
             HexGroupDetector.Instance.FindGroup(placedCard);
-
-        if (group == null || group.Count == 0) return;
 
         // Hệ số nhân theo quy tắc của ScoreCalculator
         int groupRequired = 3;
@@ -489,20 +490,15 @@ public class HexSinglePlacementController : MonoBehaviour
             groupMultiplier = ScoreCalculator.Instance.GroupMultiplier;
         }
 
-        // Nhóm đủ lớn -> mỗi khối được nhân hệ số, ngược lại dùng điểm gốc
-        bool isCompleteGroup = group.Count >= groupRequired;
+        // Nhóm đủ lớn -> nhân hệ số, ngược lại dùng điểm gốc
+        bool isCompleteGroup = group != null && group.Count >= groupRequired;
 
-        foreach (PlacedCard card in group)
-        {
-            if (card == null || card.cardData == null) continue;
+        int cardScore = isCompleteGroup
+            ? placedCard.cardData.baseScore * groupMultiplier
+            : placedCard.cardData.baseScore;
 
-            int cardScore = isCompleteGroup
-                ? card.cardData.baseScore * groupMultiplier
-                : card.cardData.baseScore;
-
-            Vector3 worldPos = HexMetrics.HexToWorldPosition(card.placedHex, HexMetrics.TileHeight);
-            ScorePopupManager.ShowScore(cardScore, worldPos);
-        }
+        // CHỈ hiển thị 1 lần tại khối vừa đặt, không hiện lại ở các khối cũ
+        ScorePopupManager.ShowScore(cardScore, worldPosition);
     }
 
     /// <summary>

@@ -752,7 +752,7 @@ MonoBehaviour:
   spritePlus1: {fileID: -1219050701, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
   spritePlus2: {fileID: 221530739, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
   spritePlus10: {fileID: 1509225936, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
-  spawnHeightOffset: 0.35
+  spawnHeightOffset: 1
   popupScale: 0.6
 --- !u!1 &691234270
 GameObject:

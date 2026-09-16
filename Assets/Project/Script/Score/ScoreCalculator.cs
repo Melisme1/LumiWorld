@@ -9,6 +9,9 @@ public class ScoreCalculator : MonoBehaviour
     [SerializeField] private int groupRequired = 3;
     [SerializeField] private int groupMultiplier = 2;
 
+    public int GroupRequired => groupRequired;
+    public int GroupMultiplier => groupMultiplier;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
