@@ -442,10 +442,10 @@ public class HexSinglePlacementController : MonoBehaviour
             }
 
             // Hiệu ứng cộng điểm "+X" (Preserve style)
-            // Chỉ hiển thị 1 lần tại khối vừa đặt, giá trị theo quy tắc nhóm:
-            //  - Nhóm < 3 khối  -> +1 (baseScore)
-            //  - Nhóm >= 3 khối -> +2 (baseScore x hệ số nhóm)
-            ShowPlacementScorePopup(spawnWorldPos);
+            // Hiển thị phần điểm tăng thêm của từng khối trong nhóm:
+            //  - Nhóm < 3 khối  -> +1
+            //  - Nhóm >= 3 khối -> khối mới +2, các khối cũ hiện thêm +1 (nâng cấp)
+            ShowPlacementScorePopup();
         }
 
         CancelPreview();
@@ -453,12 +453,17 @@ public class HexSinglePlacementController : MonoBehaviour
     }
 
     /// <summary>
-    /// Hiển thị hiệu ứng "+X" MỘT LẦN DUY NHẤT tại khối vừa đặt.
-    /// Giá trị điểm tính theo quy tắc nhóm hiện tại của khối đó:
-    ///  - Nhóm < 3 khối  -> +1 (baseScore)
-    ///  - Nhóm >= 3 khối -> +2 (baseScore x groupMultiplier)
+    /// Hiển thị hiệu ứng "+X" cho phần điểm TĂNG THÊM của từng khối trong nhóm.
+    ///
+    /// Quy tắc (Preserve style):
+    ///  - Nhóm < 3 khối  -> mỗi khối = baseScore           (ví dụ +1)
+    ///  - Nhóm >= 3 khối -> mỗi khối = baseScore x hệ số   (ví dụ +2)
+    ///
+    /// Mỗi khối chỉ hiển thị phần chênh lệch so với giá trị đã hiện trước đó:
+    ///  - Khối 1, 2 đã hiện +1 -> khi nhóm đủ 3, hiện thêm +1 (nâng cấp lên +2)
+    ///  - Khối 3 vừa đặt -> hiện +2
     /// </summary>
-    private void ShowPlacementScorePopup(Vector3 worldPosition)
+    private void ShowPlacementScorePopup()
     {
         if (HexGroupDetector.Instance == null) return;
 
@@ -480,6 +485,11 @@ public class HexSinglePlacementController : MonoBehaviour
         System.Collections.Generic.List<PlacedCard> group =
             HexGroupDetector.Instance.FindGroup(placedCard);
 
+        if (group == null || group.Count == 0)
+        {
+            group = new System.Collections.Generic.List<PlacedCard> { placedCard };
+        }
+
         // Hệ số nhân theo quy tắc của ScoreCalculator
         int groupRequired = 3;
         int groupMultiplier = 2;
@@ -491,14 +501,28 @@ public class HexSinglePlacementController : MonoBehaviour
         }
 
         // Nhóm đủ lớn -> nhân hệ số, ngược lại dùng điểm gốc
-        bool isCompleteGroup = group != null && group.Count >= groupRequired;
+        bool isCompleteGroup = group.Count >= groupRequired;
 
-        int cardScore = isCompleteGroup
-            ? placedCard.cardData.baseScore * groupMultiplier
-            : placedCard.cardData.baseScore;
+        foreach (PlacedCard card in group)
+        {
+            if (card == null || card.cardData == null) continue;
 
-        // CHỈ hiển thị 1 lần tại khối vừa đặt, không hiện lại ở các khối cũ
-        ScorePopupManager.ShowScore(cardScore, worldPosition);
+            // Giá trị điểm đúng của khối theo quy tắc nhóm hiện tại
+            int targetScore = isCompleteGroup
+                ? card.cardData.baseScore * groupMultiplier
+                : card.cardData.baseScore;
+
+            // Phần tăng thêm so với lần hiển thị trước (đã lưu trên PlacedCard)
+            int gained = targetScore - card.displayedScore;
+
+            if (gained <= 0) continue;
+
+            Vector3 cardWorldPos = HexMetrics.HexToWorldPosition(card.placedHex, HexMetrics.TileHeight);
+            ScorePopupManager.ShowScore(gained, cardWorldPos);
+
+            // Ghi nhớ mức điểm đã hiển thị để lần sau chỉ hiện phần chênh lệch
+            card.displayedScore = targetScore;
+        }
     }
 
     /// <summary>
