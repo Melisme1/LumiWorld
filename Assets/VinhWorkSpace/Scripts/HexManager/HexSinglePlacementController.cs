@@ -400,6 +400,9 @@ public class HexSinglePlacementController : MonoBehaviour
             spawnWorldPos += cardData.placementOffset;
         }
 
+        // Ghi lại điểm trước khi đặt để tính lượng điểm tăng thêm (hiệu ứng +X)
+        int scoreBefore = ScoreManager.Instance != null ? ScoreManager.Instance.CurrentScore : 0;
+
         // Sinh vật phẩm / hệ sinh thái Props lên đỉnh ô
         if (cardData != null)
         {
@@ -440,10 +443,66 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 ScoreCalculator.Instance.RecalculateScore();
             }
+
+            // Hiệu ứng cộng điểm "+X" (Preserve style)
+            // Hiển thị tại TỪNG khối trong nhóm với điểm riêng của nó:
+            //  - Nhóm < 3 khối  -> mỗi khối +1 (baseScore)
+            //  - Nhóm >= 3 khối -> mỗi khối +2 (baseScore x hệ số nhóm)
+            ShowGroupScorePopups();
         }
 
         CancelPreview();
         return true;
+    }
+
+    /// <summary>
+    /// Hiển thị hiệu ứng "+X" tại từng khối trong nhóm của card vừa đặt.
+    /// Điểm mỗi khối được tính lại đúng theo quy tắc nhóm hiện tại.
+    /// </summary>
+    private void ShowGroupScorePopups()
+    {
+        if (HexGroupDetector.Instance == null) return;
+
+        // Tìm chip PlacedCard của khối vừa đặt
+        GameObject tileObj = null;
+        if (worldGenerator != null)
+        {
+            worldGenerator.MapTiles.TryGetValue(currentHoverHex, out tileObj);
+        }
+
+        PlacedCard placedCard = tileObj != null ? tileObj.GetComponent<PlacedCard>() : null;
+        if (placedCard == null || placedCard.cardData == null) return;
+
+        // Tìm toàn bộ nhóm cùng loại chứa khối vừa đặt
+        System.Collections.Generic.List<PlacedCard> group =
+            HexGroupDetector.Instance.FindGroup(placedCard);
+
+        if (group == null || group.Count == 0) return;
+
+        // Hệ số nhân theo quy tắc của ScoreCalculator
+        int groupRequired = 3;
+        int groupMultiplier = 2;
+
+        if (ScoreCalculator.Instance != null)
+        {
+            groupRequired = ScoreCalculator.Instance.GroupRequired;
+            groupMultiplier = ScoreCalculator.Instance.GroupMultiplier;
+        }
+
+        // Nhóm đủ lớn -> mỗi khối được nhân hệ số, ngược lại dùng điểm gốc
+        bool isCompleteGroup = group.Count >= groupRequired;
+
+        foreach (PlacedCard card in group)
+        {
+            if (card == null || card.cardData == null) continue;
+
+            int cardScore = isCompleteGroup
+                ? card.cardData.baseScore * groupMultiplier
+                : card.cardData.baseScore;
+
+            Vector3 worldPos = HexMetrics.HexToWorldPosition(card.placedHex, HexMetrics.TileHeight);
+            ScorePopupManager.ShowScore(cardScore, worldPos);
+        }
     }
 
     /// <summary>
