@@ -38,6 +38,9 @@ public class CardDeskController : MonoBehaviour
 
     private readonly List<GameObject> cards = new();
 
+    // cardID -> slot đại diện đang có trên tay (gộp các card cùng loại)
+    private readonly Dictionary<string, GameObject> slotByCardID = new();
+
     private void Start()
     {
         StartCoroutine(SpawnCards());
@@ -45,11 +48,30 @@ public class CardDeskController : MonoBehaviour
 
     private IEnumerator SpawnCards()
     {
-        List<CardData> sortedCards = new List<CardData>(cardsToSpawn);
-        sortedCards.Sort(CompareCardData);
+        // Gộp các CardData cùng loại (theo cardID) thành 1 slot + đếm số lượng
+        List<CardData> uniqueCards = new List<CardData>();
+        Dictionary<string, int> countByCardID = new Dictionary<string, int>();
+
+        foreach (CardData data in cardsToSpawn)
+        {
+            if (data == null) continue;
+
+            string id = GetCardKey(data);
+            if (countByCardID.TryGetValue(id, out int existing))
+            {
+                countByCardID[id] = existing + 1;
+            }
+            else
+            {
+                countByCardID[id] = 1;
+                uniqueCards.Add(data);
+            }
+        }
+
+        uniqueCards.Sort(CompareCardData);
 
         int cardCount =
-            sortedCards.Count;
+            uniqueCards.Count;
 
         if (cardCount == 0)
         {
@@ -84,9 +106,17 @@ public class CardDeskController : MonoBehaviour
             if (cardUI != null)
             {
                 cardUI.Setup(
-                    sortedCards[i]
+                    uniqueCards[i]
                 );
+
+                int count = countByCardID.TryGetValue(
+                    GetCardKey(uniqueCards[i]),
+                    out int c) ? c : 1;
+
+                cardUI.SetCount(count);
             }
+
+            slotByCardID[GetCardKey(uniqueCards[i])] = card;
 
             // -------------------------
             // POSITION
@@ -149,12 +179,35 @@ public class CardDeskController : MonoBehaviour
         GameObject card
     )
     {
-        if (!cards.Contains(card))
+        if (card == null || !cards.Contains(card))
         {
             return;
         }
 
+        // CardDrag gọi hàm này khi đặt bài thành công -> mỗi lần đặt TIÊU 1 LÁ.
+        CardUI cardUI = card.GetComponent<CardUI>();
+
+        if (cardUI != null && cardUI.Count > 1)
+        {
+            // Chồng còn nhiều lá -> chỉ giảm số lượng, giữ slot lại
+            cardUI.SetCount(cardUI.Count - 1);
+
+            // Slot vị trí không đổi nhưng vẫn sắp xếp lại cho chắc chắn
+            RearrangeCards();
+            return;
+        }
+
+        // Hết lá -> xóa slot và cập nhật bảng tra cứu
         cards.Remove(card);
+
+        if (cardUI != null && cardUI.CardData != null)
+        {
+            string key = GetCardKey(cardUI.CardData);
+            if (slotByCardID.TryGetValue(key, out GameObject tracked) && tracked == card)
+            {
+                slotByCardID.Remove(key);
+            }
+        }
 
         Destroy(card);
 
@@ -264,6 +317,35 @@ public void AddRewardCard(CardData cardData)
         return;
     }
 
+    // -------------------------
+    // GỘP THEO CARD ID
+    // -------------------------
+    // Nếu trên tay đã có slot cùng loại -> chỉ tăng số lượng, không tạo card mới.
+    string key = GetCardKey(cardData);
+
+    if (slotByCardID.TryGetValue(key, out GameObject existingSlot) && existingSlot != null)
+    {
+        CardUI existingUI = existingSlot.GetComponent<CardUI>();
+        if (existingUI != null)
+        {
+            existingUI.SetCount(existingUI.Count + 1);
+        }
+
+        // Nhảy nhẹ để báo hiệu đã cộng thêm
+        CardAppear existingAppear = existingSlot.GetComponent<CardAppear>();
+        if (existingAppear != null)
+        {
+            RectTransform existingRect = existingSlot.GetComponent<RectTransform>();
+            Vector2 pos = existingRect != null ? existingRect.anchoredPosition : Vector2.zero;
+            existingAppear.Play(pos, 0f);
+        }
+
+        Debug.Log(
+            $"Reward Card stacked: {cardData.cardName} (+1)"
+        );
+        return;
+    }
+
     GameObject card =
         Instantiate(
             cardPrefab,
@@ -276,9 +358,12 @@ public void AddRewardCard(CardData cardData)
     if (cardUI != null)
     {
         cardUI.Setup(cardData);
+        cardUI.SetCount(1);
     }
 
     cards.Add(card);
+
+    slotByCardID[key] = card;
 
     SortCardsByTypeAndName();
 
@@ -363,6 +448,20 @@ public void AddRewardCard(CardData cardData)
             minSpacing,
             maxSpacing
         );
+    }
+
+    // =========================================
+    // CARD KEY
+    // =========================================
+
+    /// <summary>
+    /// Khóa gộp card: ưu tiên cardID; nếu trống thì dùng tên để tránh gộp nhầm các card không có ID.
+    /// </summary>
+    private static string GetCardKey(CardData data)
+    {
+        if (data == null) return string.Empty;
+        if (!string.IsNullOrEmpty(data.cardID)) return data.cardID;
+        return data.cardName ?? string.Empty;
     }
 
     private void SortCardsByTypeAndName()
