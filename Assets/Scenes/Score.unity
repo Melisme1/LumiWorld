@@ -526,7 +526,7 @@ MonoBehaviour:
   cardPrefab: {fileID: 3296435945646191664, guid: 90ea1562e9b96fa4c868961ac74e12d4, type: 3}
   cardContainer: {fileID: 116974594}
   cardsToSpawn:
-  - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
   - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
@@ -535,6 +535,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900

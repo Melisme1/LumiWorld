@@ -68,9 +68,18 @@ public class ScoreCalculator : MonoBehaviour
             {
                 foreach (PlacedCard groupCard in group)
                 {
-                    totalScore +=
-                        groupCard.cardData.baseScore
-                        * groupMultiplier;
+                    // Card đánh dấu alwaysBaseScore (Rain) luôn chỉ cộng baseScore, không nhân hệ số nhóm
+                    if (groupCard.cardData.alwaysBaseScore)
+                    {
+                        totalScore +=
+                            groupCard.cardData.baseScore;
+                    }
+                    else
+                    {
+                        totalScore +=
+                            groupCard.cardData.baseScore
+                            * groupMultiplier;
+                    }
                 }
             }
             else

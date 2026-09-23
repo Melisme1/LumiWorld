@@ -26,6 +26,14 @@ public class HexGroupDetector : MonoBehaviour
         if (startCard == null || startCard.cardData == null)
             return group;
 
+        // Các card đánh dấu alwaysBaseScore (Rain) luôn đứng RIÊNG, không gom nhóm với ai
+        // để đảm bảo chúng luôn chỉ cộng +baseScore.
+        if (startCard.cardData.alwaysBaseScore)
+        {
+            group.Add(startCard);
+            return group;
+        }
+
         // Lấy tất cả card đã được đặt trong Scene
         PlacedCard[] allCards =
             FindObjectsByType<PlacedCard>(
@@ -39,6 +47,10 @@ public class HexGroupDetector : MonoBehaviour
         foreach (PlacedCard card in allCards)
         {
             if (card == null || card.cardData == null)
+                continue;
+
+            // Card alwaysBaseScore (Rain) không tham gia gom nhóm
+            if (card.cardData.alwaysBaseScore)
                 continue;
 
             if (!cardsByHex.ContainsKey(card.placedHex))

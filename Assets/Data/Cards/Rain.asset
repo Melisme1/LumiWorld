@@ -17,11 +17,13 @@ MonoBehaviour:
   cardImage: {fileID: 1813264508, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
   cardType: 3
   baseScore: 1
-  prefabToPlace: {fileID: 0}
+  alwaysBaseScore: 1
+  prefabToPlace: {fileID: 919132149155446097, guid: 0f6475f7f2a817f429a31a04d5bc5d3a, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
-  replacesTile: 0
-  isRainCard: 1
-  requiresRainyTile: 0
+  replacesTile: 1
+  clearPropsOnTransform: 1
+  occupiesTile: 0
   habitatSpawnMargin: 0.8
   habitatProps: []
-  allowedTilePrefabs: []
+  allowedTilePrefabs:
+  - {fileID: 919132149155446097, guid: ec8ae420f24764d4390be6e29aba6bcf, type: 3}

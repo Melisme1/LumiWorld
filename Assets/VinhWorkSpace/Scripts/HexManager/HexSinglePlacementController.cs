@@ -294,7 +294,12 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
             }
 
-            bool isValid = isTileInMap && !isOccupied && isAllowedByCard;
+            // Card Special dạng biến đổi khối (Rain): được phép đặt lên ô đã có prop,
+            // miễn là card có cấu hình khối đích (Prefab To Place).
+            bool isTransformCard = currentCardData != null && currentCardData.replacesTile;
+
+            bool isValid = isTileInMap && isAllowedByCard &&
+                           (isTransformCard ? currentCardData.IsTileTransformCard() : !isOccupied);
             bool hexChanged = (!hasValidPreviousHex || targetHex != currentHoverHex);
 
             currentHoverHex = targetHex;
@@ -388,6 +393,29 @@ public class HexSinglePlacementController : MonoBehaviour
             return false;
         }
 
+        // Card Special dạng biến đổi khối (Rain): thay thế khối gốc tại chỗ thay vì đặt lên trên.
+        if (cardData != null && cardData.replacesTile)
+        {
+            bool transformed = TryTransformTile(cardData, targetTileObj);
+
+            currentActiveTileObj = null;
+
+            if (transformed)
+            {
+                // Hiện hiệu ứng "+1" tại ô vừa biến đổi (Rain luôn cộng baseScore)
+                Vector3 popupPos = HexMetrics.HexToWorldPosition(currentHoverHex, HexMetrics.TileHeight);
+                ScorePopupManager.ShowScore(cardData.baseScore, popupPos);
+
+                if (ScoreCalculator.Instance != null)
+                {
+                    ScoreCalculator.Instance.RecalculateScore();
+                }
+            }
+
+            CancelPreview();
+            return transformed;
+        }
+
         if (IsTileOccupied(targetTileObj))
         {
             CancelPreview();
@@ -477,6 +505,92 @@ public class HexSinglePlacementController : MonoBehaviour
         }
 
         CancelPreview();
+        return true;
+    }
+
+    /// <summary>
+    /// Biến đổi 1 ô lục giác tại chỗ: thay khối gốc bằng Prefab To Place của card,
+    /// đồng bộ lại MapTiles và HexTileInfo để hệ thống đặt bài / tính điểm không bị lệch.
+    /// Trả về true nếu biến đổi thành công.
+    /// </summary>
+    private bool TryTransformTile(CardData cardData, GameObject targetTileObj)
+    {
+        if (cardData == null || targetTileObj == null || worldGenerator == null) return false;
+
+        GameObject newPrefab = cardData.prefabToPlace;
+        if (newPrefab == null) return false;
+
+        int newTypeIndex = cardData.ResolveTerrainTypeIndex(worldGenerator);
+        HexCoordinates hex = currentHoverHex;
+
+        // 1. Thu thập các object con đang đứng trên khối gốc (prop / card đã đặt)
+        List<Transform> oldChildren = new List<Transform>();
+        for (int i = 0; i < targetTileObj.transform.childCount; i++)
+        {
+            oldChildren.Add(targetTileObj.transform.GetChild(i));
+        }
+
+        // 2. Sinh khối mới tại đúng vị trí và hướng xoay của khối gốc
+        Vector3 spawnPos = targetTileObj.transform.position;
+        Quaternion spawnRot = targetTileObj.transform.rotation;
+
+        GameObject newTile = Instantiate(newPrefab, spawnPos, spawnRot, worldGenerator.transform);
+        newTile.name = $"Hex_{hex.Q}_{hex.R}_[{newPrefab.name}]_Type{Mathf.Max(0, newTypeIndex)}";
+
+        HexTileInfo newTileInfo = newTile.GetComponent<HexTileInfo>();
+        if (newTileInfo == null) newTileInfo = newTile.AddComponent<HexTileInfo>();
+        newTileInfo.sourcePrefab = newPrefab;
+        newTileInfo.terrainTypeIndex = newTypeIndex;
+        newTileInfo.coordinates = hex;
+
+        // 3. Ghi lại vào bản đồ để mọi hệ thống (đặt bài, tính điểm) trỏ đúng khối mới
+        worldGenerator.MapTiles[hex] = newTile;
+
+        // 3b. Ghi nhận card Rain để được tính điểm (luôn +1 qua alwaysBaseScore).
+        //     Rain chỉ BIẾN ĐỔI ĐỊA HÌNH nên dùng một marker con riêng và KHÔNG chiếm ô.
+        if (cardData.occupiesTile)
+        {
+            PlacedCard placedCard = newTile.GetComponent<PlacedCard>();
+            if (placedCard == null) placedCard = newTile.AddComponent<PlacedCard>();
+            placedCard.cardData = cardData;
+            placedCard.placedHex = hex;
+        }
+        else
+        {
+            GameObject scoreMarker = new GameObject("RainScoreMarker");
+            scoreMarker.transform.SetParent(newTile.transform, false);
+            PlacedCard placedCard = scoreMarker.AddComponent<PlacedCard>();
+            placedCard.cardData = cardData;
+            placedCard.placedHex = hex;
+        }
+
+        // 4. Xử lý các object con cũ
+        if (cardData.clearPropsOnTransform)
+        {
+            // Rain thường "gột rửa" ô: xóa prop cũ
+            for (int i = 0; i < oldChildren.Count; i++)
+            {
+                if (oldChildren[i] != null) Destroy(oldChildren[i].gameObject);
+            }
+        }
+        else
+        {
+            // Giữ lại prop cũ bằng cách chuyển sang khối mới
+            for (int i = 0; i < oldChildren.Count; i++)
+            {
+                if (oldChildren[i] != null)
+                {
+                    oldChildren[i].SetParent(newTile.transform, true);
+                }
+            }
+        }
+
+        // Ô mới chỉ bị coi là "chiếm" nếu card này thực sự chiếm ô (Rain thì không)
+        newTileInfo.isOccupied = false;
+
+        // 5. Xóa khối gốc
+        Destroy(targetTileObj);
+
         return true;
     }
 
@@ -607,10 +721,16 @@ public class HexSinglePlacementController : MonoBehaviour
             return true;
         }
 
-        // 2. Kiểm tra xem tile hoặc các object con của tile đã gắn PlacedCard chưa
-        if (tileObj.GetComponentInChildren<PlacedCard>() != null)
+        // 2. Kiểm tra xem tile hoặc các object con của tile đã gắn PlacedCard "chiếm ô" chưa.
+        //    Card đánh dấu occupiesTile = false (Rain biến đổi địa hình) KHÔNG được coi là chiếm ô.
+        PlacedCard[] placedCards = tileObj.GetComponentsInChildren<PlacedCard>(true);
+        foreach (PlacedCard pc in placedCards)
         {
-            return true;
+            if (pc == null || pc.cardData == null) continue;
+            if (pc.cardData.occupiesTile)
+            {
+                return true;
+            }
         }
 
         // 3. Kiểm tra xem tile có chứa container Habitat_ không
