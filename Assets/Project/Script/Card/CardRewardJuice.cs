@@ -1,85 +1,170 @@
 using UnityEngine;
 
 /// <summary>
-/// "Gói game feel" cho việc NHẬN CARD mới.
+/// Phản hồi khi người chơi nhận Card.
 ///
-/// Toàn bộ object đều sinh tại runtime (không cần prefab, không cần sửa Scene):
-///  - Âm thanh: tự tổng hợp 1 tiếng "ding" bằng code -> không cần file .wav.
-///    Nếu bạn muốn dùng âm thanh riêng, bật useCustomClip và gán cardRewardClip.
-///
-/// ĐÃ BỎ toàn bộ hiệu ứng ÁNH SÁNG (tia sparkle bắn ra + vệt sáng chạy qua card)
-/// và vòng highlight: chúng gây rối mắt và dễ lệch khỏi khung thẻ. Hiệu ứng nhận
-/// card giờ chỉ còn tiếng 'ding' + badge số lượng trên thẻ.
+/// Chức năng hiện tại:
+/// - Phát âm thanh "ding" khi nhận Card.
+/// - Không tạo GameObject runtime.
+/// - Không tạo AudioSource runtime.
+/// - Dùng AudioSource có sẵn trong Scene.
+/// - Hỗ trợ AudioClip riêng hoặc tiếng ding được tạo bằng code.
+/// - Có thể phát nhiều âm thanh cùng lúc bằng PlayOneShot().
 /// </summary>
 public class CardRewardJuice : MonoBehaviour
 {
-    // Cho phép bật/tắt nhanh âm thanh khi nhận card.
+    // =========================================================
+    // SINGLETON
+    // =========================================================
+
+    public static CardRewardJuice Instance { get; private set; }
+
+    // Cho phép bật/tắt toàn bộ hiệu ứng nhận Card.
     public static bool Enabled = true;
 
+
+    // =========================================================
+    // SOUND SETTINGS
+    // =========================================================
+
     [Header("Sound")]
-    [Tooltip("Bật để dùng AudioClip riêng thay vì tiếng 'ding' tổng hợp bằng code.")]
+
+    [Tooltip("Bật để sử dụng AudioClip riêng.")]
     [SerializeField] private bool useCustomClip = false;
+
+    [Tooltip("Âm thanh khi nhận Card.")]
     [SerializeField] private AudioClip cardRewardClip;
-    [Range(0f, 1f)][SerializeField] private float soundVolume = 0.5f;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float soundVolume = 0.5f;
+
+    [Tooltip("AudioSource dùng để phát âm thanh.")]
+    [SerializeField] private AudioSource audioSource;
+
+
+    // =========================================================
+    // INTERNAL
+    // =========================================================
+
+    private static AudioClip cachedDingClip;
+
+
+    // =========================================================
+    // UNITY
+    // =========================================================
+
+    private void Awake()
+    {
+        // Singleton
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
+        // Giữ object này khi đổi Scene nếu sau này cần.
+        // Nếu không cần thì có thể bỏ dòng này.
+        DontDestroyOnLoad(gameObject);
+
+        // Tự tìm AudioSource nếu chưa kéo vào Inspector.
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+
+        // Nếu vẫn chưa có AudioSource thì thêm một lần duy nhất.
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        // Cấu hình AudioSource cho UI sound.
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+    }
+
 
     // =========================================================
     // ENTRY POINT
     // =========================================================
 
     /// <summary>
-    /// Phát phản hồi khi nhận card tại slot vừa được thêm/cộng dồn.
-    /// slotRect/isNewSlot/delay được giữ lại trong chữ ký để tương thích với caller,
-    /// nhưng hiện không còn hiệu ứng hình ảnh nào dùng chúng.
+    /// Phát hiệu ứng khi nhận Card.
+    ///
+    /// slotRect / isNewSlot / delay được giữ lại
+    /// để tương thích với code CardDesk hiện tại.
     /// </summary>
-    public static void Play(RectTransform slotRect, bool isNewSlot, float delay = 0f)
+    public static void Play(
+        RectTransform slotRect,
+        bool isNewSlot,
+        float delay = 0f)
     {
-        if (!Enabled || slotRect == null)
+        if (!Enabled)
+            return;
+
+        if (Instance == null)
         {
+            Debug.LogWarning(
+                "CardRewardJuice chưa được đặt vào Scene."
+            );
+
             return;
         }
 
-        GameObject juiceObj = new GameObject("CardRewardJuice");
-        CardRewardJuice juice = juiceObj.AddComponent<CardRewardJuice>();
-        juice.Run();
+        Instance.PlayRewardSound();
     }
 
-    private void Run()
-    {
-        PlaySound();
-    }
 
     // =========================================================
     // SOUND
     // =========================================================
 
-    private void PlaySound()
+    private void PlayRewardSound()
     {
-        AudioClip clip = useCustomClip ? cardRewardClip : GetOrCreateDingClip();
+        if (audioSource == null)
+            return;
+
+        AudioClip clip = GetRewardClip();
 
         if (clip == null)
-        {
             return;
-        }
 
-        // Dùng GameObject riêng để nhiều tiếng có thể phát chồng lên nhau.
-        GameObject audioObj = new GameObject("CardRewardSfx");
-        audioObj.transform.SetParent(transform, false);
-
-        AudioSource source = audioObj.AddComponent<AudioSource>();
-        source.clip = clip;
-        source.volume = soundVolume;
-        source.playOnAwake = false;
-        source.spatialBlend = 0f; // 2D: UI sound, không bị giảm âm theo vị trí camera
-        source.Play();
-
-        Destroy(audioObj, clip.length + 0.1f);
+        // PlayOneShot cho phép nhiều tiếng phát chồng lên nhau.
+        audioSource.PlayOneShot(
+            clip,
+            soundVolume
+        );
     }
 
-    private static AudioClip cachedDingClip;
 
     /// <summary>
-    /// Tổng hợp tiếng "ting" vui tai bằng code (2 nốt nối tiếp, tần số 5th)
-    /// để project không cần kèm file âm thanh nào.
+    /// Lấy AudioClip đang được sử dụng.
+    /// </summary>
+    private AudioClip GetRewardClip()
+    {
+        // Nếu người dùng muốn dùng file âm thanh riêng.
+        if (useCustomClip)
+        {
+            return cardRewardClip;
+        }
+
+        // Nếu không thì tạo tiếng ding bằng code.
+        return GetOrCreateDingClip();
+    }
+
+
+    // =========================================================
+    // GENERATED DING
+    // =========================================================
+
+    /// <summary>
+    /// Tạo tiếng "ding" bằng code.
+    ///
+    /// Không tạo lại mỗi lần nhận Card.
+    /// AudioClip được cache bằng cachedDingClip.
     /// </summary>
     private static AudioClip GetOrCreateDingClip()
     {
@@ -91,37 +176,96 @@ public class CardRewardJuice : MonoBehaviour
         const int sampleRate = 44100;
         const float duration = 0.34f;
 
-        int sampleCount = Mathf.CeilToInt(sampleRate * duration);
-        float[] samples = new float[sampleCount];
+        int sampleCount =
+            Mathf.CeilToInt(sampleRate * duration);
 
-        // Nốt 1 (E6) -> nốt 2 (B6): nghe như tiếng "nhận thưởng".
+        float[] samples =
+            new float[sampleCount];
+
+
+        // E6
         float freqA = 1318.51f;
+
+        // B6
         float freqB = 1975.53f;
-        float switchPoint = 0.45f; // đổi nốt tại 45% thời lượng
+
+        // Thời điểm chuyển nốt.
+        float switchPoint = 0.45f;
+
 
         for (int i = 0; i < sampleCount; i++)
         {
             float t = i / (float)sampleRate;
-            float normalized = t / duration;
 
-            float frequency = normalized < switchPoint
+            float normalized =
+                t / duration;
+
+
+            // Chuyển từ E6 -> B6.
+            float frequency =
+                normalized < switchPoint
                 ? freqA
-                : Mathf.Lerp(freqA, freqB, (normalized - switchPoint) / (1f - switchPoint));
+                : Mathf.Lerp(
+                    freqA,
+                    freqB,
+                    (normalized - switchPoint) /
+                    (1f - switchPoint)
+                );
 
-            // Envelope: vào rất nhanh, tắt dần theo hàm mũ -> nghe "trong trẻo".
-            float attack = Mathf.Clamp01(t / 0.008f);
-            float decay = Mathf.Exp(-t * 9f);
 
-            float sine = Mathf.Sin(2f * Mathf.PI * frequency * t);
+            // Attack rất nhanh.
+            float attack =
+                Mathf.Clamp01(t / 0.008f);
 
-            // Thêm hài bậc 2 nhẹ cho tiếng dày hơn.
-            float harmonic = Mathf.Sin(4f * Mathf.PI * frequency * t) * 0.22f;
 
-            samples[i] = (sine + harmonic) * attack * decay * 0.55f;
+            // Decay.
+            float decay =
+                Mathf.Exp(-t * 9f);
+
+
+            // Âm chính.
+            float sine =
+                Mathf.Sin(
+                    2f *
+                    Mathf.PI *
+                    frequency *
+                    t
+                );
+
+
+            // Harmonic nhẹ để âm thanh dày hơn.
+            float harmonic =
+                Mathf.Sin(
+                    4f *
+                    Mathf.PI *
+                    frequency *
+                    t
+                ) * 0.22f;
+
+
+            samples[i] =
+                (sine + harmonic) *
+                attack *
+                decay *
+                0.55f;
         }
 
-        cachedDingClip = AudioClip.Create("CardRewardDing", sampleCount, 1, sampleRate, false);
-        cachedDingClip.SetData(samples, 0);
+
+        cachedDingClip =
+            AudioClip.Create(
+                "CardRewardDing",
+                sampleCount,
+                1,
+                sampleRate,
+                false
+            );
+
+
+        cachedDingClip.SetData(
+            samples,
+            0
+        );
+
 
         return cachedDingClip;
     }

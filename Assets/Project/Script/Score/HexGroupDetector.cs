@@ -37,7 +37,7 @@ public class HexGroupDetector : MonoBehaviour
         // Lấy tất cả card đã được đặt trong Scene
         PlacedCard[] allCards =
             FindObjectsByType<PlacedCard>(
-                FindObjectsSortMode.None
+                FindObjectsInactive.Exclude
             );
 
         // Hex -> PlacedCard

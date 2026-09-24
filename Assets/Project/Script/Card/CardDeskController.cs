@@ -458,9 +458,7 @@ public void AddRewardCard(CardData cardData)
             isNewSlot: false,
             totalCount: existingUI != null ? existingUI.Count : 1
         );
-        Debug.Log(
-            $"Reward Card stacked: {cardData.cardName} (+1)"
-        );
+
         return;
     }
 
@@ -558,9 +556,6 @@ public void AddRewardCard(CardData cardData)
         totalCount: 1
     );
 
-    Debug.Log(
-        $"Reward Card added: {cardData.cardName}"
-    );
 }
 
 // =========================================
