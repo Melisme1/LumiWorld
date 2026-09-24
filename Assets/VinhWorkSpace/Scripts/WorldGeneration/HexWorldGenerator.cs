@@ -20,9 +20,13 @@ public class HexWorldGenerator : MonoBehaviour
     [Tooltip("Độ mượt của đồi núi")]
     [SerializeField] private float noiseScale = 0.15f;
 
+    [Tooltip("Độ cao cơ sở khi spawn (để chân khối lục giác chìm xuống dưới mặt nước, tránh lơ lửng). Mặc định -0.5f")]
+    [SerializeField] private float spawnOffsetY = -0.5f;
+
     public float StepHeight => stepHeight;
     public GameObject[] TerrainPrefabs => terrainPrefabs;
     public float NoiseScale => noiseScale;
+    public float SpawnOffsetY => spawnOffsetY;
 
     private float seedX;
     private float seedZ;
@@ -114,10 +118,21 @@ public class HexWorldGenerator : MonoBehaviour
             levelIndex = Mathf.Clamp(levelIndex, 0, terrainPrefabs.Length - 1);
             GameObject prefabToSpawn = terrainPrefabs[levelIndex];
 
-            Vector3 worldPosition = HexMetrics.HexToWorldPosition(coords, 0f);
+            Vector3 worldPosition = HexMetrics.HexToWorldPosition(coords, spawnOffsetY);
 
-            GameObject tileInstance = Instantiate(prefabToSpawn, worldPosition, Quaternion.identity, transform);
+                        GameObject tileInstance = Instantiate(prefabToSpawn, worldPosition, Quaternion.identity, transform);
             tileInstance.name = $"Hex_{coords.Q}_{coords.R}_[{prefabToSpawn.name}]_Type{levelIndex}";
+
+            // Tự động gắn MeshCollider nếu prefab chưa có để chuột Raycast chính xác bề mặt
+            if (tileInstance.GetComponent<Collider>() == null)
+            {
+                MeshFilter mf = tileInstance.GetComponentInChildren<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                {
+                    MeshCollider mc = tileInstance.AddComponent<MeshCollider>();
+                    mc.sharedMesh = mf.sharedMesh;
+                }
+            }
 
             HexTileInfo tileInfo = tileInstance.AddComponent<HexTileInfo>();
             tileInfo.sourcePrefab = prefabToSpawn;

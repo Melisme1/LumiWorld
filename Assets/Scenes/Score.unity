@@ -883,6 +883,7 @@ MonoBehaviour:
   maxRadius: 2
   stepHeight: 0
   noiseScale: 0.15
+  spawnOffsetY: -0.5
 --- !u!4 &832299768
 Transform:
   m_ObjectHideFlags: 0

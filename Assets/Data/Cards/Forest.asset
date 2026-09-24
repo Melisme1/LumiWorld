@@ -16,6 +16,7 @@ MonoBehaviour:
   cardName: Forest
   cardImage: {fileID: -866576416, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
   cardType: 1
+  baseScore: 1
   prefabToPlace: {fileID: 0}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
@@ -54,4 +55,4 @@ MonoBehaviour:
     maxTiltAngle: 5
     placeAtCenter: 0
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: ec8ae420f24764d4390be6e29aba6bcf, type: 3}
+  - {fileID: 919132149155446097, guid: f8f024c9b7996f343972519e43d1d744, type: 3}

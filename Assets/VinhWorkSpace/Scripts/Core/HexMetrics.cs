@@ -6,9 +6,10 @@ public static class HexMetrics
     public const float OuterRadius = 1.1547f;
     public const float InnerRadius = 1.0f; // Bán kính trong (X size / 2 = 1.0f)
     public const float TileHeight = 1.0f;  // Chiều cao khối (Y size = 1.0f)
+    public const float DefaultTileY = -0.5f; // Mực nền của các khối lục giác chìm dưới nước (-0.5f)
 
     // Đổi từ Hex Coordinates sang World Position (Pointed-Top)
-    public static Vector3 HexToWorldPosition(HexCoordinates hex, float yElevation = 0f)
+    public static Vector3 HexToWorldPosition(HexCoordinates hex, float yElevation = DefaultTileY)
     {
         // Khoảng cách ngang giữa các cột = 2 * InnerRadius = 2.0f
         float x = (2f * hex.Q + hex.R) * InnerRadius;

@@ -220,7 +220,7 @@ public class HexPlacementController : MonoBehaviour
                 isHoveringValidPosition = false;
             }
 
-            Vector3 targetSnapPos = HexMetrics.HexToWorldPosition(currentHoverHex, 0f);
+            Vector3 targetSnapPos = HexMetrics.HexToWorldPosition(currentHoverHex, worldGenerator != null ? worldGenerator.SpawnOffsetY : HexMetrics.DefaultTileY);
 
             // Cho Ghost lướt mượt mà và hút dính vào vị trí ghép cạnh
             previewGhostInstance.transform.position = Vector3.Lerp(
@@ -345,11 +345,21 @@ public class HexPlacementController : MonoBehaviour
             int levelIndex = Mathf.Clamp(tile.prefabIndex, 0, terrainPrefabs.Length - 1);
             GameObject prefabToSpawn = terrainPrefabs[levelIndex];
 
-            Vector3 worldPos = HexMetrics.HexToWorldPosition(targetCoord, 0f);
+            Vector3 worldPos = HexMetrics.HexToWorldPosition(targetCoord, worldGenerator != null ? worldGenerator.SpawnOffsetY : HexMetrics.DefaultTileY);
             Quaternion spawnRot = Quaternion.Euler(0f, currentRotationStep * 60f, 0f);
 
-            GameObject tileInstance = Instantiate(prefabToSpawn, worldPos, spawnRot, worldGenerator.transform);
+                        GameObject tileInstance = Instantiate(prefabToSpawn, worldPos, spawnRot, worldGenerator.transform);
             tileInstance.name = $"Hex_{targetCoord.Q}_{targetCoord.R}_[{prefabToSpawn.name}]_Type{levelIndex}";
+
+            if (tileInstance.GetComponent<Collider>() == null)
+            {
+                MeshFilter mf = tileInstance.GetComponentInChildren<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                {
+                    MeshCollider mc = tileInstance.AddComponent<MeshCollider>();
+                    mc.sharedMesh = mf.sharedMesh;
+                }
+            }
 
             HexTileInfo tileInfo = tileInstance.AddComponent<HexTileInfo>();
             tileInfo.sourcePrefab = prefabToSpawn;

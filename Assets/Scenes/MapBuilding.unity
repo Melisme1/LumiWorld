@@ -944,13 +944,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HexWorldGenerator
   terrainPrefabs:
-  - {fileID: 919132149155446097, guid: 05a797eec4841b94888f08cdea233791, type: 3}
-  - {fileID: 919132149155446097, guid: ec8ae420f24764d4390be6e29aba6bcf, type: 3}
-  - {fileID: 919132149155446097, guid: b63bdd86ddf5b7847babbbfa55d227a9, type: 3}
+  - {fileID: 919132149155446097, guid: f8f024c9b7996f343972519e43d1d744, type: 3}
+  - {fileID: 919132149155446097, guid: 14ad575f68c1fda459ec7760244185c0, type: 3}
+  - {fileID: 919132149155446097, guid: aac447f900fc3a4419ef72182622c5f3, type: 3}
   minRadius: 2
   maxRadius: 2
   stepHeight: 0
   noiseScale: 0.15
+  spawnOffsetY: -0.5
 --- !u!4 &832299768
 Transform:
   m_ObjectHideFlags: 0
@@ -1089,9 +1090,9 @@ MonoBehaviour:
   worldGenerator: {fileID: 832299767}
   mainCamera: {fileID: 1110052839}
   terrainPrefabs:
-  - {fileID: 919132149155446097, guid: 05a797eec4841b94888f08cdea233791, type: 3}
-  - {fileID: 919132149155446097, guid: ec8ae420f24764d4390be6e29aba6bcf, type: 3}
-  - {fileID: 919132149155446097, guid: b63bdd86ddf5b7847babbbfa55d227a9, type: 3}
+  - {fileID: 919132149155446097, guid: f8f024c9b7996f343972519e43d1d744, type: 3}
+  - {fileID: 919132149155446097, guid: 14ad575f68c1fda459ec7760244185c0, type: 3}
+  - {fileID: 919132149155446097, guid: aac447f900fc3a4419ef72182622c5f3, type: 3}
   ghostMaterial: {fileID: 2100000, guid: d5a00ea70787c3048a1f1fc2ee8a39ee, type: 2}
   mapLayerMask:
     serializedVersion: 2
@@ -1692,6 +1693,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   currentScore: 0
+  rewardMilestones: []
 --- !u!1 &1896951812
 GameObject:
   m_ObjectHideFlags: 0
