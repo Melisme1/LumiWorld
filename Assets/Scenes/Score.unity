@@ -543,6 +543,9 @@ MonoBehaviour:
   handWidth: 900
   appearDelay: 0.1
   rearrangeDuration: 0.25
+  showRewardToast: 1
+  playRewardJuice: 1
+  toastOffset: {x: 0, y: 190}
 --- !u!114 &559860370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -794,10 +797,17 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
     - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
     - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+    - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - scoreThreshold: 15
     rewardCards:
     - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
     - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - scoreThreshold: 15
     rewardCards: []
 --- !u!4 &691234272

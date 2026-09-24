@@ -36,10 +36,26 @@ public class CardDeskController : MonoBehaviour
     [Header("Rearrange Animation")]
     [SerializeField] private float rearrangeDuration = 0.25f;
 
+    [Header("Reward Feedback (game feel khi nhận card)")]
+    [Tooltip("Hiện banner 'NHẬN CARD MỚI: <tên>' gần slot vừa được thêm.")]
+    [SerializeField] private bool showRewardToast = true;
+
+    [Tooltip("Tiếng 'ding' + tia sáng + vòng highlight quanh thẻ vừa nhận.")]
+    [SerializeField] private bool playRewardJuice = true;
+
+    [Tooltip("Vị trí banner so với slot card (pixel, theo hệ toạ độ của CardContainer).")]
+    [SerializeField] private Vector2 toastOffset = new Vector2(0f, 190f);
+
     private readonly List<GameObject> cards = new();
 
     // cardID -> slot đại diện đang có trên tay (gộp các card cùng loại)
     private readonly Dictionary<string, GameObject> slotByCardID = new();
+
+    /// <summary>
+    /// Bỏ qua hiệu ứng nhận card khi spawn hand ban đầu (lúc đó cả bàn tay
+    /// xuất hiện cùng lúc nên highlight/tia sáng/banner cho từng lá sẽ rất rối).
+    /// </summary>
+    private bool suppressRewardFeedback;
 
     private void Start()
     {
@@ -48,6 +64,8 @@ public class CardDeskController : MonoBehaviour
 
     private IEnumerator SpawnCards()
     {
+        suppressRewardFeedback = true;
+
         // Gộp các CardData cùng loại (theo cardID) thành 1 slot + đếm số lượng
         List<CardData> uniqueCards = new List<CardData>();
         Dictionary<string, int> countByCardID = new Dictionary<string, int>();
@@ -169,6 +187,79 @@ public class CardDeskController : MonoBehaviour
                 appearDelay
             );
         }
+
+        suppressRewardFeedback = false;
+
+        // Thông báo 1 lần cho cả hand: người chơi biết mình đang có những lá gì.
+        ShowStartingHandSummary();
+    }
+
+    /// <summary>
+    /// Tóm tắt hand ban đầu thành 1 banner duy nhất, ví dụ:
+    /// "3 LOẠI CARD: Forest x2 · Rock x1 · River x1 (4 LÁ)".
+    /// </summary>
+    private void ShowStartingHandSummary()
+    {
+        if (!showRewardToast || cards.Count == 0)
+        {
+            return;
+        }
+
+        List<string> parts = new List<string>();
+        int totalCards = 0;
+
+        foreach (GameObject card in cards)
+        {
+            if (card == null) continue;
+
+            CardUI ui = card.GetComponent<CardUI>();
+            if (ui == null || ui.CardData == null) continue;
+
+            string name = !string.IsNullOrEmpty(ui.CardData.cardName)
+                ? ui.CardData.cardName
+                : ui.CardData.cardID;
+
+            totalCards += ui.Count;
+            parts.Add(ui.Count > 1 ? $"{name} x{ui.Count}" : name);
+        }
+
+        if (parts.Count == 0)
+        {
+            return;
+        }
+
+        string title = $"{parts.Count} LOẠI CARD";
+        string body = string.Join("  ·  ", parts) + $"  ({totalCards} LÁ)";
+
+        ShowToast(title, body);
+    }
+
+    /// <summary>
+    /// Gọi banner nhận card, neo ở vị trí giữa hand để không bị lệch khi số thẻ thay đổi.
+    /// </summary>
+    private void ShowToast(string title, string body, CardData highlightCard = null)
+    {
+        CardRewardToast.Show(
+            title,
+            body,
+            GetToastAnchorPosition(),
+            highlightCard != null ? highlightCard.cardImage : null
+        );
+    }
+
+    /// <summary>
+    /// Neo banner ở vị trí giữa hand để không bị lệch khi số lượng thẻ thay đổi.
+    /// </summary>
+    private Vector2 GetToastAnchorPosition()
+    {
+        RectTransform containerRect = cardContainer as RectTransform;
+
+        if (containerRect != null)
+        {
+            return containerRect.anchoredPosition + toastOffset;
+        }
+
+        return toastOffset;
     }
 
     // =========================================
@@ -189,11 +280,11 @@ public class CardDeskController : MonoBehaviour
 
         if (cardUI != null && cardUI.Count > 1)
         {
-            // Chồng còn nhiều lá -> chỉ giảm số lượng, giữ slot lại
+            // Chồng còn nhiều lá -> chỉ giảm số lượng, giữ slot lại.
+            // KHÔNG sắp xếp lại vị trí: thứ tự hand không đổi khi chỉ giảm số lượng,
+            // nếu rearrange ở đây card có thể bị kéo về home position trong lúc
+            // CardDrag đang chạy animation trả bài -> giật/hai animation đánh nhau.
             cardUI.SetCount(cardUI.Count - 1);
-
-            // Slot vị trí không đổi nhưng vẫn sắp xếp lại cho chắc chắn
-            RearrangeCards();
             return;
         }
 
@@ -225,7 +316,19 @@ public class CardDeskController : MonoBehaviour
 
     private void RearrangeCards(GameObject cardAlreadyAnimating)
     {
-        SortCardsByTypeAndName();
+        RearrangeCards(cardAlreadyAnimating, true);
+    }
+
+    /// <param name="sortCards">
+    /// Sort lại hand trước khi tính vị trí. Truyền false khi caller vừa sort xong
+    /// (tránh đổi sibling index/thứ tự hai nhịp gây nhảy lớp).
+    /// </param>
+    private void RearrangeCards(GameObject cardAlreadyAnimating, bool sortCards)
+    {
+        if (sortCards)
+        {
+            SortCardsByTypeAndName();
+        }
 
         int cardCount =
             cards.Count;
@@ -331,15 +434,21 @@ public void AddRewardCard(CardData cardData)
             existingUI.SetCount(existingUI.Count + 1);
         }
 
-        // Nhảy nhẹ để báo hiệu đã cộng thêm
+        // Nhảy nhẹ tại chỗ (không dịch chuyển) để báo hiệu đã cộng thêm.
+        RectTransform existingRect = existingSlot.GetComponent<RectTransform>();
+
         CardAppear existingAppear = existingSlot.GetComponent<CardAppear>();
         if (existingAppear != null)
         {
-            RectTransform existingRect = existingSlot.GetComponent<RectTransform>();
-            Vector2 pos = existingRect != null ? existingRect.anchoredPosition : Vector2.zero;
-            existingAppear.Play(pos, 0f);
+            existingAppear.PlayRewardPunch();
         }
 
+        TryPlayRewardFeedback(
+            cardData,
+            existingRect,
+            isNewSlot: false,
+            totalCount: existingUI != null ? existingUI.Count : 1
+        );
         Debug.Log(
             $"Reward Card stacked: {cardData.cardName} (+1)"
         );
@@ -365,6 +474,8 @@ public void AddRewardCard(CardData cardData)
 
     slotByCardID[key] = card;
 
+    // Sắp xếp hand một lần duy nhất sau khi thêm card mới.
+    // RearrangeCards() bên dưới dùng lại thứ tự này và không sort lần nữa.
     SortCardsByTypeAndName();
 
     // Tính lại vị trí cho toàn bộ hand
@@ -397,6 +508,15 @@ public void AddRewardCard(CardData cardData)
         );
     }
 
+    // Hủy mọi animation dời chỗ còn sót để không tranh chấp với appear.
+    CardMoveToPosition newMover =
+        card.GetComponent<CardMoveToPosition>();
+
+    if (newMover != null)
+    {
+        newMover.Stop();
+    }
+
     CardAppear appear =
         card.GetComponent<CardAppear>();
 
@@ -419,12 +539,97 @@ public void AddRewardCard(CardData cardData)
         }
     }
 
-    // Các card cũ tự sắp xếp lại
-    RearrangeCards(card);
+    // Các card cũ tự sắp xếp lại (không cần sort lại nữa)
+    RearrangeCards(card, false);
+
+    TryPlayRewardFeedback(
+        cardData,
+        card.GetComponent<RectTransform>(),
+        isNewSlot: true,
+        totalCount: 1
+    );
 
     Debug.Log(
         $"Reward Card added: {cardData.cardName}"
     );
+}
+
+// =========================================
+// REWARD FEEDBACK
+// =========================================
+
+/// <summary>
+/// Báo cho người chơi biết vừa NHẬN ĐƯỢC card gì:
+///  - banner "NHẬN CARD MỚI: <tên>" (hoặc "<tên> xN" khi cộng dồn)
+///  - tiếng 'ding' + tia sáng + vòng highlight quanh thẻ
+/// Bỏ qua khi đang spawn hand ban đầu (suppressRewardFeedback).
+/// </summary>
+private void NotifyRewardCard(
+    CardData cardData,
+    RectTransform slotRect,
+    bool isNewSlot,
+    int totalCount)
+{
+    if (suppressRewardFeedback || cardData == null)
+    {
+        return;
+    }
+
+    string displayName = !string.IsNullOrEmpty(cardData.cardName)
+        ? cardData.cardName
+        : (!string.IsNullOrEmpty(cardData.cardID) ? cardData.cardID : "Card");
+
+    if (showRewardToast)
+    {
+        string title = isNewSlot ? "NHẬN CARD MỚI" : "CỘNG THÊM CARD";
+        string body = totalCount > 1
+            ? $"{displayName} x{totalCount}"
+            : displayName;
+
+        ShowToast(title, body, cardData);
+    }
+
+    if (playRewardJuice)
+    {
+        CardRewardJuice.Play(slotRect, isNewSlot);
+
+        // Vệt sáng chạy ngang card mới cho dễ nhận biết vị trí vừa thêm.
+        if (isNewSlot && slotRect != null)
+        {
+            CardAppear appear = slotRect.GetComponent<CardAppear>();
+            if (appear != null)
+            {
+                appear.PlayFlash();
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Gọi feedback trong try/catch có chủ đích: hiệu ứng chỉ là lớp trang trí,
+/// TUYỆT ĐỐI không được phép làm hỏng luồng thêm card.
+///
+/// Trước đây một lỗi trong CardRewardToast ném ra từ ScoreManager.CheckMilestoneRewards
+/// đã hủy vòng lặp cấp thưởng giữa chừng, khiến milestone nhiều card chỉ nhận được 1 lá.
+/// Bắt lỗi tại đây để một hiệu ứng hỏng không bao giờ chặn được card tiếp theo.
+/// </summary>
+private void TryPlayRewardFeedback(
+    CardData cardData,
+    RectTransform slotRect,
+    bool isNewSlot,
+    int totalCount)
+{
+    try
+    {
+        NotifyRewardCard(cardData, slotRect, isNewSlot, totalCount);
+    }
+    catch (Exception exception)
+    {
+        Debug.LogWarning(
+            $"CardDeskController: Reward feedback failed for '{cardData?.cardName}' " +
+            $"but the card was added successfully. Error: {exception.Message}"
+        );
+    }
 }
     // =========================================
     // CALCULATE SPACING
