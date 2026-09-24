@@ -37,10 +37,14 @@ MonoBehaviour:
     - {fileID: 919132149155446097, guid: b563fa8daadb9584f93b5a5222a02496, type: 3}
     - {fileID: 919132149155446097, guid: e2805a023190de2469e452f1a3d4ab03, type: 3}
     - {fileID: 919132149155446097, guid: e512c0935501cf042a64e3eed5bcd272, type: 3}
+    clusterAsPatch: 0
     countRange: {x: 1, y: 1}
+    propsPerClusterRange: {x: 2, y: 3}
+    clusterRadius: 0.25
     minDistance: 0
     scaleRange: {x: 0.95, y: 1.05}
     maxTiltAngle: 0
+    customGroundEmbed: 0
     placeAtCenter: 1
   - groupName: Foothill Boulders
     prefabs:
@@ -49,12 +53,14 @@ MonoBehaviour:
     - {fileID: 919132149155446097, guid: 7f246a37cd386ea499007b3fe85120b9, type: 3}
     - {fileID: 919132149155446097, guid: bd7f86f7985dbbd4d915ba49ff2f7d62, type: 3}
     - {fileID: 919132149155446097, guid: 3f6b3a6269e016a499a6fc83408a2a1e, type: 3}
+    clusterAsPatch: 0
     countRange: {x: 2, y: 4}
+    propsPerClusterRange: {x: 2, y: 3}
+    clusterRadius: 0.25
     minDistance: 0.35
     scaleRange: {x: 0.7, y: 1.1}
     maxTiltAngle: 6
+    customGroundEmbed: 0
     placeAtCenter: 0
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: d8bdcab2ea9404349a8dc2f292b92790, type: 3}
-  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}
-  - {fileID: 919132149155446097, guid: 0795a2526526372479924cb9c799dcb2, type: 3}
+  - {fileID: 919132149155446097, guid: aac447f900fc3a4419ef72182622c5f3, type: 3}

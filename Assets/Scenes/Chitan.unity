@@ -323,7 +323,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
@@ -970,7 +972,7 @@ MonoBehaviour:
   spritePlus1: {fileID: -1219050701, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
   spritePlus2: {fileID: 221530739, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
   spritePlus10: {fileID: 1509225936, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
-  spawnHeightOffset: 1
+  spawnHeightOffset: 5
   popupScale: 0.6
 --- !u!1 &1110052837
 GameObject:
@@ -1722,8 +1724,6 @@ MonoBehaviour:
     - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
-    - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
   - scoreThreshold: 15
     rewardCards:
     - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
