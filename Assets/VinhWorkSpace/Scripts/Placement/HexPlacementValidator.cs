@@ -28,6 +28,19 @@ public class HexPlacementValidator : MonoBehaviour
             return false;
         }
 
+        // Không cho phép đặt thêm thẻ biến đổi địa hình (như Rain) nếu ô này đã có thẻ biến đổi địa hình từ trước
+        if (cardData != null && cardData.IsTileTransformCard())
+        {
+            PlacedCard[] placedCards = tileObj.GetComponentsInChildren<PlacedCard>();
+            foreach (var pc in placedCards)
+            {
+                if (pc != null && pc.cardData != null && pc.cardData.IsTileTransformCard())
+                {
+                    return false;
+                }
+            }
+        }
+
         if (cardData != null && !cardData.IsTileAllowed(tileObj, worldGen))
         {
             return false;
