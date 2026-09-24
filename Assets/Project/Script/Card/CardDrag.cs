@@ -217,6 +217,10 @@ public class CardDrag : MonoBehaviour,
 
         if (placedSuccessfully)
         {
+            // Đặt thành công: khôi phục alpha/scale về bình thường trước khi rời tay.
+            // Nếu chồng còn lá (slot được giữ lại), card phải trở về trạng thái rõ nét.
+            RestoreVisualAfterPlacement();
+
             if (deskController != null)
             {
                 deskController.RemoveCard(gameObject);
@@ -229,6 +233,22 @@ public class CardDrag : MonoBehaviour,
         else
         {
             ReturnToHand();
+        }
+    }
+
+    /// <summary>
+    /// Khôi phục alpha và scale của card về trạng thái bình thường sau khi đặt thành công.
+    /// CardDrag.Update chỉ chạy khi IsDragging nên nếu không làm bước này,
+    /// alpha sẽ kẹt ở giá trị mờ (tileHoverAlpha / fieldDragAlpha) khi slot còn lá.
+    /// </summary>
+    private void RestoreVisualAfterPlacement()
+    {
+        transform.localScale = Vector3.one;
+        transform.localRotation = Quaternion.identity;
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 1f;
         }
     }
 
