@@ -26,6 +26,9 @@ public class CardData : ScriptableObject
     [Header("Score")]
     public int baseScore = 1;
 
+    [Tooltip("Nếu tích chọn: lá bài này LUÔN chỉ cộng baseScore, không bao giờ được nhân hệ số nhóm (dùng cho card Special như Rain với baseScore = 1).")]
+    public bool alwaysBaseScore = false;
+
     [Header("Placement")]
     [Tooltip("Prefab to instantiate on the hex tile when played")]
     public GameObject prefabToPlace;
@@ -33,8 +36,14 @@ public class CardData : ScriptableObject
     [Tooltip("Local offset relative to tile surface")]
     public Vector3 placementOffset = Vector3.zero;
 
-    [Tooltip("If true, replaces the tile rather than placing on top")]
+    [Tooltip("Nếu tích chọn: khi đặt bài, khối lục giác tại ô đó được BIẾN ĐỔI thành Prefab To Place (thay vì đặt lên trên). Dùng cho card Special như Rain.")]
     public bool replacesTile = false;
+
+    [Tooltip("Nếu tích chọn, các prop/vật phẩm đã đặt trên khối gốc sẽ bị xóa khi biến đổi (thường đúng cho Rain). Nếu bỏ trống, prop được giữ lại và chuyển sang khối mới.")]
+    public bool clearPropsOnTransform = true;
+
+    [Tooltip("Nếu tích chọn (mặc định), đặt lá bài này sẽ CHIẾM ô: các card khác không đặt lên được nữa. Bỏ tích với card biến đổi địa hình như Rain để khối sau biến đổi vẫn trống, cho phép đặt card khác (ví dụ Forest) lên.")]
+    public bool occupiesTile = true;
 
     [Header("Habitat Procedural Props (Preserve Style)")]
     [Tooltip("Tỉ lệ giới hạn vùng sinh bên trong ô lục giác (0.7 - 0.85 giúp prop không bị lòi ra ngoài mép ô)")]
@@ -43,6 +52,31 @@ public class CardData : ScriptableObject
 
     [Tooltip("Danh sách các nhóm prop sẽ rải ngẫu nhiên khi đặt bài. Nếu danh sách này có dữ liệu, game sẽ tự động rải props thay vì chỉ đặt 1 prefabToPlace duy nhất.")]
     public List<HabitatPropRule> habitatProps = new List<HabitatPropRule>();
+
+    /// <summary>
+    /// Kiểm tra lá bài này có phải dạng biến đổi khối lục giác hay không (card Special như Rain).
+    /// Cần bật replacesTile VÀ có Prefab To Place làm khối đích.
+    /// </summary>
+    public bool IsTileTransformCard()
+    {
+        return replacesTile && prefabToPlace != null;
+    }
+
+    /// <summary>
+    /// Tìm chỉ số tầng của khối đích trong HexWorldGenerator.TerrainPrefabs để tile mới giữ đúng quy tắc đặt bài.
+    /// Trả về -1 nếu không tìm thấy.
+    /// </summary>
+    public int ResolveTerrainTypeIndex(HexWorldGenerator worldGen)
+    {
+        if (prefabToPlace == null) return -1;
+        if (worldGen == null || worldGen.TerrainPrefabs == null) return -1;
+
+        for (int i = 0; i < worldGen.TerrainPrefabs.Length; i++)
+        {
+            if (worldGen.TerrainPrefabs[i] == prefabToPlace) return i;
+        }
+        return -1;
+    }
 
     /// <summary>
     /// Kiểm tra xem lá bài này có cấu hình rải props hệ sinh thái hay không

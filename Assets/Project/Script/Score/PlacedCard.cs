@@ -8,6 +8,10 @@ public class PlacedCard : MonoBehaviour
     [Header("Placement")]
     public HexCoordinates placedHex;
 
+    [Header("Score Display")]
+    [Tooltip("Tổng điểm đã hiển thị cho khối này (dùng để tính phần nâng cấp khi nhóm đủ lớn). Không sửa thủ công.")]
+    public int displayedScore = 0;
+
     public CardType CardType
     {
         get

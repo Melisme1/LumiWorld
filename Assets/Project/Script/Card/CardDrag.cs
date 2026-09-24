@@ -53,6 +53,7 @@ public class CardDrag : MonoBehaviour,
     // CardHover uses this to know whether
     // the card is currently being dragged.
     public bool IsDragging { get; private set; }
+    public bool IsReturningToHand { get; private set; }
 
     private void Awake()
     {
@@ -124,6 +125,7 @@ public class CardDrag : MonoBehaviour,
     public void OnBeginDrag(PointerEventData eventData)
     {
         IsDragging = true;
+        IsReturningToHand = false;
         targetTilt = 0f;
         currentTilt = 0f;
         currentPointerPosition = eventData.position;
@@ -154,6 +156,14 @@ public class CardDrag : MonoBehaviour,
         {
             StopCoroutine(returnCoroutine);
             returnCoroutine = null;
+        }
+
+        // Hover moves a card to the last sibling. Restore its normal hand
+        // order before remembering the index used to return from dragging.
+        CardHover cardHover = GetComponent<CardHover>();
+        if (cardHover != null)
+        {
+            cardHover.EndHoverForDrag();
         }
 
         originalSiblingIndex = transform.GetSiblingIndex();
@@ -207,6 +217,10 @@ public class CardDrag : MonoBehaviour,
 
         if (placedSuccessfully)
         {
+            // Đặt thành công: khôi phục alpha/scale về bình thường trước khi rời tay.
+            // Nếu chồng còn lá (slot được giữ lại), card phải trở về trạng thái rõ nét.
+            RestoreVisualAfterPlacement();
+
             if (deskController != null)
             {
                 deskController.RemoveCard(gameObject);
@@ -222,10 +236,27 @@ public class CardDrag : MonoBehaviour,
         }
     }
 
+    /// <summary>
+    /// Khôi phục alpha và scale của card về trạng thái bình thường sau khi đặt thành công.
+    /// CardDrag.Update chỉ chạy khi IsDragging nên nếu không làm bước này,
+    /// alpha sẽ kẹt ở giá trị mờ (tileHoverAlpha / fieldDragAlpha) khi slot còn lá.
+    /// </summary>
+    private void RestoreVisualAfterPlacement()
+    {
+        transform.localScale = Vector3.one;
+        transform.localRotation = Quaternion.identity;
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 1f;
+        }
+    }
+
     public void ReturnToHand()
     {
         if (handSlot == null) return;
 
+        IsReturningToHand = true;
         Vector2 targetPosition = handSlot.TargetPosition;
 
         if (returnCoroutine != null)
@@ -241,6 +272,10 @@ public class CardDrag : MonoBehaviour,
         Vector2 startPosition = rectTransform.anchoredPosition;
         Vector3 startScale = transform.localScale;
         Quaternion startRotation = transform.localRotation;
+
+        // Alpha được hồi từ mức mờ lúc kéo -> 1.0. CardDrag là nguồn duy nhất ghi
+        // canvasGroup.alpha trong giai đoạn này (CardAppear tự nhường quyền qua
+        // IsDragOwned), nên alpha không bị animation khác đè ngược về trạng thái mờ.
         float startAlpha = canvasGroup != null ? canvasGroup.alpha : 1f;
 
         float elapsed = 0f;
@@ -257,22 +292,23 @@ public class CardDrag : MonoBehaviour,
 
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = Mathf.Lerp(startAlpha, 1.0f, t);
+                canvasGroup.alpha = Mathf.Lerp(startAlpha, 1f, t);
             }
 
             yield return null;
         }
 
-        rectTransform.anchoredPosition = targetPosition;
-        transform.localScale = Vector3.one;
-        transform.localRotation = Quaternion.identity;
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = 1.0f;
-        }
+        RestoreVisualAfterPlacement();
 
         transform.SetSiblingIndex(originalSiblingIndex);
+        IsReturningToHand = false;
         returnCoroutine = null;
+
+        // Thông báo cho CardHover biết card đã yên vị để nó đồng bộ lại target.
+        CardHover cardHover = GetComponent<CardHover>();
+        if (cardHover != null)
+        {
+            cardHover.SyncAfterReturn();
+        }
     }
 }
