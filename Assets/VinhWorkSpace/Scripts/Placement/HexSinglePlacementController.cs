@@ -369,18 +369,10 @@ public class HexSinglePlacementController : MonoBehaviour
         Quaternion tileRot = oldTileObj.transform.rotation;
         Transform parentTransform = oldTileObj.transform.parent;
 
-        // 2. Lưu lại chỉ số tầng cũ (nếu có)
-        int oldTerrainIndex = 0;
-        HexTileInfo oldTileInfo = oldTileObj.GetComponent<HexTileInfo>();
-        if (oldTileInfo != null)
-        {
-            oldTerrainIndex = oldTileInfo.terrainTypeIndex;
-        }
-
-        // 3. Xóa ô cũ khỏi Scene
+        // 2. Xóa ô cũ khỏi Scene
         Destroy(oldTileObj);
 
-        // 4. Sinh khối lục giác mới (Lush tile)
+        // 3. Sinh khối lục giác mới (Lush tile)
         GameObject newTileObj = Instantiate(transformedPrefab, tilePos, tileRot, parentTransform);
         newTileObj.name = $"Hex_{coords.Q}_{coords.R}_[{transformedPrefab.name}]_Transformed";
 
@@ -395,14 +387,14 @@ public class HexSinglePlacementController : MonoBehaviour
             }
         }
 
-        // 5. Cập nhật HexTileInfo cho ô mới
+        // 4. Cập nhật HexTileInfo cho ô mới
         HexTileInfo newTileInfo = newTileObj.GetComponent<HexTileInfo>();
         if (newTileInfo == null)
         {
             newTileInfo = newTileObj.AddComponent<HexTileInfo>();
         }
         newTileInfo.sourcePrefab = transformedPrefab;
-        newTileInfo.terrainTypeIndex = oldTerrainIndex;
+        newTileInfo.terrainTypeIndex = -1;
         newTileInfo.coordinates = coords;
         newTileInfo.isOccupied = cardData.occupiesTile; // Rain: occupiesTile = false
 

@@ -149,26 +149,6 @@ public class CardData : ScriptableObject
         return false;
     }
 
-    /// <summary>
-    /// Tìm chỉ số tầng của khối đích trong HexWorldGenerator.TerrainPrefabs để tile mới giữ đúng quy tắc đặt bài.
-    /// Trả về -1 nếu không tìm thấy.
-    /// </summary>
-    public int ResolveTerrainTypeIndex(GameObject targetPrefab, HexWorldGenerator worldGen)
-    {
-        if (targetPrefab == null) return -1;
-        if (worldGen == null || worldGen.TerrainPrefabs == null) return -1;
-
-        for (int i = 0; i < worldGen.TerrainPrefabs.Length; i++)
-        {
-            if (worldGen.TerrainPrefabs[i] == targetPrefab) return i;
-        }
-        return -1;
-    }
-
-    public int ResolveTerrainTypeIndex(HexWorldGenerator worldGen)
-    {
-        return ResolveTerrainTypeIndex(prefabToPlace, worldGen);
-    }
 
     /// <summary>
     /// Kiểm tra xem lá bài này có cấu hình rải props hệ sinh thái hay không
@@ -236,78 +216,84 @@ public class HabitatPropRule
     public List<GameObject> allowedTilePrefabs = new List<GameObject>();
 
     /// <summary>
-    /// Kiểm tra xem khối lục giác này có hợp lệ với quy tắc đặt của lá bài không
+    /// Kiểm tra xem khối lục giác này có hợp lệ với quy tắc đặt của lá bài không.
+    /// CHỈ cho phép đặt lên đúng những hex prefab mà bạn kéo vào trong Inspector (allowedTilePrefabs / transformRules).
     /// </summary>
-    public bool IsTileAllowed(GameObject tileObj, HexWorldGenerator worldGen)
+    public bool IsTileAllowed(GameObject tileObj, HexWorldGenerator worldGen = null)
     {
         if (tileObj == null) return false;
 
-        // Nếu là card biến đổi địa hình (Rain) và ô này khớp với một trong các ô Arid nguồn
-        if (IsTileTransformCard() && transformRules != null && transformRules.Count > 0)
+        // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (như Rain)
+        // Bắt buộc ô này phải là ô khô nguồn hợp lệ (Arid) mà bạn đã kéo vào transformRules hoặc allowedTilePrefabs
+        if (IsTileTransformCard())
         {
-            if (IsTransformSourceTile(tileObj))
+            bool hasTransformRules = transformRules != null && transformRules.Count > 0;
+            bool hasAllowedPrefabs = allowedTilePrefabs != null && allowedTilePrefabs.Count > 0;
+
+            if (hasTransformRules && !IsTransformSourceTile(tileObj))
             {
-                return true;
+                return false;
             }
+
+            if (hasAllowedPrefabs && !MatchesAnyAllowedPrefab(tileObj))
+            {
+                return false;
+            }
+
+            return hasTransformRules || hasAllowedPrefabs;
         }
 
-        // 1. Nếu danh sách trống -> Được phép đặt lên bất kỳ ô nào (trừ khi là Transform card nhưng không khớp)
+        // TRƯỜNG HỢP 2: THẺ THƯỜNG (Forest, Mountain, Bloomfield, Props...)
+        // Nếu không kéo prefab nào vào allowedTilePrefabs -> Cho phép đặt lên mọi ô
         if (allowedTilePrefabs == null || allowedTilePrefabs.Count == 0)
         {
-            return !IsTileTransformCard();
+            return true;
         }
 
+        // Nếu có kéo prefab vào -> CHỈ cho phép đặt lên đúng các hex khớp với prefab đã kéo vào
+        return MatchesAnyAllowedPrefab(tileObj);
+    }
+
+    /// <summary>
+    /// Kiểm tra xem GameObject ô lục giác có khớp với bất kỳ prefab nào trong allowedTilePrefabs không
+    /// (So khớp trực tiếp Prefab gốc hoặc tên Prefab, không phụ thuộc vào thứ tự tầng)
+    /// </summary>
+    public bool MatchesAnyAllowedPrefab(GameObject tileObj)
+    {
+        if (tileObj == null || allowedTilePrefabs == null || allowedTilePrefabs.Count == 0)
+            return false;
+
         HexTileInfo tileInfo = tileObj.GetComponent<HexTileInfo>();
+        GameObject sourcePrefab = tileInfo != null ? tileInfo.sourcePrefab : null;
+        string cleanTileName = tileObj.name.Replace("(Clone)", "").Trim();
 
         foreach (var allowed in allowedTilePrefabs)
         {
             if (allowed == null) continue;
 
-            string cleanAllowedName = allowed.name.Replace("(Clone)", "").Trim();
-
-            // 2. So khớp chính xác qua HexTileInfo (Prefab gốc hoặc Tên chính xác)
-            if (tileInfo != null)
-            {
-                if (tileInfo.sourcePrefab == allowed)
-                {
-                    return true;
-                }
-
-                if (tileInfo.sourcePrefab != null)
-                {
-                    string cleanSourcePrefabName = tileInfo.sourcePrefab.name.Replace("(Clone)", "").Trim();
-                    if (string.Equals(cleanSourcePrefabName, cleanAllowedName, System.StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            // 3. So khớp chính xác tên được đóng ngoặc vuông [prefabName] trong tên tileInstance (ví dụ: Hex_0_0_[hex_grass]_Type1)
-            // Dùng dấu ngoặc [] để tránh nhầm lẫn "hex_grass" nằm bên trong "hex_grass_bottom"
-            if (tileObj.name.IndexOf($"[{cleanAllowedName}]", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            // 1. So khớp trực tiếp Prefab gốc tham chiếu
+            if (sourcePrefab != null && sourcePrefab == allowed)
             {
                 return true;
             }
 
-            // 4. So khớp theo TerrainPrefabs index từ HexWorldGenerator
-            if (worldGen != null && worldGen.TerrainPrefabs != null)
-            {
-                for (int i = 0; i < worldGen.TerrainPrefabs.Length; i++)
-                {
-                    if (worldGen.TerrainPrefabs[i] == allowed)
-                    {
-                        if (tileInfo != null && tileInfo.terrainTypeIndex == i)
-                        {
-                            return true;
-                        }
+            string cleanAllowedName = allowed.name.Replace("(Clone)", "").Trim();
 
-                        if (tileObj.name.Contains($"_Type{i}"))
-                        {
-                            return true;
-                        }
-                    }
+            // 2. So khớp theo tên sourcePrefab
+            if (sourcePrefab != null)
+            {
+                string cleanSourcePrefabName = sourcePrefab.name.Replace("(Clone)", "").Trim();
+                if (string.Equals(cleanSourcePrefabName, cleanAllowedName, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
                 }
+            }
+
+            // 3. So khớp theo tên GameObject trong scene (ví dụ: Hex_0_0_[Tile_Bloomfield_Arid]_Type0)
+            if (cleanTileName.IndexOf($"[{cleanAllowedName}]", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                string.Equals(cleanTileName, cleanAllowedName, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
             }
         }
 
