@@ -37,14 +37,17 @@ public class CardDeskController : MonoBehaviour
     [SerializeField] private float rearrangeDuration = 0.25f;
 
     [Header("Reward Feedback (game feel khi nhận card)")]
-    [Tooltip("Hiện banner 'NHẬN CARD MỚI: <tên>' gần slot vừa được thêm.")]
-    [SerializeField] private bool showRewardToast = true;
+    [Tooltip("Hiện banner 'NHẬN CARD MỚI: <tên>'. Mặc định TẮT: banner che mất bản đồ, thay vào đó dùng tiếng 'ding' + tia sáng + badge số lượng.")]
+    [SerializeField] private bool showRewardToast = false;
 
     [Tooltip("Tiếng 'ding' + tia sáng + vòng highlight quanh thẻ vừa nhận.")]
     [SerializeField] private bool playRewardJuice = true;
 
     [Tooltip("Vị trí banner so với slot card (pixel, theo hệ toạ độ của CardContainer).")]
     [SerializeField] private Vector2 toastOffset = new Vector2(0f, 190f);
+
+    [Tooltip("Hiện banner tóm tắt toàn bộ hand lúc bắt đầu game. Mặc định TẮT vì banner này che mất bản đồ.")]
+    [SerializeField] private bool showStartingHandSummary = false;
 
     private readonly List<GameObject> cards = new();
 
@@ -190,8 +193,14 @@ public class CardDeskController : MonoBehaviour
 
         suppressRewardFeedback = false;
 
-        // Thông báo 1 lần cho cả hand: người chơi biết mình đang có những lá gì.
-        ShowStartingHandSummary();
+        // KHÔNG hiện banner tóm tắt hand ban đầu.
+        // Banner "N LOẠI CARD: ..." che mất bản đồ ngay khi vào game, trong khi
+        // người chơi đã nhìn thấy toàn bộ hand ở dưới màn hình rồi (kèm badge số lượng).
+        // Bật lại bằng showStartingHandSummary nếu vẫn muốn dùng.
+        if (showStartingHandSummary)
+        {
+            ShowStartingHandSummary();
+        }
     }
 
     /// <summary>
@@ -591,17 +600,9 @@ private void NotifyRewardCard(
 
     if (playRewardJuice)
     {
+        // Phản hồi khi nhận card giờ chỉ còn tiếng 'ding' (đã bỏ tia sáng/vệt sáng
+        // vì hay lệch khỏi khung thẻ và gây rối mắt); badge số lượng do CardUI vẽ.
         CardRewardJuice.Play(slotRect, isNewSlot);
-
-        // Vệt sáng chạy ngang card mới cho dễ nhận biết vị trí vừa thêm.
-        if (isNewSlot && slotRect != null)
-        {
-            CardAppear appear = slotRect.GetComponent<CardAppear>();
-            if (appear != null)
-            {
-                appear.PlayFlash();
-            }
-        }
     }
 }
 

@@ -30,19 +30,8 @@ public class CardAppear : MonoBehaviour
     [Tooltip("Biên độ lắc (độ) khi 'punch' lúc cộng dồn số lượng.")]
     [SerializeField] private float punchWobbleAngle = 7f;
 
-    [Header("Reward Flash (vệt sáng chạy qua card mới)")]
-    [Tooltip("Tự sinh một vệt sáng trắng chạy ngang card khi card mới xuất hiện (không cần setup prefab).")]
-    [SerializeField] private bool playFlashOnAppear = true;
-
-    [SerializeField] private Color flashColor = new Color(1f, 1f, 1f, 0.75f);
-    [SerializeField] private float flashDuration = 0.5f;
-
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
-
-    // Vệt sáng sinh tự động dùng cho hiệu ứng reward (cache lại để tái sử dụng).
-    private RectTransform flashRect;
-    private UnityEngine.UI.Image flashImage;
 
     private CardDrag cardDrag;
 
@@ -132,25 +121,6 @@ public class CardAppear : MonoBehaviour
 
         appearCoroutine =
             StartCoroutine(Punch(punchScale, punchWobbleAngle));
-    }
-
-    /// <summary>
-    /// Chạy riêng hiệu ứng vệt sáng (không tranh chấp scale/position với các animation khác).
-    /// </summary>
-    public void PlayFlash()
-    {
-        if (flashRect == null)
-        {
-            CreateFlash();
-        }
-
-        if (flashRect == null)
-        {
-            return;
-        }
-
-        StopCoroutine(nameof(FlashRoutine));
-        StartCoroutine(FlashRoutine());
     }
 
     private IEnumerator Appear(float delay)
@@ -253,8 +223,7 @@ public class CardAppear : MonoBehaviour
         rectTransform.localScale = Vector3.one;
         SetAlpha(1f);
 
-        // Punch là báo hiệu "vừa được cộng thêm 1 lá" -> kèm vệt sáng + lắc nhẹ.
-        PlayFlash();
+        // Punch là báo hiệu "vừa được cộng thêm 1 lá" -> kèm lắc nhẹ.
         yield return Wobble(0.22f, wobbleAngleDegrees, 1.5f, 0.06f);
 
         rectTransform.localRotation = Quaternion.identity;
@@ -327,83 +296,6 @@ public class CardAppear : MonoBehaviour
         }
 
         rectTransform.anchoredPosition = basePosition;
-    }
-
-    /// <summary>
-    /// Sinh một vệt sáng trắng ngang card (child Image + Material additive) rồi chạy qua.
-    /// Không phụ thuộc sprite/setup prefab nên chạy được với mọi card.
-    /// </summary>
-    private void CreateFlash()
-    {
-        GameObject flashObj = new GameObject("RewardFlash", typeof(RectTransform));
-        flashObj.transform.SetParent(rectTransform, false);
-
-        flashRect = flashObj.GetComponent<RectTransform>();
-        flashRect.anchorMin = new Vector2(0f, 0f);
-        flashRect.anchorMax = new Vector2(0f, 1f);
-        flashRect.pivot = new Vector2(0.5f, 0.5f);
-        flashRect.sizeDelta = new Vector2(46f, 0f);
-
-        flashImage = flashObj.AddComponent<UnityEngine.UI.Image>();
-        flashImage.raycastTarget = false;
-        flashImage.maskable = false;
-
-        // Dải mờ dần ở hai mép để vệt sáng trông mềm, không bị cắt vuông.
-        int width = 24;
-        Texture2D texture = new Texture2D(width, 1, TextureFormat.RGBA32, false);
-        texture.wrapMode = TextureWrapMode.Clamp;
-
-        for (int x = 0; x < width; x++)
-        {
-            float normalized = x / (float)(width - 1);
-            float alpha = Mathf.Sin(normalized * Mathf.PI);
-            texture.SetPixel(x, 0, new Color(1f, 1f, 1f, alpha));
-        }
-
-        texture.Apply();
-
-        flashImage.sprite = Sprite.Create(
-            texture,
-            new Rect(0f, 0f, width, 1f),
-            new Vector2(0.5f, 0.5f),
-            100f
-        );
-
-        flashObj.SetActive(false);
-    }
-
-    private IEnumerator FlashRoutine()
-    {
-        float cardWidth = Mathf.Max(rectTransform.rect.width, 1f);
-
-        // Bắt đầu ngoài mép trái, kết thúc ngoài mép phải -> sweep toàn bộ card.
-        flashRect.anchoredPosition = new Vector2(-cardWidth * 0.8f, 0f);
-        flashImage.color = flashColor;
-        flashImage.gameObject.SetActive(true);
-
-        float time = 0f;
-
-        while (time < flashDuration)
-        {
-            time += Time.deltaTime;
-            float t = Mathf.Clamp01(time / flashDuration);
-
-            float eased = Mathf.SmoothStep(0f, 1f, t);
-
-            flashRect.anchoredPosition = new Vector2(
-                Mathf.Lerp(-cardWidth * 0.8f, cardWidth * 0.8f, eased),
-                0f
-            );
-
-            // Mờ dần ở nửa sau để vệt sáng tan biến thay vì tắt đột ngột.
-            Color color = flashColor;
-            color.a = flashColor.a * (1f - Mathf.Clamp01((t - 0.45f) / 0.55f));
-            flashImage.color = color;
-
-            yield return null;
-        }
-
-        flashImage.gameObject.SetActive(false);
     }
 
     public void ShowImmediately(Vector2 position)
