@@ -95,7 +95,7 @@ public class HexHabitatSpawner : MonoBehaviour
 
                     // 1. Tìm vị trí đặt tâm cụm (clusterCenter) - Cho phép rải rộng ra khắp ô hex
                     float clusterRadius = Mathf.Clamp(rule.clusterRadius, 0.12f, 0.45f);
-                    float allowedCenterRadius = maxHexRadius * 0.95f;
+                    float allowedCenterRadius = Mathf.Max(0.15f, maxHexRadius - Mathf.Clamp(clusterRadius * 0.5f, 0.05f, 0.22f));
 
                     Vector2 clusterCenter = Vector2.zero;
                     bool foundClusterCenter = false;
@@ -170,7 +170,8 @@ public class HexHabitatSpawner : MonoBehaviour
                                 float dist = Random.Range(0.08f, clusterRadius);
                                 Vector2 candidateSpot = clusterCenter + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * dist;
 
-                                if (!IsPointInHexagon(candidateSpot, maxHexRadius)) continue;
+                                float siblingFootprint = GetPrefabHorizontalFootprint(selectedPrefab, rule, randomScale);
+                                if (!IsPointInHexagon(candidateSpot, Mathf.Max(0.12f, maxHexRadius - siblingFootprint))) continue;
 
                                 bool validWithAll = true;
                                 float minSiblingDist = float.MaxValue;
@@ -270,8 +271,9 @@ public class HexHabitatSpawner : MonoBehaviour
                     }
                     else
                     {
-                        // Cho phép hoa/cây đơn lẻ rải đều ra khắp diện tích lục giác tới 100% bán kính
-                        float allowedRadius = maxHexRadius;
+                        // Tự động trừ hao bán kính chân đế/tán cây (footprint) để cây to không bị thò rễ ra ngoài mép
+                        float footprint = GetPrefabHorizontalFootprint(selectedPrefab, rule, randomScale);
+                        float allowedRadius = Mathf.Max(0.12f, maxHexRadius - footprint);
                         bool foundValidSpot = false;
                         Vector2 bestSpot = Vector2.zero;
                         float bestScore = -1f;
@@ -378,50 +380,59 @@ public class HexHabitatSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Tự động đo bán kính ngang (X/Z) lớn nhất của prefab để tính khoảng cách chống tràn mép
+    /// Tính bán kính chiếm dụng mặt đất (XZ footprint) của prefab sau khi xoay và scale.
+    /// Dùng để tự động trừ hao vùng sinh (boundary setback), đảm bảo rễ cây xòe hoặc tán cây to không bao giờ bị thò ra mép vực.
     /// </summary>
-    private float GetPrefabHorizontalRadius(GameObject prefab)
+    private float GetPrefabHorizontalFootprint(GameObject prefab, CardData.HabitatPropRule rule, float scale)
     {
-        if (prefab == null) return 0.2f;
-        if (_radiusCache.TryGetValue(prefab, out float cached)) return cached;
+        if (prefab == null) return 0.05f;
 
-        float maxExtent = 0f;
+        float baseFootprint = (rule != null ? Mathf.Max(0.04f, rule.minDistance * 0.55f) : 0.05f);
 
-        // 1. Thử đọc từ MeshFilter (chính xác nhất cho imported 3D models)
-        MeshFilter[] filters = prefab.GetComponentsInChildren<MeshFilter>();
-        if (filters != null && filters.Length > 0)
+        if (!_radiusCache.TryGetValue(prefab, out float meshFootprintUnscaled))
         {
-            foreach (var mf in filters)
+            meshFootprintUnscaled = 0f;
+            MeshFilter mf = prefab.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
             {
-                if (mf != null && mf.sharedMesh != null)
-                {
-                    Bounds b = mf.sharedMesh.bounds;
-                    Vector3 lossy = mf.transform.lossyScale;
-                    maxExtent = Mathf.Max(maxExtent, b.extents.x * Mathf.Abs(lossy.x), b.extents.z * Mathf.Abs(lossy.z));
-                }
-            }
-        }
+                Bounds b = mf.sharedMesh.bounds;
+                Vector3 scaledMin = Vector3.Scale(b.min, prefab.transform.localScale);
+                Vector3 scaledMax = Vector3.Scale(b.max, prefab.transform.localScale);
+                Quaternion rot = prefab.transform.localRotation;
 
-        // 2. Dự phòng đọc từ Renderer
-        if (maxExtent <= 0.01f)
-        {
-            Renderer[] renderers = prefab.GetComponentsInChildren<Renderer>();
-            if (renderers != null && renderers.Length > 0)
-            {
-                foreach (var r in renderers)
+                float maxRadiusXZ = 0f;
+                for (int x = 0; x <= 1; x++)
                 {
-                    if (r != null)
+                    for (int y = 0; y <= 1; y++)
                     {
-                        maxExtent = Mathf.Max(maxExtent, r.bounds.extents.x, r.bounds.extents.z);
+                        for (int z = 0; z <= 1; z++)
+                        {
+                            Vector3 corner = new Vector3(
+                                x == 0 ? scaledMin.x : scaledMax.x,
+                                y == 0 ? scaledMin.y : scaledMax.y,
+                                z == 0 ? scaledMin.z : scaledMax.z
+                            );
+                            Vector3 rotCorner = rot * corner;
+                            float distXZ = Mathf.Sqrt(rotCorner.x * rotCorner.x + rotCorner.z * rotCorner.z);
+                            if (distXZ > maxRadiusXZ) maxRadiusXZ = distXZ;
+                        }
                     }
                 }
+
+                // Với cây đại thụ (HeroOak), phần rễ bám đất xòe ra chiếm khoảng 60-70% bán kính tán lá
+                meshFootprintUnscaled = maxRadiusXZ * 0.65f;
             }
+
+            if (meshFootprintUnscaled <= 0.01f)
+            {
+                meshFootprintUnscaled = baseFootprint;
+            }
+
+            _radiusCache[prefab] = meshFootprintUnscaled;
         }
 
-        if (maxExtent <= 0.01f) maxExtent = 0.25f;
-
-        _radiusCache[prefab] = maxExtent;
-        return maxExtent;
+        float totalFootprint = Mathf.Max(baseFootprint, meshFootprintUnscaled * scale);
+        return Mathf.Clamp(totalFootprint, 0.04f, 0.45f);
     }
 
     /// <summary>

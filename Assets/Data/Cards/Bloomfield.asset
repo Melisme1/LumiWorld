@@ -24,7 +24,7 @@ MonoBehaviour:
   clearPropsOnTransform: 1
   occupiesTile: 1
   transformRules: []
-  habitatSpawnMargin: 0.95
+  habitatSpawnMargin: 0.98
   habitatProps:
   - groupName: Daisy Carpet Colony
     prefabs:
