@@ -33,6 +33,7 @@ public class HexGhostVisual : MonoBehaviour
     private GameObject ghostRoot;
     private GameObject hologramShellObj;
     private GameObject itemGhostInstance;
+    private CardData activeCardData;
     private readonly List<MeshRenderer> cachedGhostRenderers = new List<MeshRenderer>();
     private MaterialPropertyBlock propBlock;
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
@@ -49,6 +50,7 @@ public class HexGhostVisual : MonoBehaviour
     public void BuildPreview(CardData cardData, Material fallbackMaterial = null)
     {
         ClearVisuals();
+        activeCardData = cardData;
 
         if (ghostMaterial == null && fallbackMaterial != null)
         {
@@ -130,7 +132,7 @@ public class HexGhostVisual : MonoBehaviour
     }
 
     /// <summary>
-    /// Đồng bộ vỏ bọc 3D Hologram khớp 100% với Mesh của ô lục giác đang trỏ tới
+    /// Đồng bộ vỏ bọc 3D Hologram khớp 100% với Mesh của ô lục giác đang trỏ tới (hoặc ô Lush nếu là thẻ Special như Rain)
     /// </summary>
     public void SyncHologramShellToTile(GameObject targetTileObj)
     {
@@ -148,17 +150,41 @@ public class HexGhostVisual : MonoBehaviour
         hologramShellObj.transform.localRotation = targetTileObj.transform.localRotation;
         hologramShellObj.transform.localScale = previewScale;
 
-        MeshFilter[] sourceFilters = targetTileObj.GetComponentsInChildren<MeshFilter>();
+        // Nếu là thẻ biến đổi địa hình (Rain) và ô này hợp lệ, hiển thị mesh của ô Lush sau khi tưới!
+        GameObject meshSource = targetTileObj;
+        bool isTransformedPrefab = false;
+
+        if (activeCardData != null && activeCardData.IsTileTransformCard())
+        {
+            GameObject transformed = activeCardData.GetTransformedPrefab(targetTileObj);
+            if (transformed != null)
+            {
+                meshSource = transformed;
+                isTransformedPrefab = true;
+            }
+        }
+
+        MeshFilter[] sourceFilters = meshSource.GetComponentsInChildren<MeshFilter>();
         foreach (var srcMf in sourceFilters)
         {
             if (srcMf == null || srcMf.sharedMesh == null) continue;
-            if (IsPartOfPlacedProp(srcMf.transform, targetTileObj.transform)) continue;
+            if (!isTransformedPrefab && IsPartOfPlacedProp(srcMf.transform, targetTileObj.transform)) continue;
 
             GameObject part = new GameObject(srcMf.name);
             part.transform.SetParent(hologramShellObj.transform, false);
-            part.transform.localPosition = targetTileObj.transform.InverseTransformPoint(srcMf.transform.position);
-            part.transform.localRotation = Quaternion.Inverse(targetTileObj.transform.rotation) * srcMf.transform.rotation;
-            part.transform.localScale = (srcMf.gameObject == targetTileObj) ? Vector3.one : srcMf.transform.localScale;
+
+            if (isTransformedPrefab)
+            {
+                part.transform.localPosition = srcMf.transform.localPosition;
+                part.transform.localRotation = srcMf.transform.localRotation;
+                part.transform.localScale = srcMf.transform.localScale;
+            }
+            else
+            {
+                part.transform.localPosition = targetTileObj.transform.InverseTransformPoint(srcMf.transform.position);
+                part.transform.localRotation = Quaternion.Inverse(targetTileObj.transform.rotation) * srcMf.transform.rotation;
+                part.transform.localScale = (srcMf.gameObject == targetTileObj) ? Vector3.one : srcMf.transform.localScale;
+            }
 
             MeshFilter mf = part.AddComponent<MeshFilter>();
             mf.sharedMesh = srcMf.sharedMesh;
@@ -217,6 +243,8 @@ public class HexGhostVisual : MonoBehaviour
     private GameObject GetPreviewPrefab(CardData cardData)
     {
         if (cardData == null) return null;
+        // Thẻ biến đổi địa hình (như Rain) không sinh vật phẩm nổi lên trên mặt ô
+        if (cardData.IsTileTransformCard()) return null;
         if (cardData.prefabToPlace != null) return cardData.prefabToPlace;
 
         if (cardData.HasHabitatProps())

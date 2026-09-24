@@ -57,3 +57,6 @@ MonoBehaviour:
     placeAtCenter: 0
   allowedTilePrefabs:
   - {fileID: 919132149155446097, guid: 0f6475f7f2a817f429a31a04d5bc5d3a, type: 3}
+  - {fileID: 919132149155446097, guid: d8bdcab2ea9404349a8dc2f292b92790, type: 3}
+  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}
+  - {fileID: 919132149155446097, guid: 0795a2526526372479924cb9c799dcb2, type: 3}

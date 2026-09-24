@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
+  m_Name: Leafwood
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardID: leafwood_001
+  cardName: Leafwood
+  cardImage: {fileID: -866576416, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardType: 1
+  baseScore: 1
+  alwaysBaseScore: 0
+  prefabToPlace: {fileID: 0}
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 0
+  clearPropsOnTransform: 1
+  occupiesTile: 1
+  transformRules: []
+  habitatSpawnMargin: 0.85
+  habitatProps:
+  - groupName: The Anchor Tree
+    prefabs:
+    - {fileID: 9090769712191313742, guid: 3529fb2ea9d50424d87b36bdf24f2c51, type: 3}
+    clusterAsPatch: 0
+    countRange: {x: 1, y: 1}
+    propsPerClusterRange: {x: 2, y: 3}
+    clusterRadius: 0.26
+    minDistance: 0.45
+    scaleRange: {x: 0.95, y: 1.15}
+    maxTiltAngle: 2
+    placeAtCenter: 0
+  - groupName: Secondary Trees
+    prefabs:
+    - {fileID: 7725487671202935297, guid: 6dc72a3e00dc66749ae5979fc211452b, type: 3}
+    - {fileID: 5009641078510694924, guid: 4e6661a3bb973304399335a979db6d10, type: 3}
+    clusterAsPatch: 1
+    countRange: {x: 1, y: 2}
+    propsPerClusterRange: {x: 1, y: 2}
+    clusterRadius: 0.26
+    minDistance: 0.38
+    scaleRange: {x: 0.85, y: 1.1}
+    maxTiltAngle: 3.5
+    placeAtCenter: 0
+  - groupName: Fallen Mossy Log
+    prefabs:
+    - {fileID: 3269547600719880639, guid: cd15fec5e1fd7e345bf7de3e87cd5bc4, type: 3}
+    clusterAsPatch: 0
+    countRange: {x: 0, y: 1}
+    propsPerClusterRange: {x: 2, y: 3}
+    clusterRadius: 0.26
+    minDistance: 0.36
+    scaleRange: {x: 0.9, y: 1.1}
+    maxTiltAngle: 5
+    placeAtCenter: 0
+  - groupName: Fern Bush Colony
+    prefabs:
+    - {fileID: 3742922503016705380, guid: 3e205721371923c41b17e3f7666325ab, type: 3}
+    clusterAsPatch: 1
+    countRange: {x: 2, y: 4}
+    propsPerClusterRange: {x: 2, y: 4}
+    clusterRadius: 0.24
+    minDistance: 0.35
+    scaleRange: {x: 0.75, y: 1.15}
+    maxTiltAngle: 4
+    placeAtCenter: 0
+  allowedTilePrefabs:
+  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}
+  - {fileID: 919132149155446097, guid: d8bdcab2ea9404349a8dc2f292b92790, type: 3}

@@ -16,9 +16,14 @@ MonoBehaviour:
   cardName: Mountain
   cardImage: {fileID: -1485477234, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
   cardType: 1
+  baseScore: 1
+  alwaysBaseScore: 0
   prefabToPlace: {fileID: 0}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
+  clearPropsOnTransform: 1
+  occupiesTile: 1
+  transformRules: []
   habitatSpawnMargin: 0.9
   habitatProps:
   - groupName: Main Mountain Peak
@@ -50,4 +55,6 @@ MonoBehaviour:
     maxTiltAngle: 6
     placeAtCenter: 0
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: b63bdd86ddf5b7847babbbfa55d227a9, type: 3}
+  - {fileID: 919132149155446097, guid: d8bdcab2ea9404349a8dc2f292b92790, type: 3}
+  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}
+  - {fileID: 919132149155446097, guid: 0795a2526526372479924cb9c799dcb2, type: 3}

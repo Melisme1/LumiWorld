@@ -267,55 +267,68 @@ public class HexSinglePlacementController : MonoBehaviour
             spawnWorldPos += cardData.placementOffset;
         }
 
-        // Sinh vật phẩm / hệ sinh thái Props lên đỉnh ô
+        PlacedCard placedCardInstance = null;
+
+        // Sinh vật phẩm / hệ sinh thái Props hoặc biến đổi địa hình
         if (cardData != null)
         {
-            if (cardData.HasHabitatProps())
+            // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN)
+            if (cardData.IsTileTransformCard())
             {
-                // Sinh tổ hợp props ngẫu nhiên phong cách Preserve
+                placedCardInstance = TransformTile(targetTileObj, currentHoverHex, cardData);
+            }
+            // TRƯỜNG HỢP 2: THẺ SINH THÁI TỔ HỢP PROPS (HABITAT PROPS NHƯ FOREST, MOUNTAIN...)
+            else if (cardData.HasHabitatProps())
+            {
                 HexHabitatSpawner.Instance.SpawnHabitat(cardData, targetTileObj.transform, spawnWorldPos);
 
-                PlacedCard placedCard = targetTileObj.GetComponent<PlacedCard>();
-                if (placedCard == null)
+                GameObject cardRecord = new GameObject($"PlacedCard_{cardData.cardName}");
+                cardRecord.transform.SetParent(targetTileObj.transform, false);
+                placedCardInstance = cardRecord.AddComponent<PlacedCard>();
+                placedCardInstance.cardData = cardData;
+                placedCardInstance.placedHex = currentHoverHex;
+
+                HexTileInfo tileInfo = targetTileObj.GetComponent<HexTileInfo>();
+                if (tileInfo != null && cardData.occupiesTile)
                 {
-                    placedCard = targetTileObj.AddComponent<PlacedCard>();
+                    tileInfo.isOccupied = true;
                 }
-                placedCard.cardData = cardData;
-                placedCard.placedHex = currentHoverHex;
             }
+            // TRƯỜNG HỢP 3: THẺ ĐẶT MÔ HÌNH ĐƠN LẺ
             else if (cardData.prefabToPlace != null)
             {
-                // Sinh vật phẩm đơn lẻ thông thường
                 GameObject placedObject = Instantiate(cardData.prefabToPlace, spawnWorldPos, Quaternion.identity, targetTileObj.transform);
                 placedObject.name = $"{cardData.cardName}_{currentHoverHex.Q}_{currentHoverHex.R}";
 
-                PlacedCard placedCard = placedObject.GetComponent<PlacedCard>();
-                if (placedCard == null)
+                placedCardInstance = placedObject.GetComponent<PlacedCard>();
+                if (placedCardInstance == null)
                 {
-                    placedCard = placedObject.AddComponent<PlacedCard>();
+                    placedCardInstance = placedObject.AddComponent<PlacedCard>();
                 }
-                placedCard.cardData = cardData;
-                placedCard.placedHex = currentHoverHex;
+                placedCardInstance.cardData = cardData;
+                placedCardInstance.placedHex = currentHoverHex;
+
+                HexTileInfo tileInfo = targetTileObj.GetComponent<HexTileInfo>();
+                if (tileInfo != null && cardData.occupiesTile)
+                {
+                    tileInfo.isOccupied = true;
+                }
 
                 StartCoroutine(AnimatePopIn(placedObject.transform));
             }
             else
             {
-                // Lá bài không có prefab lẫn habitat props
-                PlacedCard placedCard = targetTileObj.GetComponent<PlacedCard>();
-                if (placedCard == null)
-                {
-                    placedCard = targetTileObj.AddComponent<PlacedCard>();
-                }
-                placedCard.cardData = cardData;
-                placedCard.placedHex = currentHoverHex;
-            }
+                GameObject cardRecord = new GameObject($"PlacedCard_{cardData.cardName}");
+                cardRecord.transform.SetParent(targetTileObj.transform, false);
+                placedCardInstance = cardRecord.AddComponent<PlacedCard>();
+                placedCardInstance.cardData = cardData;
+                placedCardInstance.placedHex = currentHoverHex;
 
-            // Đánh dấu ô đã bị chiếm dụng trong HexTileInfo
-            HexTileInfo tileInfo = targetTileObj.GetComponent<HexTileInfo>();
-            if (tileInfo != null)
-            {
-                tileInfo.isOccupied = true;
+                HexTileInfo tileInfo = targetTileObj.GetComponent<HexTileInfo>();
+                if (tileInfo != null && cardData.occupiesTile)
+                {
+                    tileInfo.isOccupied = true;
+                }
             }
 
             // Tính toán lại điểm số
@@ -325,7 +338,7 @@ public class HexSinglePlacementController : MonoBehaviour
             }
 
             // Hiệu ứng cộng điểm "+X" (Preserve style)
-            ShowPlacementScorePopup();
+            ShowPlacementScorePopup(placedCardInstance);
         }
 
         CancelPreview();
@@ -333,21 +346,110 @@ public class HexSinglePlacementController : MonoBehaviour
     }
 
     /// <summary>
+    /// Biến đổi ô lục giác hiện tại (đất khô) thành ô đất mới (tươi tốt) khi sử dụng thẻ Special như Rain
+    /// </summary>
+    private PlacedCard TransformTile(GameObject oldTileObj, HexCoordinates coords, CardData cardData)
+    {
+        if (oldTileObj == null || worldGenerator == null) return null;
+
+        // 1. Xác định Prefab mới (Lush) tương ứng với ô Arid hiện tại
+        GameObject transformedPrefab = cardData.GetTransformedPrefab(oldTileObj);
+        if (transformedPrefab == null)
+        {
+            transformedPrefab = cardData.prefabToPlace;
+        }
+
+        if (transformedPrefab == null)
+        {
+            Debug.LogWarning($"[TransformTile] Không tìm thấy prefab đích để biến đổi cho ô {oldTileObj.name}");
+            return null;
+        }
+
+        Vector3 tilePos = oldTileObj.transform.position;
+        Quaternion tileRot = oldTileObj.transform.rotation;
+        Transform parentTransform = oldTileObj.transform.parent;
+
+        // 2. Lưu lại chỉ số tầng cũ (nếu có)
+        int oldTerrainIndex = 0;
+        HexTileInfo oldTileInfo = oldTileObj.GetComponent<HexTileInfo>();
+        if (oldTileInfo != null)
+        {
+            oldTerrainIndex = oldTileInfo.terrainTypeIndex;
+        }
+
+        // 3. Xóa ô cũ khỏi Scene
+        Destroy(oldTileObj);
+
+        // 4. Sinh khối lục giác mới (Lush tile)
+        GameObject newTileObj = Instantiate(transformedPrefab, tilePos, tileRot, parentTransform);
+        newTileObj.name = $"Hex_{coords.Q}_{coords.R}_[{transformedPrefab.name}]_Transformed";
+
+        // Đảm bảo có MeshCollider để chuột Raycast chính xác bề mặt
+        if (newTileObj.GetComponent<Collider>() == null)
+        {
+            MeshFilter mf = newTileObj.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
+            {
+                MeshCollider mc = newTileObj.AddComponent<MeshCollider>();
+                mc.sharedMesh = mf.sharedMesh;
+            }
+        }
+
+        // 5. Cập nhật HexTileInfo cho ô mới
+        HexTileInfo newTileInfo = newTileObj.GetComponent<HexTileInfo>();
+        if (newTileInfo == null)
+        {
+            newTileInfo = newTileObj.AddComponent<HexTileInfo>();
+        }
+        newTileInfo.sourcePrefab = transformedPrefab;
+        newTileInfo.terrainTypeIndex = oldTerrainIndex;
+        newTileInfo.coordinates = coords;
+        newTileInfo.isOccupied = cardData.occupiesTile; // Rain: occupiesTile = false
+
+        // 6. Cập nhật MapTiles trong HexWorldGenerator
+        if (worldGenerator.MapTiles.ContainsKey(coords))
+        {
+            worldGenerator.MapTiles[coords] = newTileObj;
+        }
+        else
+        {
+            worldGenerator.MapTiles.Add(coords, newTileObj);
+        }
+
+        // 7. Tạo record PlacedCard cho thẻ Rain
+        GameObject cardRecord = new GameObject($"PlacedCard_{cardData.cardName}");
+        cardRecord.transform.SetParent(newTileObj.transform, false);
+        PlacedCard placedCard = cardRecord.AddComponent<PlacedCard>();
+        placedCard.cardData = cardData;
+        placedCard.placedHex = coords;
+
+        // 8. Hiệu ứng pop-in nảy nhẹ khi đất được tưới nước tươi tốt
+        StartCoroutine(AnimatePopIn(newTileObj.transform));
+
+        return placedCard;
+    }
+
+    /// <summary>
     /// Hiển thị hiệu ứng "+X" cho phần điểm TĂNG THÊM của từng khối trong nhóm
     /// </summary>
-    private void ShowPlacementScorePopup()
+    private void ShowPlacementScorePopup(PlacedCard specificCard = null)
     {
         if (HexGroupDetector.Instance == null) return;
 
-        GameObject tileObj = null;
-        if (worldGenerator != null)
-        {
-            worldGenerator.MapTiles.TryGetValue(currentHoverHex, out tileObj);
-        }
+        PlacedCard placedCard = specificCard;
 
-        PlacedCard placedCard = tileObj != null
-            ? tileObj.GetComponentInChildren<PlacedCard>()
-            : null;
+        if (placedCard == null)
+        {
+            GameObject tileObj = null;
+            if (worldGenerator != null)
+            {
+                worldGenerator.MapTiles.TryGetValue(currentHoverHex, out tileObj);
+            }
+
+            placedCard = tileObj != null
+                ? tileObj.GetComponentInChildren<PlacedCard>()
+                : null;
+        }
 
         if (placedCard == null || placedCard.cardData == null) return;
 
@@ -372,9 +474,9 @@ public class HexSinglePlacementController : MonoBehaviour
         {
             if (card == null || card.cardData == null) continue;
 
-            int targetScore = isCompleteGroup
-                ? card.cardData.baseScore * groupMultiplier
-                : card.cardData.baseScore;
+            int targetScore = card.cardData.alwaysBaseScore
+                ? card.cardData.baseScore
+                : (isCompleteGroup ? card.cardData.baseScore * groupMultiplier : card.cardData.baseScore);
 
             int gained = targetScore - card.displayedScore;
 

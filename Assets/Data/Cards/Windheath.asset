@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
+  m_Name: Windheath
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardID: windheath_001
+  cardName: Windheath
+  cardImage: {fileID: -1485477234, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardType: 1
+  baseScore: 1
+  alwaysBaseScore: 0
+  prefabToPlace: {fileID: 0}
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 0
+  clearPropsOnTransform: 1
+  occupiesTile: 1
+  transformRules: []
+  habitatSpawnMargin: 0.88
+  habitatProps:
+  - groupName: The Anchor Tree
+    prefabs:
+    - {fileID: 919132149155446097, guid: 3529fb2ea9d50424d87b36bdf24f2c51, type: 3}
+    countRange: {x: 1, y: 1}
+    minDistance: 0.38
+    scaleRange: {x: 1.15, y: 1.4}
+    maxTiltAngle: 2
+    placeAtCenter: 0
+  - groupName: Secondary Trees
+    prefabs:
+    - {fileID: 919132149155446097, guid: 6dc72a3e00dc66749ae5979fc211452b, type: 3}
+    - {fileID: 919132149155446097, guid: 4e6661a3bb973304399335a979db6d10, type: 3}
+    countRange: {x: 2, y: 3}
+    minDistance: 0.3
+    scaleRange: {x: 0.8, y: 1.05}
+    maxTiltAngle: 3.5
+    placeAtCenter: 0
+  - groupName: Floor Details
+    prefabs:
+    - {fileID: 919132149155446097, guid: 3e205721371923c41b17e3f7666325ab, type: 3}
+    - {fileID: 919132149155446097, guid: cd15fec5e1fd7e345bf7de3e87cd5bc4, type: 3}
+    countRange: {x: 2, y: 4}
+    minDistance: 0.2
+    scaleRange: {x: 0.85, y: 1.2}
+    maxTiltAngle: 4
+    placeAtCenter: 0
+  allowedTilePrefabs:
+  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}

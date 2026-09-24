@@ -63,10 +63,14 @@ public class HexPlacementValidator : MonoBehaviour
             return true;
         }
 
-        // 2. Kiểm tra xem tile hoặc các object con của tile đã gắn PlacedCard chưa
-        if (tileObj.GetComponentInChildren<PlacedCard>() != null)
+        // 2. Kiểm tra xem tile hoặc các object con của tile đã gắn PlacedCard loại chiếm ô không
+        PlacedCard[] placedCards = tileObj.GetComponentsInChildren<PlacedCard>();
+        foreach (var pc in placedCards)
         {
-            return true;
+            if (pc != null && (pc.cardData == null || pc.cardData.occupiesTile))
+            {
+                return true;
+            }
         }
 
         // 3. Kiểm tra xem tile có chứa container Habitat_ không
