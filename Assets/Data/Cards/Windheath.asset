@@ -26,31 +26,54 @@ MonoBehaviour:
   transformRules: []
   habitatSpawnMargin: 0.88
   habitatProps:
-  - groupName: The Anchor Tree
+  - groupName: Floor Highland Boulder Anchor
     prefabs:
-    - {fileID: 919132149155446097, guid: 3529fb2ea9d50424d87b36bdf24f2c51, type: 3}
-    countRange: {x: 1, y: 1}
-    minDistance: 0.38
-    scaleRange: {x: 1.15, y: 1.4}
-    maxTiltAngle: 2
+    - {fileID: 349442941351498450, guid: 8816255af19bb474d95379476507ca46, type: 3}
+    clusterAsPatch: 0
+    countRange: {x: 1, y: 2}
+    propsPerClusterRange: {x: 0, y: 0}
+    clusterRadius: 0.25
+    minDistance: 0.45
+    scaleRange: {x: 0.95, y: 1.25}
+    maxTiltAngle: 1.5
+    customGroundEmbed: 0.02
     placeAtCenter: 0
-  - groupName: Secondary Trees
+  - groupName: The Solitary Windswept Sentinel
     prefabs:
-    - {fileID: 919132149155446097, guid: 6dc72a3e00dc66749ae5979fc211452b, type: 3}
-    - {fileID: 919132149155446097, guid: 4e6661a3bb973304399335a979db6d10, type: 3}
-    countRange: {x: 2, y: 3}
-    minDistance: 0.3
-    scaleRange: {x: 0.8, y: 1.05}
+    - {fileID: 4164058881040370493, guid: 97410ef8b30a5fd4fbf42999ec23bcc0, type: 3}
+    - {fileID: 1767401183566329671, guid: 2215a524d6ecc4340bbf043fa2569fb1, type: 3}
+    clusterAsPatch: 0
+    countRange: {x: 1, y: 2}
+    propsPerClusterRange: {x: 0, y: 0}
+    clusterRadius: 0.25
+    minDistance: 0.48
+    scaleRange: {x: 0.95, y: 1.2}
     maxTiltAngle: 3.5
+    customGroundEmbed: 0
     placeAtCenter: 0
-  - groupName: Floor Details
+  - groupName: Heather Carpet Colony
     prefabs:
-    - {fileID: 919132149155446097, guid: 3e205721371923c41b17e3f7666325ab, type: 3}
-    - {fileID: 919132149155446097, guid: cd15fec5e1fd7e345bf7de3e87cd5bc4, type: 3}
+    - {fileID: 8961250465676783812, guid: c737dab75eaa72b489e7f9b13536b29f, type: 3}
+    clusterAsPatch: 1
     countRange: {x: 2, y: 4}
-    minDistance: 0.2
-    scaleRange: {x: 0.85, y: 1.2}
+    propsPerClusterRange: {x: 2, y: 4}
+    clusterRadius: 0.28
+    minDistance: 0.22
+    scaleRange: {x: 0.85, y: 1.15}
+    maxTiltAngle: 2.5
+    customGroundEmbed: 0
+    placeAtCenter: 0
+  - groupName: Tussock Wind-Drift
+    prefabs:
+    - {fileID: 3732195332727685260, guid: b170701159a146a49aca0c3bdb3c3542, type: 3}
+    clusterAsPatch: 1
+    countRange: {x: 5, y: 8}
+    propsPerClusterRange: {x: 3, y: 5}
+    clusterRadius: 0.2
+    minDistance: 0.18
+    scaleRange: {x: 0.75, y: 1.05}
     maxTiltAngle: 4
+    customGroundEmbed: 0.2
     placeAtCenter: 0
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}
+  - {fileID: 919132149155446097, guid: 0795a2526526372479924cb9c799dcb2, type: 3}

@@ -119,9 +119,9 @@ centered in frame, floating weightlessly in empty space with generous empty whit
   ```
   *Thông số:* ~250–320 tris | *Pivot:* Đáy khóm (Y=0)
 
-* **🍀 Variant C (Tussock Grass Clump - Bụi Cỏ Đồi Uốn Lượn Theo Gió)**
+* **🍀 Variant C (Upright Tussock Grass - Bụi Cỏ Đồi Dáng Đứng Thẳng Tự Nhiên - RESTING STATE)**
   ```text
-  A 3D video game item asset of a cluster of stylized windswept tussock grass, designed for gentle grass sway animation, centered in frame, floating weightlessly in mid-air in empty space. Chunky rounded grass blades fanning and sweeping uniformly in one direction as if sculpted by continuous moorland wind, pale straw ochre and olive tones. Buttery smooth curved blades, zero sharp faceted edges, bottom stems ending cleanly in mid-air. Isometric 3/4 perspective view. Focus only on the grass clump, ignore all environment, hills, and ground. Seamless solid pure white background with generous empty padding around all sides. Full view, nothing cropped or touching the edges. Clear empty air underneath, strictly floating, no soil, no ground, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft low-poly, clean shading, rhythmic flow --ar 1:1
+  A 3D video game item asset of a compact cluster of stylized upright tussock grass stalks, designed for dynamic wind wave shader animation, centered in frame, floating weightlessly in mid-air in empty space. Chunky rounded grass blades growing straight up in a clean vertical sheaf posture, perfectly upright and standing tall in calm still air with zero wind deflection, stems bound neatly at the bottom center and fanning very subtly in radial symmetry without any directional lean. Pale straw ochre and pastel olive tones. Buttery smooth rounded blades, zero sharp faceted edges, bottom stems ending cleanly in mid-air at bottom pivot Y=0. Isometric 3/4 perspective view. Focus exclusively on the grass stalks, ignore all environment, ground, and scenery. Seamless solid pure white background with generous empty padding around all sides. Full view, nothing cropped or touching the borders. Clear empty air underneath, strictly floating, no soil, no ground, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft low-poly, clean shading, neutral upright resting pose --ar 1:1
   ```
   *Thông số:* ~180–240 tris | *Pivot:* Đáy cụm cỏ (Y=0)
 

@@ -508,6 +508,12 @@ public class HexHabitatSpawner : MonoBehaviour
                     {
                         groundEmbed = 0.035f;
                     }
+                    else if (pName.IndexOf("Grass", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             pName.IndexOf("Reed", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             pName.IndexOf("Tussock", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        groundEmbed = 0.2f; // Bụi cỏ cắm sâu 15cm để giấu gốc thân, hạ độ cao hài hòa với mặt ô đất
+                    }
                 }
 
                 offset = -minY - groundEmbed;
