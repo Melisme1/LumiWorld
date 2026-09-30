@@ -145,6 +145,11 @@ public class HexWorldGenerator : MonoBehaviour
 
     private void ClearCurrentMap()
     {
+        if (HexBiomeClusterConnector.Instance != null)
+        {
+            HexBiomeClusterConnector.Instance.ClearAllConnections();
+        }
+
         foreach (var pair in MapTiles)
         {
             if (pair.Value != null)

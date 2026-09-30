@@ -339,6 +339,12 @@ public class HexSinglePlacementController : MonoBehaviour
 
             // Hiệu ứng cộng điểm "+X" (Preserve style)
             ShowPlacementScorePopup(placedCardInstance);
+
+            // Kết nối các khối trong cụm biome (Preserve-style seamless cluster connection)
+            if (HexBiomeClusterConnector.Instance != null && placedCardInstance != null)
+            {
+                HexBiomeClusterConnector.Instance.ConnectCluster(placedCardInstance);
+            }
         }
 
         CancelPreview();

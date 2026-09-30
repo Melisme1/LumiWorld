@@ -439,7 +439,7 @@ public class HexHabitatSpawner : MonoBehaviour
     /// Tự động tính độ cao cần nâng lên để đáy mesh tiếp xúc đúng mặt cỏ (Y=0),
     /// cắm sâu thêm đối với hoa dạng bó (bouquet/stem) để giấu chân cành và hạ tỉ lệ hoa ngang bằng thảm cỏ.
     /// </summary>
-    private float GetPrefabBottomYOffset(GameObject prefab, float customEmbed = 0f)
+    public static float GetPrefabBottomYOffset(GameObject prefab, float customEmbed = 0f)
     {
         if (prefab == null) return 0f;
 

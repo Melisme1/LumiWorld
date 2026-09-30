@@ -1,0 +1,273 @@
+﻿LumiWorldĐề xuất mở rộng lối chơi và quản lý thế giới
+Gameplay Expansion and World Management Proposal
+Bản 1 • Tài liệu trao đổi trong team • Ngày 26 tháng 9 năm 2026
+LumiWorld chuyển sang một thế giới được xây dựng và lưu giữ lâu dài, kết hợp xây thiên nhiên trên lưới hex, sưu tầm sinh vật và quản lý kinh tế nhẹ. Người chơi xây habitat, đưa thú vào để tạo tài nguyên theo thời gian thực, giao đơn hàng kiếm Coin và dùng thu nhập để tiếp tục đầu tư. Harmony giữ vai trò ghi nhận thành tựu xây dựng và mở điều kiện tiến trình.
+Tài liệu này trình bày ý tưởng mở rộng để team thảo luận và làm prototype. Đây không phải bản cập nhật toàn bộ GDD, đặc tả kỹ thuật hoàn chỉnh hay cam kết hoàn thành mọi tính năng trong một đợt. Bản tiếng Anh đi kèm diễn đạt cùng thiết kế theo văn phong học thuật.
+Những quyết định đã chốt
+World tồn tại lâu dài, không còn Restart Island. Thao tác kéo thả card và xây trên hex vẫn là nền tảng.
+Bỏ Crystal; dùng một loại tiền mới. Người chơi cần sở hữu card và trả thêm phí khi đặt.
+Habitat có thú sẽ tạo 1–2 loại tài nguyên theo thời gian thực. Nhiều thú và phẩm chất cao hơn giúp tăng sản lượng.
+Đơn hàng theo cấu trúc đơn giản như định hướng Hay Day. Marketplace mở rộng sang tài nguyên và card.
+Công trình gần habitat hỗ trợ một số thú được chỉ định. Khách tham quan chỉ hiển thị bằng số liệu UI.
+Sự cố làm chậm hoặc gián đoạn hoạt động và có thể ảnh hưởng rating, thu nhập; không phá mất vĩnh viễn tài sản.
+Thu phục theo hướng xây môi trường phù hợp, thu hút thú ghé thăm rồi tạo thiện cảm. Lai thú dùng UI kéo thả.
+Cách đọc đề xuất
+Các quy tắc chi tiết bên dưới là đề xuất triển khai, cần team xác nhận sau prototype. Tên Coin được dùng thống nhất để dễ đọc; nếu chọn Gems, chỉ đổi tên của cùng một đồng tiền, không tự thêm tiền tệ thứ hai. Mọi giá, thời lượng, tỷ lệ và ngưỡng mới là số minh họa, chưa qua cân bằng.
+English brief: This proposal extends LumiWorld into a persistent ecosystem management game. Confirmed requirements define the direction; detailed rules and numerical examples remain provisional design proposals.
+
+1 Vòng chơi và tiến trình lâu dài
+Core loop and persistent progression
+Vòng chơi chính là xây habitat → có thú sinh sống → tích lũy tài nguyên → thu hoạch → giao đơn hoặc bán → nhận Coin → mua card, trả phí đặt và nâng cấp → mở rộng hệ sinh thái. Song song, môi trường tốt hơn giúp thu hút loài mới và cải thiện rating.
+Mỗi lần quay lại, người chơi có một số lựa chọn rõ ràng: thu tài nguyên đã tích lũy, quyết định đơn nào nên giao, xử lý sự cố đang hiện trên đảo hoặc đầu tư vào mục tiêu xây dựng tiếp theo. Trong lúc chờ sản xuất, họ vẫn có thể sắp xếp đảo, xem Collection, chuẩn bị habitat và quản lý đơn hàng. Tránh kéo dài thời gian chờ chỉ để tạo lý do đăng nhập.
+World và Island
+World lưu toàn bộ đảo đã mở, Coin, kho đồ, card, cá thể thú và tiến trình. Đổi đảo hoặc đóng game không xóa công trình. Đảo cũ tiếp tục sản xuất theo cùng quy tắc tích lũy khi người chơi đang ở đảo khác. Island boundary, Nature layering, hai Habitat Affinities và capacity tiếp tục giữ giá trị thiết kế từ GDD [1].
+Harmony khác với Coin và Rating
+Đề xuất tách ba vai trò. Coin là tiền có thể tiêu. Harmony là điểm tiến trình không tiêu hao và không giao dịch. Rating là đánh giá hiện trạng world, có thể tăng hoặc giảm theo cách chăm sóc và bố trí.
+Harmony mới nên đến từ các mốc xây dựng được ghi nhận một lần: habitat đầu tiên đủ điều kiện, lần đầu đạt một ngưỡng kích thước, loài được đặt lần đầu hoặc một bố trí sinh thái được công nhận. Dùng hồ sơ mốc theo đảo, affinity và ngưỡng để ngăn việc tháo rồi đặt lại hoặc chia rồi ghép habitat lấy điểm vô hạn. Giao đơn và mua card không tự sinh Harmony.
+Mở đảo mới
+Người chơi đạt mốc Harmony và trả Coin để mở đảo vĩnh viễn. Có thể giữ yêu cầu xây đủ habitat của đảo trước làm điều kiện onboarding; đây là đề xuất bổ sung. Ví dụ thử nghiệm: đạt 2.500 Harmony, có đủ ba affinity của Island 1 và trả 4.000 Coin. Harmony không bị trừ, Coin bị trừ đúng một lần. Không bắt hoàn thành toàn bộ Collection.
+English brief: Coin funds actions, Harmony records permanent construction milestones, and Rating measures the current world. Island unlocking requires both a Harmony threshold and a one-time Coin payment. Previously developed islands remain active.
+
+2 Tiền và vòng đời của card
+Currency and card ownership
+Đề xuất dùng Coin làm đồng tiền duy nhất. Nguồn Coin gồm đơn NPC, bán tài nguyên cơ bản cho NPC, thưởng thành tựu một lần và doanh thu khách nếu được triển khai. Marketplace chủ yếu chuyển Coin giữa người chơi; nó không tự tạo tiền mới. Coin được tiêu vào shop, phí đặt, nâng phẩm chất, lai thú, mở đảo và phí giao dịch.
+Có card rồi vẫn trả phí đặt
+Giá mua card và phí triển khai phải xuất hiện trước khi người chơi mua. Ví dụ Nature Card giá 80 Coin, phí đặt 20 Coin; tổng vốn cần là 100 Coin. Card nhận miễn phí từ thành tựu vẫn cần phí đặt, trừ các lượt tutorial được ghi rõ là miễn phí. Tổng chi phí phải hợp lý với thời gian thu hồi vốn, tránh cảm giác bị thu hai khoản không rõ lý do.
+Một lần thả card cần kiểm tra ownership, điều kiện địa hình, affinity, capacity và Coin. UI hiển thị vị trí hợp lệ, phí và thay đổi dự kiến; chỉ trừ tiền khi commit thành công. Thả sai hoặc hủy preview không mất card, không mất tiền.
+Loại card
+Khi đặt thành công
+Khi thay đổi bố trí
+Nature và Building
+Một card chuyển thành đối tượng đã đặt
+Đề xuất di chuyển đối tượng đã sở hữu miễn phí
+Creature
+Card chuyển thành đúng cá thể sống trên đảo
+Recall trả lại cùng cá thể và phẩm chất
+Water và Elevation
+Card tiêu hao để thay đổi địa hình
+Không tự hoàn card khi sửa địa hình
+
+Đề xuất phí triển khai chỉ thu khi card hoặc cá thể được kích hoạt lần đầu. Di chuyển, recall và đặt lại cùng đối tượng đã kích hoạt không thu lại phí và không thưởng lại Harmony. Cần giữ ID sở hữu để không nhân đôi card; khi trade, trạng thái đã triển khai cũng đi theo cá thể. Cơ chế này là ngoại lệ tái bố trí cần team xác nhận.
+Không để người chơi hết đường chơi
+Starter kit phải đủ xây habitat đầu tiên, đặt một thú và hoàn thành đơn đầu. Duy trì đơn NPC cơ bản và nơi bán tài nguyên giá sàn. Khi không còn nguồn sản xuất hợp lệ và thiếu tiền, cho một nhiệm vụ phục hồi miễn phí, trả vật phẩm cứu trợ không giao dịch để dựng lại một nguồn thu. Không yêu cầu người mua trên marketplace xuất hiện mới có thể tiếp tục.
+English brief: Card ownership and deployment are separate costs. Invalid placement is free. The proposed relocation exception protects experimentation, while starter support and NPC trade prevent an economic dead end.
+
+3 Habitat sinh tài nguyên theo thời gian thực
+Habitat production and offline accumulation
+Giữ mốc Established Habitat từ 3 Nature hex cùng affinity nối liền theo GDD; capacity tăng theo kích thước và Wonder bổ sung chỗ ở. Habitat bắt đầu sản xuất khi có ít nhất một thú hợp lệ. Habitat quyết định tài nguyên; thú đóng góp sản lượng. Spriglide ở Leafwood tạo tài nguyên Leafwood, ở Windheath tạo tài nguyên Windheath. Không cần job riêng hoặc AI đi nhặt đồ.
+Habitat Affinity
+Tài nguyên đầu tiên
+Tài nguyên thứ hai có thể mở sau
+Leafwood
+Quả rừng — Woodland Berries
+Sợi lá — Leaf Fiber
+Bloomfield
+Mật hoa — Nectar
+Cánh hoa — Petals
+Windheath
+Hạt cỏ — Grass Seeds
+Sợi thạch nam — Heather Fiber
+Reedmarsh
+Sợi sậy — Reed Fiber
+Đất sét — Clay
+Lilywater
+Hạt sen — Lotus Seeds
+Sợi thủy sinh — Aquatic Fiber
+Streamstone
+Sỏi nhẵn — Smooth Pebbles
+Rêu mềm — Soft Moss
+Rainleaf
+Trái nhiệt đới — Tropical Fruit
+Nhựa cây — Tree Sap
+
+Đây là roster tài nguyên đề xuất mới, không phải nội dung đã có trong GDD. Prototype chỉ cần một tài nguyên mỗi habitat. Loại thứ hai chỉ nên mở khi đã có đơn hàng hoặc công thức sử dụng nó.
+Quy tắc tính đơn giản
+Với mỗi tài nguyên, lấy sản lượng nền mỗi giờ nhân tổng đóng góp của thú, rồi nhân hệ số trạng thái habitat. Đóng góp mỗi thú bằng hệ số phẩm chất nhân hệ số buff công trình nếu thú đó được chỉ định. Ví dụ nền 4 đơn vị/giờ, hai thú hệ số 1,00 và 1,25 tạo 9 đơn vị/giờ. Buff 20% cho riêng thú thứ hai nâng tổng lên 10 đơn vị/giờ; sự cố giảm 30% đưa tổng xuống 7.
+Capacity giới hạn số thú. Mở rộng habitat tăng chỗ ở hoặc kho chứa, không đồng thời nhân sản lượng theo diện tích trong prototype. Habitat trống không sản xuất. Ghép hoặc tách habitat phải phân bổ lại thú và kho đang có, không sao chép tài nguyên hay đặt lại đồng hồ.
+Tích lũy khi đóng game
+Đề xuất offline cap ban đầu 8 giờ và kho đệm riêng mỗi habitat. Thu hoạch chuyển tài nguyên vào kho chung; phần chưa chuyển được vì kho chung đầy vẫn nằm trong kho đệm. Khi kho đệm đầy, dừng tạo thêm; không mất lượng đã có. UI hiển thị tốc độ, lượng chờ thu và giới hạn tích lũy. Chốt sản lượng tại thời điểm đổi thú, buff hoặc sự cố để không áp hệ số mới ngược về quá khứ.
+English brief: Habitats define resource types; resident creatures determine output. Real-time accumulation continues across sessions within a proposed cap. Storage and occupancy limits keep growth manageable.
+
+4 Công trình và phẩm chất sinh vật
+Buildings and creature quality
+Công trình tạo quyết định bố trí: dành đất cho habitat lớn hơn hay dùng một ô phù hợp để tăng hiệu quả cho một số thú đang có. Đề xuất công trình hỗ trợ đứng cạnh ít nhất một hex thuộc habitat hợp lệ. Người chơi mở panel, chọn habitat mục tiêu rồi kéo thú cư trú vào slot hỗ trợ.
+Thú vẫn thuộc habitat và chiếm capacity ở đó; slot chỉ là liên kết buff, không tạo bản sao hoặc chuyển thú thành nhân viên bên trong công trình. Mỗi thú nhận tối đa một buff sản xuất cùng loại. Nếu công trình hoặc thú không còn đủ điều kiện, buff ngừng và UI giải thích nguyên nhân. Một công trình chỉ hỗ trợ một habitat tại một thời điểm.
+Công trình thử nghiệm
+Điều kiện
+Hiệu ứng đề xuất
+Foraging Lodge
+Cạnh Leafwood hoặc Bloomfield
+Hai slot, cộng 20% đóng góp của thú được chọn
+Waterside Shelter
+Cạnh habitat nước phù hợp
+Hai slot, cùng quy tắc buff để tái dùng logic
+Storage Depot
+Vị trí xây hợp lệ
+Tăng kho; không cộng thêm buff sản xuất
+
+Một hệ nâng cấp thay cho nhiều hệ stat
+Đề xuất dùng Quality Rank làm tiến trình của từng cá thể, với ba bậc thử nghiệm I, II, III và hệ số 1,00; 1,25; 1,50. Team có thể gọi đây là cấp nuôi dưỡng hoặc phẩm chất, nhưng không đồng thời thêm Level, IV, Grade và bộ stat riêng. Species rarity chỉ phản ánh độ khó gặp hoặc mở khóa, chưa cần thêm hệ số thu nhập.
+Cho ăn dùng tài nguyên trong kho để tích lũy Care Progress. Khi đủ, người chơi dùng thêm Coin để nâng rank. Giao diện cần hiển thị chi phí, sản lượng trước và sau. Progress không tự giảm; không có đói, chết hoặc phạt vì nghỉ chơi. Cách này giữ hoạt động chăm sóc nhưng không tạo thanh nhu cầu phải canh liên tục.
+Lựa chọn đầu tư
+Thêm thú tăng sản lượng nhưng cần chỗ ở; nâng rank tận dụng slot cũ; công trình chỉ giúp các slot được chọn. Ba lựa chọn phải được so sánh bằng chi phí và thời gian thu hồi vốn. Không để mua thú mới luôn rẻ hơn mọi cách nâng cấp, hoặc một buff quá mạnh khiến người chơi chỉ xây công trình.
+English brief: Nearby structures buff selected resident creatures through limited assignment slots. A single individual Quality Rank improves production through feeding and promotion, without a hunger penalty or a separate combat-stat system.
+
+5 Thu hút và kết bạn với thú hoang
+Attraction and befriending
+Thu phục trở thành phần thưởng cho việc xây môi trường. Quy trình đề xuất gồm đủ điều kiện habitat → thú ghé thăm → đáp ứng nhu cầu → tăng Trust → nhận Creature Card → trả phí đặt vào habitat hợp lệ. Người chơi được xem những điều kiện chính trong Collection để có mục tiêu xây dựng, thay vì chờ ngẫu nhiên hoàn toàn.
+Habitat đủ điều kiện được kiểm tra xuất hiện theo một khoảng thời gian thực cố định. Xác suất chỉ áp dụng sau khi điều kiện môi trường đã đạt. Đề xuất giới hạn một encounter đang chờ trên mỗi đảo và dùng soft pity để tăng cơ hội sau nhiều lượt chưa gặp. Không tích lũy vô hạn lượt gặp khi offline.
+Ví dụ minh họa
+Spriglide có hai affinity Leafwood và Windheath theo GDD. Một điều kiện thu hút đề xuất là Leafwood tối thiểu 5 hex và có nguồn Woodland Berries. Người chơi có thể dùng food hoặc lure để tăng cơ hội ghé thăm; lure không bảo đảm thu phục và UI phải nói rõ tác dụng. Điều kiện này chỉ là ví dụ để prototype.
+Thú ghé thăm xuất hiện như đối tượng encounter hoặc dấu hiệu ở rìa habitat, không chiếm slot cư trú và không tạo tài nguyên. Panel thể hiện yêu cầu, Trust hiện tại và phần thưởng. Cho đúng thức ăn hoặc hoàn thành nhu cầu môi trường tăng Trust theo kết quả xác định; chưa cần trò tung xác suất thất bại mỗi lần cho ăn.
+Từ encounter sang sở hữu
+Khi đạt Trust cần thiết, encounter được nhận đúng một lần thành card trong inventory. Card chưa tạo tài nguyên. Sau khi trả phí triển khai và đặt thành công, cá thể mới bắt đầu sản xuất, còn Collection ghi nhận loài đã được summon lần đầu theo quy tắc GDD. Có thể hiển thị trạng thái Seen trước Discovered để phân biệt thú đã gặp với thú đã nuôi.
+Đề xuất encounter đã xuất hiện không hết hạn khi người chơi đóng game. Nếu muốn bỏ qua, người chơi chủ động dismiss. Biome trống đủ điều kiện có thể thu hút thú, nhưng nguồn sản xuất đầu tiên phải được bảo đảm bằng starter creature; không bắt đầu game bằng việc chờ spawn. Khi habitat đầy, vẫn nhận card vào inventory rồi tự sắp xếp chỗ sau.
+English brief: Environmental prerequisites control eligibility, timed checks create encounters, and deterministic Trust progress leads to ownership. Wild visitors produce nothing until their card is deployed. Encounter persistence reduces pressure to remain online.
+
+6 Đơn hàng và marketplace
+Orders and player trading
+Order Board là nguồn thu lặp lại chính. Mỗi đơn hiển thị tài nguyên và số lượng cần giao, Coin nhận được, tiến độ kho hiện tại và lý do chưa thể hoàn thành. Ví dụ minh họa: 10 Woodland Berries và 5 Nectar đổi 120 Coin. Đơn chỉ trừ hàng và trả tiền một lần khi người chơi bấm giao thành công.
+Đề xuất ba ô đơn cơ bản, không có hạn chót. Hệ thống chọn tài nguyên người chơi đã mở khả năng sản xuất, kể cả cần thời gian để gom đủ. Cho bỏ đơn với thời gian chờ làm mới ngắn. Không ép người chơi mua từ marketplace để vượt một đơn bắt buộc. Những đơn thưởng cao hơn có thể yêu cầu nhiều habitat, nhưng luôn giữ ít nhất một lựa chọn cơ bản dễ phục hồi.
+Rating có thể mở thêm đơn giá trị cao hoặc tăng tần suất đơn bonus. Khi rating giảm, chỉ điều chỉnh những đơn bonus được sinh sau đó. Không hạ tiền thưởng hoặc thu hồi đơn người chơi đang giữ. Cách này cho phép sự cố ảnh hưởng thu nhập mà không làm thay đổi hợp đồng giữa chừng.
+Phạm vi giao dịch
+Marketplace dùng Coin cho tài nguyên, Creature Cards và những Nature hoặc Building Cards được đánh dấu giao dịch. Shop là bên bán do hệ thống quản lý; marketplace là giao dịch giữa người chơi. Vật phẩm cứu trợ, vật phẩm quest và một số phần thưởng tutorial không giao dịch.
+V1 đề xuất niêm yết giá cố định theo số lượng, chưa cần đấu giá, barter hoặc giao dịch trực tiếp. Thú phải được recall, không ở trạng thái breeding hoặc assignment, trước khi niêm yết. Sản lượng đang tích lũy được chốt trước khi rút thú. Card đang niêm yết không đồng thời được đặt hoặc bán ở nơi khác.
+Giao dịch rõ ràng và giới hạn kinh tế
+Khi đăng bán, item chuyển vào trạng thái giữ chỗ. Khi có người mua, hệ thống chuyển đúng item và Coin một lần, rồi khấu trừ phí người bán. Ví dụ phí 5% chỉ là giá trị thử nghiệm. Hủy listing trả item chưa bán về kho. Card của thú phải giữ nguyên ID, rank và tiến trình chăm sóc sau giao dịch.
+Giá sàn NPC tạo đầu ra cơ bản; cần kiểm tra chênh lệch giữa giá mua shop và giá bán lại để không có vòng mua bán sinh lời vô hạn. Thu phí marketplace giúp rút một phần Coin khỏi lưu thông, nhưng không thay cho việc cân bằng tổng nguồn tiền.
+English brief: NPC orders provide predictable income; player trading redistributes resources and cards. Fixed-price listings, reserved ownership and atomic completion prevent double use. Essential progress remains possible without other players.
+
+7 Khách tham quan và đánh giá thế giới
+Visitors and world rating
+Khách là số liệu UI, không cần model người, đường đi hay mô phỏng hàng đợi. UI nên ghi rõ đơn vị, chẳng hạn Estimated visitors per hour, thay vì một con số không biết là khách hiện tại hay khách cộng dồn. Rating hiển thị trên thang 0–5 và có phần giải thích điểm mạnh, điểm cần cải thiện.
+Đề xuất rating world là trung bình có trọng số cố định của rating từng đảo đã mở. Đảo mới có giai đoạn onboarding trước khi được đưa vào tính, để mở rộng không lập tức làm sụt đánh giá. Mỗi yếu tố được chuẩn hóa theo nội dung hiện có trên đảo, không theo những loài hoặc biome chưa thể mở.
+Thành phần rating
+Trọng số thử nghiệm
+Cách hiểu
+Habitat quality
+35%
+Kích thước hợp lý, chỗ ở đủ, điều kiện sinh thái
+Diversity
+30%
+Nhiều affinity và loài đã có thể mở
+Landscape arrangement
+20%
+Kết nối Nature và bố trí công trình phù hợp
+Habitat condition
+15%
+Tỷ lệ habitat đang hoạt động bình thường
+
+Mỗi thành phần có điểm từ 0 đến 1. Lấy tổng điểm có trọng số nhân 5 để ra rating. Đây là công thức prototype, chưa phải công thức đã kiểm chứng. Giới hạn đóng góp từ bản sao của cùng một vật thể để tránh spam đồ trang trí. Không dùng điểm Harmony tích lũy thay thế rating hiện trạng.
+Rating phải dẫn đến hành động cụ thể
+Panel gợi ý nên nói “Leafwood đã đầy 2 trên 2 chỗ, mở rộng để nuôi thêm thú” hoặc “Chưa có habitat Bloomfield được thiết lập”. Tránh lời nhắc chung như “Hãy làm đảo đẹp hơn”. Chỉ đưa một vài mục tiêu có thể thực hiện, cho phép bấm để tới đúng habitat.
+Lượng khách dự kiến phụ thuộc rating và sức chứa tham quan được quy định theo tiến trình. Doanh thu tham quan là lựa chọn bổ sung, nên nhỏ hơn nguồn thu đơn hàng để không khuyến khích chỉ ngồi chờ. Nếu có, hiển thị kỳ thu và áp cùng giới hạn tích lũy offline. Không tính toàn bộ thời gian đã nghỉ bằng rating cao mới đạt ngay lúc đăng nhập.
+English brief: Visitor counts are abstract estimates. Rating uses explainable, bounded components and produces concrete improvement suggestions. Visitor income is optional and should supplement the order economy.
+
+8 Thời tiết và sự cố nhẹ
+Weather and soft disruptions
+Thời tiết tạo biến đổi môi trường; sự cố tạo một lựa chọn xử lý. Tách hai khái niệm để không phải mỗi lần trời mưa đều là hình phạt. Mưa nhẹ có thể chỉ đổi hình ảnh hoặc tăng nhẹ một nhóm tài nguyên. Sâu bọ, bùn nghẽn hoặc gió mạnh gây ảnh hưởng tại một habitat hay công trình cụ thể.
+Sự cố minh họa
+Tác động chính
+Cách xử lý
+Sâu bọ ở Leafwood
+Giảm 30% tốc độ sản xuất
+Treatment Card hoặc thú có tag hỗ trợ
+Dòng nước bị nghẽn
+Tạm dừng buff của một Waterside Shelter
+Clear Card hoặc dịch vụ trả Coin
+Gió mạnh
+Giảm đóng góp tình trạng của vùng bị ảnh hưởng
+Chờ hồi phục hoặc dùng thẻ xử lý
+
+Tỷ lệ và hiệu ứng trên chỉ để thử nghiệm. Không xóa công trình, không giết thú và không lấy tài nguyên đã thu. UI phải nêu phạm vi, ảnh hưởng và các cách khôi phục. Nếu cần một thú hỗ trợ, chỉ dùng tag đơn giản và một lần resolve; chưa cần tạo bộ skill chiến đấu.
+Giữ hậu quả có giới hạn
+Đề xuất mỗi sự cố có một tác động vận hành chính; rating chỉ phản ánh tình trạng đó trong giới hạn. Không đồng thời giảm mạnh sản xuất, xóa đơn hàng, giảm giá bán và thu phí bắt buộc. Ảnh hưởng tới đơn hàng nên đi qua số đơn bonus được tạo sau đó, như phần Orders đã mô tả.
+Luôn có một đường phục hồi không tốn Coin: hành động chăm sóc miễn phí hoặc chờ thời lượng hữu hạn. Card, thú hỗ trợ hoặc dịch vụ Coin giúp giải quyết nhanh hơn. Điều này ngăn vòng lặp sự cố làm nghèo → không có tiền xử lý → tiếp tục nghèo.
+Quy tắc khi offline
+Prototype nên chỉ sinh sự cố mới khi đang chơi, sau một giai đoạn hướng dẫn và có giới hạn số sự cố cùng lúc. Sự cố đang có có thể tự hết theo thời gian thực. Khi tính offline, áp debuff đến đúng thời điểm hết hạn rồi dùng tốc độ bình thường, không giữ debuff cho cả thời gian nghỉ. Chưa cần hệ mùa, thảm họa lan truyền hoặc chuỗi thời tiết phức tạp.
+English brief: Weather may be neutral or beneficial. Negative incidents are local and recoverable, with a free recovery route and bounded consequences. New incidents do not accumulate while the player is offline in the proposed prototype.
+
+9 Lai thú bằng giao diện kéo thả
+Breeding through a drag and drop interface
+Breeding tạo mục tiêu dài hạn cho tài nguyên dư và việc sưu tầm. Đây là tính năng người dùng muốn đưa vào hướng mới, nhưng nên triển khai sau khi sản xuất và ownership ổn định. Phạm vi đầu tiên dùng bảng công thức định sẵn để giới hạn số model cần tạo.
+Luồng giao diện
+1. Mở Breeding Sanctuary, kéo hai Creature Cards vào ô Parent A và Parent B.
+2. Kiểm tra hai cá thể khác ID, thuộc sở hữu người chơi, được recall và không đang niêm yết hoặc dùng cho tác vụ khác.
+3. Hiển thị công thức hợp lệ, kết quả có thể nhận, chi phí Coin và thức ăn, thời gian chờ cùng nơi nhận kết quả.
+4. Khi xác nhận, khóa hai card và trừ đúng chi phí. Đồng hồ dùng thời gian thực và tiếp tục khi offline.
+5. Khi hoàn tất, trả hai parent về trạng thái sẵn dùng và cho claim một offspring card đúng một lần.
+Đề xuất parent không bị tiêu hủy, nhưng không sản xuất trong thời gian được recall và breeding. Không tự chuyển bố mẹ về habitat cũ nếu chỗ đã được dùng. Có thể bỏ thao tác trước khi xác nhận mà không mất gì; sau khi bắt đầu, để hoàn tất theo thời gian đã báo nhằm đơn giản hóa hoàn tiền và tránh reroll.
+Giới hạn kết quả
+Prototype chỉ cần một công thức cùng loài và một công thức hybrid có chủ đích. Offspring có ID mới, rank I và hai affinity được ghi trong dữ liệu công thức. Không tự ghép mesh, gene, màu hoặc mọi cặp loài. Nếu chưa có asset hybrid, thử luồng bằng công thức cùng loài trước; hybrid vẫn là mục tiêu mở rộng.
+Rank bố mẹ chưa cần truyền vào con trong bản đầu. Như vậy team có thể tập trung vào chăm sóc để tăng sản xuất, tránh thêm hệ tối ưu di truyền khó cân bằng. Nếu sau này thêm xác suất phẩm chất, phải công bố phân bố và đánh giá lại thị trường thú.
+Giới hạn số slot breeding và thời gian chờ để tránh tạo thú quá nhanh. Chi phí phải đủ ý nghĩa nhưng không buộc mua từ marketplace. Offspring chỉ tạo tài nguyên sau khi được đặt hợp lệ và trả phí triển khai; loài mới chỉ vào Collection sau lần summon đầu tiên.
+English brief: Breeding uses two owned parent cards, explicit recipes, a real-time timer and a single offspring claim. Parents survive but are unavailable during breeding. Procedural genetics and unrestricted species combinations are outside the first implementation.
+
+10 Một hành trình chơi mẫu
+Example player journey
+Các số sau chỉ minh họa quan hệ chi phí, không phải bảng economy hoàn chỉnh. Người chơi bắt đầu với 300 Coin và starter cards đủ tạo habitat Leafwood cùng một Spriglide. Phí triển khai cộng dồn của bộ khởi đầu là 60 Coin; còn lại 240 Coin.
+Sau khi đặt thú, Leafwood tạo Woodland Berries. Đơn đầu yêu cầu 4 quả và trả 40 Coin. Giả sử tốc độ thử nghiệm là 4 quả mỗi giờ, đơn mất một giờ sản xuất; khoảng này phải được playtest vì có thể quá chậm cho onboarding. Tutorial nên dùng lô thu hoạch đầu được rút ngắn, trong khi vẫn hiển thị tốc độ thông thường một cách rõ ràng.
+Người chơi giao đơn, có 280 Coin, rồi mua một Nature Card giá 80 Coin và trả 20 Coin để đặt; còn 180 Coin. Họ thấy mục tiêu tiếp theo là mở thêm chỗ ở hoặc tạo Bloomfield để có Nectar. Việc xây mới giúp tiến gần một mốc Harmony, còn sản lượng hiện tại tiếp tục tích lũy.
+Sau đó, người chơi có thể dùng tài nguyên để nâng rank Spriglide, hoặc dành Coin và đất cho habitat mới. Một encounter xuất hiện khi điều kiện môi trường đạt; họ tăng Trust rồi nhận thêm card. Khi bắt đầu có hai loại tài nguyên, các đơn kết hợp trở nên khả thi. Công trình và rating được giới thiệu sau khi người chơi hiểu nguồn thu cơ bản.
+Những lựa chọn tạo chiều sâu
+Mục tiêu của vòng chơi là buộc người chơi cân nhắc chi phí cơ hội: bán quả để mua card, giữ quả để cho ăn, hay dùng quả để kết bạn với loài mới. Đặt công trình có thể tăng thu nhập trước mắt nhưng chiếm đất mở habitat. Lai thú cung cấp cá thể mới nhưng tạm ngừng đóng góp của hai bố mẹ.
+Nội dung nên giữ từ LumiWorld
+Island 1 tiếp tục dùng Leafwood, Bloomfield và Windheath. Island 2 dùng Reedmarsh, Lilywater, Streamstone và Rainleaf. Giữ 16 loài hiện có làm nền, không cần thêm hàng chục loài chỉ để lấp hệ thống mới. Rainflow Network vẫn là ý tưởng có thể thử sau; chưa coi là bắt buộc [1].
+Hình ảnh tiếp tục theo hướng cozy, silhouette rõ, bề mặt sạch, gradient mềm và nature–animal hybrid. Icon tài nguyên nên rõ ở kích thước nhỏ. Hiệu ứng buff hoặc sự cố dùng ít ký hiệu để world không bị phủ bởi badge và thanh tiến độ.
+English brief: The example links spending, harvesting and reinvestment while exposing an onboarding timing risk. The redesign should create resource-allocation choices and continue to use the existing islands, species and visual identity.
+
+11 Thứ tự triển khai và phạm vi
+Implementation sequence and scope
+Lộ trình dưới đây dựa trên phụ thuộc hệ thống, không phải ước lượng deadline. Chưa có thông tin nhân lực, tiến độ code hoặc thời gian còn lại để cam kết một lịch phát triển. Mỗi đợt cần cho thấy một vòng chơi hoạt động trước khi thêm lớp tiếp theo.
+Đợt
+Phạm vi đề xuất
+Điều kiện chuyển tiếp
+1 Core economy
+World lưu lâu dài, Coin, ownership, phí đặt, một habitat, một thú, một tài nguyên, đơn NPC
+Chơi và quay lại không mất tiến trình; không kẹt tiền
+2 Meaningful choices
+Mở thêm habitat, rank, một công trình, thu phục, mở đảo bằng Coin và Harmony
+Các cách đầu tư đều có ích; người chơi hiểu điều kiện
+3 World management
+Rating giải thích được, khách dạng UI, một sự cố nhẹ, thêm tài nguyên khi cần
+Người chơi biết vì sao thu nhập thay đổi và cách phục hồi
+4 Trading and breeding
+Marketplace tài nguyên và card, breeding công thức hữu hạn
+Ownership đáng tin cậy, không nhân đôi giao dịch hoặc offspring
+
+Marketplace cần bắt đầu thiết kế dữ liệu từ đợt 1 dù UI ra sau. Breeding phụ thuộc ID cá thể, trạng thái khóa và timestamp giống trading. Đây không phải tính năng chỉ cần làm một màn hình kéo thả. Nếu scope phải giảm, giữ một công thức breeding và một sự cố; không hạ chất lượng save hoặc giao dịch để tăng số feature.
+Những dữ liệu tối thiểu cần lưu
+World và island state; Coin; inventory và lượng tài nguyên; ID card/cá thể, rank và Care Progress; vị trí thú; assignment công trình; sản lượng đang chờ, timestamp và giới hạn kho; mốc Harmony đã nhận; encounter và Trust; đơn đang có; breeding đang chạy; listing và lịch sử giao dịch. Hand chỉ tham chiếu inventory như GDD, không trở thành kho thứ hai.
+Khi tài nguyên hoặc thú có thể trade, thời gian và ownership cần được kiểm tra bởi hệ thống đáng tin cậy. Đồng hồ máy người chơi không nên tự quyết định lượng tài nguyên được phép đưa lên thị trường. Demo cục bộ có thể thử timer trước, nhưng đó chưa phải bản marketplace sẵn sàng vận hành.
+English brief: Development should proceed through complete playable increments. Persistence, ownership and time accounting are prerequisites for trading and breeding. A local prototype does not establish readiness for a live economy.
+
+12 Kiểm chứng thiết kế và các điểm còn mở
+Validation and remaining decisions
+Feedback “hơi nhàm chán” là đầu vào thiết kế từ giảng viên do nhóm báo lại, chưa phải kết quả nghiên cứu người chơi. Giả thuyết cần kiểm chứng là các quyết định đầu tư, mục tiêu sưu tầm và thu nhập liên tục sẽ giúp người chơi có việc muốn làm tiếp. Thêm timer hoặc nhiều hệ thống tự nó không chứng minh game thú vị hơn.
+Cần kiểm chứng
+Cách kiểm tra prototype
+Hiểu chi phí hai bước
+Người chơi tự phân biệt giá card và phí đặt trước khi mua
+Có lựa chọn đầu tư
+Quan sát quyết định giữa mở rộng, nâng rank và xây công trình
+Không bị kẹt
+Thử tình huống ít Coin, kho đầy, habitat trống và có sự cố
+Thời gian chờ dễ chịu
+Ghi thời gian tới thu hoạch đầu, đơn đầu và hành động tiếp theo
+Rating có ích
+Người chơi đọc gợi ý rồi chỉ ra được thay đổi cần làm
+Tài sản và thời gian đúng
+Kiểm tra save/load, chuyển đảo, offline cap, buff đổi giữa kỳ và claim lặp
+
+Không đặt sẵn kết luận thành công. Ghi quan sát, lý do người chơi dừng, hành vi chọn đầu tư và phản hồi về thời gian chờ; chỉnh prototype theo vấn đề lặp lại. Kiểm tra giao dịch và claim cần bao gồm việc nhận cùng yêu cầu hai lần hoặc bị ngắt kết nối giữa chừng.
+Các quyết định team cần khóa sau prototype
+1. Chọn tên Coin hay Gems; tài liệu hiện dùng Coin cho một đồng tiền duy nhất.
+2. Chấp nhận ngoại lệ miễn phí tái bố trí hay thu lại phí khi triển khai cá thể đã từng đặt.
+3. Chốt thời gian sản xuất, offline cap, kho, giá mua và phí đặt theo cùng một bảng cân bằng.
+4. Chốt định nghĩa Harmony lâu dài, trọng số rating và việc có doanh thu tham quan hay không.
+5. Chốt số rank, cách cho ăn, số công thức breeding và nội dung thực tế kịp triển khai.
+Căn cứ tài liệu
+[1] LumiWorld — Game Design Document, GDD V1, tài liệu nội bộ, 32 trang. Habitat và capacity: tr. 7–9, 27–28; affinities và roster: tr. 9–13; Collection và ownership: tr. 13–16; Harmony, Crystal, marketplace: tr. 18–19; islands: tr. 20–23; restart và modes: tr. 24–26; phạm vi tương lai và nguyên tắc: tr. 30–32.
+[2] Yêu cầu redesign và câu trả lời của chủ dự án trong trao đổi ngày 26 tháng 9 năm 2026. Đây là căn cứ ưu tiên cho các thay đổi được xác nhận trong tài liệu này.
+[3] FunctionalReq.md, tài liệu nội bộ trước đó, đối chiếu FR-2, FR-5, FR-8 và FR-9. Các quy tắc cũ về lượt chơi, Crystal và breeding không tự động trở thành yêu cầu của đề xuất mới.
+English brief: Evaluate the redesign as a testable design hypothesis. Confirm costs, waiting times, recovery paths and ownership reliability before increasing content volume. This document is a proposal, not evidence of measured engagement improvement.
