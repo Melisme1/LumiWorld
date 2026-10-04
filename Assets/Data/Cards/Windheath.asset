@@ -24,7 +24,7 @@ MonoBehaviour:
   clearPropsOnTransform: 1
   occupiesTile: 1
   transformRules: []
-  habitatSpawnMargin: 0.88
+  habitatSpawnMargin: 0.9
   habitatProps:
   - groupName: Floor Highland Boulder Anchor
     prefabs:

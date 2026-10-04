@@ -57,6 +57,7 @@ public class CardData : ScriptableObject
     [Tooltip("Danh sách các nhóm prop sẽ rải ngẫu nhiên khi đặt bài. Nếu danh sách này có dữ liệu, game sẽ tự động rải props thay vì chỉ đặt 1 prefabToPlace duy nhất.")]
     public List<HabitatPropRule> habitatProps = new List<HabitatPropRule>();
 
+
     /// <summary>
     /// Kiểm tra lá bài này có phải dạng biến đổi khối lục giác hay không (card Special như Rain).
     /// Cần bật replacesTile VÀ (có transformRules HOẶC có prefabToPlace làm khối đích).

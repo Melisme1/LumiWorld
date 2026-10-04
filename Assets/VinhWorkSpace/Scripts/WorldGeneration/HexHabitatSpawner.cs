@@ -63,7 +63,7 @@ public class HexHabitatSpawner : MonoBehaviour
         habitatContainer.transform.SetParent(tileTransform, true);
         habitatContainer.transform.position = centerWorldPos;
 
-        // Danh sách lưu tọa độ cục bộ (X, Z), bán kính chiếm dụng, và clusterId (-1 nếu là cây đơn lẻ)
+        // Danh sách lưu tọa độ cục bộ (X, Z), bán kính chiếm dụng, và clusterId
         List<(Vector2 pos2D, float clearanceRadius, int clusterId)> placedProps = new List<(Vector2, float, int)>();
 
         // Bán kính vùng an toàn của ô hex (Pointed-top: InnerRadius = 1.0f)
@@ -274,6 +274,11 @@ public class HexHabitatSpawner : MonoBehaviour
                         // Tự động trừ hao bán kính chân đế/tán cây (footprint) để cây to không bị thò rễ ra ngoài mép
                         float footprint = GetPrefabHorizontalFootprint(selectedPrefab, rule, randomScale);
                         float allowedRadius = Mathf.Max(0.12f, maxHexRadius - footprint);
+                        // Cây đại thụ (Anchor Tree) được ưu tiên đứng gần trung tâm (lệch tối đa 18cm) để bố cục cân bằng tỏa đều các hướng
+                        if (rule.groupName.IndexOf("Anchor", System.StringComparison.OrdinalIgnoreCase) >= 0 || (placedProps.Count == 0 && targetCount == 1))
+                        {
+                            allowedRadius = Mathf.Min(allowedRadius, 0.18f);
+                        }
                         bool foundValidSpot = false;
                         Vector2 bestSpot = Vector2.zero;
                         float bestScore = -1f;
@@ -318,7 +323,6 @@ public class HexHabitatSpawner : MonoBehaviour
                     }
 
                     SpawnPropInstance(selectedPrefab, candidatePos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{selectedPrefab.name}_{spawnedThisGroup}");
-
                     placedProps.Add((candidatePos2D, rule.minDistance, -1));
                     spawnedThisGroup++;
 
@@ -329,6 +333,7 @@ public class HexHabitatSpawner : MonoBehaviour
                 }
             }
         }
+
     }
 
     /// <summary>
@@ -481,7 +486,12 @@ public class HexHabitatSpawner : MonoBehaviour
                 else
                 {
                     string pName = prefab.name;
-                    if (pName.IndexOf("Prairie", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    if (pName.IndexOf("Micro", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Khóm cỏ / gò rêu / sỏi micro: cắm sâu nhẹ 1.5cm vào mặt cỏ
+                        groundEmbed = 0.015f;
+                    }
+                    else if (pName.IndexOf("Prairie", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                         pName.IndexOf("Bouquet", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                         pName.IndexOf("Ranunculus", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     {
@@ -497,6 +507,34 @@ public class HexHabitatSpawner : MonoBehaviour
                     else if (pName.IndexOf("Log", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         groundEmbed = 0.055f; // Khúc gỗ nhúng sâu 5.5cm vào mặt cỏ
+                    }
+                    else if (pName.IndexOf("Willow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Cây liễu có chân rễ nhện dài: cắm sâu 24cm để chân rễ chìm hẳn xuống đất, thân tiếp xúc trực tiếp mặt cỏ
+                        groundEmbed = 0.24f;
+                    }
+                    else if (pName.IndexOf("Arch", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Cây đại thụ vòm rỗng: cắm sâu 22cm để hai chân vòm tiếp đất vững chãi
+                        groundEmbed = 0.22f;
+                    }
+                    else if (pName.IndexOf("Oak", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             pName.IndexOf("Beech", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Đại thụ tán sum suê: cắm sâu 18cm để chỉ gờ rễ bạnh nổi trên mặt cỏ, thân vững chãi
+                        groundEmbed = 0.18f;
+                    }
+                    else if (pName.IndexOf("Birch", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Bạch dương: cắm sâu 14cm để giấu chạc rễ
+                        groundEmbed = 0.14f;
+                    }
+                    else if (pName.IndexOf("Pine", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             pName.IndexOf("Cedar", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             pName.IndexOf("Tree", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Cây thân gỗ tổng quát: cắm sâu 16cm
+                        groundEmbed = 0.16f;
                     }
                     else if (pName.IndexOf("Bush", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                              pName.IndexOf("Lavender", System.StringComparison.OrdinalIgnoreCase) >= 0)
@@ -602,4 +640,5 @@ public class HexHabitatSpawner : MonoBehaviour
             target.localScale = finalScale;
         }
     }
+
 }

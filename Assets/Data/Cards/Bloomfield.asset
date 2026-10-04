@@ -24,7 +24,7 @@ MonoBehaviour:
   clearPropsOnTransform: 1
   occupiesTile: 1
   transformRules: []
-  habitatSpawnMargin: 0.98
+  habitatSpawnMargin: 0.95
   habitatProps:
   - groupName: Daisy Carpet Colony
     prefabs:
@@ -55,8 +55,8 @@ MonoBehaviour:
     prefabs:
     - {fileID: 381245416735343399, guid: 9c98b1643201a1e45a256562d30a58fd, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 2, y: 3}
-    propsPerClusterRange: {x: 2, y: 3}
+    countRange: {x: 3, y: 5}
+    propsPerClusterRange: {x: 3, y: 5}
     clusterRadius: 0.22
     minDistance: 0.1
     scaleRange: {x: 0.7, y: 0.88}
@@ -67,7 +67,7 @@ MonoBehaviour:
     prefabs:
     - {fileID: 5941888988430255883, guid: 5b31c3b3b89e6f14d9360a88e9cdf3cb, type: 3}
     clusterAsPatch: 0
-    countRange: {x: 1, y: 2}
+    countRange: {x: 2, y: 4}
     propsPerClusterRange: {x: 0, y: 0}
     clusterRadius: 0.12
     minDistance: 0.1

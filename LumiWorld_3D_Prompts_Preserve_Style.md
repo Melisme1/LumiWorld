@@ -1,10 +1,11 @@
 # 🌿 LUMIWORLD - BỘ THƯ VIỆN PROMPT 3D CHUẨN ART STYLE PRESERVE (GOLDEN STANDARD & VISUAL HIERARCHY)
 
-> **✨ Quy luật Phân Cấp Thị Giác (3-Tier Visual Hierarchy):**  
-> Để một ô lục giác (Hex Tile) vừa sống động, vừa có chiều sâu mà không bị rối mắt, mỗi Habitat được phân bổ chặt chẽ thành 3 tầng:
+> **✨ Quy luật Phân Cấp Thị Giác (4-Tier Visual Hierarchy):**  
+> Để một ô lục giác (Hex Tile) vừa sống động, vừa có chiều sâu mà không bị rối mắt hay trơ trọi chỗ trống, mỗi Habitat được phân bổ chặt chẽ thành 4 tầng:
 > - **👑 Tầng 1: Hero Asset (Variant A / Tâm Điểm):** Bề thế, hùng vĩ, thân to lực lưỡng, gốc bạnh vững chãi (`massive flared base`), tán xòe rộng gồm **6–8 cụm tán mây bồng bềnh (`overlapping cloud puffs`)**, làm tâm điểm cho cả ô đất.
 > - **🌿 Tầng 2: Supporting Asset (Variant B, C / Bổ Trợ Dáng):** Thanh mảnh, dẻo dai, cành uốn lượn có nhịp điệu (`graceful organic curve`), tán gọn gàng 2–3 chùm để đung đưa theo gió và tôn vinh Hero Asset.
-> - **🍀 Tầng 3: Ground Detail & Scatter (Variant D, E / Điểm Xuyết Sát Đất):** Bụi dương xỉ, khóm hoa nhỏ, đá cuội, thân gỗ mục đầm chắc sát mặt đất, tạo độ chuyển tiếp tự nhiên.
+> - **🍀 Tầng 3: Ground Detail & Accent (Variant D, E, F, G, H, I / Điểm Xuyết Sát Đất):** Bụi dương xỉ, hoa chuông, gốc cây mục, đá cuội rêu, nấm rừng tạo độ chuyển tiếp tự nhiên.
+> - **🌱 Tầng 4: Micro-Foliage & Ground Fillers (Variant J, K, L, M, N / Lấp Đầy Khe Trống):** Cỏ múp míp tí hon, đệm rêu phồng, lá sồi vàng rụng, cỏ ba lá, sỏi mini bẹp sát đất — đóng vai trò như chất lỏng len lỏi lấp đầy các khoảng đất trống trơ trọi.
 >
 > **🎨 Chuẩn mực Hình khối & Bề mặt:**
 > - Bo tròn mịn màng như đám mây / kẹo dẻo (`buttery smooth rounded volumes, soft cloud curvature`), triệt tiêu 100% cạnh tam giác sắc nhọn (`zero sharp edges, zero visible polygon facets`).
@@ -17,7 +18,7 @@
 *Dán vào ô **Negative Prompt** để loại bỏ hoàn toàn góc cạnh đa giác sắc nhọn, đất nặn bẹp dính và chân đế:*
 
 ```text
-angular facets, sharp polygonal edges, flat shading, origami, geometric triangles, sharp ridges, hard planar surfaces, monolithic blob, melted plastic, play-doh lump, fused solid mass, stiff cylinder, pedestal, base, stand, platform, ground, ground plane, terrain base, dirt mound, island base, circular base, cylinder base, display stand, plinth, showcase base, floor, soil, tile, table, background scenery, environment, trees in background, hills, clouds, horizon, sky, landscape, cropped, cut off, touching the edge, out of frame, shadow casting ground, photorealistic, realistic textures, hyperrealistic, noisy bump map, detailed bark grain, alpha cards, transparent leaves, razor-sharp edges, gritty, grunge, dark gothic, high poly sculpt, floating geometry, wireframe, unpolished, text, watermark
+angular facets, sharp polygonal edges, flat shading, origami, geometric triangles, sharp ridges, hard planar surfaces, monolithic blob, melted plastic, play-doh lump, fused solid mass, stiff cylinder, pedestal, base, stand, platform, ground, ground plane, terrain base, dirt mound, island base, circular base, cylinder base, display stand, plinth, showcase base, floor, soil, tile, table, background scenery, environment, trees in background, hills, clouds, horizon, sky, landscape, cropped, cut off, touching the edge, out of frame, shadow casting ground, photorealistic, realistic textures, hyperrealistic, noisy bump map, detailed bark grain, alpha cards, transparent leaves, razor-sharp edges, gritty, grunge, dark gothic, high poly sculpt, floating geometry, wireframe, unpolished, text, watermark, symmetrical, bilateral symmetry, mirror symmetry, centered split trunk, umbrella shape, mushroom shape, twin trunks, identical sides, two legs, stiff vertical trunk, stilt roots, mangrove roots, aerial roots, spider roots, roots gripping air, floating trunk, tripod roots, standing on roots
 ```
 
 ---
@@ -43,17 +44,53 @@ centered in frame, floating weightlessly in empty space with generous empty whit
   ```
   *Thông số:* ~550–700 tris | *Pivot:* Đáy tâm gốc cây (Y=0)
 
+* **👑 Variant A2 (Hollow-Arch Great Oak - Đại Thụ Gốc Vòm Cổ Tích)**
+  ```text
+  A 3D video game item asset of a majestic ancient fantasy hollow oak tree, colossal hero tree centerpiece, designed for gentle canopy wind sway animation, centered in frame, floating weightlessly in mid-air in empty space. Massive ancient wooden trunk featuring a natural arched hollow tunnel at the base opening through to the other side, flanked by thick muscular flared root pillars gripping the air. Heavy upward-reaching boughs support a grand, sprawling canopy made of numerous (6 to 8) overlapping, buttery smooth cloud-like foliage puff clusters forming a lush airy dome. Clear negative space through the hollow trunk base and between canopy clusters. Buttery smooth rounded surfaces, soft cloud curvature, zero sharp edges, zero visible polygon facets. Fresh sage green with warm sunlit lime tips, warm chestnut bark with subtle velvet moss patinas, bottom roots ending cleanly in mid-air. Isometric 3/4 perspective view. Focus exclusively on the colossal tree prop, ignore all background and landscape. Seamless solid pure white background with generous empty padding on all sides. Full view from crown to bottom roots, nothing cropped. Clear empty air underneath, strictly floating, no ground, no floor, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, fairy-tale ancient grandeur, airy and lively --ar 1:1
+  ```
+  *Thông số:* ~600–750 tris | *Pivot:* Đáy tâm vòm gốc cây (Y=0)
+
+* **👑 Variant A3 (Tiered Spreading Beech - Đại Thụ Dẻ Gai Tán Tầng Bồng Bềnh)**
+  ```text
+  A 3D video game item asset of a grand ancient spreading beech tree, colossal hero tree centerpiece, designed for gentle breeze sway animation, centered in frame, floating weightlessly in mid-air in empty space. Stout, sturdy smooth pale-gray wooden trunk with wide grounded root buttresses, branching horizontally into wide reaching boughs that hold three distinct stepped horizontal tiers of broad, flattened, buttery smooth cloud-like foliage pads fanning outward. Generous airy negative space between the horizontal foliage tiers, allowing separate canopy layers to sway gently in the wind. Buttery smooth rounded volumes, soft cloud curvature, zero sharp edges, zero visible polygon facets. Rich emerald and warm jade green gradients, clean smooth bark, bottom roots ending cleanly in mid-air. Isometric 3/4 perspective view. Focus only on the grand tree prop, ignore all terrain and background scenery. Seamless solid pure white background with generous empty padding on all sides. Full view from crown to bottom roots, nothing cropped. Clear empty air underneath, strictly floating, no ground, no dirt mound, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, majestic sheltered canopy, calm and ancient --ar 1:1
+  ```
+  *Thông số:* ~550–700 tris | *Pivot:* Đáy tâm gốc (Y=0)
+
+* **👑 Variant A4 (Asymmetric Swept Oak - Cổ Thụ Dáng Huyền Tán Bay Bất Đối Xứng)**
+  ```text
+  A 3D video game item asset of a majestic ancient fantasy oak tree with dramatic organic asymmetry, colossal hero tree centerpiece, designed for gentle canopy wind sway animation, centered in frame, floating weightlessly in mid-air in empty space. A powerful, gnarled ancient wooden trunk with a dynamic natural lean and wide uneven muscular root flare, branching into distinct asymmetric boughs: one side reaches boldly upward with high lofty cloud puff canopies, while the opposite heavy limb sweeps gracefully outward and lower to the side. Generous airy negative space and visual depth between the uneven branches, preventing any umbrella shape. Zero bilateral symmetry, zero mirror symmetry, dynamic sweeping silhouette visible from a high 3/4 top-down game camera angle. Buttery smooth rounded surfaces, soft cloud curvature, zero sharp edges, zero visible polygon facets. Fresh sage green and warm sunlit chartreuse gradients, warm chestnut bark with gentle velvety moss patches, bottom roots ending cleanly in mid-air. Isometric 3/4 perspective view. Focus exclusively on the colossal asymmetrical tree prop, ignore all background and landscape. Seamless solid pure white background with generous empty padding on all sides. Full view from crown to bottom roots, nothing cropped. Clear empty air underneath, strictly floating, no ground, no floor, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, dynamic windswept ancient grandeur, tactile finish --ar 1:1
+  ```
+  *Thông số:* ~550–720 tris | *Pivot:* Đáy tâm gốc cây (Y=0)
+
 * **🌿 Variant B (Slender Curved Tree - Cây Dáng Nghiêng 3 Nhánh Duyên Dáng - PROVEN)**
   ```text
   A 3D video game item asset of a stylized organic oak tree, designed for gentle canopy wind sway animation, centered in frame, floating weightlessly in mid-air in empty space. Charming curved wooden trunk with natural graceful posture, branching into three distinct visible limbs that hold separate, airy, cloud-like foliage puff clusters. Beautiful negative space between the branches, light and dynamic silhouette. Buttery smooth rounded foliage volumes with soft cloud curvature, zero sharp edges, zero visible polygon facets. Vibrant fresh sage green and pastel lime gradients, warm smooth chestnut bark, bottom roots ending cleanly in mid-air. Isometric 3/4 perspective view. Focus exclusively on the tree prop, ignore all background and landscape. Seamless solid pure white background with generous empty padding on all sides. Full view from crown to bottom roots, nothing cropped. Clear empty air underneath, strictly floating, no ground, no floor, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, smooth marshmallow-like surfaces, airy and lively --ar 1:1
   ```
   *Thông số:* ~350–450 tris | *Pivot:* Đáy tâm gốc cây (Y=0)
 
+* **🌿 Variant B2 (Weeping Woodland Willow - Liễu Rừng Cành Rủ Mềm Mại)**
+  ```text
+  A 3D video game item asset of an elegant stylized weeping woodland tree, designed for graceful wind sway animation, centered in frame, floating weightlessly in mid-air in empty space. Slender organic curved trunk leaning slightly with natural poise, graceful arching branches that cascade downward into multiple (4 to 5) elongated, drooping teardrop cloud-like foliage clusters hanging toward the base. Beautiful negative space between the cascading weeping puff tiers, ready for soft pendulum wind sway motion. Buttery smooth rounded contours, soft drooping curvature, zero sharp edges, zero visible polygon facets. Soft pastel mint green and mellow lime gradients, smooth warm brown bark, roots ending cleanly in mid-air. Isometric 3/4 perspective view. Focus exclusively on the weeping tree prop, ignore all environment, water, and scenery. Seamless solid pure white background with generous empty padding on all sides. Full view from top arch to drooping foliage tips and bottom roots, nothing cropped. Clear empty space underneath, strictly floating, no ground, no pond, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft low-poly, poetic tranquil mood, tactile finish --ar 1:1
+  ```
+  *Thông số:* ~350–450 tris | *Pivot:* Đáy tâm gốc (Y=0)
+
+* **🌿 Variant B3 (Wild Berry Hazel Bush - Cây Phỉ Nhánh Tròn Trĩu Quả Mọng)**
+  ```text
+  A 3D video game item asset of a charming stylized shrubby woodland hazel tree, centered in frame, floating weightlessly in mid-air in empty space. Multi-stemmed organic trunk branching low into four smooth curved limbs that cradle a plump, compact rounded dome of buttery smooth cloud puff foliage. Adorned with several oversized, cute rounded wild red forest berries nestled visibly among the foliage puffs like bright colorful jewels. Buttery smooth marshmallow-like volumes, zero sharp edges, zero visible polygon facets. Lush sage green foliage with vibrant coral-red berry accents, warm chestnut branches, stems ending cleanly in mid-air. Isometric 3/4 perspective view. Focus only on the berry tree prop, ignore all forest scenery and ground. Seamless solid pure white background with generous padding on all sides. Full view, nothing cropped or touching the frame borders. Clear empty air underneath, strictly floating, no soil, no ground, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, cheerful bountiful nature accent --ar 1:1
+  ```
+  *Thông số:* ~320–420 tris | *Pivot:* Đáy gốc tiếp đất (Y=0)
+
 * **🌿 Variant C (Twin Young Birch - Cặp Bạch Dương Song Sinh Dẻo Dai)**
   ```text
   A 3D video game item asset of a pair of stylized organic young birch trees, designed for subtle wind sway animation, centered in frame, floating weightlessly in mid-air in empty space. Two slender pale warm-gray trunks branching upward in a graceful springy V-shape, topped with small separate spherical cloud-like lime-green canopies fluttering at the tips. Buttery smooth rounded volumes, soft curvature, zero sharp edges, zero visible polygon facets. Clear air gap between the twin trunks, light and lively spring feel, roots ending cleanly in mid-air. Isometric 3/4 perspective view. Focus only on the birch trees, ignore all environment and scenery. Seamless solid pure white background with generous padding around all sides. Full view from top to bottom, nothing cropped. Clear empty air underneath, strictly floating, no ground, no pedestal, no base. In the distinctive art style of Preserve puzzle game: chunky soft rounded diorama, clean pastel gradients --ar 1:1
   ```
   *Thông số:* ~350–450 tris | *Pivot:* Đáy tâm gốc (Y=0)
+
+* **🌿 Variant C2 (Solitary S-Curve White Birch - Bạch Dương Đơn Thân Uốn Lượn)**
+  ```text
+  A 3D video game item asset of a slender minimalist stylized white birch tree, designed for springy wind sway animation, centered in frame, floating weightlessly in mid-air in empty space. A single graceful chalk-white trunk with gentle organic S-curve curvature and subtle warm charcoal bark accents, holding two small separate spherical cloud-like foliage puffs near the tapering crown. High visual lightness and airy negative space around the slender trunk, creating a springy elegant silhouette, root base ending cleanly in mid-air. Buttery smooth rounded volumes, soft curvature, zero sharp edges, zero visible polygon facets. Vibrant fresh golden-lime and sunlit chartreuse gradients. Isometric 3/4 perspective view. Focus exclusively on the solitary birch, ignore all background and landscape. Seamless solid pure white background with generous padding around all sides. Full view from tip to base, nothing cropped. Clear empty air underneath, strictly floating, no ground, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded diorama, clean pastel freshness --ar 1:1
+  ```
+  *Thông số:* ~260–350 tris | *Pivot:* Đáy tâm gốc (Y=0)
 
 * **🍀 Variant D (Undergrowth Fern Bush - Bụi Dương Xỉ Xòe Lớp Mềm Mượt)**
   ```text
@@ -66,6 +103,60 @@ centered in frame, floating weightlessly in empty space with generous empty whit
   A 3D video game item asset of a stylized fallen hollow tree log, centered in frame, floating weightlessly in mid-air in empty space. Solid grounded presence with thick rounded bark and a charming open hollow center, decorated with plush buttery smooth emerald velvet moss cushions and two tiny pastel button mushrooms sprouting organically on top. Zero sharp faceted edges, soft chamfered wooden contours, bottom surface floating cleanly in air. Isometric 3/4 perspective view. Focus only on the log prop, ignore all terrain, ground, and background scenery. Seamless solid pure white background with generous empty padding around all sides. Full view, nothing cropped or touching the edges. Clear empty air below, strictly floating, no soil, no ground, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft low-poly, warm pastel colors, cozy woodland feel --ar 1:1
   ```
   *Thông số:* ~200–280 tris | *Pivot:* Đáy tiếp đất (Y=0)
+
+* **🍀 Variant F (Mossy Sprout Stump - Gốc Cây Cổ Thụ Mục Điểm Chồi Non & Nấm Rừng)**
+  ```text
+  A 3D video game item asset of a stylized ancient mossy tree stump, centered in frame, floating weightlessly in mid-air in empty space. A compact, stout, weathered tree stump with thick wrinkled bark and wide flared root toes, topped with a flat cut surface covered in a plush buttery smooth emerald velvet moss cushion. A tender young sapling with two cute round lime-green leaves sprouts cheerfully from a crevice, accompanied by two tiny warm-coral button mushrooms growing at the root base. Buttery smooth rounded volumes, soft organic contours, zero sharp polygonal facets, roots ending cleanly in mid-air. Isometric 3/4 perspective view. Focus exclusively on the tree stump prop, ignore all forest floor, ground, and background scenery. Seamless solid pure white background with generous empty padding on all sides. Full view from top to bottom roots, nothing cropped or touching the image border. Clear empty space underneath, strictly floating, no ground, no dirt mound, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, cozy woodland feel, tactile finish --ar 1:1
+  ```
+  *Thông số:* ~220–300 tris | *Pivot:* Đáy tâm gốc (Y=0)
+
+* **🍀 Variant G (Enchanted Woodland Toadstools - Cụm Nấm Rừng Đỏ Chấm Bi Múp Míp)**
+  ```text
+  A 3D video game item asset of a charming cluster of three stylized woodland toadstool mushrooms, centered in frame, floating weightlessly in mid-air in empty space. Three plump rounded mushrooms clustered snugly together at staggered heights, featuring chunky domed caps in vibrant warm vermilion-red with soft raised buttery cream-white polka dots, supported by thick curved pale cream-ivory stalks with cozy little neck ruffles. A tiny patch of plush velvety moss nestles at the base of the stalks, ending cleanly in mid-air. Buttery smooth marshmallow-like surfaces, soft organic curvature, zero sharp edges, zero visible polygon facets. Isometric 3/4 perspective view. Focus only on the mushroom cluster, ignore all forest floor, scenery, and environment. Seamless solid pure white background with generous empty padding on all sides. Full view, nothing cropped or touching the frame edges. Clear empty air underneath, strictly floating, no dirt, no soil, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft low-poly, cute whimsical fairy-tale forest accent, vibrant warm contrast --ar 1:1
+  ```
+  *Thông số:* ~180–240 tris | *Pivot:* Đáy tâm cụm (Y=0)
+
+* **🍀 Variant H (Mossy Forest Boulders - Cụm Đá Cuội Rừng Phủ Đệm Rêu Êm)**
+  ```text
+  A 3D video game item asset of a natural cluster of stylized forest river stones and pebbles, centered in frame, floating together weightlessly in mid-air in empty space. Two smooth, rounded weathered river stones nestled snugly side-by-side with one tiny companion pebble, topped with soft buttery smooth sage-green velvet moss caps and a single tiny curly fern sprout unfurling from the seam. Solid grounded stone presence with gentle chamfered beveled contours, zero sharp jagged ridges, bottom surfaces floating cleanly in mid-air. Warm slate-gray and soft emerald gradients. Isometric 3/4 perspective view. Focus exclusively on the stones and moss prop, ignore all terrain, mud, and background landscape. Seamless solid pure white background with generous empty padding around all sides. Full view, nothing cropped. Clear empty air below, strictly floating, no soil, no ground, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded diorama, calm natural grounding scatter --ar 1:1
+  ```
+  *Thông số:* ~160–220 tris | *Pivot:* Đáy tiếp đất (Y=0)
+
+* **🍀 Variant I (Shaded Forest Bluebells - Khóm Hoa Chuông Rừng Dại Uốn Mềm)**
+  ```text
+  A 3D video game item asset of a delicate cluster of stylized shaded woodland bluebells, centered in frame, floating weightlessly in mid-air in empty space. A compact low-lying clump of three graceful pliant arching green stems bearing four nodding bell-shaped blossom cups in pastel periwinkle-blue and gentle lavender gradients, nestled above a few broad, buttery smooth rounded forest floor leaves. Soft volumetric petal bells drooping gracefully with gravity, zero sharp polygonal edges, zero visible facets, stem base ending cleanly in air. Isometric 3/4 perspective view. Focus only on the wildflower cluster, ignore all forest floor, ground, and scenery. Seamless solid pure white background with generous empty padding on all sides. Full view from blossom tips to stem base, nothing cropped. Clear empty air underneath, strictly floating, no dirt mound, no ground, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, elegant whimsical woodland scatter --ar 1:1
+  ```
+  *Thông số:* ~180–250 tris | *Pivot:* Đáy gốc cành (Y=0)
+
+* **🌱 Variant J (Micro Soft Grass Tuft - Chùm Cỏ Múp Míp Tí Hon Lấp Khe Trống)**
+  ```text
+  A 3D video game item asset of a tiny minimalist cluster of stylized micro grass tufts, ground scatter filler, centered in frame, floating weightlessly in mid-air in empty space. A compact low-lying sprout of three short, plump, buttery smooth rounded grass blades gently curving outward from a tiny central root point, soft marshmallow-like volumes, zero sharp faceted edges. Vibrant sunlit lime green and fresh pastel chartreuse gradients, bottom stem base ending cleanly in air. Isometric 3/4 perspective view. Focus only on the tiny grass tuft, ignore all ground, dirt, and background. Seamless solid pure white background with generous empty padding on all sides. Full view, nothing cropped. Clear empty air underneath, strictly floating, no soil, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, cute minimalist micro ground detail --ar 1:1
+  ```
+  *Thông số:* ~60–90 tris | *Pivot:* Đáy gốc (Y=0)
+
+* **🌱 Variant K (Plush Moss Mound Patch - Mảng Đệm Rêu Phồng Mềm Mại Sát Đất)**
+  ```text
+  A 3D video game item asset of a small stylized velvety moss cushion mound, ground surface filler, centered in frame, floating weightlessly in mid-air in empty space. A gentle, low, flattened undulating mound of buttery smooth cloud-like moss volume, soft puffed organic contours, zero sharp polygonal facets, designed to sit directly on the ground surface. Rich emerald green blending into soft sage moss gradients, completely flat bottom ending cleanly in air. Isometric 3/4 perspective view. Focus exclusively on the moss mound asset, ignore all terrain, mud, and background. Seamless solid pure white background with generous padding on all sides. Full view, nothing cropped. Clear empty air below, strictly floating, no ground plane, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft low-poly, plush velvet tactile feel --ar 1:1
+  ```
+  *Thông số:* ~80–120 tris | *Pivot:* Đáy tiếp xúc phẳng (Y=0)
+
+* **🌱 Variant L (Micro Clover Tuft - Chùm Cỏ Ba Lá Tí Hon Sát Đất)**
+  ```text
+  A 3D video game item asset of a tiny cluster of stylized miniature clover leaves, ground scatter filler, centered in frame, floating weightlessly in mid-air in empty space. Four small, chunky, heart-shaped clover leaflets on tiny curved tender green stems clustered snugly together just above ground level. Buttery smooth rounded leaf shapes, soft organic contours, zero sharp edges, zero visible polygon facets. Fresh vivid emerald and pastel mint tones, stem bases cleanly joined in mid-air. Isometric 3/4 perspective view. Focus only on the clover leaves, ignore all soil, meadow, and background. Seamless solid pure white background with generous empty padding on all sides. Full view, nothing cropped. Clear empty space underneath, strictly floating, no dirt, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded toy diorama, cute fairytale ground accent --ar 1:1
+  ```
+  *Thông số:* ~80–110 tris | *Pivot:* Đáy gốc cành (Y=0)
+
+* **🌱 Variant M (Fallen Oak Leaves & Acorn Scatter - Vụn Lá Sồi Vàng & Quả Sồi Rơi)**
+  ```text
+  A 3D video game item asset of two stylized fallen autumn oak leaves and a single tiny round acorn resting together, forest floor micro scatter, centered in frame, floating weightlessly in mid-air in empty space. Two chunky rounded leaves with buttery smooth scalloped edges resting flatly overlapping, colored in warm amber orange and sunlit golden honey gradients, paired with a cute plump little chestnut-brown acorn with a textured cap. Zero sharp faceted edges, soft chamfered contours, flat bottoms ending cleanly in air. Isometric 3/4 perspective view. Focus exclusively on the leaves and acorn prop, ignore all forest floor, ground, and scenery. Seamless solid pure white background with generous empty padding around all sides. Full view, nothing cropped. Clear empty air below, strictly floating, no soil, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft rounded diorama, cozy woodland ground detail, warm color pop --ar 1:1
+  ```
+  *Thông số:* ~100–140 tris | *Pivot:* Đáy tiếp xúc phẳng (Y=0)
+
+* **🌱 Variant N (Flat River Pebble Trio - Cụm 3 Viên Sỏi Cuội Bẹp Mini)**
+  ```text
+  A 3D video game item asset of three tiny smooth rounded river pebbles nestled flatly together, micro ground filler, centered in frame, floating weightlessly in mid-air in empty space. Three small, flattened, buttery smooth pebble stones of varying mini sizes, one stone adorned with a tiny patch of soft velvety green moss. Gentle rounded beveled contours, zero sharp edges, zero jagged ridges, flat bottom surfaces floating cleanly in air. Warm slate-gray and soft earth tones. Isometric 3/4 perspective view. Focus only on the pebble stones, ignore all ground and background. Seamless solid pure white background with generous empty padding around all sides. Full view, nothing cropped. Clear empty air underneath, strictly floating, no dirt, no pedestal. In the distinctive art style of Preserve puzzle game: chunky soft low-poly, subtle natural ground grounding --ar 1:1
+  ```
+  *Thông số:* ~70–100 tris | *Pivot:* Đáy phẳng tiếp đất (Y=0)
 
 ---
 
