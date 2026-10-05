@@ -158,8 +158,6 @@ public class ScorePopup : MonoBehaviour
         renderer.material = new Material(Shader.Find("Sprites/Default"));
         renderer.material.renderQueue = 4000;
 
-        Debug.Log($"ScorePopup: Spawn +{score} tại {worldPosition} (sprite='{sprite.name}', size={sizeCompensation:F2})");
-
         ScorePopup popup = popupObj.AddComponent<ScorePopup>();
         popup.Play();
 

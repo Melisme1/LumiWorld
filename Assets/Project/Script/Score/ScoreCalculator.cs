@@ -33,7 +33,7 @@ public class ScoreCalculator : MonoBehaviour
 
         PlacedCard[] allCards =
             FindObjectsByType<PlacedCard>(
-                FindObjectsSortMode.None
+                FindObjectsInactive.Exclude
             );
 
         HashSet<PlacedCard> processed =

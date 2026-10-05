@@ -272,6 +272,10 @@ public class CardDrag : MonoBehaviour,
         Vector2 startPosition = rectTransform.anchoredPosition;
         Vector3 startScale = transform.localScale;
         Quaternion startRotation = transform.localRotation;
+
+        // Alpha được hồi từ mức mờ lúc kéo -> 1.0. CardDrag là nguồn duy nhất ghi
+        // canvasGroup.alpha trong giai đoạn này (CardAppear tự nhường quyền qua
+        // IsDragOwned), nên alpha không bị animation khác đè ngược về trạng thái mờ.
         float startAlpha = canvasGroup != null ? canvasGroup.alpha : 1f;
 
         float elapsed = 0f;
@@ -288,23 +292,23 @@ public class CardDrag : MonoBehaviour,
 
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = Mathf.Lerp(startAlpha, 1.0f, t);
+                canvasGroup.alpha = Mathf.Lerp(startAlpha, 1f, t);
             }
 
             yield return null;
         }
 
-        rectTransform.anchoredPosition = targetPosition;
-        transform.localScale = Vector3.one;
-        transform.localRotation = Quaternion.identity;
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = 1.0f;
-        }
+        RestoreVisualAfterPlacement();
 
         transform.SetSiblingIndex(originalSiblingIndex);
         IsReturningToHand = false;
         returnCoroutine = null;
+
+        // Thông báo cho CardHover biết card đã yên vị để nó đồng bộ lại target.
+        CardHover cardHover = GetComponent<CardHover>();
+        if (cardHover != null)
+        {
+            cardHover.SyncAfterReturn();
+        }
     }
 }

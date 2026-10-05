@@ -56,9 +56,6 @@ public class ScoreManager : MonoBehaviour
 
         CheckCardReward();
 
-        Debug.Log(
-            $"Score = {currentScore}"
-        );
     }
 
     // =========================================
@@ -153,9 +150,7 @@ public class ScoreManager : MonoBehaviour
             cardData
         );
 
-        Debug.Log(
-            $"Reached {rewardScore} points -> +1 Card: {cardData.cardName}"
-        );
+
     }
 
     // =========================================
