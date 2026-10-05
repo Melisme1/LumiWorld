@@ -69,6 +69,32 @@ public class HexHabitatSpawner : MonoBehaviour
         // Bán kính vùng an toàn của ô hex (Pointed-top: InnerRadius = 1.0f)
         float maxHexRadius = HexMetrics.InnerRadius * Mathf.Clamp(cardData.habitatSpawnMargin, 0.5f, 1.05f);
 
+        // KÍCH HOẠT TẦNG PHỦ CỎ (FILLEDGROUND) RIÊNG BIỆT NẾU LÁ BÀI YÊU CẦU HOẶC LÀ LEAFWOOD
+        CardData.HabitatPropRule filledGroundRule = null;
+        if (cardData.habitatProps != null)
+        {
+            foreach (var r in cardData.habitatProps)
+            {
+                if (HexFilledGroundSpawner.Instance.IsFilledGroundRule(r))
+                {
+                    filledGroundRule = r;
+                    break;
+                }
+            }
+        }
+
+        if (filledGroundRule != null || HexFilledGroundSpawner.Instance.HasFilledGround(cardData))
+        {
+            List<Vector2> reservedObstacles = new List<Vector2> { Vector2.zero }; // Né tâm cho cây Anchor
+            HexFilledGroundSpawner.Instance.SpawnFilledGround(
+                cardData,
+                habitatContainer.transform,
+                centerWorldPos,
+                reservedObstacles,
+                filledGroundRule
+            );
+        }
+
         WaitForSeconds waitStagger = (staggerDelay > 0f) ? new WaitForSeconds(staggerDelay) : null;
         int nextClusterId = 0;
 
@@ -76,6 +102,9 @@ public class HexHabitatSpawner : MonoBehaviour
         foreach (var rule in cardData.habitatProps)
         {
             if (rule == null || rule.prefabs == null || rule.prefabs.Count == 0) continue;
+
+            // Bỏ qua quy tắc FilledGround ở vòng lặp thường vì đã được HexFilledGroundSpawner xử lý chuyên biệt
+            if (HexFilledGroundSpawner.Instance.IsFilledGroundRule(rule)) continue;
 
             if (rule.clusterAsPatch)
             {
@@ -484,7 +513,17 @@ public class HexHabitatSpawner : MonoBehaviour
             else
             {
                 string pName = prefab.name;
-                if (pName.IndexOf("Micro", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (pName.IndexOf("MicroGrass", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    // Mầm cỏ nhỏ MicroGrassTuft: cao 2.5cm, cắm sâu nhẹ 0.5cm
+                    groundEmbed = 0.005f;
+                }
+                else if (pName.IndexOf("GrassClump", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    // Bụi cỏ GrassClump: cao 9cm, cắm sâu nhẹ 1.2cm
+                    groundEmbed = 0.012f;
+                }
+                else if (pName.IndexOf("Micro", System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     // Khóm cỏ / gò rêu / sỏi micro: cắm sâu nhẹ 2cm vào mặt cỏ
                     groundEmbed = 0.02f;

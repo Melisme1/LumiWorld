@@ -58,6 +58,25 @@ public class HexBiomeClusterConnector : MonoBehaviour
     [Tooltip("Khoảng cách tối thiểu giữa các prop nhỏ")]
     [SerializeField] private float minSmallClearance = 0.11f;
 
+    [Header("Seam Micro Grass (Mầm cỏ nhỏ viền nối giữa các ô cùng loại)")]
+    [Tooltip("Tự động sinh mầm cỏ nhỏ (MicroGrassTuft) dọc theo viền nối giữa 2 ô cùng loại để kết nối mượt mà thảm cỏ")]
+    [SerializeField] private bool spawnSeamMicroGrass = true;
+
+    [Tooltip("Prefab mầm cỏ nhỏ (MicroGrassTuft). Nếu để trống sẽ tự động lấy từ HexFilledGroundSpawner hoặc Prefabs/Leafwood/05_FilledGround/MicroGrassTuft.prefab")]
+    [SerializeField] private GameObject seamMicroGrassPrefab;
+
+    [Tooltip("Số lượng mầm cỏ nhỏ sinh dọc theo mỗi viền nối giữa 2 ô")]
+    [SerializeField] private Vector2Int seamMicroGrassCountRange = new Vector2Int(5, 8);
+
+    [Tooltip("Số lượng mầm cỏ nhỏ sinh quanh nắp ngã ba 3 ô (Corner Filler)")]
+    [SerializeField] private Vector2Int cornerMicroGrassCountRange = new Vector2Int(4, 7);
+
+    [Tooltip("Khoảng scale ngẫu nhiên cho mầm cỏ nhỏ viền nối (1.10 - 1.80 đồng bộ với HexFilledGroundSpawner)")]
+    [SerializeField] private Vector2 seamMicroGrassScaleRange = new Vector2(1.10f, 1.80f);
+
+    [Tooltip("Độ cắm sâu tiếp đất cho mầm cỏ nhỏ viền nối (mặc định 0.005f = 0.5cm)")]
+    [SerializeField] private float seamMicroGrassGroundEmbed = 0.005f;
+
     [Header("Corner Junction Hub (Cụm sinh thái ngã ba 3 ô)")]
     [Tooltip("Sinh thực vật tại ngã ba trung tâm nơi 3 ô gặp nhau")]
     [SerializeField] private bool spawnCornerProps = true;
@@ -108,6 +127,29 @@ public class HexBiomeClusterConnector : MonoBehaviour
         {
             _instance = this;
         }
+        AutoLoadDefaultMicroGrassIfNeeded();
+    }
+
+    private void Reset()
+    {
+        AutoLoadDefaultMicroGrassIfNeeded();
+    }
+
+    private void OnValidate()
+    {
+        AutoLoadDefaultMicroGrassIfNeeded();
+    }
+
+    public void AutoLoadDefaultMicroGrassIfNeeded()
+    {
+#if UNITY_EDITOR
+        if (seamMicroGrassPrefab == null)
+        {
+            seamMicroGrassPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/VinhWorkSpace/Prefabs/Leafwood/05_FilledGround/MicroGrassTuft.prefab"
+            );
+        }
+#endif
     }
 
     // TUYỆT ĐỐI KHÔNG tự động quét toàn map trong Start() để tránh sinh dải nối trên các ô đất thô chưa đặt bài!
@@ -361,6 +403,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
         mr.receiveShadows = true;
 
         StartCoroutine(AnimateBridgePopIn(bridgeGo.transform));
+
+        if (spawnSeamMicroGrass)
+        {
+            SpawnBorderMicroGrass(midPoint, u, v, halfEdge, elevatedTopY, habitatData);
+        }
     }
 
     /// <summary>
@@ -591,6 +638,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
         mr.receiveShadows = true;
 
         StartCoroutine(AnimateBridgePopIn(cornerGo.transform));
+
+        if (spawnSeamMicroGrass)
+        {
+            SpawnCornerMicroGrass(center, surfaceY, habitatData);
+        }
     }
 
     /// <summary>
@@ -1051,6 +1103,207 @@ public class HexBiomeClusterConnector : MonoBehaviour
         Vector3 targetScale = prefab.transform.localScale * randomScale;
         StartCoroutine(AnimatePropPopIn(propObj.transform, targetScale, animDelay));
         return propObj;
+    }
+
+    /// <summary>
+    /// Lấy Prefab mầm cỏ nhỏ (MicroGrassTuft) cho viền nối.
+    /// Tự động fallback sang HexFilledGroundSpawner hoặc LoadAsset từ thư mục 05_FilledGround.
+    /// </summary>
+    public GameObject GetMicroGrassPrefab(CardData cardData = null)
+    {
+        if (seamMicroGrassPrefab != null) return seamMicroGrassPrefab;
+
+        if (HexFilledGroundSpawner.Instance != null && HexFilledGroundSpawner.Instance.MicroGrassTuftPrefab != null)
+        {
+            seamMicroGrassPrefab = HexFilledGroundSpawner.Instance.MicroGrassTuftPrefab;
+            return seamMicroGrassPrefab;
+        }
+
+        if (cardData != null && cardData.habitatProps != null)
+        {
+            foreach (var rule in cardData.habitatProps)
+            {
+                if (rule == null || rule.prefabs == null) continue;
+                foreach (var p in rule.prefabs)
+                {
+                    if (p != null && p.name.IndexOf("MicroGrass", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        seamMicroGrassPrefab = p;
+                        return seamMicroGrassPrefab;
+                    }
+                }
+            }
+        }
+
+#if UNITY_EDITOR
+        if (seamMicroGrassPrefab == null)
+        {
+            seamMicroGrassPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/VinhWorkSpace/Prefabs/Leafwood/05_FilledGround/MicroGrassTuft.prefab"
+            );
+        }
+#endif
+
+        return seamMicroGrassPrefab;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem Biome này có phù hợp để sinh mầm cỏ nhỏ ở viền nối không
+    /// </summary>
+    private bool ShouldSpawnSeamGrassForHabitat(CardData cardData)
+    {
+        if (!spawnSeamMicroGrass) return false;
+        if (cardData == null) return false;
+
+        if (HexFilledGroundSpawner.Instance != null && HexFilledGroundSpawner.Instance.HasFilledGround(cardData))
+            return true;
+
+        string family = GetHabitatFamily(cardData.cardName);
+        if (string.Equals(family, "Leafwood", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(family, "Bloomfield", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (cardData.habitatProps != null)
+        {
+            foreach (var rule in cardData.habitatProps)
+            {
+                if (rule != null && !string.IsNullOrEmpty(rule.groupName))
+                {
+                    if (rule.groupName.IndexOf("FilledGround", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        rule.groupName.IndexOf("Grass", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Sinh một dải mầm cỏ nhỏ (MicroGrassTuft) vắt ngang viền nối giữa 2 ô cùng loại.
+    /// Giúp che rãnh nối và liên kết thảm cỏ của 2 ô liền mạch như một cánh rừng tự nhiên.
+    /// </summary>
+    private void SpawnBorderMicroGrass(
+        Vector3 midPoint, Vector3 u, Vector3 v, float halfEdge, float surfaceY, CardData habitatData)
+    {
+        if (!ShouldSpawnSeamGrassForHabitat(habitatData)) return;
+
+        GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
+        if (sproutPrefab == null) return;
+
+        int count = UnityEngine.Random.Range(seamMicroGrassCountRange.x, seamMicroGrassCountRange.y + 1);
+        if (count <= 0) return;
+
+        // Đoạn phẳng trên đỉnh viền nối: ~0.42m mỗi bên (tổng chiều dài ~0.85m)
+        float usableSpan = halfEdge * 0.75f;
+        float step = (usableSpan * 2f) / count;
+        float startV = -usableSpan + step * 0.5f;
+
+        for (int i = 0; i < count; i++)
+        {
+            // Vị trí dọc theo viền tiếp giáp (v)
+            float vOffset = startV + i * step + UnityEngine.Random.Range(-step * 0.35f, step * 0.35f);
+
+            // Vị trí ngang viền tiếp giáp (u) - đan xen nhẹ sang 2 bên sườn ô
+            float uOffset = UnityEngine.Random.Range(-0.065f, 0.065f);
+
+            Vector3 spawnPos = midPoint + v * vOffset + u * uOffset;
+            spawnPos.y = surfaceY;
+
+            // Tính scale ngẫu nhiên
+            float scale = UnityEngine.Random.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
+
+            // Cắm sâu Y chuẩn xác dựa vào bounds của prefab
+            float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(sproutPrefab, seamMicroGrassGroundEmbed) * scale;
+            spawnPos.y += yOffset;
+
+            // Xoay ngẫu nhiên 360 độ và nghiêng nhẹ tự nhiên
+            Quaternion rot = Quaternion.Euler(
+                UnityEngine.Random.Range(-3f, 3f),
+                UnityEngine.Random.Range(0f, 360f),
+                UnityEngine.Random.Range(-3f, 3f)
+            ) * sproutPrefab.transform.rotation;
+
+            GameObject sproutObj = Instantiate(sproutPrefab, spawnPos, rot, ConnectionsContainer);
+            sproutObj.name = $"SeamSprout_{sproutPrefab.name}_{i}";
+            sproutObj.transform.localScale = Vector3.zero;
+
+            // Tắt collider để không cản trở raycast / chuột
+            Collider[] colliders = sproutObj.GetComponentsInChildren<Collider>();
+            for (int c = 0; c < colliders.Length; c++) colliders[c].enabled = false;
+
+            // Tắt shadow casting mode để tối ưu hiệu năng
+            Renderer[] renderers = sproutObj.GetComponentsInChildren<Renderer>();
+            for (int r = 0; r < renderers.Length; r++)
+            {
+                renderers[r].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderers[r].receiveShadows = true;
+            }
+
+            // Diễn hoạt nảy mầm theo làn sóng nhẹ
+            float delay = 0.04f + (float)i / count * 0.16f;
+            Vector3 targetScale = sproutPrefab.transform.localScale * scale;
+            StartCoroutine(AnimatePropPopIn(sproutObj.transform, targetScale, delay));
+        }
+    }
+
+    /// <summary>
+    /// Sinh cụm mầm cỏ nhỏ xoay quanh nắp ngã ba 3 ô (Corner Filler),
+    /// tạo điểm xuyết mầm xanh ở tâm giao thoa giữa 3 khối lục giác.
+    /// </summary>
+    private void SpawnCornerMicroGrass(Vector3 center, float surfaceY, CardData habitatData)
+    {
+        if (!ShouldSpawnSeamGrassForHabitat(habitatData)) return;
+
+        GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
+        if (sproutPrefab == null) return;
+
+        int count = UnityEngine.Random.Range(cornerMicroGrassCountRange.x, cornerMicroGrassCountRange.y + 1);
+        if (count <= 0) return;
+
+        float angleStep = 360f / count;
+
+        for (int i = 0; i < count; i++)
+        {
+            float baseAngle = i * angleStep + UnityEngine.Random.Range(-15f, 15f);
+            float rad = baseAngle * Mathf.Deg2Rad;
+            float r = UnityEngine.Random.Range(0.04f, cornerFillerRadius * 1.15f);
+
+            Vector3 spawnPos = center + new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * r;
+            spawnPos.y = surfaceY;
+
+            float scale = UnityEngine.Random.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
+            float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(sproutPrefab, seamMicroGrassGroundEmbed) * scale;
+            spawnPos.y += yOffset;
+
+            Quaternion rot = Quaternion.Euler(
+                UnityEngine.Random.Range(-3f, 3f),
+                UnityEngine.Random.Range(0f, 360f),
+                UnityEngine.Random.Range(-3f, 3f)
+            ) * sproutPrefab.transform.rotation;
+
+            GameObject sproutObj = Instantiate(sproutPrefab, spawnPos, rot, ConnectionsContainer);
+            sproutObj.name = $"CornerSprout_{sproutPrefab.name}_{i}";
+            sproutObj.transform.localScale = Vector3.zero;
+
+            Collider[] colliders = sproutObj.GetComponentsInChildren<Collider>();
+            for (int c = 0; c < colliders.Length; c++) colliders[c].enabled = false;
+
+            Renderer[] renderers = sproutObj.GetComponentsInChildren<Renderer>();
+            for (int rend = 0; rend < renderers.Length; rend++)
+            {
+                renderers[rend].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderers[rend].receiveShadows = true;
+            }
+
+            float delay = 0.06f + (float)i / count * 0.16f;
+            Vector3 targetScale = sproutPrefab.transform.localScale * scale;
+            StartCoroutine(AnimatePropPopIn(sproutObj.transform, targetScale, delay));
+        }
     }
 
     /// <summary>
