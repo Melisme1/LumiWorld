@@ -71,20 +71,16 @@ public class HexPointerRaycaster : MonoBehaviour
     }
 
     /// <summary>
-    /// Xác định độ cao bề mặt trên cùng của ô lục giác để đặt vật phẩm lên đúng đỉnh
+    /// Xác định độ cao bề mặt trên cùng của ô lục giác để đặt vật phẩm lên đúng đỉnh.
+    /// Sử dụng GetTileHeightLevels từ HexBiomeClusterConnector để lấy mặt phẳng cỏ chuẩn (1.80m / 1.00m / 2.60m),
+    /// tránh bị dôi lên đỉnh gò đá/đồi con (~0.10m) làm props bị bay lơ lửng.
     /// </summary>
     public float GetTileSurfaceY(GameObject tileObj)
     {
         if (tileObj != null)
         {
-            Renderer[] renderers = tileObj.GetComponentsInChildren<Renderer>();
-            foreach (var r in renderers)
-            {
-                if (r != null && !IsPartOfPlacedProp(r.transform, tileObj.transform))
-                {
-                    return r.bounds.max.y;
-                }
-            }
+            var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
+            return topY;
         }
         return HexMetrics.TileHeight;
     }

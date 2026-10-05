@@ -62,8 +62,9 @@ MonoBehaviour:
     - {fileID: 3269547600719880639, guid: cd15fec5e1fd7e345bf7de3e87cd5bc4, type: 3}
     - {fileID: 3116273956322800707, guid: 152eb451f53b78e41b036cbc9fb10bcf, type: 3}
     - {fileID: 8903583833861633446, guid: b0fd748eb98b4e8428f06c564f94c61b, type: 3}
+    - {fileID: 8208252577743640696, guid: b1b57b38193651a428e9afcac2d06357, type: 3}
     clusterAsPatch: 0
-    countRange: {x: 0, y: 2}
+    countRange: {x: 1, y: 3}
     propsPerClusterRange: {x: 0, y: 0}
     clusterRadius: 0.24
     minDistance: 0.36
