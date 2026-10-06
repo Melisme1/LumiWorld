@@ -47,30 +47,30 @@ public class HexClusterData : ScriptableObject
             }
         }
 
-        // 2. Phân bố theo tỷ lệ tự nhiên: Cỏ chiếm đa số, Núi là điểm nhấn đỉnh cao
+        // 2. Phân bố theo tỷ lệ tự nhiên: Tầng trung cao nhất (~52-55%), Tầng thấp vừa phải (~25-28%), Tầng cao tăng nhẹ (~20-22%)
         int[] tileLevels = new int[tileNoiseList.Count];
         int mountainCount = 0;
 
         for (int i = 0; i < tileNoiseList.Count; i++)
         {
             float noise = tileNoiseList[i].noise;
-            if (noise < 0.33f)
+            if (noise < 0.38f)
             {
-                tileLevels[i] = 0; // Nước (~25%)
+                tileLevels[i] = 0; // Tầng thấp (Bloomfield)
             }
-            else if (noise < 0.68f)
+            else if (noise < 0.63f)
             {
-                tileLevels[i] = 1; // Cỏ (chiếm đa số ~60%)
+                tileLevels[i] = 1; // Tầng trung (Leafwood - cao nhất)
             }
             else
             {
-                tileLevels[i] = 2; // Đồi / Núi (điểm nhấn ~15%)
+                tileLevels[i] = 2; // Tầng cao (Windheath - tăng nhẹ)
                 mountainCount++;
             }
         }
 
-        // 3. Đảm bảo BẮT BUỘC PHẢI CÓ NÚI: Nếu ngẫu nhiên ít hơn mức tối thiểu, lấy các ô có đỉnh noise cao nhất làm núi
-        int minMountains = Mathf.Max(2, tileNoiseList.Count / 10);
+        // 3. Đảm bảo BẮT BUỘC PHẢI CÓ TẦNG CAO: Nếu ngẫu nhiên ít hơn mức tối thiểu, lấy các ô có đỉnh noise cao nhất làm núi
+        int minMountains = Mathf.Max(3, Mathf.RoundToInt(tileNoiseList.Count * 0.18f));
         if (mountainCount < minMountains)
         {
             List<int> sortedIndices = new List<int>();
@@ -79,7 +79,7 @@ public class HexClusterData : ScriptableObject
 
             for (int k = 0; k < minMountains; k++)
             {
-                tileLevels[sortedIndices[k]] = 2; // Gán đỉnh cao nhất làm Núi
+                tileLevels[sortedIndices[k]] = 2; // Gán đỉnh cao nhất làm Tầng cao
             }
         }
 

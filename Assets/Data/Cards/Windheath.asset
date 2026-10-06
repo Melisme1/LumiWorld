@@ -59,8 +59,8 @@ MonoBehaviour:
     prefabs:
     - {fileID: 8961250465676783812, guid: c737dab75eaa72b489e7f9b13536b29f, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 2, y: 4}
-    propsPerClusterRange: {x: 2, y: 4}
+    countRange: {x: 3, y: 5}
+    propsPerClusterRange: {x: 3, y: 4}
     clusterRadius: 0.28
     minDistance: 0.22
     scaleRange: {x: 0.85, y: 1.15}
@@ -71,8 +71,8 @@ MonoBehaviour:
     prefabs:
     - {fileID: 3732195332727685260, guid: b170701159a146a49aca0c3bdb3c3542, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 5, y: 8}
-    propsPerClusterRange: {x: 3, y: 5}
+    countRange: {x: 5, y: 7}
+    propsPerClusterRange: {x: 4, y: 6}
     clusterRadius: 0.2
     minDistance: 0.18
     scaleRange: {x: 0.75, y: 1.05}
