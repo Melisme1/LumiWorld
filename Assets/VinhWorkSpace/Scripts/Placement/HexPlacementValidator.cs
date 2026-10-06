@@ -23,9 +23,43 @@ public class HexPlacementValidator : MonoBehaviour
             return false;
         }
 
-        if (IsTileOccupied(tileObj))
+        // 1. Phân biệt theo loại thẻ:
+        if (cardData != null && cardData.cardType == CardType.Creature)
         {
-            return false;
+            // Thẻ thú không được đặt nếu ô này ĐÃ CÓ một con thú khác
+            if (HasPlacedCreature(tileObj))
+            {
+                return false;
+            }
+
+            // Thú bắt buộc phải có môi trường sống: Ô phải ĐÃ CÓ thẻ bài loại Terrain được đặt lên trước đó!
+            // (Kể cả khi ô đã được tưới Rain thành Lush, người chơi vẫn BẮT BUỘC phải đặt thẻ Terrain lên trước rồi mới được đặt thú)
+            if (!HasPlacedTerrain(tileObj))
+            {
+                return false;
+            }
+        }
+        else if (cardData != null && cardData.cardType == CardType.Terrain)
+        {
+            // Ô này đã có thẻ Terrain từ trước thì không được đè thêm thẻ Terrain khác
+            if (HasPlacedTerrain(tileObj))
+            {
+                return false;
+            }
+
+            // Các thẻ Terrain tuân theo quy tắc kiểm tra chiếm ô
+            if (IsTileOccupied(tileObj))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            // Các thẻ khác (Building...): Tuân theo quy tắc kiểm tra chiếm ô thông thường
+            if (IsTileOccupied(tileObj))
+            {
+                return false;
+            }
         }
 
         // Không cho phép đặt thêm thẻ biến đổi địa hình (như Rain) nếu ô này đã có thẻ biến đổi địa hình từ trước
@@ -97,5 +131,63 @@ public class HexPlacementValidator : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem ô lục giác đã có sinh vật (Creature) nào sinh sống chưa
+    /// </summary>
+    public bool HasPlacedCreature(GameObject tileObj)
+    {
+        if (tileObj == null) return false;
+
+        PlacedCard[] placedCards = tileObj.GetComponentsInChildren<PlacedCard>();
+        foreach (var pc in placedCards)
+        {
+            if (pc != null && pc.CardType == CardType.Creature)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem ô lục giác đã có thẻ bài loại địa hình (Terrain) được đặt lên chưa.
+    /// Bắt buộc ô phải có PlacedCard thuộc CardType.Terrain (hoặc container Habitat_ sinh ra từ thẻ Terrain).
+    /// Việc chỉ mới dùng thẻ Rain làm đất tươi tốt (Lush) chưa đủ điều kiện, người chơi bắt buộc phải đặt thẻ Terrain lên trước!
+    /// </summary>
+    public bool HasPlacedTerrain(GameObject tileObj)
+    {
+        if (tileObj == null) return false;
+
+        // 1. Kiểm tra PlacedCard loại Terrain trên ô
+        PlacedCard[] placedCards = tileObj.GetComponentsInChildren<PlacedCard>();
+        foreach (var pc in placedCards)
+        {
+            if (pc != null && pc.CardType == CardType.Terrain)
+            {
+                return true;
+            }
+        }
+
+        // 2. Kiểm tra container Habitat_ đã sinh cây cối/cỏ hoa từ thẻ Terrain
+        for (int i = 0; i < tileObj.transform.childCount; i++)
+        {
+            Transform child = tileObj.transform.GetChild(i);
+            if (child != null && child.name.StartsWith("Habitat_"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Giữ tương thích ngược cho các lời gọi cũ
+    /// </summary>
+    public bool HasPlacedTerrainOrHabitat(GameObject tileObj)
+    {
+        return HasPlacedTerrain(tileObj);
     }
 }

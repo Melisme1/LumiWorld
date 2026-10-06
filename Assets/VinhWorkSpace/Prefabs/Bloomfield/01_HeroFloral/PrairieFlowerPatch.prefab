@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5797241925525510578}
   - component: {fileID: 7483904258987529751}
   - component: {fileID: 4627690562360500957}
+  - component: {fileID: 8901234567890123456}
   m_Layer: 0
   m_Name: PrairieFlowerPatch
   m_TagString: Untagged
@@ -28,8 +29,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.1, y: 1.1, z: 1.1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
@@ -90,3 +91,18 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8901234567890123456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6573039375062614792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7f1a92e48b34d7bb12460d3e5891a2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HexPropConfig
+  groundEmbed: 0.02
+  maxEmbedHeightRatio: 0.25
+

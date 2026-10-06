@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5841cf8ae74a4a8db7468bd91e5f4303, type: 3}
+  m_Name: Wood
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceData
+  resourceID: wood
+  resourceName: "G\u1ED7"
+  description: "G\u1ED7 t\u1EF1 nhi\xEAn thu ho\u1EA1ch t\u1EEB nh\u1EEFng c\xE1nh r\u1EEBng Leafwood r\u1EE3p b\xF3ng m\xE1t."
+  icon: {fileID: 0}
+  resourceColor: {r: 0.72, g: 0.45, b: 0.2, a: 1}
+  hexColor: "#B87333"
+  baseValue: 5
+  maxStackSize: 999

@@ -17,7 +17,7 @@ public class PlacedCard : MonoBehaviour
         get
         {
             if (cardData == null)
-                return CardType.Terrain;
+                return (CardType)(-1);
 
             return cardData.cardType;
         }

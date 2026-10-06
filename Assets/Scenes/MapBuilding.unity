@@ -1064,24 +1064,30 @@ MonoBehaviour:
   cardPrefab: {fileID: 3296435945646191664, guid: 90ea1562e9b96fa4c868961ac74e12d4, type: 3}
   cardContainer: {fileID: 780073132}
   cardsToSpawn:
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-  - {fileID: 11400000, guid: b769b069307dbfc49aafe5879faf6a9e, type: 2}
-  - {fileID: 11400000, guid: b769b069307dbfc49aafe5879faf6a9e, type: 2}
-  - {fileID: 11400000, guid: b769b069307dbfc49aafe5879faf6a9e, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
+  - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
+  - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
   appearDelay: 0.1
   rearrangeDuration: 0.25
+  showRewardToast: 0
+  playRewardJuice: 1
+  toastOffset: {x: 0, y: 190}
+  showStartingHandSummary: 0
 --- !u!114 &1103706578
 MonoBehaviour:
   m_ObjectHideFlags: 0

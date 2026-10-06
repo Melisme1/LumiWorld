@@ -534,7 +534,15 @@ public class HexFilledGroundSpawner : MonoBehaviour
                 }
             }
 
-            return -minY - customGroundEmbed;
+            float embed = customGroundEmbed;
+            if (embed <= 0f)
+            {
+                HexPropConfig propConfig = prefab.GetComponent<HexPropConfig>();
+                if (propConfig == null) propConfig = prefab.GetComponentInChildren<HexPropConfig>();
+                if (propConfig != null) embed = propConfig.GroundEmbed;
+            }
+
+            return -minY - embed;
         }
 
         return -customGroundEmbed;

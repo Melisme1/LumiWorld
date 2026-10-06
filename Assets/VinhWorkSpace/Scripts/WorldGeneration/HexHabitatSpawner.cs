@@ -486,6 +486,7 @@ public class HexHabitatSpawner : MonoBehaviour
             Vector3 localMax = Vector3.Scale(b.max, prefab.transform.localScale);
             Quaternion rot = prefab.transform.localRotation;
             float minY = float.MaxValue;
+            float maxY = float.MinValue;
 
             for (int x = 0; x <= 1; x++)
             {
@@ -500,121 +501,44 @@ public class HexHabitatSpawner : MonoBehaviour
                         );
                         float rotY = (rot * corner).y;
                         if (rotY < minY) minY = rotY;
+                        if (rotY > maxY) maxY = rotY;
                     }
                 }
             }
 
-            float groundEmbed = 0.03f;
+            float totalHeight = Mathf.Max(0.01f, maxY - minY);
+            float groundEmbed = 0.02f;
+            float maxRatio = 0.25f;
 
+            // 1. Ưu tiên số 1: customEmbed do quy tắc riêng trong CardData ghi đè (nếu designer cố tình nhập > 0)
             if (customEmbed > 0f)
             {
                 groundEmbed = customEmbed;
             }
+            // 2. Ưu tiên số 2: Lấy trực tiếp từ component HexPropConfig gắn trên chính Prefab đó
             else
             {
-                string pName = prefab.name;
-                if (pName.IndexOf("MicroGrass", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                HexPropConfig propConfig = prefab.GetComponent<HexPropConfig>();
+                if (propConfig == null)
                 {
-                    // Mầm cỏ nhỏ MicroGrassTuft: cao 2.5cm, cắm sâu nhẹ 0.5cm
-                    groundEmbed = 0.005f;
+                    propConfig = prefab.GetComponentInChildren<HexPropConfig>();
                 }
-                else if (pName.IndexOf("GrassClump", System.StringComparison.OrdinalIgnoreCase) >= 0)
+
+                if (propConfig != null)
                 {
-                    // Bụi cỏ GrassClump: cao 9cm, cắm sâu nhẹ 1.2cm
-                    groundEmbed = 0.012f;
+                    groundEmbed = propConfig.GroundEmbed;
+                    maxRatio = propConfig.MaxEmbedHeightRatio;
                 }
-                else if (pName.IndexOf("Micro", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                else
                 {
-                    // Khóm cỏ / gò rêu / sỏi micro: cắm sâu nhẹ 2cm vào mặt cỏ
-                    groundEmbed = 0.02f;
-                }
-                else if (pName.IndexOf("Prairie", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Bouquet", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Ranunculus", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    // Hoa dạng bó cành (PrairieFlowerPatch): cắm sâu 35cm xuống lòng cỏ để giấu sạch chân cành/gốc bó,
-                    // đồng thời hạ độ cao của hoa xuống ngang thảm cỏ, không bị cao quá khổ như cây
-                    groundEmbed = 0.35f;
-                }
-                else if (pName.IndexOf("Bellflower", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    // Hoa chuông cành dài: cắm sâu 28cm để giấu phần cuống dài, chỉ nhú phần hoa mềm mại
-                    groundEmbed = 0.28f;
-                }
-                else if (pName.IndexOf("Log", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.04f; // Khúc gỗ nhúng sâu 7cm vào mặt cỏ, tránh lơ lửng bụng tròn
-                }
-                else if (pName.IndexOf("Stump", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.01f; // Gốc cây nhúng sâu 6cm để chân rễ bạnh tiếp xúc vững chãi với mặt đất
-                }
-                else if (pName.IndexOf("Moss", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Clover", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Patch", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.03f; // Đệm rêu / thảm cỏ ba lá cắm sâu 4cm để chân đệm chìm êm vào nền cỏ
-                }
-                else if (pName.IndexOf("Toadstool", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Mushroom", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Fungi", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.04f; // Cụm nấm cắm sâu 4.5cm để giấu sạch cụm đất gốc, thân nấm mọc tự nhiên
-                }
-                else if (pName.IndexOf("Boulder", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Rock", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Stone", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.065f; // Tảng đá / tảng rêu chìm 6.5cm vào lòng đất
-                }
-                else if (pName.IndexOf("Willow", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    // Cây liễu có chân rễ nhện dài: cắm sâu 24cm để chân rễ chìm hẳn xuống đất, thân tiếp xúc trực tiếp mặt cỏ
-                    groundEmbed = 0.24f;
-                }
-                else if (pName.IndexOf("Arch", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    // Cây đại thụ vòm rỗng: cắm sâu 22cm để hai chân vòm tiếp đất vững chãi
-                    groundEmbed = 0.22f;
-                }
-                else if (pName.IndexOf("Oak", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Beech", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    // Đại thụ tán sum suê: cắm sâu 18cm để chỉ gờ rễ bạnh nổi trên mặt cỏ, thân vững chãi
-                    groundEmbed = 0.18f;
-                }
-                else if (pName.IndexOf("Birch", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    // Bạch dương: cắm sâu 14cm để giấu chạc rễ
-                    groundEmbed = 0.14f;
-                }
-                else if (pName.IndexOf("Pine", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Cedar", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Tree", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    // Cây thân gỗ tổng quát: cắm sâu 16cm
-                    groundEmbed = 0.16f;
-                }
-                else if (pName.IndexOf("Lavender", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.08f; // Bụi oải hương cắm sâu 8cm để tán hoa ôm sát cỏ
-                }
-                else if (pName.IndexOf("Bush", System.StringComparison.OrdinalIgnoreCase) >= 0 )
-                {
-                    groundEmbed = 0.01f;
-                }
-                else if (pName.IndexOf("Scatter", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Pebble", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.035f;
-                }
-                else if (pName.IndexOf("Grass", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Reed", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         pName.IndexOf("Tussock", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    groundEmbed = 0.2f; // Bụi cỏ cắm sâu 15cm để giấu gốc thân, hạ độ cao hài hòa với mặt ô đất
+                    // 3. Fallback mặc định an toàn: Tự động tính 5% theo chiều cao mô hình (tối đa 5cm)
+                    // Hoàn toàn KHÔNG dùng so khớp chuỗi tên (string matching)!
+                    groundEmbed = Mathf.Clamp(totalHeight * 0.05f, 0.005f, 0.05f);
                 }
             }
+
+            // Trần an toàn: Không bao giờ cho phép chìm quá tỉ lệ tối đa của chiều cao prefab (mặc định 25%)
+            groundEmbed = Mathf.Min(groundEmbed, totalHeight * maxRatio);
 
             offset = -minY - groundEmbed;
         }

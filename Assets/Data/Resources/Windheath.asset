@@ -22,7 +22,11 @@ MonoBehaviour:
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
   clearPropsOnTransform: 1
-  occupiesTile: 1
+  occupiesTile: 0
+  animalSpeciesData: {fileID: 0}
+  producedResource: {fileID: 11400000, guid: e0fca13f9eec4df2880f62a38ab11d27, type: 2}
+  landResourceBonus: 0
+  biomeCycleDuration: 50
   transformRules: []
   habitatSpawnMargin: 0.9
   habitatProps:
