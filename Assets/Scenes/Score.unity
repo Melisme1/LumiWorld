@@ -526,18 +526,27 @@ MonoBehaviour:
   cardPrefab: {fileID: 3296435945646191664, guid: 90ea1562e9b96fa4c868961ac74e12d4, type: 3}
   cardContainer: {fileID: 116974594}
   cardsToSpawn:
-  - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
-  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
-  - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
   - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
   appearDelay: 0.1
   rearrangeDuration: 0.25
+  showRewardToast: 0
+  playRewardJuice: 1
+  toastOffset: {x: 0, y: 190}
+  showStartingHandSummary: 0
 --- !u!114 &559860370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -551,7 +560,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.53333336}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -703,6 +712,55 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &659314884
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 659314885}
+  - component: {fileID: 659314886}
+  m_Layer: 0
+  m_Name: ScorePopupManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &659314885
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659314884}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 705668952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &659314886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659314884}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1253abbffdcb718498aae689a847479a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScorePopupManager
+  spritePlus1: {fileID: -1219050701, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
+  spritePlus2: {fileID: 221530739, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
+  spritePlus10: {fileID: 1509225936, guid: b5741dbea23cdb948a3ac90826da678f, type: 3}
+  spawnHeightOffset: 1
+  popupScale: 0.6
 --- !u!1 &691234270
 GameObject:
   m_ObjectHideFlags: 0
@@ -733,6 +791,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   currentScore: 0
+  rewardMilestones:
+  - scoreThreshold: 10
+    rewardCards:
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+    - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
+    - {fileID: 11400000, guid: f8d5bdbabb659934c8eb2b68fe7fdbf2, type: 2}
+  - scoreThreshold: 15
+    rewardCards:
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - scoreThreshold: 15
+    rewardCards: []
 --- !u!4 &691234272
 Transform:
   m_ObjectHideFlags: 0
@@ -780,6 +859,8 @@ Transform:
   - {fileID: 691234272}
   - {fileID: 23126006}
   - {fileID: 1973094267}
+  - {fileID: 659314885}
+  - {fileID: 1894769449}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &832299766
@@ -819,6 +900,7 @@ MonoBehaviour:
   maxRadius: 2
   stepHeight: 0
   noiseScale: 0.15
+  spawnOffsetY: -0.5
 --- !u!4 &832299768
 Transform:
   m_ObjectHideFlags: 0
@@ -1142,6 +1224,10 @@ MonoBehaviour:
   minHeight: 5
   maxHeight: 40
   smoothTime: 8
+  autoSetupStartingView: 1
+  startingEulerAngles: {x: 50, y: -30, z: 0}
+  startingDistance: 14
+  lookAtCenter: {x: 0, y: 0, z: 0}
 --- !u!1 &1357980047
 GameObject:
   m_ObjectHideFlags: 0
@@ -1463,6 +1549,54 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1801624230}
   m_CullTransparentMesh: 1
+--- !u!1 &1894769447
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1894769449}
+  - component: {fileID: 1894769448}
+  m_Layer: 0
+  m_Name: CardRewardJuice
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1894769448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1894769447}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3678221ded9607d44916a2688ecfc9ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardRewardJuice
+  useCustomClip: 0
+  cardRewardClip: {fileID: 0}
+  soundVolume: 0.5
+  audioSource: {fileID: 0}
+--- !u!4 &1894769449
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1894769447}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -518.98, y: -91.63, z: -10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 705668952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1896951812
 GameObject:
   m_ObjectHideFlags: 0

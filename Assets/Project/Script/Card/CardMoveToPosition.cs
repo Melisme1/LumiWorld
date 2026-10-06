@@ -21,6 +21,13 @@ public class CardMoveToPosition : MonoBehaviour
         if (moveCoroutine != null)
         {
             StopCoroutine(moveCoroutine);
+            moveCoroutine = null;
+        }
+
+        if (duration <= 0f)
+        {
+            rectTransform.anchoredPosition = targetPosition;
+            return;
         }
 
         moveCoroutine =
@@ -30,6 +37,19 @@ public class CardMoveToPosition : MonoBehaviour
                     duration
                 )
             );
+    }
+
+    /// <summary>
+    /// Hủy animation dời chỗ đang chạy để nhường quyền điều khiển vị trí
+    /// cho hệ thống khác (appear / return / rearrange).
+    /// </summary>
+    public void Stop()
+    {
+        if (moveCoroutine != null)
+        {
+            StopCoroutine(moveCoroutine);
+            moveCoroutine = null;
+        }
     }
 
     private IEnumerator MoveAnimation(

@@ -9,6 +9,9 @@ public class ScoreCalculator : MonoBehaviour
     [SerializeField] private int groupRequired = 3;
     [SerializeField] private int groupMultiplier = 2;
 
+    public int GroupRequired => groupRequired;
+    public int GroupMultiplier => groupMultiplier;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -30,7 +33,7 @@ public class ScoreCalculator : MonoBehaviour
 
         PlacedCard[] allCards =
             FindObjectsByType<PlacedCard>(
-                FindObjectsSortMode.None
+                FindObjectsInactive.Exclude
             );
 
         HashSet<PlacedCard> processed =
@@ -65,9 +68,18 @@ public class ScoreCalculator : MonoBehaviour
             {
                 foreach (PlacedCard groupCard in group)
                 {
-                    totalScore +=
-                        groupCard.cardData.baseScore
-                        * groupMultiplier;
+                    // Card đánh dấu alwaysBaseScore (Rain) luôn chỉ cộng baseScore, không nhân hệ số nhóm
+                    if (groupCard.cardData.alwaysBaseScore)
+                    {
+                        totalScore +=
+                            groupCard.cardData.baseScore;
+                    }
+                    else
+                    {
+                        totalScore +=
+                            groupCard.cardData.baseScore
+                            * groupMultiplier;
+                    }
                 }
             }
             else

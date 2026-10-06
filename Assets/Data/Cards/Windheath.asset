@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
+  m_Name: Windheath
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardID: windheath_001
+  cardName: Windheath
+  cardImage: {fileID: -1485477234, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardType: 1
+  baseScore: 1
+  alwaysBaseScore: 0
+  prefabToPlace: {fileID: 0}
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 0
+  clearPropsOnTransform: 1
+  occupiesTile: 1
+  transformRules: []
+  habitatSpawnMargin: 0.9
+  habitatProps:
+  - groupName: Floor Highland Boulder Anchor
+    prefabs:
+    - {fileID: 349442941351498450, guid: 8816255af19bb474d95379476507ca46, type: 3}
+    clusterAsPatch: 0
+    countRange: {x: 1, y: 2}
+    propsPerClusterRange: {x: 0, y: 0}
+    clusterRadius: 0.25
+    minDistance: 0.45
+    scaleRange: {x: 0.95, y: 1.25}
+    maxTiltAngle: 1.5
+    customGroundEmbed: 0.02
+    placeAtCenter: 0
+  - groupName: The Solitary Windswept Sentinel
+    prefabs:
+    - {fileID: 4164058881040370493, guid: 97410ef8b30a5fd4fbf42999ec23bcc0, type: 3}
+    - {fileID: 1767401183566329671, guid: 2215a524d6ecc4340bbf043fa2569fb1, type: 3}
+    clusterAsPatch: 0
+    countRange: {x: 1, y: 2}
+    propsPerClusterRange: {x: 0, y: 0}
+    clusterRadius: 0.25
+    minDistance: 0.48
+    scaleRange: {x: 0.95, y: 1.2}
+    maxTiltAngle: 3.5
+    customGroundEmbed: 0
+    placeAtCenter: 0
+  - groupName: Heather Carpet Colony
+    prefabs:
+    - {fileID: 8961250465676783812, guid: c737dab75eaa72b489e7f9b13536b29f, type: 3}
+    clusterAsPatch: 1
+    countRange: {x: 2, y: 4}
+    propsPerClusterRange: {x: 2, y: 4}
+    clusterRadius: 0.28
+    minDistance: 0.22
+    scaleRange: {x: 0.85, y: 1.15}
+    maxTiltAngle: 2.5
+    customGroundEmbed: 0
+    placeAtCenter: 0
+  - groupName: Tussock Wind-Drift
+    prefabs:
+    - {fileID: 3732195332727685260, guid: b170701159a146a49aca0c3bdb3c3542, type: 3}
+    clusterAsPatch: 1
+    countRange: {x: 5, y: 8}
+    propsPerClusterRange: {x: 3, y: 5}
+    clusterRadius: 0.2
+    minDistance: 0.18
+    scaleRange: {x: 0.75, y: 1.05}
+    maxTiltAngle: 4
+    customGroundEmbed: 0.2
+    placeAtCenter: 0
+  allowedTilePrefabs:
+  - {fileID: 919132149155446097, guid: 0795a2526526372479924cb9c799dcb2, type: 3}
