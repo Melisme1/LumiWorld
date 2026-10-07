@@ -13,6 +13,18 @@ PrefabInstance:
       value: chuongchuong_anm
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -85,3 +97,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
+  animalID: 
+  biome: 0
+  isAquatic: 0
+  moveAnimName: Walk
+  idleAnimName: Idle
+  mountainTileTag: MountainTile
+  forestTileTag: ForestTile
+  flowerTileTag: FlowerTile
+  waterTileTag: WaterTile
+  moveSpeed: 0.75
+  innerHexRadius: 0.48
+  stayInCurrentHexChance: 0.7
+  circleRadius: 0.45
+  connectionDuration: 20
+  yOffset: 0.05
+  currentState: 0
+  groupPartners: []

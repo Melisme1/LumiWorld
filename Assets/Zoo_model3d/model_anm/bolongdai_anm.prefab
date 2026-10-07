@@ -413,7 +413,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7756772649778174663}
@@ -450,6 +450,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
+  animalID: 
+  biome: 0
+  isAquatic: 0
+  moveAnimName: Walk
+  idleAnimName: Idle
+  mountainTileTag: MountainTile
+  forestTileTag: ForestTile
+  flowerTileTag: FlowerTile
+  waterTileTag: WaterTile
+  moveSpeed: 0.75
+  innerHexRadius: 0.48
+  stayInCurrentHexChance: 0.7
+  circleRadius: 0.45
+  connectionDuration: 20
+  yOffset: 0.05
+  currentState: 0
+  groupPartners: []
 --- !u!1 &3918073037933169877
 GameObject:
   m_ObjectHideFlags: 0

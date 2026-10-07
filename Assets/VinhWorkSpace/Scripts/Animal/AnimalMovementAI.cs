@@ -132,11 +132,12 @@ public class AnimalMovementAI : MonoBehaviour
             Debug.LogWarning($"[AnimalMovementAI] Không tìm thấy component Animation trên {gameObject.name}");
         }
 
-        // Tự động vô hiệu hóa FarmAnimalAI cũ nếu còn tồn tại trên prefab để tránh xung đột animation
-        FarmAnimalAI oldFarmAI = GetComponent<FarmAnimalAI>();
-        if (oldFarmAI != null)
+        // Nếu có FarmAnimalAI đang được sử dụng trên cùng đối tượng, nhường toàn quyền điều khiển cho FarmAnimalAI
+        FarmAnimalAI farmAI = GetComponent<FarmAnimalAI>();
+        if (farmAI != null && farmAI.enabled)
         {
-            oldFarmAI.enabled = false;
+            this.enabled = false;
+            return;
         }
     }
 
