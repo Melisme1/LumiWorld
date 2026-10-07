@@ -91,6 +91,10 @@ public class CardDeskController : MonoBehaviour
 
         uniqueCards.Sort(CompareCardData);
 
+        // Dọn bảng tra cứu để lần spawn lại (nếu có) không giữ slot cũ đã hủy.
+        slotByCardID.Clear();
+        cards.Clear();
+
         int cardCount =
             uniqueCards.Count;
 
@@ -138,6 +142,15 @@ public class CardDeskController : MonoBehaviour
             }
 
             slotByCardID[GetCardKey(uniqueCards[i])] = card;
+
+            // -------------------------
+            // HIERARCHY ORDER
+            // -------------------------
+
+            // Đặt sibling index theo đúng thứ tự đã sort. Nếu bỏ bước này, thứ tự
+            // render do thứ tự tạo object quyết định, lệch với thứ tự mà
+            // RearrangeCards() dùng về sau -> hand nhảy vị trí sau lần đặt bài đầu tiên.
+            card.transform.SetSiblingIndex(i);
 
             // -------------------------
             // POSITION
@@ -338,6 +351,10 @@ public class CardDeskController : MonoBehaviour
         {
             SortCardsByTypeAndName();
         }
+
+        // Dọn các slot đã bị hủy (Destroy là deferred) để không tính vị trí cho
+        // object null giữa chuỗi, gây hở khoảng trên hand.
+        cards.RemoveAll(card => card == null);
 
         int cardCount =
             cards.Count;
