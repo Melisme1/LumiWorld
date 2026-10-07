@@ -798,6 +798,7 @@ GameObject:
   - component: {fileID: 330043109}
   - component: {fileID: 330043108}
   - component: {fileID: 330043107}
+  - component: {fileID: 330043110}
   m_Layer: 5
   m_Name: Quit
   m_TagString: Untagged
@@ -919,6 +920,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330043105}
   m_CullTransparentMesh: 1
+--- !u!114 &330043110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330043105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 322303d5937d3744184d8e4d71eb1f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MenuButtonEffect
+  hoverScale: 1.06
+  hoverOffsetY: 8
+  hoverBrightness: 1.08
+  pressScale: 0.95
+  pressOffsetY: -6
+  pressBrightness: 0.9
+  animationSpeed: 14
+  hoverOnSelect: 1
 --- !u!1 &429149210
 GameObject:
   m_ObjectHideFlags: 0
@@ -1089,6 +1110,7 @@ GameObject:
   - component: {fileID: 642901575}
   - component: {fileID: 642901574}
   - component: {fileID: 642901573}
+  - component: {fileID: 642901576}
   m_Layer: 5
   m_Name: BackMenu
   m_TagString: Untagged
@@ -1210,6 +1232,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 642901571}
   m_CullTransparentMesh: 1
+--- !u!114 &642901576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 642901571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 322303d5937d3744184d8e4d71eb1f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MenuButtonEffect
+  hoverScale: 1.06
+  hoverOffsetY: 8
+  hoverBrightness: 1.08
+  pressScale: 0.95
+  pressOffsetY: -6
+  pressBrightness: 0.9
+  animationSpeed: 14
+  hoverOnSelect: 1
 --- !u!1 &653971386
 GameObject:
   m_ObjectHideFlags: 0
@@ -2024,6 +2066,7 @@ GameObject:
   - component: {fileID: 1484110920}
   - component: {fileID: 1484110919}
   - component: {fileID: 1484110918}
+  - component: {fileID: 1484110921}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -2145,6 +2188,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1484110916}
   m_CullTransparentMesh: 1
+--- !u!114 &1484110921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1484110916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 322303d5937d3744184d8e4d71eb1f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MenuButtonEffect
+  hoverScale: 1.06
+  hoverOffsetY: 8
+  hoverBrightness: 1.08
+  pressScale: 0.95
+  pressOffsetY: -6
+  pressBrightness: 0.9
+  animationSpeed: 14
+  hoverOnSelect: 1
 --- !u!1 &1534647980
 GameObject:
   m_ObjectHideFlags: 0

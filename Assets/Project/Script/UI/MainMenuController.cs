@@ -119,5 +119,17 @@ public class MainMenuController : MonoBehaviour
         bool hasSave = HasSaveData();
 
         continueButton.interactable = hasSave;
+
+        // Nếu nút đang bị hover lúc bị disable, đưa hiệu ứng về trạng thái nghỉ.
+        if (!hasSave)
+        {
+            MenuButtonEffect effect =
+                continueButton.GetComponent<MenuButtonEffect>();
+
+            if (effect != null)
+            {
+                effect.ResetVisual();
+            }
+        }
     }
 }
