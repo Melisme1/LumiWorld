@@ -7,6 +7,9 @@ public class ScoreRewardMilestone
 {
     [Min(0)] public int scoreThreshold;
     public List<CardData> rewardCards = new();
+
+    [Tooltip("Đạt mốc này có được thưởng thêm 1 lượt nhấn Create để mở rộng đất vào map không?")]
+    public bool grantLandExpansion = true;
 }
 
 public class ScoreManager : MonoBehaviour
@@ -24,9 +27,20 @@ public class ScoreManager : MonoBehaviour
     [Tooltip("Each milestone is granted once. The legacy Card Reward fields are used only when this list is empty.")]
     [SerializeField] private List<ScoreRewardMilestone> rewardMilestones = new();
 
+    [Header("Endless / Repeatable Rewards")]
+    [Tooltip("Khi vượt qua mốc điểm cao nhất trong danh sách, cứ sau mỗi bao nhiêu điểm sẽ tự động thưởng thêm 1 đợt bài?")]
+    [SerializeField] private int endlessInterval = 30;
+
+    [Tooltip("Thẻ Rain dùng để cấp định kỳ trong chế độ Endless")]
+    [SerializeField] private CardData endlessRainCard;
+
+    [Tooltip("Bể thẻ bài địa hình và sinh vật dùng để bốc ngẫu nhiên khi đạt mốc Endless")]
+    [SerializeField] private List<CardData> endlessRewardPool = new();
+
     public int CurrentScore => currentScore;
 
     private int nextRewardScore;
+    private int nextEndlessThreshold = -1;
     private readonly HashSet<int> grantedMilestoneIndices = new();
 
     private void Awake()
@@ -85,12 +99,17 @@ public class ScoreManager : MonoBehaviour
     private void CheckMilestoneRewards()
     {
         List<int> milestoneIndices = new();
+        int maxThreshold = 0;
 
         for (int i = 0; i < rewardMilestones.Count; i++)
         {
             if (rewardMilestones[i] != null)
             {
                 milestoneIndices.Add(i);
+                if (rewardMilestones[i].scoreThreshold > maxThreshold)
+                {
+                    maxThreshold = rewardMilestones[i].scoreThreshold;
+                }
             }
         }
 
@@ -110,15 +129,66 @@ public class ScoreManager : MonoBehaviour
                 continue;
             }
 
-            if (milestone.rewardCards == null)
+            if (milestone.rewardCards != null)
             {
-                continue;
+                foreach (CardData rewardCard in milestone.rewardCards)
+                {
+                    GiveCardReward(rewardCard, milestone.scoreThreshold);
+                }
             }
 
-            foreach (CardData rewardCard in milestone.rewardCards)
+            // Thưởng 1 lượt mở rộng đất (nhấn Create) nếu mốc này kích hoạt
+            if (milestone.grantLandExpansion && HexPlacementController.Instance != null)
             {
-                GiveCardReward(rewardCard, milestone.scoreThreshold);
+                HexPlacementController.Instance.AddExpansionCharge(1);
             }
+        }
+
+        // Kiểm tra phần thưởng Endless sau khi vượt qua mốc cao nhất
+        CheckEndlessRewards(maxThreshold);
+    }
+
+    private void CheckEndlessRewards(int maxThreshold)
+    {
+        if (maxThreshold <= 0 || endlessInterval <= 0)
+        {
+            return;
+        }
+
+        if (nextEndlessThreshold < 0)
+        {
+            nextEndlessThreshold = maxThreshold + endlessInterval;
+        }
+
+        while (currentScore >= nextEndlessThreshold)
+        {
+            // 1. Thưởng 2 thẻ Rain để luôn có nước mở rộng đất
+            if (endlessRainCard != null)
+            {
+                GiveCardReward(endlessRainCard, nextEndlessThreshold);
+                GiveCardReward(endlessRainCard, nextEndlessThreshold);
+            }
+
+            // 2. Thưởng 2 thẻ ngẫu nhiên từ bể Endless
+            if (endlessRewardPool != null && endlessRewardPool.Count > 0)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    CardData randomCard = endlessRewardPool[UnityEngine.Random.Range(0, endlessRewardPool.Count)];
+                    if (randomCard != null)
+                    {
+                        GiveCardReward(randomCard, nextEndlessThreshold);
+                    }
+                }
+            }
+
+            // 3. Thưởng 1 lượt mở rộng đất ở chế độ Endless
+            if (HexPlacementController.Instance != null)
+            {
+                HexPlacementController.Instance.AddExpansionCharge(1);
+            }
+
+            nextEndlessThreshold += endlessInterval;
         }
     }
 
@@ -165,6 +235,12 @@ public class ScoreManager : MonoBehaviour
             scorePerReward;
 
         grantedMilestoneIndices.Clear();
+        nextEndlessThreshold = -1;
+
+        if (HexPlacementController.Instance != null)
+        {
+            HexPlacementController.Instance.ResetExpansionCharges();
+        }
 
         UpdateUI();
     }

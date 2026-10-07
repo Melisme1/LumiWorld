@@ -176,9 +176,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Create
-
-'
+  m_text: Create (Locked)
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -592,7 +590,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 455622690}
   m_OnClick:
     m_PersistentCalls:
@@ -997,6 +995,18 @@ MonoBehaviour:
   clusterRadius: 2
   stepHeight: 0
   smoothSpeed: 25
+  availableExpansionCharges: 0
+  createLandButton: {fileID: 455622689}
+  createLandButtonText: {fileID: 74655635}
+  readyTextFormat: Create ({0})
+  lockedText: Create (Locked)
+  landPlacementRewardCards:
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
 --- !u!4 &1038811525
 Transform:
   m_ObjectHideFlags: 0
@@ -1025,7 +1035,7 @@ GameObject:
   - component: {fileID: 1103706578}
   - component: {fileID: 1103706577}
   m_Layer: 5
-  m_Name: CardDesk
+  m_Name: CardDeck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1066,47 +1076,20 @@ MonoBehaviour:
   cardPrefab: {fileID: 3296435945646191664, guid: 90ea1562e9b96fa4c868961ac74e12d4, type: 3}
   cardContainer: {fileID: 780073132}
   cardsToSpawn:
-  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
   - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
@@ -1781,7 +1764,169 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   currentScore: 0
-  rewardMilestones: []
+  rewardMilestones:
+  - scoreThreshold: 3
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 6
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 10
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 15
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 21
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 28
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000008, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 36
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000010, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 45
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 55
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000005, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 66
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000016, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 78
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 91
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 105
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 120
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 136
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 153
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 171
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 190
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 210
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 235
+    rewardCards:
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
+    grantLandExpansion: 1
+  endlessInterval: 30
+  endlessRainCard: {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  endlessRewardPool:
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000008, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
 --- !u!1 &1896951812
 GameObject:
   m_ObjectHideFlags: 0

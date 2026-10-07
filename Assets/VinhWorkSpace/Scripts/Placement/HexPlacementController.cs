@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using TMPro;
 
 public class HexPlacementController : MonoBehaviour
 {
@@ -47,8 +49,32 @@ public class HexPlacementController : MonoBehaviour
     private float lastScrollRotateTime = 0f;
     private const float ScrollCooldown = 0.10f;
 
+    public static HexPlacementController Instance { get; private set; }
+
+    [Header("Mở rộng bản đồ theo Milestone (Land Expansion)")]
+    [Tooltip("Số lượt mở rộng đất hiện có (được cấp khi đạt mốc điểm trong ScoreManager)")]
+    [SerializeField] private int availableExpansionCharges = 0;
+    [SerializeField] private UnityEngine.UI.Button createLandButton;
+    [SerializeField] private TMPro.TextMeshProUGUI createLandButtonText;
+    [SerializeField] private string readyTextFormat = "Create ({0})";
+    [SerializeField] private string lockedText = "Create (Locked)";
+
+    [Header("Gói Khai Hoang Khi Đặt Đất Mới (Land Expansion Kit)")]
+    [Tooltip("Danh sách thẻ bài được tặng ngay vào tay mỗi khi đặt thành công một mảng đất mới để có bài phủ xanh ngay")]
+    [SerializeField] private List<CardData> landPlacementRewardCards = new();
+
+    public int AvailableExpansionCharges => availableExpansionCharges;
+
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
         if (mainCamera == null)
         {
             mainCamera = Camera.main;
@@ -59,6 +85,59 @@ public class HexPlacementController : MonoBehaviour
     {
         // Tâm của hòn đảo khởi đầu mặc định là (0, 0)
         placedClusterCenters.Add(new HexCoordinates(0, 0));
+
+        // Tự động tìm Button trên Canvas nếu chưa gán trong Inspector
+        if (createLandButton == null)
+        {
+            var buttonObj = GameObject.Find("Canvas/Button");
+            if (buttonObj != null)
+            {
+                createLandButton = buttonObj.GetComponent<UnityEngine.UI.Button>();
+            }
+        }
+
+        if (createLandButtonText == null && createLandButton != null)
+        {
+            createLandButtonText = createLandButton.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+        }
+
+        UpdateCreateButtonState();
+    }
+
+    /// <summary>
+    /// Thêm số lượt mở rộng đất (được gọi từ ScoreManager khi đạt mốc Milestone)
+    /// </summary>
+    public void AddExpansionCharge(int amount = 1)
+    {
+        availableExpansionCharges += Mathf.Max(0, amount);
+        UpdateCreateButtonState();
+    }
+
+    /// <summary>
+    /// Đặt lại lượt mở rộng đất về 0 (khi chơi lại màn mới)
+    /// </summary>
+    public void ResetExpansionCharges()
+    {
+        availableExpansionCharges = 0;
+        UpdateCreateButtonState();
+    }
+
+    /// <summary>
+    /// Cập nhật trạng thái tương tác và văn bản hiển thị trên nút Create
+    /// </summary>
+    public void UpdateCreateButtonState()
+    {
+        if (createLandButton != null)
+        {
+            createLandButton.interactable = (availableExpansionCharges > 0);
+        }
+
+        if (createLandButtonText != null)
+        {
+            createLandButtonText.text = availableExpansionCharges > 0
+                ? string.Format(readyTextFormat, availableExpansionCharges)
+                : lockedText;
+        }
     }
 
     private void Update()
@@ -82,6 +161,20 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     public void StartPlacement(HexClusterData clusterData)
     {
+        // Nếu đang trong chế độ đặt, nhấn nút lần nữa sẽ hủy (toggle tiện lợi)
+        if (isInPlacementMode)
+        {
+            CancelPlacement();
+            return;
+        }
+
+        // Bắt buộc phải có lượt mở rộng đất (tích lũy từ Milestone)
+        if (availableExpansionCharges <= 0)
+        {
+            Debug.LogWarning("HexPlacementController: Bạn chưa có lượt mở rộng đất! Hãy tích lũy điểm để đạt mốc Milestone.");
+            return;
+        }
+
         // Tự động lấy prefabs và stepHeight từ WorldGenerator nếu chưa gán
         if ((terrainPrefabs == null || terrainPrefabs.Length == 0) && worldGenerator != null)
         {
@@ -372,6 +465,22 @@ public class HexPlacementController : MonoBehaviour
 
         // Ghi nhận tâm vùng mới vào danh sách Super-Hex
         placedClusterCenters.Add(currentHoverHex);
+
+        // Tiêu hao 1 lượt mở rộng đất và khóa lại nếu hết lượt
+        availableExpansionCharges = Mathf.Max(0, availableExpansionCharges - 1);
+        UpdateCreateButtonState();
+
+        // Tặng ngay gói thẻ bài khai hoang vào tay để có bài phủ xanh mảng đất mới
+        if (landPlacementRewardCards != null && landPlacementRewardCards.Count > 0 && CardDeskController.Instance != null)
+        {
+            foreach (var card in landPlacementRewardCards)
+            {
+                if (card != null)
+                {
+                    CardDeskController.Instance.AddRewardCard(card);
+                }
+            }
+        }
 
         // Kết thúc lượt đặt hiện tại
         CancelPlacement();
