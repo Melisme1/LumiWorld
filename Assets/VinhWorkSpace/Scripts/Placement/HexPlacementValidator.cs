@@ -23,11 +23,6 @@ public class HexPlacementValidator : MonoBehaviour
             return false;
         }
 
-<<<<<<< HEAD
-        if (IsTileOccupied(tileObj))
-        {
-            return false;
-=======
         // 1. Phân biệt theo loại thẻ:
         if (cardData != null && cardData.cardType == CardType.Creature)
         {
@@ -65,7 +60,6 @@ public class HexPlacementValidator : MonoBehaviour
             {
                 return false;
             }
->>>>>>> origin/AnKhang_zoo_connection
         }
 
         // Không cho phép đặt thêm thẻ biến đổi địa hình (như Rain) nếu ô này đã có thẻ biến đổi địa hình từ trước
@@ -138,8 +132,6 @@ public class HexPlacementValidator : MonoBehaviour
 
         return false;
     }
-<<<<<<< HEAD
-=======
 
     /// <summary>
     /// Kiểm tra xem ô lục giác đã có sinh vật (Creature) nào sinh sống chưa
@@ -198,5 +190,4 @@ public class HexPlacementValidator : MonoBehaviour
     {
         return HasPlacedTerrain(tileObj);
     }
->>>>>>> origin/AnKhang_zoo_connection
 }

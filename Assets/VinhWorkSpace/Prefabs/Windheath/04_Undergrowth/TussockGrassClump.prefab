@@ -28,11 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-<<<<<<< HEAD
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
-=======
   m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
->>>>>>> origin/AnKhang_zoo_connection
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}

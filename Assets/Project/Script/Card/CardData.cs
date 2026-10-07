@@ -45,8 +45,6 @@ public class CardData : ScriptableObject
     [Tooltip("Nếu tích chọn (mặc định), đặt lá bài này sẽ CHIẾM ô: các card khác không đặt lên được nữa. Bỏ tích với card biến đổi địa hình như Rain để khối sau biến đổi vẫn trống, cho phép đặt card khác (ví dụ Forest) lên.")]
     public bool occupiesTile = true;
 
-<<<<<<< HEAD
-=======
     [Header("Animal Integration (For Creature Cards)")]
     [Tooltip("Dữ liệu thông số loài động vật nếu lá bài này là Creature (để sinh ra cá thể 1★-5★ với Trait riêng)")]
     public AnimalSpeciesData animalSpeciesData;
@@ -61,7 +59,6 @@ public class CardData : ScriptableObject
     [Tooltip("Thời gian chu kỳ sản xuất của một mẻ thu hoạch trên vùng đất này (giây). Mặc định: 30s")]
     public float biomeCycleDuration = 30f;
 
->>>>>>> origin/AnKhang_zoo_connection
     [Header("Tile Transformation Mapping (For Special Cards / Rain)")]
     [Tooltip("Danh sách các cặp biến đổi từ đất khô (Arid) sang đất tươi tốt (Lush) khi lá bài này được sử dụng")]
     public List<TileTransformPair> transformRules = new List<TileTransformPair>();

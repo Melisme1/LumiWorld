@@ -22,15 +22,11 @@ MonoBehaviour:
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
   clearPropsOnTransform: 1
-<<<<<<< HEAD
-  occupiesTile: 1
-=======
   occupiesTile: 0
   animalSpeciesData: {fileID: 0}
   producedResource: {fileID: 11400000, guid: e0fca13f9eec4df2880f62a38ab11d27, type: 2}
   landResourceBonus: 0
   biomeCycleDuration: 50
->>>>>>> origin/AnKhang_zoo_connection
   transformRules: []
   habitatSpawnMargin: 0.9
   habitatProps:
@@ -63,13 +59,8 @@ MonoBehaviour:
     prefabs:
     - {fileID: 8961250465676783812, guid: c737dab75eaa72b489e7f9b13536b29f, type: 3}
     clusterAsPatch: 1
-<<<<<<< HEAD
-    countRange: {x: 2, y: 4}
-    propsPerClusterRange: {x: 2, y: 4}
-=======
     countRange: {x: 3, y: 5}
     propsPerClusterRange: {x: 3, y: 4}
->>>>>>> origin/AnKhang_zoo_connection
     clusterRadius: 0.28
     minDistance: 0.22
     scaleRange: {x: 0.85, y: 1.15}
@@ -80,13 +71,8 @@ MonoBehaviour:
     prefabs:
     - {fileID: 3732195332727685260, guid: b170701159a146a49aca0c3bdb3c3542, type: 3}
     clusterAsPatch: 1
-<<<<<<< HEAD
-    countRange: {x: 5, y: 8}
-    propsPerClusterRange: {x: 3, y: 5}
-=======
     countRange: {x: 5, y: 7}
     propsPerClusterRange: {x: 4, y: 6}
->>>>>>> origin/AnKhang_zoo_connection
     clusterRadius: 0.2
     minDistance: 0.18
     scaleRange: {x: 0.75, y: 1.05}

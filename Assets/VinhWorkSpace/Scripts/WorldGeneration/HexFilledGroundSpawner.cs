@@ -534,9 +534,6 @@ public class HexFilledGroundSpawner : MonoBehaviour
                 }
             }
 
-<<<<<<< HEAD
-            return -minY - customGroundEmbed;
-=======
             float embed = customGroundEmbed;
             if (embed <= 0f)
             {
@@ -546,7 +543,6 @@ public class HexFilledGroundSpawner : MonoBehaviour
             }
 
             return -minY - embed;
->>>>>>> origin/AnKhang_zoo_connection
         }
 
         return -customGroundEmbed;

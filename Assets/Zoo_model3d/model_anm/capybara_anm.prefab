@@ -14,11 +14,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 4219576994b4be04b8e002cc1abfa28e, type: 3}
       propertyPath: m_LocalPosition.x
-<<<<<<< HEAD
-      value: -0.536
-=======
       value: 0
->>>>>>> origin/AnKhang_zoo_connection
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 4219576994b4be04b8e002cc1abfa28e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -26,11 +22,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 4219576994b4be04b8e002cc1abfa28e, type: 3}
       propertyPath: m_LocalPosition.z
-<<<<<<< HEAD
-      value: 0.061
-=======
       value: 0
->>>>>>> origin/AnKhang_zoo_connection
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 4219576994b4be04b8e002cc1abfa28e, type: 3}
       propertyPath: m_LocalRotation.w

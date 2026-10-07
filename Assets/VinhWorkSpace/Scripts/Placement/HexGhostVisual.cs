@@ -34,11 +34,7 @@ public class HexGhostVisual : MonoBehaviour
     private GameObject hologramShellObj;
     private GameObject itemGhostInstance;
     private CardData activeCardData;
-<<<<<<< HEAD
-    private readonly List<MeshRenderer> cachedGhostRenderers = new List<MeshRenderer>();
-=======
     private readonly List<Renderer> cachedGhostRenderers = new List<Renderer>();
->>>>>>> origin/AnKhang_zoo_connection
     private MaterialPropertyBlock propBlock;
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
     private Coroutine snapPunchCoroutine;
@@ -71,11 +67,7 @@ public class HexGhostVisual : MonoBehaviour
             itemGhostInstance.name = "GhostItemPreview";
             itemGhostInstance.transform.localPosition = Vector3.zero;
 
-<<<<<<< HEAD
-            DisableColliders(itemGhostInstance);
-=======
             NeutralizeGhostInstance(itemGhostInstance);
->>>>>>> origin/AnKhang_zoo_connection
             ApplyGhostMaterial(itemGhostInstance);
         }
 
@@ -284,19 +276,6 @@ public class HexGhostVisual : MonoBehaviour
 
         for (int i = 0; i < cachedGhostRenderers.Count; i++)
         {
-<<<<<<< HEAD
-            var mr = cachedGhostRenderers[i];
-            if (mr == null) continue;
-            mr.GetPropertyBlock(propBlock);
-            propBlock.SetColor(ColorProperty, targetColor);
-            mr.SetPropertyBlock(propBlock);
-        }
-    }
-
-    private void DisableColliders(GameObject obj)
-    {
-        Collider[] colliders = obj.GetComponentsInChildren<Collider>();
-=======
             var r = cachedGhostRenderers[i];
             if (r == null) continue;
             r.GetPropertyBlock(propBlock);
@@ -315,13 +294,10 @@ public class HexGhostVisual : MonoBehaviour
 
         // 1. Tắt toàn bộ Collider để không bắt va chạm hoặc cản trở Raycast chuột
         Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
->>>>>>> origin/AnKhang_zoo_connection
         foreach (var col in colliders)
         {
             col.enabled = false;
         }
-<<<<<<< HEAD
-=======
 
         // 2. Tắt toàn bộ Animator để mô hình đứng yên hoàn toàn (bind/idle pose tĩnh)
         Animator[] animators = obj.GetComponentsInChildren<Animator>(true);
@@ -360,25 +336,17 @@ public class HexGhostVisual : MonoBehaviour
         {
             a.enabled = false;
         }
->>>>>>> origin/AnKhang_zoo_connection
     }
 
     private void ApplyGhostMaterial(GameObject obj)
     {
         if (ghostMaterial == null) return;
 
-<<<<<<< HEAD
-        MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>();
-        foreach (var mr in renderers)
-        {
-            mr.sharedMaterial = ghostMaterial;
-=======
         // Áp dụng cho cả MeshRenderer và SkinnedMeshRenderer (đối với mô hình thú)
         Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
         foreach (var r in renderers)
         {
             r.sharedMaterial = ghostMaterial;
->>>>>>> origin/AnKhang_zoo_connection
         }
     }
 

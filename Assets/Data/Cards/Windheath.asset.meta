@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Data/Cards/Windheath.asset.meta
-guid: 87faf1d7c23602e47bd19b55edc61d75
+<<<<<<<< HEAD:Assets/Data/Resources/Herb.asset.meta
+guid: e0fca13f9eec4df2880f62a38ab11d27
 ========
-guid: 1787b00caf6b1de4db40a75e370b396d
->>>>>>>> origin/AnKhang_zoo_connection:Assets/Data/Cards/Cow.asset.meta
+guid: 87faf1d7c23602e47bd19b55edc61d75
+>>>>>>>> origin/AnKhang_zoo_connection:Assets/Data/Cards/Windheath.asset.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

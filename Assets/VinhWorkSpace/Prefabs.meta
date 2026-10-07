@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/VinhWorkSpace/Prefabs.meta
 guid: 93a1bcb65a35ae540ab06f4da53c4d32
+========
+guid: e2403877f3941f14993ae7b3b52debf6
+>>>>>>>> origin/AnKhang_zoo_connection:Assets/Data/Species.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

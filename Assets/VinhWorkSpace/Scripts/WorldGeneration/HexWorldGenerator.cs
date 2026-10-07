@@ -23,8 +23,6 @@ public class HexWorldGenerator : MonoBehaviour
     [Tooltip("Độ cao cơ sở khi spawn (để chân khối lục giác chìm xuống dưới mặt nước, tránh lơ lửng). Mặc định -0.5f")]
     [SerializeField] private float spawnOffsetY = -0.5f;
 
-<<<<<<< HEAD
-=======
     [Header("Tỷ lệ phân bố tầng địa hình (Noise Thresholds)")]
     [Tooltip("Ngưỡng phân cách Tầng thấp (Dưới ngưỡng này = Tầng thấp / Bloomfield). Giữ vừa phải (~25-28%), không quá nhiều. Mặc định 0.38")]
     [Range(0.2f, 0.6f)]
@@ -34,16 +32,12 @@ public class HexWorldGenerator : MonoBehaviour
     [Range(0.5f, 0.85f)]
     [SerializeField] private float midTierThreshold = 0.63f;
 
->>>>>>> origin/AnKhang_zoo_connection
     public float StepHeight => stepHeight;
     public GameObject[] TerrainPrefabs => terrainPrefabs;
     public float NoiseScale => noiseScale;
     public float SpawnOffsetY => spawnOffsetY;
-<<<<<<< HEAD
-=======
     public float LowTierThreshold => lowTierThreshold;
     public float MidTierThreshold => midTierThreshold;
->>>>>>> origin/AnKhang_zoo_connection
 
     private float seedX;
     private float seedZ;

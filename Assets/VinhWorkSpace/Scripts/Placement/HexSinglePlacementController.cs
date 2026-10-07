@@ -314,8 +314,6 @@ public class HexSinglePlacementController : MonoBehaviour
                     tileInfo.isOccupied = true;
                 }
 
-<<<<<<< HEAD
-=======
                 // Khởi tạo thông số cá thể cho động vật (Rank 1★-5★, Trait, Tốc độ, Tài nguyên)
                 if (cardData.cardType == CardType.Creature || cardData.animalSpeciesData != null)
                 {
@@ -330,7 +328,6 @@ public class HexSinglePlacementController : MonoBehaviour
                     }
                 }
 
->>>>>>> origin/AnKhang_zoo_connection
                 StartCoroutine(AnimatePopIn(placedObject.transform));
             }
             else
@@ -362,15 +359,12 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 HexBiomeClusterConnector.Instance.ConnectCluster(placedCardInstance);
             }
-<<<<<<< HEAD
-=======
 
             // Cập nhật hệ thống cụm thu hoạch tài nguyên Biome
             if (BiomeHarvestManager.Instance != null)
             {
                 BiomeHarvestManager.Instance.OnWorldChanged();
             }
->>>>>>> origin/AnKhang_zoo_connection
         }
 
         CancelPreview();

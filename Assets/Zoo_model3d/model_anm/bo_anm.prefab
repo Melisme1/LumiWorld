@@ -13,10 +13,6 @@ PrefabInstance:
       value: bo_anm
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
-<<<<<<< HEAD
-      propertyPath: m_LocalPosition.x
-      value: -0.99174
-=======
       propertyPath: m_LocalScale.x
       value: 0.55
       objectReference: {fileID: 0}
@@ -31,7 +27,6 @@ PrefabInstance:
     - target: {fileID: -6601043233671942095, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
->>>>>>> origin/AnKhang_zoo_connection
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       propertyPath: m_LocalPosition.y
@@ -39,11 +34,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       propertyPath: m_LocalPosition.z
-<<<<<<< HEAD
-      value: -1.24077
-=======
       value: 0
->>>>>>> origin/AnKhang_zoo_connection
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -73,13 +64,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-<<<<<<< HEAD
-=======
     - target: {fileID: -6601043233671942095, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
->>>>>>> origin/AnKhang_zoo_connection
     - target: {fileID: 8554863620008749381, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       propertyPath: m_Animations.Array.size
       value: 7
@@ -119,15 +107,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 399096769720528524}
-<<<<<<< HEAD
-=======
     - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       insertIndex: -1
       addedObject: {fileID: -222398870047408106}
     - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7497650199662753615}
->>>>>>> origin/AnKhang_zoo_connection
   m_SourcePrefab: {fileID: 3150474306388093854, guid: 609bb1d6f3367cf4da94ff4025f196a3, type: 3}
 --- !u!1 &1761298697924844187 stripped
 GameObject:
@@ -146,8 +131,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
-<<<<<<< HEAD
-=======
 --- !u!114 &-222398870047408106
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,4 +188,3 @@ MonoBehaviour:
   rimColor: {r: 1, g: 0.92, b: 0.7, a: 1}
   rimPower: 2.2
   rimIntensity: 0.5
->>>>>>> origin/AnKhang_zoo_connection
