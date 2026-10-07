@@ -17,12 +17,12 @@ MonoBehaviour:
   description: "Lo\xE0i chim quý ph\xE1i v\u1EDBi b\u1ED9 l\xF4ng r\u1EF1c r\u1EE1
     ng\u1EF1 tr\u1ECB tr\xEAn \u0111\u1EC9nh n\xFAi, mang l\u1EA1i ph\xFAc kh\xED
     v\xE0 t\xE0i l\u1ED9c d\u1ED3i d\xE0o."
-  locomotionType: 1
+  locomotionType: 0
   baseWalkSpeed: 0.45
   baseRunSpeed: 0.9
   flightAltitude: 1.25
   personalRadius: 0.42
-  yOffset: 0.35
+  yOffset: 0
   baseResourceAmount: 2
   baseProductionInterval: 28
   weight1Star: 45

@@ -155,16 +155,23 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     public void SetLocomotion(AnimalLocomotionType type, float altitude)
     {
+        // KIỂM TRA ĐIỀU KIỆN BAY: Chỉ loài nào có animation "Flap" (đập cánh) mới được phép bay!
+        // Con nào không có animation này thì bắt buộc phải di chuyển trên mặt đất bình thường (Ground).
+        if (type == AnimalLocomotionType.Flying && !HasFlapAnimation())
+        {
+            type = AnimalLocomotionType.Ground;
+        }
+
         this.locomotionType = type;
         this.autoDetectFlying = false; // Khi đã được chỉ định (từ SpeciesData / Individual), KHÔNG được tự động biến thành sinh vật bay
         this.isLocomotionExplicitlyConfigured = true;
 
-        if (altitude > 0.1f)
-        {
-            this.flightAltitude = altitude;
-        }
         if (locomotionType == AnimalLocomotionType.Flying)
         {
+            if (altitude > 0.1f)
+            {
+                this.flightAltitude = altitude;
+            }
             this.isAirborne = true;
             this.targetAltitudeOffset = this.flightAltitude;
             this.currentAltitudeOffset = this.flightAltitude;
@@ -243,6 +250,12 @@ public class AnimalMovementAI : MonoBehaviour
 
         // Phân loại các animation clip có sẵn trong model (tự động phát hiện sinh vật bay)
         ClassifyAvailableAnimations();
+
+        // Bắt buộc: nếu không có clip "Flap" (đập cánh) thì phải di chuyển trên mặt đất bình thường
+        if (locomotionType == AnimalLocomotionType.Flying && !HasFlapAnimation())
+        {
+            locomotionType = AnimalLocomotionType.Ground;
+        }
 
         // Khởi tạo trạng thái bay hoặc đi bộ
         if (locomotionType == AnimalLocomotionType.Flying)
@@ -1426,27 +1439,23 @@ public class AnimalMovementAI : MonoBehaviour
             }
         }
 
-        // Tự động nhận diện sinh vật bay nếu có clip bay (Fly / Glide / Flap) và CHƯA bị khóa cấu hình loài
-        if (autoDetectFlying && !isLocomotionExplicitlyConfigured && locomotionType == AnimalLocomotionType.Ground)
+        // KIỂM TRA ĐIỀU KIỆN BAY: Chỉ loài nào có animation clip "Flap" (đập cánh) mới là sinh vật bay (Flying).
+        // Bất kỳ loài nào không có animation này đều được ép buộc di chuyển trên mặt đất bình thường (Ground).
+        bool hasFlapClip = HasFlapAnimation();
+
+        if (!hasFlapClip)
         {
-            bool hasFlyClip = false;
-            foreach (var c in moveClips)
-            {
-                if (c.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    c.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    c.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    hasFlyClip = true;
-                    break;
-                }
-            }
-            if (hasFlyClip)
-            {
-                locomotionType = AnimalLocomotionType.Flying;
-                isAirborne = true;
-                targetAltitudeOffset = flightAltitude;
-                currentAltitudeOffset = flightAltitude;
-            }
+            locomotionType = AnimalLocomotionType.Ground;
+            isAirborne = false;
+            targetAltitudeOffset = yOffset;
+            currentAltitudeOffset = yOffset;
+        }
+        else if (autoDetectFlying || locomotionType == AnimalLocomotionType.Flying)
+        {
+            locomotionType = AnimalLocomotionType.Flying;
+            isAirborne = true;
+            targetAltitudeOffset = flightAltitude;
+            currentAltitudeOffset = flightAltitude;
         }
 
         // Fallback an toàn nếu không phân loại được
@@ -1462,6 +1471,29 @@ public class AnimalMovementAI : MonoBehaviour
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Kiểm tra xem mô hình động vật có animation clip "Flap" (đập cánh) hay không.
+    /// Theo thiết kế: Chỉ những loài thực sự có animation "Flap" mới là sinh vật bay (Flying),
+    /// còn các loài không có animation này bắt buộc phải di chuyển trên mặt đất bình thường (Ground).
+    /// </summary>
+    public bool HasFlapAnimation()
+    {
+        if (anim == null) anim = GetComponentInChildren<Animation>();
+        if (anim == null) return false;
+
+        foreach (AnimationState state in anim)
+        {
+            if (state != null && !string.IsNullOrEmpty(state.name))
+            {
+                if (state.name.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private bool IsMovementAnimation(string name)

@@ -127,8 +127,8 @@ MonoBehaviour:
   runSpeed: 1
   swimSpeed: 0.6
   flySpeed: 0.9
-  locomotionType: 1
-  autoDetectFlying: 1
+  locomotionType: 0
+  autoDetectFlying: 0
   flightAltitude: 1.35
   flightBobbingFrequency: 3.2
   flightBobbingAmplitude: 0.08
@@ -140,7 +140,7 @@ MonoBehaviour:
   turnBeforeWalking: 1
   turnThresholdAngle: 30
   yOffset: 0
-  autoDetectYOffset: 1
+  autoDetectYOffset: 0
   stayInCurrentHexChance: 0.6
   maxWanderRadius: 0.45
   safeHexRadius: 0.78

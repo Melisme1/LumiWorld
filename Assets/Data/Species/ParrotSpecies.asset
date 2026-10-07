@@ -17,12 +17,12 @@ MonoBehaviour:
   description: "Lo\xE0i v\u1EB9t 7 m\xE0u r\u1EF1c r\u1EE1 bay l\u01B0\u1EE3n tr\xEAn
     nh\u1EEFng \u0111\u1EC9nh n\xFAi cao l\u1ED9ng gi\xF3, ti\u1EBFng h\xF3t vang
     v\u1ECDng mang l\u1EA1i kh\xF4ng kh\xED vui t\u01B0\u01A1i."
-  locomotionType: 1
+  locomotionType: 0
   baseWalkSpeed: 0.5
   baseRunSpeed: 1.0
   flightAltitude: 1.4
   personalRadius: 0.35
-  yOffset: 0.3
+  yOffset: 0
   baseResourceAmount: 1
   baseProductionInterval: 22
   weight1Star: 50
