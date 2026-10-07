@@ -105,11 +105,18 @@ public class EconomySaveSystem : MonoBehaviour
         isDirty = true;
     }
 
+    /// <summary>
+    /// Id tài khoản đang chơi, dùng để chọn file lưu. Hiện game chưa có hệ thống đăng nhập
+    /// nên luôn là "guest" (một bản lưu chung trên máy). Khi thêm đăng nhập, chỉ cần trả về
+    /// id của tài khoản đang đăng nhập ở đây, phần còn lại của hệ thống lưu không phải sửa.
+    /// </summary>
+    private static string PlayerId => "guest";
+
     private void EnsureLoaded()
     {
         if (data != null) return;
 
-        store = new LocalEconomySaveStore(AuthSession.PlayerId);
+        store = new LocalEconomySaveStore(PlayerId);
         data = store.Load() ?? new EconomySaveData();
         if (data.resources == null) data.resources = new List<ResourceStack>();
         if (data.openOrders == null) data.openOrders = new List<ActiveOrder>();
