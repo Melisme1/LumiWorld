@@ -1106,6 +1106,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
