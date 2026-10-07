@@ -96,8 +96,11 @@ public class GameSettingsController : MonoBehaviour
 
     private void ResetButtonEffects()
     {
+        // Chỉ reset các hiệu ứng đang active — nút nằm trong panel vừa ẩn
+        // sẽ không được duyệt tới, nhưng OnEnable của MenuButtonEffect đã
+        // tự đưa chúng về trạng thái nghỉ khi panel được bật lại.
         MenuButtonEffect[] effects =
-            FindObjectsByType<MenuButtonEffect>(FindObjectsSortMode.None);
+            FindObjectsByType<MenuButtonEffect>(FindObjectsInactive.Exclude);
 
         for (int i = 0; i < effects.Length; i++)
         {
