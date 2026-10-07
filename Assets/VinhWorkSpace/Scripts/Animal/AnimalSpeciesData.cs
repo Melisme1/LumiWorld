@@ -48,6 +48,24 @@ public enum AnimalTrait
 }
 
 /// <summary>
+/// Kiểu vận động / phương thức di chuyển của động vật
+/// </summary>
+public enum AnimalLocomotionType
+{
+    [InspectorName("Trên cạn (Ground) - Đi bộ, chạy nhảy trên mặt đất")]
+    Ground = 0,
+
+    [InspectorName("Bay lượn (Flying) - Bay trên không, dập dềnh bồng bềnh, hạ cánh đậu nghỉ")]
+    Flying = 1,
+
+    [InspectorName("Dưới nước (Swimming) - Bơi lặn trong hồ/biển")]
+    Swimming = 2,
+
+    [InspectorName("Lưỡng cư (Amphibian) - Vừa bơi dưới nước vừa nhảy trên cạn")]
+    Amphibian = 3
+}
+
+/// <summary>
 /// Blueprint định nghĩa thông số chung của một loài động vật (Flyweight Pattern - ScriptableObject).
 /// Tất cả các con thú thuộc cùng loài này đều chia sẻ dữ liệu mẫu ở đây.
 /// </summary>
@@ -65,11 +83,18 @@ public class AnimalSpeciesData : ScriptableObject
     public string description = "Loài động vật hiền lành, yêu thích những thảm cỏ xanh mướt và bóng mát rừng cây.";
 
     [Header("2. Chỉ số di chuyển cơ bản (Base Movement)")]
+    [Tooltip("Kiểu vận động chính của loài (Đi bộ, Bay lượn, Bơi lội...)")]
+    public AnimalLocomotionType locomotionType = AnimalLocomotionType.Ground;
+
     [Tooltip("Tốc độ đi bộ cơ bản")]
     public float baseWalkSpeed = 0.5f;
 
     [Tooltip("Tốc độ chạy cơ bản")]
     public float baseRunSpeed = 1.0f;
+
+    [Tooltip("Độ cao bay trên không (chỉ áp dụng cho loài Bay lượn Flying - mét)")]
+    [Range(0.6f, 3.0f)]
+    public float flightAltitude = 1.35f;
 
     [Tooltip("Bán kính vùng đệm cá nhân")]
     public float personalRadius = 0.38f;

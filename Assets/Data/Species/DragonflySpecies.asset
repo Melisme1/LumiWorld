@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9c1a415b3d047a4ab5a8f21e51b2c3d, type: 3}
+  m_Name: DragonflySpecies
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
+  speciesID: dragonfly
+  speciesName: "Chu\u1ED3n Chu\u1ED3n"
+  description: "Sinh v\u1EADt b\xE9 nh\u1ECF tho\u0103n tho\u1EAFt bay l\u01B0\u1EE3n
+    tr\xEAn c\xE1c m\u1ECFm \u0111\xE1 \u0111\xF3n gi\xF3 n\xFAi, b\xE1o hi\u1EC7u
+    s\u1EF1 thay \u0111\u1ED5i c\u1EE7a th\u1EDDi ti\u1EBFt."
+  locomotionType: 1
+  baseWalkSpeed: 0.6
+  baseRunSpeed: 1.2
+  flightAltitude: 1.1
+  personalRadius: 0.28
+  yOffset: 0.25
+  baseResourceAmount: 1
+  baseProductionInterval: 18
+  weight1Star: 55
+  weight2Star: 27
+  weight3Star: 12
+  weight4Star: 5
+  weight5Star: 1
+  traitPool:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5

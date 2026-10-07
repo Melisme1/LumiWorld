@@ -13,6 +13,18 @@ PrefabInstance:
       value: chimvet7mau_anm
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -52,6 +64,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8425563529021635733, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -71,6 +87,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
       insertIndex: -1
       addedObject: {fileID: -6443786419296697734}
+    - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 599144583004546096}
+    - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5681912406168041491}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: 37006fd5fb569014ebaf5a3751b1699a, type: 3}
 --- !u!1 &5561176244225172847 stripped
 GameObject:
@@ -89,3 +111,69 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
+--- !u!114 &599144583004546096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5561176244225172847}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e075c4bf0a40e49a87faf5df5942d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalMovementAI
+  walkSpeed: 0.5
+  runSpeed: 1
+  swimSpeed: 0.6
+  flySpeed: 0.9
+  locomotionType: 1
+  autoDetectFlying: 1
+  flightAltitude: 1.35
+  flightBobbingFrequency: 3.2
+  flightBobbingAmplitude: 0.08
+  maxBankAngle: 22
+  bankSpeed: 6
+  landChance: 0.35
+  altitudeSmoothSpeed: 2.8
+  rotationSpeed: 220
+  turnBeforeWalking: 1
+  turnThresholdAngle: 30
+  yOffset: 0.35
+  autoDetectYOffset: 1
+  stayInCurrentHexChance: 0.6
+  maxWanderRadius: 0.45
+  safeHexRadius: 0.78
+  minIdleTime: 2.5
+  maxIdleTime: 5.5
+  idleTurnChance: 0.4
+  preferCameraFacingGlade: 1
+  personalRadius: 0.38
+  avoidanceWeight: 1.4
+  separationSpeed: 5
+--- !u!114 &5681912406168041491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5561176244225172847}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e64c5713fc39394abcbc517af91b1f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalVisualEnhancer
+  enableCanopyFade: 1
+  fadedCanopyAlpha: 0.35
+  fadeSpeed: 5
+  canopyCheckRadius: 1.8
+  enableOverheadCrest: 1
+  crestHeightOffset: 0.35
+  crestScale: 0.1
+  crestColor: {r: 2.5, g: 2.1, b: 1, a: 1}
+  crestBobSpeed: 2.8
+  crestBobAmplitude: 0.04
+  enableRimGlow: 1
+  rimColor: {r: 1.8, g: 1.4, b: 0.7, a: 1}
+  rimPower: 2.2
+  rimIntensity: 2.5

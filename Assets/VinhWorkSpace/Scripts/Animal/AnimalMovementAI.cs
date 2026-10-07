@@ -34,6 +34,35 @@ public class AnimalMovementAI : MonoBehaviour
     [Tooltip("Tốc độ bay / lượn (dành cho chim, chuồn chuồn, bướm...)")]
     [SerializeField] private float flySpeed = 0.9f;
 
+    [Header("Locomotion Type & Flight Settings")]
+    [Tooltip("Kiểu vận động của con thú: Ground (Đi bộ) hoặc Flying (Bay lượn)")]
+    [SerializeField] private AnimalLocomotionType locomotionType = AnimalLocomotionType.Ground;
+
+    [Tooltip("Tự động nhận diện kiểu bay nếu model có clip Fly / Glide / Flap")]
+    [SerializeField] private bool autoDetectFlying = true;
+
+    [Tooltip("Độ cao bay trên không so với mặt đất (mét)")]
+    [SerializeField] private float flightAltitude = 1.35f;
+
+    [Tooltip("Tần số nhịp đập cánh / dập dềnh bồng bềnh (Hz)")]
+    [SerializeField] private float flightBobbingFrequency = 3.2f;
+
+    [Tooltip("Biên độ nhấp nhô bồng bềnh theo phương thẳng đứng (mét)")]
+    [SerializeField] private float flightBobbingAmplitude = 0.08f;
+
+    [Tooltip("Góc nghiêng cánh tối đa khi bo cua (độ Roll)")]
+    [SerializeField] private float maxBankAngle = 22f;
+
+    [Tooltip("Tốc độ nghiêng cánh (độ/giây)")]
+    [SerializeField] private float bankSpeed = 6.0f;
+
+    [Tooltip("Tỉ lệ % hạ cánh đậu nghỉ trên mặt đất sau mỗi chuyến bay")]
+    [Range(0f, 1f)]
+    [SerializeField] private float landChance = 0.45f;
+
+    [Tooltip("Tốc độ chuyển đổi độ cao bay (mét/giây)")]
+    [SerializeField] private float altitudeSmoothSpeed = 2.8f;
+
     [Header("Rotation Settings")]
     [Tooltip("Tốc độ xoay hướng (độ/giây). Càng lớn quay càng nhanh.")]
     [SerializeField] private float rotationSpeed = 220f;
@@ -95,8 +124,18 @@ public class AnimalMovementAI : MonoBehaviour
     private HexCoordinates currentHex;
     private bool isMoving = false;
 
+    // Trạng thái bay lượn & độ cao
+    private bool isAirborne = false;
+    private float currentAltitudeOffset = 0.35f;
+    private float targetAltitudeOffset = 0.35f;
+    private float currentBankAngle = 0f;
+    private float currentWorldY = 0f;
+
     public bool IsMoving => isMoving;
     public float YOffset => yOffset;
+    public AnimalLocomotionType LocomotionType => locomotionType;
+    public bool IsAirborne => isAirborne;
+    public float FlightAltitude => flightAltitude;
 
     /// <summary>
     /// Cập nhật tốc độ di chuyển từ AnimalIndividual (hệ thống phẩm cấp / tính cách)
@@ -105,6 +144,32 @@ public class AnimalMovementAI : MonoBehaviour
     {
         this.walkSpeed = Mathf.Max(0.1f, walk);
         this.runSpeed = Mathf.Max(0.2f, run);
+    }
+
+    /// <summary>
+    /// Thiết lập kiểu di chuyển (Đi bộ, Bay lượn) và độ cao bay từ AnimalIndividual / AnimalSpeciesData
+    /// </summary>
+    public void SetLocomotion(AnimalLocomotionType type, float altitude)
+    {
+        this.locomotionType = type;
+        if (altitude > 0.1f)
+        {
+            this.flightAltitude = altitude;
+        }
+        if (locomotionType == AnimalLocomotionType.Flying)
+        {
+            this.isAirborne = true;
+            this.targetAltitudeOffset = this.flightAltitude;
+            this.currentAltitudeOffset = this.flightAltitude;
+            PlayStationaryAnimation();
+        }
+        else
+        {
+            this.isAirborne = false;
+            this.targetAltitudeOffset = this.yOffset;
+            this.currentAltitudeOffset = this.yOffset;
+            PlayStationaryAnimation();
+        }
     }
 
     // Danh sách phân loại animation
@@ -150,8 +215,37 @@ public class AnimalMovementAI : MonoBehaviour
             ComputeAutoYOffset();
         }
 
-        // Giới hạn maxWanderRadius trong khoảng an toàn (0.35m - 0.50m)
-        maxWanderRadius = Mathf.Clamp(maxWanderRadius, 0.35f, 0.50f);
+        // Phân loại các animation clip có sẵn trong model (tự động phát hiện sinh vật bay)
+        ClassifyAvailableAnimations();
+
+        // Khởi tạo trạng thái bay hoặc đi bộ
+        if (locomotionType == AnimalLocomotionType.Flying)
+        {
+            isAirborne = true;
+            targetAltitudeOffset = flightAltitude;
+            currentAltitudeOffset = flightAltitude;
+            maxWanderRadius = Mathf.Clamp(maxWanderRadius, 0.40f, 0.60f);
+
+            // Bật ngay animation bay đập cánh từ frame đầu tiên (không bao giờ để đơ cánh giữa trời)
+            string flyClip = GetFlightClip(preferHover: true);
+            if (anim != null && !string.IsNullOrEmpty(flyClip) && anim.GetClip(flyClip) != null)
+            {
+                anim.Play(flyClip);
+            }
+        }
+        else
+        {
+            isAirborne = false;
+            targetAltitudeOffset = yOffset;
+            currentAltitudeOffset = yOffset;
+            maxWanderRadius = Mathf.Clamp(maxWanderRadius, 0.35f, 0.50f);
+
+            string groundIdle = GetGroundIdleClip();
+            if (anim != null && !string.IsNullOrEmpty(groundIdle) && anim.GetClip(groundIdle) != null)
+            {
+                anim.Play(groundIdle);
+            }
+        }
 
         // Khởi tạo tọa độ ô lục giác ban đầu
         PlacedCard pc = GetComponent<PlacedCard>();
@@ -168,15 +262,14 @@ public class AnimalMovementAI : MonoBehaviour
         Vector3 curPos = transform.position;
         Vector3 clampedPos = ClampToValidHabitat(curPos, curPos);
         float initSurfaceY = GetSurfaceYAt(clampedPos);
-        transform.position = new Vector3(clampedPos.x, initSurfaceY + yOffset, clampedPos.z);
+        currentWorldY = initSurfaceY + currentAltitudeOffset;
+        transform.position = new Vector3(clampedPos.x, currentWorldY, clampedPos.z);
 
         // Tách nhẹ vị trí ban đầu nếu mới spawn ra bị trùng khít với con thú khác
         SeparateInitialPosition();
 
-        // Phân loại các animation clip có sẵn trong model
-        ClassifyAvailableAnimations();
-
         // Bắt đầu vòng lặp hành vi AI
+        PlayStationaryAnimation();
         StartCoroutine(BehaviorLoopRoutine());
     }
 
@@ -193,16 +286,121 @@ public class AnimalMovementAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Phát animation đứng yên (khi dừng bước, quay đầu, hoặc bị chắn đường)
+    /// Phát animation khi con thú đang dừng chân / lơ lửng tại chỗ:
+    /// - Khi đang trên không (isAirborne): BẮT BUỘC tiếp tục đập cánh (Flap/Glide)! Tuyệt đối KHÔNG BAO GIỜ ngừng đập cánh giữa trời!
+    /// - Khi đang dưới đất: Phát animation nghỉ ngơi (Idle, Ăn cỏ, Ngắm cảnh).
+    /// </summary>
+    private void PlayStationaryAnimation()
+    {
+        if (anim == null) return;
+
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
+        {
+            string hoverClip = GetFlightClip(preferHover: true);
+            if (!string.IsNullOrEmpty(hoverClip) && anim.GetClip(hoverClip) != null)
+            {
+                if (!anim.IsPlaying(hoverClip))
+                {
+                    anim.CrossFade(hoverClip, 0.2f);
+                }
+            }
+        }
+        else
+        {
+            string idleClip = GetGroundIdleClip();
+            if (!string.IsNullOrEmpty(idleClip) && anim.GetClip(idleClip) != null)
+            {
+                if (!anim.IsPlaying(idleClip))
+                {
+                    anim.CrossFade(idleClip, 0.25f);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Wrapper tương thích ngược để các hàm gọi cũ hoạt động chuẩn xác
     /// </summary>
     private void PlayIdleAnimation()
     {
-        if (anim == null) return;
-        string idleClip = (idleClips.Count > 0) ? idleClips[0] : "Idle";
-        if (anim.GetClip(idleClip) != null && !anim.IsPlaying(idleClip))
+        PlayStationaryAnimation();
+    }
+
+    /// <summary>
+    /// Tìm clip bay phù hợp nhất (Flap / Glide / Fly):
+    /// - preferHover = true: Ưu tiên Flap (đập cánh liên hồi) cho côn trùng/chuồn chuồn, hoặc Glide cho chim
+    /// - preferHover = false: Ưu tiên Glide hoặc Fly khi bay tịnh tiến
+    /// </summary>
+    private string GetFlightClip(bool preferHover = false)
+    {
+        if (moveClips.Count == 0) return "";
+
+        if (preferHover)
         {
-            anim.CrossFade(idleClip, 0.25f);
+            string flapClip = moveClips.Find(c => c.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (!string.IsNullOrEmpty(flapClip)) return flapClip;
         }
+
+        string flyClip = moveClips.Find(c =>
+            c.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0);
+        if (!string.IsNullOrEmpty(flyClip)) return flyClip;
+
+        string anyFlight = moveClips.Find(c => c.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0);
+        if (!string.IsNullOrEmpty(anyFlight)) return anyFlight;
+
+        return moveClips[0];
+    }
+
+    /// <summary>
+    /// Kiểm tra loài này có clip nghỉ ngơi hợp lệ dưới mặt đất không (như Idle, Ăn cỏ, Ngồi...)
+    /// (Chuồn chuồn, Châu chấu chỉ có Flap/Glide nên không có ground idle)
+    /// </summary>
+    private bool HasGroundCapabilities()
+    {
+        return idleClips.Count > 0;
+    }
+
+    /// <summary>
+    /// Kiểm tra loài này có clip đi lại dưới mặt cỏ không (Walk, Trot, Hop)
+    /// </summary>
+    private bool HasGroundWalk()
+    {
+        return moveClips.Exists(c =>
+            c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    /// <summary>
+    /// Lấy clip nghỉ ngơi hợp lệ dưới đất
+    /// </summary>
+    private string GetGroundIdleClip()
+    {
+        if (idleClips.Count > 0)
+        {
+            return idleClips[Random.Range(0, idleClips.Count)];
+        }
+        return GetFlightClip(preferHover: true);
+    }
+
+    /// <summary>
+    /// Lấy clip đi lại dưới mặt đất
+    /// </summary>
+    private string GetGroundMoveClip()
+    {
+        List<string> groundClips = moveClips.FindAll(c =>
+            c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0);
+
+        if (groundClips.Count > 0)
+        {
+            return groundClips[Random.Range(0, groundClips.Count)];
+        }
+
+        return GetFlightClip(false);
     }
 
     /// <summary>
@@ -214,6 +412,10 @@ public class AnimalMovementAI : MonoBehaviour
         {
             AnimalMovementAI other = ActiveAnimals[i];
             if (other == null || other == this) continue;
+
+            // Nếu một con bay cao và một con ở mặt đất -> chênh lệch Y > 0.65m -> Bỏ qua va chạm
+            float heightDiff = Mathf.Abs(transform.position.y - other.transform.position.y);
+            if (heightDiff > 0.65f) continue;
 
             Vector3 diff = transform.position - other.transform.position;
             diff.y = 0f;
@@ -227,7 +429,8 @@ public class AnimalMovementAI : MonoBehaviour
                 Vector3 scatter = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * (personalRadius * 0.8f);
                 Vector3 scatteredPos = ClampToValidHabitat(transform.position + scatter, transform.position);
                 float surfaceY = GetSurfaceYAt(scatteredPos);
-                transform.position = new Vector3(scatteredPos.x, surfaceY + yOffset, scatteredPos.z);
+                currentWorldY = surfaceY + currentAltitudeOffset;
+                transform.position = new Vector3(scatteredPos.x, currentWorldY, scatteredPos.z);
                 break;
             }
         }
@@ -255,6 +458,10 @@ public class AnimalMovementAI : MonoBehaviour
         {
             AnimalMovementAI other = ActiveAnimals[i];
             if (other == null || other == this) continue;
+
+            // Nếu một con đang bay cao và một con ở mặt đất -> chênh lệch Y > 0.65m -> Không đè lấn
+            float heightDiff = Mathf.Abs(myPos.y - other.transform.position.y);
+            if (heightDiff > 0.65f) continue;
 
             Vector3 otherPos = other.transform.position;
             Vector3 diff = myPos - otherPos;
@@ -297,10 +504,144 @@ public class AnimalMovementAI : MonoBehaviour
             // Giữ vị trí trong vùng an toàn của Habitat (không bao giờ để lực đẩy đẩy thú ra rìa ô)
             Vector3 newPos = ClampToValidHabitat(pushedPos, myPos);
 
-            // Bám đúng độ cao mặt cỏ
-            float surfaceY = GetSurfaceYAt(newPos);
-            transform.position = new Vector3(newPos.x, surfaceY + yOffset, newPos.z);
+            // Cập nhật độ cao và bồng bềnh
+            UpdateElevationAndBanking(newPos, Vector3.zero);
             UpdateCurrentHex();
+        }
+    }
+
+    /// <summary>
+    /// Cập nhật độ cao Y mượt mà (bám theo bề mặt ô, độ cao bay, nhấp nhô sin wave)
+    /// và góc nghiêng cánh Roll Z khi bo cua
+    /// </summary>
+    private void UpdateElevationAndBanking(Vector3 flatPos, Vector3 moveDir)
+    {
+        // 1. Độ cao mục tiêu
+        float surfaceY = GetSurfaceYAt(flatPos);
+        currentAltitudeOffset = Mathf.MoveTowards(currentAltitudeOffset, targetAltitudeOffset, altitudeSmoothSpeed * Time.deltaTime);
+
+        float targetWorldY = surfaceY + currentAltitudeOffset;
+        currentWorldY = Mathf.MoveTowards(currentWorldY, targetWorldY, altitudeSmoothSpeed * 1.5f * Time.deltaTime);
+
+        // Hiệu ứng dập dềnh bồng bềnh (Bobbing Sine Wave)
+        float bobbing = (locomotionType == AnimalLocomotionType.Flying && isAirborne)
+            ? Mathf.Sin(Time.time * flightBobbingFrequency) * flightBobbingAmplitude
+            : 0f;
+
+        transform.position = new Vector3(flatPos.x, currentWorldY + bobbing, flatPos.z);
+
+        // 2. Góc nghiêng cánh khi bo cua (Aerodynamic Banking)
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne && moveDir.sqrMagnitude > 0.001f)
+        {
+            float turnAngle = Vector3.SignedAngle(transform.forward, moveDir, Vector3.up);
+            float targetBank = Mathf.Clamp(-turnAngle * 0.45f, -maxBankAngle, maxBankAngle);
+            currentBankAngle = Mathf.MoveTowards(currentBankAngle, targetBank, bankSpeed * 25f * Time.deltaTime);
+        }
+        else
+        {
+            // Trở về vị trí thăng bằng
+            currentBankAngle = Mathf.MoveTowards(currentBankAngle, 0f, bankSpeed * 20f * Time.deltaTime);
+            if (locomotionType == AnimalLocomotionType.Flying && isAirborne && !isMoving)
+            {
+                Vector3 rot = transform.eulerAngles;
+                if (Mathf.Abs(Mathf.DeltaAngle(rot.z, currentBankAngle)) > 0.01f)
+                {
+                    transform.rotation = Quaternion.Euler(rot.x, rot.y, Mathf.MoveTowardsAngle(rot.z, currentBankAngle, bankSpeed * 20f * Time.deltaTime));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Chọn animation di chuyển phù hợp với trạng thái hiện tại (Bay trên không vs Đậu dưới đất)
+    /// </summary>
+    private string PickMoveClip()
+    {
+        if (moveClips.Count == 0) return "";
+
+        if (locomotionType == AnimalLocomotionType.Flying)
+        {
+            if (isAirborne)
+            {
+                return GetFlightClip(preferHover: false);
+            }
+            else
+            {
+                return GetGroundMoveClip();
+            }
+        }
+
+        return moveClips[Random.Range(0, moveClips.Count)];
+    }
+
+    /// <summary>
+    /// Quy trình hạ cánh đậu nghỉ trên mặt đất:
+    /// - Từ từ hạ độ cao xuống yOffset
+    /// - TRONG SUỐT QUÁ TRÌNH HẠ CÁNH: Cánh vẫn đập/lượn liên tục!
+    /// - Chỉ khi chân đã chạm đất (chênh lệch < 6cm): mới chuyển sang dáng đứng xếp cánh (Idle)!
+    /// </summary>
+    private IEnumerator LandRoutine()
+    {
+        if (!isAirborne || !HasGroundCapabilities()) yield break;
+
+        targetAltitudeOffset = yOffset;
+
+        // Vẫn vỗ cánh / lượn khi hạ độ cao
+        string descentClip = GetFlightClip(preferHover: true);
+        if (anim != null && !string.IsNullOrEmpty(descentClip) && anim.GetClip(descentClip) != null)
+        {
+            anim.CrossFade(descentClip, 0.2f);
+        }
+
+        float landTimer = 0f;
+        while (Mathf.Abs(currentAltitudeOffset - yOffset) > 0.06f && landTimer < 2.5f)
+        {
+            landTimer += Time.deltaTime;
+            UpdateElevationAndBanking(transform.position, Vector3.zero);
+            yield return null;
+        }
+
+        // Đã chạm mặt đất an toàn
+        isAirborne = false;
+        currentAltitudeOffset = yOffset;
+
+        // Xếp cánh, đứng nghỉ trên cỏ
+        string groundIdle = GetGroundIdleClip();
+        if (anim != null && !string.IsNullOrEmpty(groundIdle) && anim.GetClip(groundIdle) != null)
+        {
+            anim.CrossFade(groundIdle, 0.3f);
+        }
+    }
+
+    /// <summary>
+    /// Quy trình cất cánh bay lên trời:
+    /// - Bắt đầu vỗ cánh ngay trên mặt đất trước
+    /// - Sau đó nâng dần độ cao bay lên flightAltitude
+    /// </summary>
+    private IEnumerator TakeoffRoutine()
+    {
+        if (isAirborne) yield break;
+
+        // 1. Vỗ cánh chuẩn bị cất cánh
+        string takeoffClip = GetFlightClip(preferHover: true);
+        if (anim != null && !string.IsNullOrEmpty(takeoffClip) && anim.GetClip(takeoffClip) != null)
+        {
+            anim.CrossFade(takeoffClip, 0.2f);
+        }
+
+        yield return new WaitForSeconds(0.25f);
+
+        // 2. Nâng độ cao lên không gian
+        isAirborne = true;
+        targetAltitudeOffset = flightAltitude;
+
+        float takeoffTimer = 0f;
+        float targetY = flightAltitude - 0.15f;
+        while (currentAltitudeOffset < targetY && takeoffTimer < 2.0f)
+        {
+            takeoffTimer += Time.deltaTime;
+            UpdateElevationAndBanking(transform.position, Vector3.zero);
+            yield return null;
         }
     }
 
@@ -309,50 +650,146 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     private IEnumerator BehaviorLoopRoutine()
     {
-        // Chờ nhẹ 0.3s để bản đồ khởi tạo ổn định
-        yield return new WaitForSeconds(0.3f);
+        // Chờ nhẹ 0.25s để bản đồ khởi tạo ổn định
+        PlayStationaryAnimation();
+        yield return new WaitForSeconds(0.25f);
 
         while (true)
         {
             if (anim == null) yield break;
 
-            // Quyết định hành động tiếp theo: Di chuyển hay Đứng yên?
-            bool willMove = (moveClips.Count > 0) && (Random.value > 0.40f);
-
-            if (willMove)
+            if (locomotionType == AnimalLocomotionType.Flying)
             {
-                // 1. Chọn 1 animation di chuyển ngẫu nhiên
-                string moveClip = moveClips[Random.Range(0, moveClips.Count)];
-                float speed = GetSpeedForClip(moveClip);
-
-                // 2. Thực hiện di chuyển đến điểm đích hợp lệ (chỉ kích hoạt animation khi thực sự bước đi)
-                yield return StartCoroutine(MoveToTargetRoutine(speed, moveClip));
+                yield return StartCoroutine(FlyingBehaviorRoutine());
             }
             else
             {
-                // 1. Chọn 1 animation tĩnh ngẫu nhiên (Ăn cỏ, nằm, nhìn quanh...)
-                string idleClip = (idleClips.Count > 0) ? idleClips[Random.Range(0, idleClips.Count)] : "Idle";
-                if (anim.GetClip(idleClip) != null)
-                {
-                    anim.CrossFade(idleClip, 0.25f);
-                }
-
-                // 2. Nghỉ ngơi trong khoảng thời gian ngẫu nhiên
-                float waitTime = Random.Range(minIdleTime, maxIdleTime);
-
-                // Thỉnh thoảng xoay đầu ngắm cảnh trong lúc đứng yên
-                if (Random.value < idleTurnChance)
-                {
-                    yield return StartCoroutine(IdleLookAroundRoutine());
-                }
-
-                yield return new WaitForSeconds(waitTime);
+                yield return StartCoroutine(GroundBehaviorRoutine());
             }
         }
     }
 
     /// <summary>
-    /// Quá trình di chuyển: Xoay hướng mượt mà, tịnh tiến, né tránh thông minh và bám mặt cỏ
+    /// Vòng lặp hành vi chuyên biệt cho loài bay lượn (Chim, Bướm, Chuồn chuồn)
+    /// </summary>
+    private IEnumerator FlyingBehaviorRoutine()
+    {
+        if (isAirborne)
+        {
+            // === ĐANG TRÊN KHÔNG ===
+            bool canLand = HasGroundCapabilities();
+            float rand = Random.value;
+
+            // Nếu loài có thể đậu đất (như Chim Công, Chim Vẹt) và trúng tỉ lệ hạ cánh:
+            if (canLand && rand < landChance)
+            {
+                yield return StartCoroutine(LandRoutine());
+
+                // Đậu nghỉ trên cỏ
+                float groundWait = Random.Range(minIdleTime, maxIdleTime);
+                float elapsed = 0f;
+                while (elapsed < groundWait && !isMoving)
+                {
+                    elapsed += Time.deltaTime;
+                    UpdateElevationAndBanking(transform.position, Vector3.zero);
+                    yield return null;
+                }
+            }
+            else if (rand < 0.85f && moveClips.Count > 0)
+            {
+                // Bay tịnh tiến sang vị trí mới trên không
+                string flyClip = GetFlightClip(preferHover: false);
+                float speed = flySpeed;
+                yield return StartCoroutine(MoveToTargetRoutine(speed, flyClip));
+            }
+            else
+            {
+                // Lơ lửng tại chỗ trên không (ĐẬP CÁNH LIÊN HỒI + NHẤP NHÔ BỒNG BỀNH)
+                PlayStationaryAnimation();
+
+                float hoverTime = Random.Range(1.8f, 3.5f);
+                float elapsed = 0f;
+                while (elapsed < hoverTime && !isMoving)
+                {
+                    elapsed += Time.deltaTime;
+                    UpdateElevationAndBanking(transform.position, Vector3.zero);
+                    yield return null;
+                }
+            }
+        }
+        else
+        {
+            // === ĐANG Ở DƯỚI ĐẤT (ĐẬU NGHỈ) ===
+            float rand = Random.value;
+
+            if (rand < 0.40f && HasGroundWalk())
+            {
+                // Đi bộ dạo chơi trên mặt cỏ (Chim Công sải bước)
+                string walkClip = GetGroundMoveClip();
+                yield return StartCoroutine(MoveToTargetRoutine(walkSpeed, walkClip));
+            }
+            else if (rand < 0.65f)
+            {
+                // Đứng ngắm cảnh trên cỏ
+                PlayStationaryAnimation();
+                if (Random.value < idleTurnChance)
+                {
+                    yield return StartCoroutine(IdleLookAroundRoutine());
+                }
+
+                float waitTime = Random.Range(minIdleTime, maxIdleTime);
+                float elapsed = 0f;
+                while (elapsed < waitTime && !isMoving)
+                {
+                    elapsed += Time.deltaTime;
+                    UpdateElevationAndBanking(transform.position, Vector3.zero);
+                    yield return null;
+                }
+            }
+            else
+            {
+                // Cất cánh bay lên trời
+                yield return StartCoroutine(TakeoffRoutine());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Vòng lặp hành vi cho thú trên cạn (Bò, Hươu, Cáo, Chó hoa...)
+    /// </summary>
+    private IEnumerator GroundBehaviorRoutine()
+    {
+        bool willMove = (moveClips.Count > 0) && (Random.value > 0.35f);
+
+        if (willMove)
+        {
+            string moveClip = PickMoveClip();
+            float speed = GetSpeedForClip(moveClip);
+            yield return StartCoroutine(MoveToTargetRoutine(speed, moveClip));
+        }
+        else
+        {
+            PlayStationaryAnimation();
+
+            float waitTime = Random.Range(minIdleTime, maxIdleTime);
+
+            if (Random.value < idleTurnChance)
+            {
+                yield return StartCoroutine(IdleLookAroundRoutine());
+            }
+
+            float idleElapsed = 0f;
+            while (idleElapsed < waitTime && !isMoving)
+            {
+                idleElapsed += Time.deltaTime;
+                UpdateElevationAndBanking(transform.position, Vector3.zero);
+                yield return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Quá trình di chuyển: Xoay hướng mượt mà, tịnh tiến, né tránh thông minh và bám mặt cỏ / độ cao bay
     /// Đồng bộ hoàn hảo với Animation (không chạy tại chỗ)
     /// </summary>
     private IEnumerator MoveToTargetRoutine(float speed, string moveClip)
@@ -374,9 +811,10 @@ public class AnimalMovementAI : MonoBehaviour
         float realStuckTimer = 0f;
         Vector3 lastObservedPos = transform.position;
 
-        // BƯỚC 1: Xoay đầu về hướng đích trước (nếu bật turnBeforeWalking)
-        // Trong lúc xoay tại chỗ: Giữ animation Idle để không bị tình trạng chân chạy nhưng người đứng yên!
-        if (turnBeforeWalking)
+        // BƯỚC 1: Xoay đầu về hướng đích trước (chỉ khi đi bộ trên mặt đất)
+        // Sinh vật đang bay lượn trên không sẽ xoay tự nhiên kết hợp nghiêng cánh khi bay
+        bool shouldTurnInPlace = turnBeforeWalking && (!isAirborne || locomotionType != AnimalLocomotionType.Flying);
+        if (shouldTurnInPlace)
         {
             Vector3 initialDir = targetWorldPos - transform.position;
             initialDir.y = 0f;
@@ -390,12 +828,13 @@ public class AnimalMovementAI : MonoBehaviour
                 {
                     elapsed += Time.deltaTime;
                     transform.rotation = Quaternion.RotateTowards(transform.rotation, faceRot, rotationSpeed * Time.deltaTime);
+                    UpdateElevationAndBanking(transform.position, Vector3.zero);
                     yield return null;
                 }
             }
         }
 
-        // Bắt đầu bước chân -> Kích hoạt animation di chuyển
+        // Bắt đầu bước chân / sải cánh -> Kích hoạt animation di chuyển
         PlayMoveAnimation(moveClip);
 
         // BƯỚC 2: Vừa bước đi vừa né tránh chướng ngại vật động vật, gốc cây và ranh giới ô
@@ -429,6 +868,7 @@ public class AnimalMovementAI : MonoBehaviour
                     break;
                 }
 
+                UpdateElevationAndBanking(currentPos, Vector3.zero);
                 yield return null;
                 continue;
             }
@@ -445,11 +885,18 @@ public class AnimalMovementAI : MonoBehaviour
                 moveDir = (flatDir.normalized + avoidance * avoidanceWeight).normalized;
             }
 
-            // Xoay hướng mượt mà về hướng di chuyển thực tế
+            // Xoay hướng mượt mà về hướng di chuyển thực tế (kết hợp nghiêng cánh Banking)
             if (moveDir.sqrMagnitude > 0.001f)
             {
                 Quaternion desiredRot = Quaternion.LookRotation(moveDir);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, desiredRot, rotationSpeed * Time.deltaTime);
+                if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
+                {
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, desiredRot * Quaternion.Euler(0f, 0f, currentBankAngle), rotationSpeed * Time.deltaTime);
+                }
+                else
+                {
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, desiredRot, rotationSpeed * Time.deltaTime);
+                }
             }
 
             // Tịnh tiến bước chân
@@ -481,9 +928,8 @@ public class AnimalMovementAI : MonoBehaviour
                 }
             }
 
-            // Cập nhật vị trí X, Z và tính độ cao Y bề mặt đất tương ứng (trượt mượt mà theo mép an toàn)
-            float surfaceY = GetSurfaceYAt(nextPos);
-            transform.position = new Vector3(nextPos.x, surfaceY + yOffset, nextPos.z);
+            // Cập nhật vị trí X, Z và tính độ cao Y bề mặt đất tương ứng + bồng bềnh + banking
+            UpdateElevationAndBanking(nextPos, moveDir);
             UpdateCurrentHex();
 
             // KIỂM TRA ĐỘ DỊCH CHUYỂN THỰC TẾ TRONG KHÔNG GIAN THẾ GIỚI
@@ -622,6 +1068,10 @@ public class AnimalMovementAI : MonoBehaviour
             AnimalMovementAI other = ActiveAnimals[i];
             if (other == null || other == this) continue;
 
+            // Nếu một con đang bay cao và một con ở mặt đất -> chênh lệch Y > 0.65m -> Không chạm nhau trong không gian 3D
+            float heightDiff = Mathf.Abs(transform.position.y - other.transform.position.y);
+            if (heightDiff > 0.65f) continue;
+
             Vector3 otherPos = other.transform.position;
             Vector3 toOther = otherPos - currentPos;
             toOther.y = 0f;
@@ -665,38 +1115,42 @@ public class AnimalMovementAI : MonoBehaviour
         }
 
         // 2. NÉ TRÁNH GỐC CÂY LỚN TRÊN Ô (Tree Trunk Obstacle Steering)
-        if (worldGen != null && worldGen.MapTiles != null)
+        // Chỉ áp dụng cho thú đi bộ hoặc sinh vật bay khi đang đậu dưới đất
+        if (locomotionType != AnimalLocomotionType.Flying || !isAirborne)
         {
-            if (worldGen.MapTiles.TryGetValue(currentHex, out GameObject curTileObj) && curTileObj != null)
+            if (worldGen != null && worldGen.MapTiles != null)
             {
-                Renderer[] tileRends = curTileObj.GetComponentsInChildren<Renderer>(false);
-                for (int r = 0; r < tileRends.Length; r++)
+                if (worldGen.MapTiles.TryGetValue(currentHex, out GameObject curTileObj) && curTileObj != null)
                 {
-                    Renderer tr = tileRends[r];
-                    if (tr == null || tr.transform.IsChildOf(transform)) continue;
-                    Bounds b = tr.bounds;
-                    // Chỉ xét các cây thân to (chiều cao > 0.8m)
-                    if (b.size.y < 0.8f) continue;
-
-                    Vector3 trunkPos = new Vector3(b.center.x, currentPos.y, b.center.z);
-                    Vector3 toTrunk = trunkPos - currentPos;
-                    float trunkDist = toTrunk.magnitude;
-
-                    if (trunkDist < 0.70f && trunkDist > 0.02f)
+                    Renderer[] tileRends = curTileObj.GetComponentsInChildren<Renderer>(false);
+                    for (int r = 0; r < tileRends.Length; r++)
                     {
-                        Vector3 trunkDir = toTrunk / trunkDist;
-                        float dot = Vector3.Dot(forwardDir, trunkDir);
-                        if (dot > 0.15f)
-                        {
-                            Vector3 sideDir = Vector3.Cross(Vector3.up, forwardDir).normalized;
-                            float sideDot = Vector3.Dot(toTrunk, sideDir);
-                            Vector3 steerSide = (sideDot >= 0f) ? -sideDir : sideDir;
-                            avoidance += steerSide * 2.2f;
+                        Renderer tr = tileRends[r];
+                        if (tr == null || tr.transform.IsChildOf(transform)) continue;
+                        Bounds b = tr.bounds;
+                        // Chỉ xét các cây thân to (chiều cao > 0.8m)
+                        if (b.size.y < 0.8f) continue;
 
-                            // Chặn lại nếu tiến quá sát vào thân cây
-                            if (trunkDist < 0.38f && dot > 0.40f)
+                        Vector3 trunkPos = new Vector3(b.center.x, currentPos.y, b.center.z);
+                        Vector3 toTrunk = trunkPos - currentPos;
+                        float trunkDist = toTrunk.magnitude;
+
+                        if (trunkDist < 0.70f && trunkDist > 0.02f)
+                        {
+                            Vector3 trunkDir = toTrunk / trunkDist;
+                            float dot = Vector3.Dot(forwardDir, trunkDir);
+                            if (dot > 0.15f)
                             {
-                                isBlockedDirectly = true;
+                                Vector3 sideDir = Vector3.Cross(Vector3.up, forwardDir).normalized;
+                                float sideDot = Vector3.Dot(toTrunk, sideDir);
+                                Vector3 steerSide = (sideDot >= 0f) ? -sideDir : sideDir;
+                                avoidance += steerSide * 2.2f;
+
+                                // Chặn lại nếu tiến quá sát vào thân cây
+                                if (trunkDist < 0.38f && dot > 0.40f)
+                                {
+                                    isBlockedDirectly = true;
+                                }
                             }
                         }
                     }
@@ -767,7 +1221,7 @@ public class AnimalMovementAI : MonoBehaviour
 
         Vector3 hexCenter = HexMetrics.HexToWorldPosition(targetHex, targetSurfaceY);
 
-        // 5. Chọn điểm đến phân tán trong bán kính an toàn maxWanderRadius (<= 0.50m)
+        // 5. Chọn điểm đến phân tán trong bán kính an toàn maxWanderRadius
         Vector3 bestCandidate = hexCenter;
         float bestMinDistSqr = -1f;
 
@@ -796,6 +1250,10 @@ public class AnimalMovementAI : MonoBehaviour
             {
                 AnimalMovementAI other = ActiveAnimals[i];
                 if (other == null || other == this) continue;
+
+                // Nếu con thú khác ở độ cao khác > 0.65m (ví dụ một con trên trời một con dưới đất) -> không tính là va chạm
+                float heightDiff = Mathf.Abs(candidatePos.y - other.transform.position.y);
+                if (heightDiff > 0.65f) continue;
 
                 Vector3 otherPos = other.transform.position;
                 float dx = candidatePos.x - otherPos.x;
@@ -829,6 +1287,9 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     private IEnumerator IdleLookAroundRoutine()
     {
+        // Khi đang trên không, không xoay đầu kiểu thú đứng đất
+        if (isAirborne) yield break;
+
         float turnAngle = Random.Range(-40f, 40f);
         Quaternion targetRot = transform.rotation * Quaternion.Euler(0f, turnAngle, 0f);
 
@@ -841,6 +1302,7 @@ public class AnimalMovementAI : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
             transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+            UpdateElevationAndBanking(transform.position, Vector3.zero);
             yield return null;
         }
     }
@@ -864,13 +1326,15 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     private float GetSpeedForClip(string clipName)
     {
-        if (string.IsNullOrEmpty(clipName)) return walkSpeed;
+        if (string.IsNullOrEmpty(clipName)) return (locomotionType == AnimalLocomotionType.Flying) ? flySpeed : walkSpeed;
 
         if (clipName.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0) return runSpeed;
         if (clipName.IndexOf("Swim", StringComparison.OrdinalIgnoreCase) >= 0) return swimSpeed;
         if (clipName.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0 ||
             clipName.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
             clipName.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0) return flySpeed;
+
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne) return flySpeed;
 
         return walkSpeed;
     }
@@ -888,6 +1352,15 @@ public class AnimalMovementAI : MonoBehaviour
         foreach (AnimationState state in anim)
         {
             string cName = state.name;
+
+            // BỎ QUA HOÀN TOÀN Rest_Pose / BindPose (vì đây là T-pose tĩnh của exporter 3D, không phải animation diễn hoạt)
+            if (cName.IndexOf("Rest_Pose", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                cName.IndexOf("RestPose", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                cName.IndexOf("BindPose", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                continue;
+            }
+
             if (IsMovementAnimation(cName))
             {
                 moveClips.Add(cName);
@@ -898,12 +1371,38 @@ public class AnimalMovementAI : MonoBehaviour
             }
         }
 
+        // Tự động nhận diện sinh vật bay nếu có clip bay (Fly / Glide / Flap)
+        if (autoDetectFlying && locomotionType == AnimalLocomotionType.Ground)
+        {
+            bool hasFlyClip = false;
+            foreach (var c in moveClips)
+            {
+                if (c.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    hasFlyClip = true;
+                    break;
+                }
+            }
+            if (hasFlyClip)
+            {
+                locomotionType = AnimalLocomotionType.Flying;
+                isAirborne = true;
+                targetAltitudeOffset = flightAltitude;
+                currentAltitudeOffset = flightAltitude;
+            }
+        }
+
         // Fallback an toàn nếu không phân loại được
         if (moveClips.Count == 0 && idleClips.Count == 0)
         {
             foreach (AnimationState state in anim)
             {
-                idleClips.Add(state.name);
+                if (state.name.IndexOf("Rest", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    idleClips.Add(state.name);
+                }
             }
         }
     }
@@ -948,14 +1447,20 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     private void OnDrawGizmosSelected()
     {
-        // Vòng màu xanh lá: Giới hạn đi lại quanh tâm ô
-        Gizmos.color = Color.green;
+        // Vòng màu xanh lá / lục lam: Giới hạn đi lại quanh tâm ô
+        Gizmos.color = (locomotionType == AnimalLocomotionType.Flying) ? Color.cyan : Color.green;
         Vector3 center = transform.position;
-        center.y -= yOffset;
+        center.y = currentWorldY - currentAltitudeOffset;
         Gizmos.DrawWireSphere(center, maxWanderRadius);
 
         // Vòng màu vàng cam: Vùng đệm cá nhân né va chạm
         Gizmos.color = new Color(1f, 0.6f, 0.1f, 0.8f);
         Gizmos.DrawWireSphere(transform.position, personalRadius);
+
+        if (locomotionType == AnimalLocomotionType.Flying)
+        {
+            Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.4f);
+            Gizmos.DrawWireCube(new Vector3(center.x, center.y + flightAltitude, center.z), new Vector3(maxWanderRadius * 2f, 0.15f, maxWanderRadius * 2f));
+        }
     }
 }
