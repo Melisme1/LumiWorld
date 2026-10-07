@@ -107,11 +107,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
-  animalID: 
+  animalID: chuongchuong_anm
   biome: 0
   isAquatic: 0
-  moveAnimName: Walk
-  idleAnimName: Idle
+  isFlying: 1
+  flightAltitude: 1.35
+  flightBobbingAmplitude: 0.08
+  flightBobbingFrequency: 3.2
+  moveAnimName: Flap
+  idleAnimName: Flap
   mountainTileTag: MountainTile
   forestTileTag: ForestTile
   flowerTileTag: FlowerTile

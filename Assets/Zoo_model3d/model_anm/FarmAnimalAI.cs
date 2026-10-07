@@ -46,6 +46,32 @@ public class FarmAnimalAI : MonoBehaviour
     [Tooltip("Là loài sống dưới nước (bơi thay vì đi bộ)")]
     public bool isAquatic = false;
 
+    [Header("================ 1.1 THÔNG SỐ BAY (FLYING SPECIES) ================")]
+    [Tooltip("Là loài bay trên không (chuồn chuồn, v.v.)")]
+    public bool isFlying = false;
+
+    [Tooltip("Độ cao bay lơ lửng trên mặt ô lục giác (mét)")]
+    public float flightAltitude = 1.35f;
+
+    [Tooltip("Biên độ nhấp nhô bồng bềnh khi bay (mét)")]
+    public float flightBobbingAmplitude = 0.08f;
+
+    [Tooltip("Tần số nhịp đập cánh dập dềnh (Hz)")]
+    public float flightBobbingFrequency = 3.2f;
+
+    /// <summary>
+    /// Tính toán độ cao Y mục tiêu (kèm nhấp nhô bồng bềnh nếu là loài bay)
+    /// </summary>
+    public float GetCurrentTargetY(float surfaceY)
+    {
+        if (isFlying)
+        {
+            float bobbing = Mathf.Sin(Time.time * flightBobbingFrequency) * flightBobbingAmplitude;
+            return surfaceY + flightAltitude + bobbing;
+        }
+        return surfaceY + yOffset;
+    }
+
     [Header("================ 2. ANIMATION CLIPS ================")]
     [Tooltip("Tên clip di chuyển chính (Walk, Glide, Flap, Swim_Horizontal...)")]
     public string moveAnimName = "Walk";
@@ -188,6 +214,9 @@ public class FarmAnimalAI : MonoBehaviour
             animalID = "chuongchuong_anm";
             biome = BiomeType.Mountain;
             isAquatic = false;
+            isFlying = true;
+            if (flightAltitude <= 0.1f) flightAltitude = 1.35f;
+            moveAnimName = "Flap";
         }
         else if (objName.Contains("chauchau"))
         {
@@ -319,7 +348,13 @@ public class FarmAnimalAI : MonoBehaviour
         }
         else
         {
-            if (animalID == "chuongchuong_anm" || animalID == "chauchau_anm")
+            if (animalID == "chuongchuong_anm")
+            {
+                if (HasAnim("Flap")) moveAnimName = "Flap";
+                else if (HasAnim("Glide")) moveAnimName = "Glide";
+                if (HasAnim("Flap")) idleAnimName = "Flap";
+            }
+            else if (animalID == "chauchau_anm")
             {
                 if (HasAnim("Flap")) moveAnimName = "Flap";
                 else if (HasAnim("Glide")) moveAnimName = "Glide";
@@ -661,13 +696,13 @@ public class FarmAnimalAI : MonoBehaviour
             for (int dir = 0; dir < 6; dir++)
             {
                 HexCoordinates nHex = currentHex.GetNeighbor(dir);
-                Vector3 nCenter = HexMetrics.HexToWorldPosition(nHex, transform.position.y);
+                Vector3 nCenter = HexMetrics.HexToWorldPosition(nHex, curSurfaceY);
 
                 // Ô láng giềng BẮT BUỘC phải là ô đã đặt tài nguyên cùng Biome!
                 if (IsPointOnMyEnvironmentTile(nCenter, out float nSurfaceY))
                 {
-                    // Chênh lệch độ cao giữa 2 ô không được quá lớn (không nhảy vực)
-                    if (Mathf.Abs(nSurfaceY - transform.position.y) <= 0.35f)
+                    // Chênh lệch độ cao giữa 2 ô không được quá lớn (không nhảy vực đối với thú đi đất)
+                    if (isFlying || Mathf.Abs(nSurfaceY - curSurfaceY) <= 0.35f)
                     {
                         validNeighborHexes.Add(nHex);
                     }
@@ -678,14 +713,14 @@ public class FarmAnimalAI : MonoBehaviour
             if (validNeighborHexes.Count > 0)
             {
                 HexCoordinates chosenNeighbor = validNeighborHexes[Random.Range(0, validNeighborHexes.Count)];
-                Vector3 neighborCenter = HexMetrics.HexToWorldPosition(chosenNeighbor, transform.position.y);
+                Vector3 neighborCenter = HexMetrics.HexToWorldPosition(chosenNeighbor, curSurfaceY);
 
                 Vector2 offset = Random.insideUnitCircle * innerHexRadius;
                 Vector3 targetInNeighbor = neighborCenter + new Vector3(offset.x, 0, offset.y);
 
                 if (IsPointOnMyEnvironmentTile(targetInNeighbor, out float targetY))
                 {
-                    targetInNeighbor.y = targetY;
+                    targetInNeighbor.y = GetCurrentTargetY(targetY);
                     return targetInNeighbor;
                 }
             }
@@ -699,9 +734,9 @@ public class FarmAnimalAI : MonoBehaviour
 
             if (IsPointOnMyEnvironmentTile(candidate, out float targetY))
             {
-                if (Mathf.Abs(targetY - transform.position.y) <= 0.35f)
+                if (isFlying || Mathf.Abs(targetY - curSurfaceY) <= 0.35f)
                 {
-                    candidate.y = targetY;
+                    candidate.y = GetCurrentTargetY(targetY);
                     return candidate;
                 }
             }
@@ -721,13 +756,16 @@ public class FarmAnimalAI : MonoBehaviour
         // 1. Kiểm tra xem vị trí bước tiếp theo có nằm trên ô đã đặt tài nguyên hợp lệ không
         if (IsPointOnMyEnvironmentTile(nextPos, out float surfaceY))
         {
-            // 2. Chống rơi vách dốc / bậc thang (chênh lệch độ cao > 0.35m là vách ngăn địa hình)
-            if (Mathf.Abs(surfaceY - transform.position.y) > 0.35f)
+            // 2. Chống rơi vách dốc / bậc thang (chỉ áp dụng chặn thú đi bộ, thú bay lượn trên cao tự do)
+            if (!isFlying && IsPointOnMyEnvironmentTile(transform.position, out float curSurfaceY))
             {
-                return false; // Chặn đứng lại ngay trước mép vách!
+                if (Mathf.Abs(surfaceY - curSurfaceY) > 0.35f)
+                {
+                    return false; // Chặn đứng lại ngay trước mép vách nếu đi bộ!
+                }
             }
 
-            nextPos.y = surfaceY + yOffset;
+            nextPos.y = GetCurrentTargetY(surfaceY);
             transform.position = nextPos;
             RotateSmoothlyTowards(target);
             return true;
@@ -917,7 +955,7 @@ public class FarmAnimalAI : MonoBehaviour
 
             if (IsPointOnMyEnvironmentTile(nextPos, out float surfaceY))
             {
-                nextPos.y = surfaceY + yOffset;
+                nextPos.y = GetCurrentTargetY(surfaceY);
                 transform.position = nextPos;
             }
             else
@@ -1364,7 +1402,7 @@ public class FarmAnimalAI : MonoBehaviour
         }
         else
         {
-            scatterTarget.y = sY + yOffset;
+            scatterTarget.y = GetCurrentTargetY(sY);
         }
 
         // Bước chân tản ra xa nhau
@@ -1499,7 +1537,7 @@ public class FarmAnimalAI : MonoBehaviour
     {
         if (IsPointOnMyEnvironmentTile(transform.position, out float surfaceY))
         {
-            transform.position = new Vector3(transform.position.x, surfaceY + yOffset, transform.position.z);
+            transform.position = new Vector3(transform.position.x, GetCurrentTargetY(surfaceY), transform.position.z);
         }
         else
         {
@@ -1507,7 +1545,23 @@ public class FarmAnimalAI : MonoBehaviour
             Vector3 nearestResourceTile = FindNearestValidHabitatTile(transform.position);
             if (nearestResourceTile != Vector3.zero)
             {
-                transform.position = nearestResourceTile + Vector3.up * yOffset;
+                float targetY = isFlying ? nearestResourceTile.y + flightAltitude : nearestResourceTile.y + yOffset;
+                transform.position = new Vector3(nearestResourceTile.x, targetY, nearestResourceTile.z);
+            }
+        }
+    }
+
+    void LateUpdate()
+    {
+        // Khi bay trên không và không phải đang múa xoay vòng tròn: giữ độ cao bồng bềnh êm ái
+        if (isFlying && currentState != AnimalState.CircleDance20s)
+        {
+            if (IsPointOnMyEnvironmentTile(transform.position, out float sY))
+            {
+                float targetY = GetCurrentTargetY(sY);
+                Vector3 p = transform.position;
+                p.y = Mathf.Lerp(p.y, targetY, 6f * Time.deltaTime);
+                transform.position = p;
             }
         }
     }
