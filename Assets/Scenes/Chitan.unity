@@ -971,6 +971,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameSettingsController
   settingsPanel: {fileID: 504354159}
   mainMenuSceneName: MainMenu
+  toggleSettingsKey: 3
 --- !u!4 &429149212
 Transform:
   m_ObjectHideFlags: 0
