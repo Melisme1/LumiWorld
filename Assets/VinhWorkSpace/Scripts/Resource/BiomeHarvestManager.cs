@@ -129,6 +129,9 @@ public class BiomeHarvestManager : MonoBehaviour
 
         if (!clickDown) return;
 
+        // Bấm trúng UI bấm được (nút, thẻ bài, bong bóng thu hoạch) hoặc đang mở Bảng Đơn Hàng, Cửa hàng thì không thu hoạch ô đất phía sau
+        if (EconomyHUD.IsPointerOverInteractiveUI(screenPos)) return;
+
         // Tránh bấm trúng khu vực khay bài (Hand) ở dưới màn hình
         if (screenPos.y < Screen.height * 0.18f) return;
 

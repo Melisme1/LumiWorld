@@ -733,7 +733,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -959, y: -612}
+  m_AnchoredPosition: {x: -689.98, y: -426.02}
   m_SizeDelta: {x: -2339.6, y: -1298.0446}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &287395755
@@ -1024,8 +1024,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 44, y: -13}
-  m_SizeDelta: {x: 1956.5, y: 1319}
+  m_AnchoredPosition: {x: 26, y: 51.22496}
+  m_SizeDelta: {x: 1527.2029, y: 1102.5925}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &504354161
 MonoBehaviour:
@@ -1429,12 +1429,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0
+  m_MatchWidthOrHeight: 0.5
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -2091,9 +2091,9 @@ RectTransform:
   - {fileID: 249711355}
   m_Father: {fileID: 827205811}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -1107, y: 578}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: -795, y: 396}
   m_SizeDelta: {x: 150, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1484110918
@@ -2619,17 +2619,17 @@ MonoBehaviour:
   rewardMilestones:
   - scoreThreshold: 10
     rewardCards:
-    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
-    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
-    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
-    - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
-    - {fileID: 11400000, guid: cc28b5f7ab60e1d4f9d1fb3c95e16caf, type: 2}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - scoreThreshold: 15
     rewardCards:
-    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
-    - {fileID: 11400000, guid: 358ede88d38164f47a4408289e0c5430, type: 2}
+    - {fileID: 0}
+    - {fileID: 0}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
