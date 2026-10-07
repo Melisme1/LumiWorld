@@ -107,6 +107,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
+  animalID: 
+  biome: 0
+  isAquatic: 0
+  moveAnimName: Walk
+  idleAnimName: Idle
+  mountainTileTag: MountainTile
+  forestTileTag: ForestTile
+  flowerTileTag: FlowerTile
+  waterTileTag: WaterTile
+  moveSpeed: 0.75
+  innerHexRadius: 0.48
+  stayInCurrentHexChance: 0.7
+  circleRadius: 0.45
+  connectionDuration: 20
+  yOffset: 0.05
+  currentState: 0
+  groupPartners: []
+  fastCooldownForTesting: 0
+  isConnectionOnCooldown: 0
+  cooldownRemainingSeconds: 0
+  formattedCooldownRemaining: "S\u1EB5n s\xE0ng (Ready)"
 --- !u!114 &1140000000000000013
 MonoBehaviour:
   m_ObjectHideFlags: 0
