@@ -13,6 +13,18 @@ PrefabInstance:
       value: chauchau_anm
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.45000002
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.45000002
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.45000002
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -52,6 +64,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8425563529021635733, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -67,6 +83,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       insertIndex: -1
       addedObject: {fileID: -2358146374971560203}
+    - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -4369867354337910924}
+    - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6720464613638286371}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
 --- !u!1 &8899861015182237886 stripped
 GameObject:
@@ -85,3 +107,90 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
+  animalID: 
+  biome: 0
+  isAquatic: 0
+  moveAnimName: Walk
+  idleAnimName: Idle
+  mountainTileTag: MountainTile
+  forestTileTag: ForestTile
+  flowerTileTag: FlowerTile
+  waterTileTag: WaterTile
+  moveSpeed: 0.75
+  innerHexRadius: 0.48
+  stayInCurrentHexChance: 0.7
+  circleRadius: 0.45
+  connectionDuration: 20
+  yOffset: 0.05
+  currentState: 0
+  groupPartners: []
+  fastCooldownForTesting: 0
+  isConnectionOnCooldown: 0
+  cooldownRemainingSeconds: 0
+  formattedCooldownRemaining: "S\u1EB5n s\xE0ng (Ready)"
+--- !u!114 &-4369867354337910924
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8899861015182237886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e075c4bf0a40e49a87faf5df5942d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalMovementAI
+  walkSpeed: 0.5
+  runSpeed: 1
+  swimSpeed: 0.6
+  flySpeed: 0.9
+  locomotionType: 1
+  autoDetectFlying: 1
+  flightAltitude: 1.35
+  flightBobbingFrequency: 3.2
+  flightBobbingAmplitude: 0.08
+  maxBankAngle: 22
+  bankSpeed: 6
+  landChance: 0.35
+  altitudeSmoothSpeed: 2.8
+  rotationSpeed: 220
+  turnBeforeWalking: 1
+  turnThresholdAngle: 30
+  yOffset: 0
+  autoDetectYOffset: 1
+  stayInCurrentHexChance: 0.6
+  maxWanderRadius: 0.45
+  safeHexRadius: 0.78
+  minIdleTime: 2.5
+  maxIdleTime: 5.5
+  idleTurnChance: 0.4
+  preferCameraFacingGlade: 1
+  personalRadius: 0.38
+  avoidanceWeight: 1.4
+  separationSpeed: 5
+--- !u!114 &6720464613638286371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8899861015182237886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e64c5713fc39394abcbc517af91b1f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalVisualEnhancer
+  enableCanopyFade: 1
+  fadedCanopyAlpha: 0.35
+  fadeSpeed: 5
+  canopyCheckRadius: 1.8
+  enableOverheadCrest: 1
+  crestHeightOffset: 0.35
+  crestScale: 0.1
+  crestColor: {r: 2.5, g: 2.1, b: 1, a: 1}
+  crestBobSpeed: 2.8
+  crestBobAmplitude: 0.04
+  enableRimGlow: 1
+  rimColor: {r: 1.8, g: 1.4, b: 0.7, a: 1}
+  rimPower: 2.2
+  rimIntensity: 2.5

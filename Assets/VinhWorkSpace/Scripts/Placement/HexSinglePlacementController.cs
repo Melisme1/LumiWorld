@@ -45,6 +45,13 @@ public class HexSinglePlacementController : MonoBehaviour
     [Tooltip("Màu đỏ cảnh báo khi trỏ ra ngoài ô")]
     [SerializeField] private Color invalidColor = new Color(0.95f, 0.20f, 0.20f, 0.70f);
 
+    [Header("Biome Cluster Limit (Giới hạn quy mô Biome)")]
+    [Tooltip("Bật/Tắt giới hạn số ô lục giác tối đa cho mỗi Cụm Biome")]
+    [SerializeField] private bool enableBiomeSizeLimit = true;
+
+    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 6). Nếu người chơi ghép thêm ô vượt quá số này sẽ bị chặn.")]
+    [SerializeField] private int maxTilesPerBiome = 6;
+
     [Header("Modular Components")]
     [SerializeField] private HexPointerRaycaster raycaster;
     [SerializeField] private HexPlacementValidator validator;
@@ -136,6 +143,18 @@ public class HexSinglePlacementController : MonoBehaviour
             ghostVisual.ValidColor = validColor;
             ghostVisual.InvalidColor = invalidColor;
         }
+
+        if (validator != null)
+        {
+            validator.EnableBiomeSizeLimit = enableBiomeSizeLimit;
+            validator.MaxTilesPerBiome = maxTilesPerBiome;
+        }
+
+        if (HexBiomeClusterConnector.Instance != null)
+        {
+            HexBiomeClusterConnector.Instance.EnableBiomeSizeLimit = enableBiomeSizeLimit;
+            HexBiomeClusterConnector.Instance.MaxTilesPerCluster = maxTilesPerBiome;
+        }
     }
 
     private void Update()
@@ -222,7 +241,7 @@ public class HexSinglePlacementController : MonoBehaviour
                 if (hexChanged)
                 {
                     currentActiveTileObj = tileObj;
-                    ghostVisual.OnHexSelectionChanged(tileObj);
+                    ghostVisual.OnHexSelectionChanged(tileObj, isValid);
                 }
                 else
                 {
@@ -253,6 +272,10 @@ public class HexSinglePlacementController : MonoBehaviour
 
         if (!validator.ValidatePlacement(currentHoverHex, worldGenerator, cardData, out GameObject targetTileObj))
         {
+            if (!string.IsNullOrEmpty(validator.LastValidationError))
+            {
+                Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
+            }
             CancelPreview();
             return false;
         }
@@ -345,22 +368,22 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
             }
 
-            // Tính toán lại điểm số
-            if (ScoreCalculator.Instance != null)
-            {
-                ScoreCalculator.Instance.RecalculateScore();
-            }
-
-            // Hiệu ứng cộng điểm "+X" (Preserve style)
-            ShowPlacementScorePopup(placedCardInstance);
-
-            // Kết nối các khối trong cụm biome (Preserve-style seamless cluster connection)
+            // 1. Phân bổ Cụm Biome & Kết nối các khối trong cụm (Preserve-style seamless cluster connection)
             if (HexBiomeClusterConnector.Instance != null && placedCardInstance != null)
             {
                 HexBiomeClusterConnector.Instance.ConnectCluster(placedCardInstance);
             }
 
-            // Cập nhật hệ thống cụm thu hoạch tài nguyên Biome
+            // 2. Tính toán lại điểm số
+            if (ScoreCalculator.Instance != null)
+            {
+                ScoreCalculator.Instance.RecalculateScore();
+            }
+
+            // 3. Hiệu ứng cộng điểm "+X" (Preserve style)
+            ShowPlacementScorePopup(placedCardInstance);
+
+            // 4. Cập nhật hệ thống cụm thu hoạch tài nguyên Biome
             if (BiomeHarvestManager.Instance != null)
             {
                 BiomeHarvestManager.Instance.OnWorldChanged();

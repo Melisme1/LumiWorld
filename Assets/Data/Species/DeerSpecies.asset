@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9c1a415b3d047a4ab5a8f21e51b2c3d, type: 3}
+  m_Name: DeerSpecies
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
+  speciesID: deer
+  speciesName: "Nai Rừng"
+  description: "Chú nai rừng tao nhã với cặp gạc đâm chồi xanh biếc, yêu thích dạo bước bình yên và mang lại linh khí trong lành."
+  locomotionType: 0
+  baseWalkSpeed: 0.52
+  baseRunSpeed: 1.1
+  flightAltitude: 1.2
+  personalRadius: 0.38
+  yOffset: 0
+  baseResourceAmount: 2
+  baseProductionInterval: 22
+  weight1Star: 45
+  weight2Star: 30
+  weight3Star: 16
+  weight4Star: 7
+  weight5Star: 2
+  traitPool:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5

@@ -329,15 +329,28 @@ public class AnimalIndividual : MonoBehaviour
     private void ApplyToMovementAI()
     {
         AnimalMovementAI moveAI = GetComponent<AnimalMovementAI>();
+        if (moveAI == null)
+        {
+            moveAI = gameObject.AddComponent<AnimalMovementAI>();
+        }
         if (moveAI != null)
         {
             moveAI.SetSpeeds(actualWalkSpeed, actualWalkSpeed * 1.8f);
+            if (speciesData != null)
+            {
+                moveAI.SetLocomotion(speciesData.locomotionType, speciesData.flightAltitude);
+                moveAI.SetYOffset(speciesData.yOffset);
+            }
         }
     }
 
     private void ApplyToVisualEnhancer()
     {
         AnimalVisualEnhancer visual = GetComponent<AnimalVisualEnhancer>();
+        if (visual == null)
+        {
+            visual = gameObject.AddComponent<AnimalVisualEnhancer>();
+        }
         if (visual != null)
         {
             Color rankColor = GetRankColor(rank);

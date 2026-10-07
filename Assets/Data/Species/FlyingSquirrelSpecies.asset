@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9c1a415b3d047a4ab5a8f21e51b2c3d, type: 3}
+  m_Name: FlyingSquirrelSpecies
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
+  speciesID: flyingsquirrel
+  speciesName: "Sóc Bay"
+  description: "Chú sóc bay tinh anh với đôi mắt sáng, lanh lợi chuyền cành và lướt đi thoăn thoắt giữa những vòm cây râm mát."
+  locomotionType: 0
+  baseWalkSpeed: 0.6
+  baseRunSpeed: 1.15
+  flightAltitude: 1.2
+  personalRadius: 0.32
+  yOffset: 0
+  baseResourceAmount: 1
+  baseProductionInterval: 18
+  weight1Star: 52
+  weight2Star: 28
+  weight3Star: 13
+  weight4Star: 5
+  weight5Star: 2
+  traitPool:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5

@@ -101,6 +101,25 @@ public class HexBiomeClusterConnector : MonoBehaviour
     [Tooltip("Thời gian diễn ra hiệu ứng nảy")]
     [SerializeField] private float celebrationDuration = 0.35f;
 
+    [Header("Biome Cluster Limit (Giới hạn quy mô Cụm Biome)")]
+    [Tooltip("Bật/tắt giới hạn kích thước Cụm Biome. Khi bật, một cụm chỉ được tối đa maxTilesPerCluster ô.")]
+    [SerializeField] private bool enableBiomeSizeLimit = true;
+    public bool EnableBiomeSizeLimit
+    {
+        get => enableBiomeSizeLimit;
+        set => enableBiomeSizeLimit = value;
+    }
+
+    [Tooltip("Số ô lục giác tối đa của một Cụm Biome (Mặc định: 6). Khi cụm đã đủ 6 ô, các ô đặt thêm sau đó sẽ tách thành cụm độc lập, không tạo viền nối.")]
+    [SerializeField] private int maxTilesPerCluster = 6;
+    public int MaxTilesPerCluster
+    {
+        get => maxTilesPerCluster;
+        set => maxTilesPerCluster = value;
+    }
+
+    private int _nextClusterId = 1;
+
     // Quản lý các cầu nối và nắp góc đã tạo để không tạo trùng lặp
     private readonly HashSet<string> _createdEdgeBridges = new HashSet<string>();
     private readonly HashSet<string> _createdCornerFillers = new HashSet<string>();
@@ -155,20 +174,169 @@ public class HexBiomeClusterConnector : MonoBehaviour
     // TUYỆT ĐỐI KHÔNG tự động quét toàn map trong Start() để tránh sinh dải nối trên các ô đất thô chưa đặt bài!
 
     /// <summary>
+    /// Gán hoặc sáp nhập Cụm Biome cho một lá bài PlacedCard vừa đặt xuống.
+    /// Đảm bảo một cụm không bao giờ vượt quá maxTilesPerCluster (mặc định 6 ô).
+    /// Nếu đặt thêm ô thứ 7, ô đó sẽ được tách thành một cụm độc lập (clusterId mới),
+    /// không tạo bất kỳ viền nối nào với cụm 6 ô trước đó.
+    /// </summary>
+    public int AssignCluster(PlacedCard placedCard)
+    {
+        if (placedCard == null || placedCard.cardData == null) return -1;
+        if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain) return -1;
+
+        if (placedCard.clusterId > 0)
+        {
+            return placedCard.clusterId;
+        }
+
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen == null || worldGen.MapTiles == null)
+        {
+            placedCard.clusterId = _nextClusterId++;
+            return placedCard.clusterId;
+        }
+
+        int limit = (enableBiomeSizeLimit)
+            ? ((placedCard.cardData.maxBiomeTilesOverride > 0) ? placedCard.cardData.maxBiomeTilesOverride : maxTilesPerCluster)
+            : int.MaxValue;
+        if (limit <= 0) limit = int.MaxValue;
+
+        // 1. Quét tìm kích thước hiện tại của tất cả các cụm cùng loại habitat
+        PlacedCard[] allCards = FindObjectsByType<PlacedCard>(FindObjectsInactive.Exclude);
+        Dictionary<int, int> clusterSizes = new Dictionary<int, int>();
+        foreach (var c in allCards)
+        {
+            if (c != null && c != placedCard && c.clusterId > 0 && AreHabitatsMatching(placedCard.cardData, c.cardData))
+            {
+                if (!clusterSizes.ContainsKey(c.clusterId)) clusterSizes[c.clusterId] = 0;
+                clusterSizes[c.clusterId]++;
+            }
+        }
+
+        // 2. Quét 6 hướng tìm các ô láng giềng hợp lệ
+        Dictionary<int, List<PlacedCard>> eligibleNeighborClusters = new Dictionary<int, List<PlacedCard>>();
+
+        for (int dir = 0; dir < 6; dir++)
+        {
+            HexCoordinates neighborHex = placedCard.placedHex.GetNeighbor(dir);
+            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
+            {
+                PlacedCard neighborCard = GetHabitatCardOnTile(neighborTile);
+                if (neighborCard != null && neighborCard != placedCard && AreHabitatsMatching(placedCard.cardData, neighborCard.cardData))
+                {
+                    // Nếu ô láng giềng chưa có clusterId, khởi tạo cho nó
+                    if (neighborCard.clusterId <= 0)
+                    {
+                        neighborCard.clusterId = _nextClusterId++;
+                        clusterSizes[neighborCard.clusterId] = 1;
+                    }
+
+                    int cId = neighborCard.clusterId;
+                    int curSize = clusterSizes.ContainsKey(cId) ? clusterSizes[cId] : 1;
+
+                    // Chỉ coi là hợp lệ để kết nối nếu cụm đó CHƯA ĐẦY (< limit)
+                    if (curSize < limit)
+                    {
+                        if (!eligibleNeighborClusters.ContainsKey(cId))
+                        {
+                            eligibleNeighborClusters[cId] = new List<PlacedCard>();
+                        }
+                        eligibleNeighborClusters[cId].Add(neighborCard);
+                    }
+                }
+            }
+        }
+
+        // 3. Xử lý gán cluster:
+        if (eligibleNeighborClusters.Count == 0)
+        {
+            // Không có cụm láng giềng nào còn chỗ (hoặc tất cả cụm kề bên đã đạt tối đa 6 ô)!
+            // Tách thành CỤM MỚI ĐỘC LẬP
+            placedCard.clusterId = _nextClusterId++;
+        }
+        else if (eligibleNeighborClusters.Count == 1)
+        {
+            // Có đúng 1 cụm kề bên còn chỗ -> Gia nhập cụm đó
+            foreach (var kvp in eligibleNeighborClusters)
+            {
+                placedCard.clusterId = kvp.Key;
+                break;
+            }
+        }
+        else
+        {
+            // Kề cận nhiều hơn 1 cụm còn chỗ:
+            // Kiểm tra xem có thể gộp (merge) các cụm lại mà không vượt quá limit không?
+            List<int> candidateClusterIds = new List<int>(eligibleNeighborClusters.Keys);
+            int primaryClusterId = candidateClusterIds[0];
+            int totalMergedSize = 1; // bản thân ô mới
+
+            foreach (var cId in candidateClusterIds)
+            {
+                totalMergedSize += clusterSizes.ContainsKey(cId) ? clusterSizes[cId] : 1;
+            }
+
+            if (totalMergedSize <= limit)
+            {
+                // Tổng số ô sau khi gộp vẫn <= limit -> Cho phép gộp thành 1 cụm duy nhất!
+                placedCard.clusterId = primaryClusterId;
+                for (int i = 1; i < candidateClusterIds.Count; i++)
+                {
+                    int otherId = candidateClusterIds[i];
+                    foreach (var c in allCards)
+                    {
+                        if (c != null && c.clusterId == otherId)
+                        {
+                            c.clusterId = primaryClusterId;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Nếu gộp tất cả sẽ vượt quá limit:
+                // Chỉ gia nhập Cụm có nhiều cạnh kề nhất, KHÔNG gộp các cụm còn lại!
+                int bestClusterId = primaryClusterId;
+                int maxAdjCount = -1;
+
+                foreach (var kvp in eligibleNeighborClusters)
+                {
+                    int adjCount = kvp.Value.Count;
+                    if (adjCount > maxAdjCount)
+                    {
+                        maxAdjCount = adjCount;
+                        bestClusterId = kvp.Key;
+                    }
+                }
+
+                placedCard.clusterId = bestClusterId;
+            }
+        }
+
+        return placedCard.clusterId;
+    }
+
+    /// <summary>
     /// Kích hoạt kết nối khi một lá bài Habitat vừa được người chơi đặt xuống thành công
     /// </summary>
     public void ConnectCluster(PlacedCard placedCard)
     {
         if (placedCard == null || placedCard.cardData == null) return;
 
-        // Chỉ xử lý nếu lá bài này là thẻ Habitat (có hệ sinh thái props)
+        // Chỉ xử lý nếu lá bài này là thẻ Habitat (có hệ sinh thái props) hoặc Terrain
+        if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain) return;
+
+        // 1. Phân bổ Cụm Biome cho thẻ bài (tối đa maxTilesPerCluster ô)
+        AssignCluster(placedCard);
+
         if (!placedCard.cardData.HasHabitatProps()) return;
 
+        // 2. Quét và kết nối viền với các ô láng giềng cùng loại VÀ cùng Cụm
         ConnectAllNearby(placedCard.placedHex, placedCard.cardData);
     }
 
     /// <summary>
-    /// Quét và kết nối ô tại centerHex với tất cả các ô láng giềng kề nó THỎA MÃN CÙNG HABITAT
+    /// Quét và kết nối ô tại centerHex với tất cả các ô láng giềng kề nó THỎA MÃN CÙNG HABITAT VÀ CÙNG CỤM
     /// </summary>
     public void ConnectAllNearby(HexCoordinates centerHex, CardData centerHabitatData = null)
     {
@@ -179,13 +347,18 @@ public class HexBiomeClusterConnector : MonoBehaviour
             return;
 
         // Xác định thẻ Habitat trên ô trung tâm (duyệt qua toàn bộ PlacedCard trên ô, không bị che bởi thẻ Rain)
+        PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
         if (centerHabitatData == null || !centerHabitatData.HasHabitatProps())
         {
-            PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
             if (centerCard == null || centerCard.cardData == null || !centerCard.cardData.HasHabitatProps())
                 return;
 
             centerHabitatData = centerCard.cardData;
+        }
+
+        if (centerCard != null && centerCard.clusterId <= 0)
+        {
+            AssignCluster(centerCard);
         }
 
         // 1. Quét tìm tất cả các ngã ba 3 ô (Corner Junctions) MỚI ĐƯỢC TẠO THÀNH bởi ô centerHex này
@@ -208,6 +381,18 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     AreHabitatsMatching(centerHabitatData, cardB.cardData) &&
                     AreHabitatsMatching(centerHabitatData, cardC.cardData))
                 {
+                    // NẾU BẬT GIỚI HẠN BIOME: Cả 3 ô center, B, C PHẢI THUỘC CÙNG 1 CỤM CLUSTER ID THÌ MỚI HÀN NGÃ BA!
+                    if (enableBiomeSizeLimit)
+                    {
+                        if (centerCard == null || centerCard.clusterId <= 0 ||
+                            cardB.clusterId <= 0 || cardC.clusterId <= 0 ||
+                            cardB.clusterId != centerCard.clusterId ||
+                            cardC.clusterId != centerCard.clusterId)
+                        {
+                            continue; // Khác cụm -> BỎ QUA, không hàn ngã ba giữa các ô khác cụm!
+                        }
+                    }
+
                     string cornerKey = GetCornerKey(centerHex, hB, hC);
                     if (!_createdCornerFillers.Contains(cornerKey))
                     {
@@ -231,6 +416,17 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
                 if (neighborCard != null && AreHabitatsMatching(centerHabitatData, neighborCard.cardData))
                 {
+                    // NẾU BẬT GIỚI HẠN BIOME: Cả 2 ô center và neighbor PHẢI THUỘC CÙNG 1 CỤM CLUSTER ID THÌ MỚI TẠO VIỀN NỐI!
+                    if (enableBiomeSizeLimit)
+                    {
+                        if (centerCard == null || centerCard.clusterId <= 0 ||
+                            neighborCard.clusterId <= 0 ||
+                            neighborCard.clusterId != centerCard.clusterId)
+                        {
+                            continue; // Khác cụm -> BỎ QUA, không tạo viền nối giữa các ô khác cụm!
+                        }
+                    }
+
                     string edgeKey = GetEdgeKey(centerHex, neighborHex);
                     if (!_createdEdgeBridges.Contains(edgeKey))
                     {
@@ -2067,6 +2263,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         visited.Add(centerHex);
 
         GameObject centerTile = worldGen.MapTiles[centerHex];
+        PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
         clusterTiles.Add(centerTile);
 
         while (queue.Count > 0)
@@ -2083,6 +2280,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     PlacedCard nCard = GetHabitatCardOnTile(nTile);
                     if (nCard != null && AreHabitatsMatching(centerHabitatData, nCard.cardData))
                     {
+                        if (enableBiomeSizeLimit && centerCard != null && (nCard.clusterId <= 0 || nCard.clusterId != centerCard.clusterId))
+                        {
+                            continue;
+                        }
+
                         visited.Add(nHex);
                         queue.Enqueue(nHex);
                         clusterTiles.Add(nTile);
@@ -2111,12 +2313,23 @@ public class HexBiomeClusterConnector : MonoBehaviour
         HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
         if (worldGen == null || worldGen.MapTiles == null) return;
 
+        ClearAllConnections();
+
         foreach (var pair in worldGen.MapTiles)
         {
             PlacedCard card = GetHabitatCardOnTile(pair.Value);
             if (card != null && card.cardData != null && card.cardData.HasHabitatProps())
             {
-                ConnectAllNearby(pair.Key, card.cardData);
+                card.clusterId = -1;
+            }
+        }
+
+        foreach (var pair in worldGen.MapTiles)
+        {
+            PlacedCard card = GetHabitatCardOnTile(pair.Value);
+            if (card != null && card.cardData != null && card.cardData.HasHabitatProps())
+            {
+                ConnectCluster(card);
             }
         }
     }
@@ -2130,6 +2343,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         _createdEdgeBridges.Clear();
         _createdCornerFillers.Clear();
         _celebratedClusters.Clear();
+        _nextClusterId = 1;
 
         if (_connectionsContainer != null)
         {

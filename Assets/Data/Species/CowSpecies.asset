@@ -20,7 +20,7 @@ MonoBehaviour:
   baseWalkSpeed: 0.45
   baseRunSpeed: 0.9
   personalRadius: 0.4
-  yOffset: 0.35
+  yOffset: 0
   baseResourceAmount: 1
   baseProductionInterval: 20
   weight1Star: 50

@@ -13,6 +13,18 @@ PrefabInstance:
       value: chohoa_anm
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -52,6 +64,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -6601043233671942095, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8425563529021635733, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -79,6 +95,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
       insertIndex: -1
       addedObject: {fileID: -8771877089217964163}
+    - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1140000000000000009}
+    - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1140000000000000010}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: 62fc8ab5bfa6daa4d92bcab24886e336, type: 3}
 --- !u!1 &7806008197878344192 stripped
 GameObject:
@@ -97,3 +119,90 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
+  animalID: 
+  biome: 0
+  isAquatic: 0
+  moveAnimName: Walk
+  idleAnimName: Idle
+  mountainTileTag: MountainTile
+  forestTileTag: ForestTile
+  flowerTileTag: FlowerTile
+  waterTileTag: WaterTile
+  moveSpeed: 0.75
+  innerHexRadius: 0.48
+  stayInCurrentHexChance: 0.7
+  circleRadius: 0.45
+  connectionDuration: 20
+  yOffset: 0.05
+  currentState: 0
+  groupPartners: []
+  fastCooldownForTesting: 0
+  isConnectionOnCooldown: 0
+  cooldownRemainingSeconds: 0
+  formattedCooldownRemaining: "S\u1EB5n s\xE0ng (Ready)"
+--- !u!114 &1140000000000000009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7806008197878344192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e075c4bf0a40e49a87faf5df5942d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalMovementAI
+  walkSpeed: 0.5
+  runSpeed: 1
+  swimSpeed: 0.6
+  flySpeed: 0.9
+  locomotionType: 0
+  autoDetectFlying: 0
+  flightAltitude: 1.2
+  flightBobbingFrequency: 3.2
+  flightBobbingAmplitude: 0.08
+  maxBankAngle: 22
+  bankSpeed: 6
+  landChance: 0.35
+  altitudeSmoothSpeed: 2.8
+  rotationSpeed: 220
+  turnBeforeWalking: 1
+  turnThresholdAngle: 30
+  yOffset: 0
+  autoDetectYOffset: 0
+  stayInCurrentHexChance: 0.6
+  maxWanderRadius: 0.4
+  safeHexRadius: 0.75
+  minIdleTime: 2.5
+  maxIdleTime: 5.5
+  idleTurnChance: 0.4
+  preferCameraFacingGlade: 1
+  personalRadius: 0.36
+  avoidanceWeight: 1.4
+  separationSpeed: 5
+--- !u!114 &1140000000000000010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7806008197878344192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e64c5713fc39394abcbc517af91b1f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalVisualEnhancer
+  enableCanopyFade: 1
+  fadedCanopyAlpha: 0.35
+  fadeSpeed: 5
+  canopyCheckRadius: 1.8
+  enableOverheadCrest: 1
+  crestHeightOffset: 0.35
+  crestScale: 0.09
+  crestColor: {r: 2, g: 1.8, b: 0.8, a: 1}
+  crestBobSpeed: 2.8
+  crestBobAmplitude: 0.04
+  enableRimGlow: 1
+  rimColor: {r: 1.5, g: 1.3, b: 0.7, a: 1}
+  rimPower: 2.2
+  rimIntensity: 1.5

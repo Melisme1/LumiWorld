@@ -33,6 +33,9 @@ public class BiomeHarvestManager : MonoBehaviour
     [Header("Cluster Settings")]
     [Tooltip("Độ trễ sau khi đặt bài trước khi quét lại cụm (tránh giật lag)")]
     [SerializeField] private float refreshDebounceTime = 0.15f;
+    [Tooltip("Số ô tối đa trên mỗi Cụm Biome thu hoạch (Mặc định: 6 ô)")]
+    [SerializeField] private int maxTilesPerCluster = 6;
+    public int MaxTilesPerCluster => maxTilesPerCluster;
 
     private readonly List<BiomeHarvestCluster> clusters = new List<BiomeHarvestCluster>();
     public IReadOnlyList<BiomeHarvestCluster> Clusters => clusters;
@@ -178,7 +181,15 @@ public class BiomeHarvestManager : MonoBehaviour
         AnimalIndividual[] allAnimalsArray = FindObjectsByType<AnimalIndividual>(FindObjectsInactive.Exclude);
         List<AnimalIndividual> allAnimals = new List<AnimalIndividual>(allAnimalsArray);
 
-        // 2. Thuật toán Flood Fill (BFS) gom nhóm các ô cùng loại liền kề
+        foreach (var c in resourceTerrains)
+        {
+            if (c != null && c.clusterId <= 0 && HexBiomeClusterConnector.Instance != null)
+            {
+                HexBiomeClusterConnector.Instance.AssignCluster(c);
+            }
+        }
+
+        // 2. Thuật toán Flood Fill (BFS) gom nhóm các ô cùng loại liền kề và cùng Cụm
         HashSet<PlacedCard> visited = new HashSet<PlacedCard>();
         List<List<PlacedCard>> groupedLists = new List<List<PlacedCard>>();
 
@@ -203,8 +214,9 @@ public class BiomeHarvestManager : MonoBehaviour
                     HexCoordinates neighborHex = curr.placedHex.GetNeighbor(dir);
                     if (terrainByHex.TryGetValue(neighborHex, out PlacedCard neighborCard))
                     {
-                        // Cùng CardID hoặc cùng producedResource
-                        if (neighborCard.CardID == startCard.CardID && !visited.Contains(neighborCard))
+                        // Cùng CardID hoặc cùng producedResource VÀ cùng Cụm Biome độc lập
+                        bool isSameCluster = (curr.clusterId <= 0 && neighborCard.clusterId <= 0) || (curr.clusterId == neighborCard.clusterId);
+                        if (neighborCard.CardID == startCard.CardID && isSameCluster && !visited.Contains(neighborCard))
                         {
                             visited.Add(neighborCard);
                             queue.Enqueue(neighborCard);
