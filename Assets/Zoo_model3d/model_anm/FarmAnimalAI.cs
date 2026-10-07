@@ -127,6 +127,7 @@ public class FarmAnimalAI : MonoBehaviour
 
     private Animation anim;
     private HexWorldGenerator worldGen;
+    private AnimalMovementAI movementAI;
     private readonly List<string> availableMoveClips = new List<string>();
     private readonly List<string> availableIdleClips = new List<string>();
 
@@ -147,7 +148,18 @@ public class FarmAnimalAI : MonoBehaviour
     {
         anim = GetComponent<Animation>();
         worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        movementAI = GetComponent<AnimalMovementAI>();
         AutoDetectSpeciesAndBiome();
+
+        // Đồng bộ thuộc tính bay từ AnimalMovementAI nếu có
+        if (movementAI != null && movementAI.LocomotionType == AnimalLocomotionType.Flying)
+        {
+            isFlying = true;
+            if (movementAI.FlightAltitude > 0.1f)
+            {
+                flightAltitude = movementAI.FlightAltitude;
+            }
+        }
     }
 
     void Start()
@@ -388,8 +400,18 @@ public class FarmAnimalAI : MonoBehaviour
             switch (currentState)
             {
                 case AnimalState.WanderRandom:
-                    yield return StartCoroutine(DoWanderAndIdleRoutine());
-                    CheckForConnectionPartners();
+                    if (movementAI != null && movementAI.enabled)
+                    {
+                        // AnimalMovementAI quản lý toàn bộ việc di chuyển, lượn cánh, cất/hạ cánh và né tránh.
+                        // FarmAnimalAI định kỳ quét bạn bè xung quanh để kích hoạt kết nối khi gặp nhau.
+                        CheckForConnectionPartners();
+                        yield return new WaitForSeconds(Random.Range(0.8f, 1.2f));
+                    }
+                    else
+                    {
+                        yield return StartCoroutine(DoWanderAndIdleRoutine());
+                        CheckForConnectionPartners();
+                    }
                     break;
 
                 case AnimalState.MeetUp:
@@ -839,6 +861,10 @@ public class FarmAnimalAI : MonoBehaviour
             {
                 member.groupPartners = new List<FarmAnimalAI>(matchedGroup);
                 member.currentState = AnimalState.MeetUp;
+                if (member.movementAI != null)
+                {
+                    member.movementAI.InterruptWandering();
+                }
             }
         }
     }
@@ -1535,6 +1561,12 @@ public class FarmAnimalAI : MonoBehaviour
 
     void SnapToTileSurface()
     {
+        if (movementAI != null && movementAI.enabled)
+        {
+            // Nhường việc khởi tạo vị trí ban đầu và yOffset cho AnimalMovementAI
+            return;
+        }
+
         if (IsPointOnMyEnvironmentTile(transform.position, out float surfaceY))
         {
             transform.position = new Vector3(transform.position.x, GetCurrentTargetY(surfaceY), transform.position.z);
@@ -1556,6 +1588,12 @@ public class FarmAnimalAI : MonoBehaviour
         // Khi bay trên không và không phải đang múa xoay vòng tròn: giữ độ cao bồng bềnh êm ái
         if (isFlying && currentState != AnimalState.CircleDance20s)
         {
+            if (movementAI != null && movementAI.enabled && currentState == AnimalState.WanderRandom)
+            {
+                // AnimalMovementAI đã tự xử lý UpdateElevationAndBanking trong lúc wander!
+                return;
+            }
+
             if (IsPointOnMyEnvironmentTile(transform.position, out float sY))
             {
                 float targetY = GetCurrentTargetY(sY);

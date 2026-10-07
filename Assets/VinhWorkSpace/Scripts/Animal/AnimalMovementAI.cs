@@ -123,6 +123,7 @@ public class AnimalMovementAI : MonoBehaviour
     private HexWorldGenerator worldGen;
     private HexCoordinates currentHex;
     private bool isMoving = false;
+    private FarmAnimalAI farmAI;
 
     // Trạng thái bay lượn & độ cao
     private bool isAirborne = false;
@@ -140,6 +141,15 @@ public class AnimalMovementAI : MonoBehaviour
     public AnimalLocomotionType LocomotionType => locomotionType;
     public bool IsAirborne => isAirborne;
     public float FlightAltitude => flightAltitude;
+    public FarmAnimalAI FarmAI => farmAI;
+
+    /// <summary>
+    /// Cho phép script bên ngoài (như FarmAnimalAI) yêu cầu dừng ngay các hành vi dạo chơi/bước đi
+    /// </summary>
+    public void InterruptWandering()
+    {
+        isMoving = false;
+    }
 
     /// <summary>
     /// Cập nhật tốc độ di chuyển từ AnimalIndividual (hệ thống phẩm cấp / tính cách)
@@ -230,13 +240,10 @@ public class AnimalMovementAI : MonoBehaviour
             Debug.LogWarning($"[AnimalMovementAI] Không tìm thấy component Animation trên {gameObject.name}");
         }
 
-        // Nếu có FarmAnimalAI đang được sử dụng trên cùng đối tượng, nhường toàn quyền điều khiển cho FarmAnimalAI
-        FarmAnimalAI farmAI = GetComponent<FarmAnimalAI>();
-        if (farmAI != null && farmAI.enabled)
-        {
-            this.enabled = false;
-            return;
-        }
+        // Tích hợp với FarmAnimalAI (Hệ thống phối hợp 2-trong-1)
+        // Khi FarmAnimalAI có mặt, AnimalMovementAI đảm nhận toàn bộ việc di chuyển/lượn cánh/né tránh tự do,
+        // và nhường quyền điều khiển cho FarmAnimalAI khi diễn kịch bản kết nối nhóm (MeetUp, CircleDance, Buff).
+        farmAI = GetComponent<FarmAnimalAI>();
     }
 
     private void Start()
@@ -496,6 +503,10 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     private void LateUpdate()
     {
+        // Khi FarmAnimalAI đang điều khiển kịch bản kết nối nhóm (MeetUp, CircleDance, Combo, Cooldown scatter)
+        // tạm thời không can thiệp ResolveOverlaps để tránh đẩy dạt thú ra khỏi vòng múa tròn
+        if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) return;
+
         ResolveOverlaps();
     }
 
@@ -649,6 +660,7 @@ public class AnimalMovementAI : MonoBehaviour
         float landTimer = 0f;
         while (Mathf.Abs(currentAltitudeOffset - yOffset) > 0.06f && landTimer < 2.5f)
         {
+            if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
             landTimer += Time.deltaTime;
             UpdateElevationAndBanking(transform.position, Vector3.zero);
             yield return null;
@@ -692,6 +704,7 @@ public class AnimalMovementAI : MonoBehaviour
         float targetY = flightAltitude - 0.15f;
         while (currentAltitudeOffset < targetY && takeoffTimer < 2.0f)
         {
+            if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
             takeoffTimer += Time.deltaTime;
             UpdateElevationAndBanking(transform.position, Vector3.zero);
             yield return null;
@@ -707,9 +720,34 @@ public class AnimalMovementAI : MonoBehaviour
         PlayStationaryAnimation();
         yield return new WaitForSeconds(0.25f);
 
+        bool wasInterruptedByFarmAI = false;
+
         while (true)
         {
             if (anim == null) yield break;
+
+            // Nếu FarmAnimalAI đang thực hiện kịch bản kết nối nhóm (MeetUp, CircleDance, Combo, Cooldown)
+            if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom)
+            {
+                wasInterruptedByFarmAI = true;
+                yield return new WaitForSeconds(0.25f);
+                continue;
+            }
+
+            // Khi vừa kết thúc kịch bản FarmAnimalAI và trở lại tự do: đồng bộ lại vị trí và animation
+            if (wasInterruptedByFarmAI)
+            {
+                wasInterruptedByFarmAI = false;
+                UpdateCurrentHex();
+                currentWorldY = transform.position.y;
+                if (locomotionType == AnimalLocomotionType.Flying)
+                {
+                    isAirborne = true;
+                    targetAltitudeOffset = flightAltitude;
+                    currentAltitudeOffset = flightAltitude;
+                }
+                PlayStationaryAnimation();
+            }
 
             if (locomotionType == AnimalLocomotionType.Flying)
             {
@@ -743,6 +781,7 @@ public class AnimalMovementAI : MonoBehaviour
                 float elapsed = 0f;
                 while (elapsed < groundWait && !isMoving)
                 {
+                    if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
                     elapsed += Time.deltaTime;
                     UpdateElevationAndBanking(transform.position, Vector3.zero);
                     yield return null;
@@ -764,6 +803,7 @@ public class AnimalMovementAI : MonoBehaviour
                 float elapsed = 0f;
                 while (elapsed < hoverTime && !isMoving)
                 {
+                    if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
                     elapsed += Time.deltaTime;
                     UpdateElevationAndBanking(transform.position, Vector3.zero);
                     yield return null;
@@ -794,6 +834,7 @@ public class AnimalMovementAI : MonoBehaviour
                 float elapsed = 0f;
                 while (elapsed < waitTime && !isMoving)
                 {
+                    if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
                     elapsed += Time.deltaTime;
                     UpdateElevationAndBanking(transform.position, Vector3.zero);
                     yield return null;
@@ -834,6 +875,7 @@ public class AnimalMovementAI : MonoBehaviour
             float idleElapsed = 0f;
             while (idleElapsed < waitTime && !isMoving)
             {
+                if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
                 idleElapsed += Time.deltaTime;
                 UpdateElevationAndBanking(transform.position, Vector3.zero);
                 yield return null;
@@ -879,6 +921,11 @@ public class AnimalMovementAI : MonoBehaviour
                 Quaternion faceRot = Quaternion.LookRotation(initialDir);
                 while (Quaternion.Angle(transform.rotation, faceRot) > turnThresholdAngle && elapsed < 0.8f)
                 {
+                    if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom)
+                    {
+                        isMoving = false;
+                        yield break;
+                    }
                     elapsed += Time.deltaTime;
                     transform.rotation = Quaternion.RotateTowards(transform.rotation, faceRot, rotationSpeed * Time.deltaTime);
                     UpdateElevationAndBanking(transform.position, Vector3.zero);
@@ -893,6 +940,11 @@ public class AnimalMovementAI : MonoBehaviour
         // BƯỚC 2: Vừa bước đi vừa né tránh chướng ngại vật động vật, gốc cây và ranh giới ô
         while (elapsed < maxDuration)
         {
+            if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom)
+            {
+                isMoving = false;
+                yield break;
+            }
             elapsed += Time.deltaTime;
 
             Vector3 currentPos = transform.position;
@@ -1007,8 +1059,11 @@ public class AnimalMovementAI : MonoBehaviour
         }
 
         // KHI KẾT THÚC BƯỚC ĐI (Đến đích, bị chặn, hoặc chạm viền):
-        // LUÔN LUÔN chuyển về Animation Idle ngay lập tức!
-        PlayIdleAnimation();
+        // LUÔN LUÔN chuyển về Animation Idle ngay lập tức (nếu không bị FarmAnimalAI can thiệp)!
+        if (farmAI == null || farmAI.currentState == AnimalState.WanderRandom)
+        {
+            PlayIdleAnimation();
+        }
         UpdateCurrentHex();
         isMoving = false;
     }
@@ -1365,6 +1420,7 @@ public class AnimalMovementAI : MonoBehaviour
 
         while (elapsed < duration && !isMoving)
         {
+            if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
             elapsed += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
             transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
