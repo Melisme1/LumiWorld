@@ -106,13 +106,13 @@ public class HexGhostVisual : MonoBehaviour
     /// <summary>
     /// Xử lý khi chuột chuyển sang một ô mới
     /// </summary>
-    public void OnHexSelectionChanged(GameObject newTileObj)
+    public void OnHexSelectionChanged(GameObject newTileObj, bool isValid = true)
     {
         if (newTileObj != null)
         {
             // Đồng bộ vỏ bọc theo đúng hình dáng của ô lục giác mới
             SyncHologramShellToTile(newTileObj);
-            AnimatePulseVisuals(true);
+            AnimatePulseVisuals(isValid);
 
             // Hiệu ứng nảy nhẹ khi snap trúng ô
             if (snapPunchCoroutine != null)

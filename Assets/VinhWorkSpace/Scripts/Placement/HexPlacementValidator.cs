@@ -1,11 +1,34 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Chuyên trách việc kiểm tra logic hợp lệ khi đặt bài lên ô lục giác
-/// (Ô đã bị chiếm dụng chưa, loại địa hình có thỏa mãn điều kiện của lá bài không).
+/// (Ô đã bị chiếm dụng chưa, loại địa hình có thỏa mãn điều kiện của lá bài không, quy mô cụm Biome).
 /// </summary>
 public class HexPlacementValidator : MonoBehaviour
 {
+    [Header("Biome Cluster Limit (Giới hạn quy mô Biome)")]
+    [Tooltip("Bật/Tắt giới hạn số ô lục giác tối đa trong một Cụm Biome")]
+    [SerializeField] private bool enableBiomeSizeLimit = true;
+
+    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 6). Nếu người chơi ghép thêm ô làm cụm vượt quá số này sẽ bị chặn.")]
+    [SerializeField] private int maxTilesPerBiome = 6;
+
+    private string lastValidationError = "";
+
+    public bool EnableBiomeSizeLimit
+    {
+        get => enableBiomeSizeLimit;
+        set => enableBiomeSizeLimit = value;
+    }
+
+    public int MaxTilesPerBiome
+    {
+        get => maxTilesPerBiome;
+        set => maxTilesPerBiome = value;
+    }
+
+    public string LastValidationError => lastValidationError;
     /// <summary>
     /// Kiểm tra ô có thỏa mãn toàn bộ điều kiện để đặt lá bài hiện tại hay không
     /// </summary>
@@ -189,5 +212,91 @@ public class HexPlacementValidator : MonoBehaviour
     public bool HasPlacedTerrainOrHabitat(GameObject tileObj)
     {
         return HasPlacedTerrain(tileObj);
+    }
+
+    /// <summary>
+    /// Tính toán kích thước cụm Biome nếu người chơi đặt lá bài địa hình này vào tọa độ targetHex.
+    /// Trả về tổng số ô của cụm Biome sau khi sáp nhập.
+    /// </summary>
+    public int CalculateProspectiveClusterSize(HexCoordinates targetHex, CardData terrainCard, HexWorldGenerator worldGen)
+    {
+        if (worldGen == null || worldGen.MapTiles == null || terrainCard == null) return 1;
+
+        HashSet<HexCoordinates> prospectiveCluster = new HashSet<HexCoordinates>();
+        Queue<HexCoordinates> queue = new Queue<HexCoordinates>();
+
+        prospectiveCluster.Add(targetHex);
+
+        // Quét 6 hướng láng giềng của ô đang muốn đặt
+        for (int dir = 0; dir < 6; dir++)
+        {
+            HexCoordinates neighborHex = targetHex.GetNeighbor(dir);
+            if (prospectiveCluster.Contains(neighborHex)) continue;
+
+            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
+            {
+                CardData neighborTerrain = GetPlacedTerrainCard(neighborTile);
+                if (neighborTerrain != null && IsMatchingTerrainOrBiome(terrainCard, neighborTerrain))
+                {
+                    prospectiveCluster.Add(neighborHex);
+                    queue.Enqueue(neighborHex);
+                }
+            }
+        }
+
+        // Lan truyền BFS qua tất cả các ô đã kết nối thuộc cùng cụm
+        while (queue.Count > 0)
+        {
+            HexCoordinates current = queue.Dequeue();
+
+            for (int dir = 0; dir < 6; dir++)
+            {
+                HexCoordinates nextHex = current.GetNeighbor(dir);
+                if (prospectiveCluster.Contains(nextHex)) continue;
+
+                if (worldGen.MapTiles.TryGetValue(nextHex, out GameObject nextTile) && nextTile != null)
+                {
+                    CardData nextTerrain = GetPlacedTerrainCard(nextTile);
+                    if (nextTerrain != null && IsMatchingTerrainOrBiome(terrainCard, nextTerrain))
+                    {
+                        prospectiveCluster.Add(nextHex);
+                        queue.Enqueue(nextHex);
+                    }
+                }
+            }
+        }
+
+        return prospectiveCluster.Count;
+    }
+
+    /// <summary>
+    /// Lấy thẻ Terrain đã đặt trên ô lục giác (nếu có)
+    /// </summary>
+    public CardData GetPlacedTerrainCard(GameObject tileObj)
+    {
+        if (tileObj == null) return null;
+        PlacedCard[] placedCards = tileObj.GetComponentsInChildren<PlacedCard>();
+        foreach (var pc in placedCards)
+        {
+            if (pc != null && pc.cardData != null)
+            {
+                if (pc.CardType == CardType.Terrain || pc.cardData.HasHabitatProps())
+                {
+                    return pc.cardData;
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem hai thẻ địa hình có thuộc cùng một Biome hay không
+    /// </summary>
+    public static bool IsMatchingTerrainOrBiome(CardData a, CardData b)
+    {
+        if (a == null || b == null) return false;
+        if (a.cardID == b.cardID) return true;
+        if (a.cardName == b.cardName) return true;
+        return HexBiomeClusterConnector.AreHabitatsMatching(a, b);
     }
 }

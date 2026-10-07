@@ -1061,7 +1061,20 @@ public class AnimalMovementAI : MonoBehaviour
         PlacedCard nCard = HexBiomeClusterConnector.GetHabitatCardOnTile(tileObj);
         if (nCard != null && nCard.cardData != null)
         {
-            return HexBiomeClusterConnector.AreHabitatsMatching(curHabitat, nCard.cardData);
+            if (!HexBiomeClusterConnector.AreHabitatsMatching(curHabitat, nCard.cardData))
+                return false;
+
+            // Nếu các ô đã phân chia Cụm Biome độc lập (clusterId), động vật chỉ di chuyển trong nội bộ cụm của nó
+            if (worldGen.MapTiles.TryGetValue(currentHex, out GameObject curTileObj) && curTileObj != null)
+            {
+                PlacedCard curCard = HexBiomeClusterConnector.GetHabitatCardOnTile(curTileObj);
+                if (curCard != null && curCard.clusterId > 0 && nCard.clusterId > 0 && curCard.clusterId != nCard.clusterId)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         return false;

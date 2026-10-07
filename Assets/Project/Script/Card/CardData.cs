@@ -59,6 +59,10 @@ public class CardData : ScriptableObject
     [Tooltip("Thời gian chu kỳ sản xuất của một mẻ thu hoạch trên vùng đất này (giây). Mặc định: 30s")]
     public float biomeCycleDuration = 30f;
 
+    [Header("Biome Cluster Rules (Quy mô cụm Biome)")]
+    [Tooltip("Ghi đè số ô tối đa cho cụm Biome của thẻ này (0 = dùng giới hạn chung trong Inspector [mặc định 6 ô], >0 = số ô riêng cho lá bài này).")]
+    public int maxBiomeTilesOverride = 0;
+
     [Header("Tile Transformation Mapping (For Special Cards / Rain)")]
     [Tooltip("Danh sách các cặp biến đổi từ đất khô (Arid) sang đất tươi tốt (Lush) khi lá bài này được sử dụng")]
     public List<TileTransformPair> transformRules = new List<TileTransformPair>();

@@ -131,6 +131,10 @@ public class HexGroupDetector : MonoBehaviour
         if (a.cardData == null || b.cardData == null)
             return false;
 
+        // Nếu cả hai ô đã được phân Cụm Biome độc lập thì phải cùng Cụm
+        if (a.clusterId > 0 && b.clusterId > 0 && a.clusterId != b.clusterId)
+            return false;
+
         // Cùng CardID = cùng loại cụ thể
         return a.CardID == b.CardID;
     }
