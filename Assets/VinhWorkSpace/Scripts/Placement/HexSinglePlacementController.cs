@@ -226,7 +226,11 @@ public class HexSinglePlacementController : MonoBehaviour
                 ? tileObj.transform.position
                 : HexMetrics.HexToWorldPosition(targetHex, worldGenerator != null ? worldGenerator.SpawnOffsetY : HexMetrics.DefaultTileY);
 
-            bool isValid = isTileInMap && validator != null && validator.ValidatePlacement(targetHex, worldGenerator, currentCardData, out _);
+            // Thẻ có phí đặt mà ví không đủ Coins thì ô cũng hiện đỏ như ô không hợp lệ
+            int placementFee = currentCardData != null ? currentCardData.placementFee : 0;
+            bool canAffordFee = placementFee <= 0 || CurrencyWallet.Instance.CanAfford(placementFee);
+
+            bool isValid = isTileInMap && validator != null && validator.ValidatePlacement(targetHex, worldGenerator, currentCardData, out _) && canAffordFee;
             bool hexChanged = (!hasValidPreviousHex || targetHex != currentHoverHex);
 
             currentHoverHex = targetHex;
@@ -236,6 +240,7 @@ public class HexSinglePlacementController : MonoBehaviour
             if (ghostVisual != null)
             {
                 ghostVisual.SetActive(true);
+                ghostVisual.SetPlacementFee(placementFee, canAffordFee);
                 ghostVisual.SetPositionAndOffset(baseTilePos, surfaceY, currentCardData);
 
                 if (hexChanged)
@@ -276,6 +281,15 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
             }
+            CancelPreview();
+            return false;
+        }
+
+        // Thiếu Coins trả phí đặt thẻ: không đặt, CardDrag đưa lá bài về tay
+        int placementFee = cardData != null ? cardData.placementFee : 0;
+        if (placementFee > 0 && !CurrencyWallet.Instance.CanAfford(placementFee))
+        {
+            Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] Không đủ Coins để đặt {cardData.cardName}: cần {placementFee}, đang có {CurrencyWallet.Instance.Balance}.</color>");
             CancelPreview();
             return false;
         }
@@ -387,6 +401,12 @@ public class HexSinglePlacementController : MonoBehaviour
             if (BiomeHarvestManager.Instance != null)
             {
                 BiomeHarvestManager.Instance.OnWorldChanged();
+            }
+
+            // Đặt thành công: trừ phí đặt thẻ (đã kiểm tra đủ Coins ở trên)
+            if (placementFee > 0)
+            {
+                CurrencyWallet.Instance.TrySpend(placementFee, CoinReason.PlacementFee);
             }
         }
 

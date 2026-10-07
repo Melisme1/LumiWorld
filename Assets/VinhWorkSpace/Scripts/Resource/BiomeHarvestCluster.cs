@@ -223,19 +223,39 @@ public class BiomeHarvestCluster
     {
         if (!IsReadyToHarvest) return 0;
 
-        int amount = PendingHarvestAmount;
+        // Chỉ lấy phần kho còn chứa được, phần còn lại ở lại trong bong bóng
+        int amount = ResourceInventory.Instance.Add(ResourceData, PendingHarvestAmount);
+        PendingHarvestAmount -= amount;
 
-        // Sinh popup chữ nổi bay lên tại tâm cụm
-        ResourceHarvestPopup.Spawn(CenterPosition + Vector3.up * 0.8f, ResourceData, amount);
+        if (amount > 0)
+        {
+            // Sinh popup chữ nổi bay lên tại tâm cụm
+            ResourceHarvestPopup.Spawn(CenterPosition + Vector3.up * 0.8f, ResourceData, amount);
 
-        Debug.Log($"<color=green>✨ [THU HOẠCH THÀNH CÔNG] Bạn vừa gặt hái +{amount} {ResourceData?.GetColoredName()} từ cụm {TerrainCard.cardName}!</color>");
+            Debug.Log($"<color=green>✨ [THU HOẠCH THÀNH CÔNG] Bạn vừa gặt hái +{amount} {ResourceData?.GetColoredName()} từ cụm {TerrainCard.cardName}!</color>");
+        }
 
-        // Reset chu kỳ mới
-        Timer = 0f;
-        IsReadyToHarvest = false;
-        PendingHarvestAmount = 0;
+        if (PendingHarvestAmount > 0)
+        {
+            // Kho đầy: bong bóng giữ phần còn lại, chưa bắt đầu chu kỳ mới
+            Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Kho] Kho {ResourceData?.resourceName} đã đầy, còn {PendingHarvestAmount} trong bong bóng của cụm {TerrainCard.cardName}.</color>");
 
-        OnHarvestCollected?.Invoke(this, ResourceData, amount);
+            if (Indicator != null && Indicator.isActiveAndEnabled)
+            {
+                Indicator.SetHarvestReady(PendingHarvestAmount);
+            }
+        }
+        else
+        {
+            // Reset chu kỳ mới
+            Timer = 0f;
+            IsReadyToHarvest = false;
+        }
+
+        if (amount > 0)
+        {
+            OnHarvestCollected?.Invoke(this, ResourceData, amount);
+        }
 
         return amount;
     }

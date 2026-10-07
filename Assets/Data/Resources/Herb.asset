@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Herb
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: herb
-  resourceName: "Th\u1EA3o m\u1ED9c"
-  description: "Th\u1EA3o m\u1ED9c thanh khi\u1EBFt thu ho\u1EA1ch t\u1EEB v\xF9ng cao nguy\xEAn l\u1ED9ng gi\xF3 Windheath."
+  resourceName: Herb
+  description: Fresh herbs harvested from the windswept Windheath highlands.
   icon: {fileID: 0}
   resourceColor: {r: 0.2, g: 0.83, b: 0.6, a: 1}
   hexColor: "#34D399"

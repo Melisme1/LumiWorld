@@ -66,6 +66,9 @@ public class HexCameraController : MonoBehaviour
         var mouse = Mouse.current;
         if (mouse == null) return;
 
+        // Đang mở Bảng Đơn Hàng hoặc Cửa hàng: không cuộn, kéo hay bấm phím di chuyển camera phía sau bảng
+        if (EconomyHUD.IsWindowOpen) return;
+
         bool isAltHeld = keyboard != null && (keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed);
         Vector2 mouseDelta = mouse.delta.ReadValue();
 
