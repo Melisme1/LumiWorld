@@ -13,40 +13,41 @@ public class MainMenuController : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button continueButton;
 
+
     private void Start()
     {
         InitializeMenu();
     }
 
+
     private void InitializeMenu()
     {
-        // Settings đóng khi bắt đầu
+        // Hide Settings Panel when starting
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(false);
         }
 
-        // Kiểm tra Save
+        // Check if save data exists
         UpdateContinueButton();
     }
 
-    // =========================
+
+    // ========================================
     // NEW GAME
-    // =========================
+    // ========================================
 
     public void OnNewGame()
     {
         Debug.Log("Starting New Game...");
 
-        // Sau này sẽ gọi SaveSystem.NewGame()
-        // SaveSystem.Instance.CreateNewSave();
-
         SceneManager.LoadScene(gameSceneName);
     }
 
-    // =========================
+
+    // ========================================
     // CONTINUE
-    // =========================
+    // ========================================
 
     public void OnContinue()
     {
@@ -58,15 +59,13 @@ public class MainMenuController : MonoBehaviour
 
         Debug.Log("Continuing Game...");
 
-        // Sau này:
-        // SaveSystem.Instance.LoadGame();
-
         SceneManager.LoadScene(gameSceneName);
     }
 
-    // =========================
+
+    // ========================================
     // SETTINGS
-    // =========================
+    // ========================================
 
     public void OnSettings()
     {
@@ -76,6 +75,7 @@ public class MainMenuController : MonoBehaviour
         settingsPanel.SetActive(true);
     }
 
+
     public void OnCloseSettings()
     {
         if (settingsPanel == null)
@@ -84,9 +84,10 @@ public class MainMenuController : MonoBehaviour
         settingsPanel.SetActive(false);
     }
 
-    // =========================
+
+    // ========================================
     // QUIT
-    // =========================
+    // ========================================
 
     public void OnQuit()
     {
@@ -99,14 +100,16 @@ public class MainMenuController : MonoBehaviour
 #endif
     }
 
-    // =========================
+
+    // ========================================
     // SAVE CHECK
-    // =========================
+    // ========================================
 
     private bool HasSaveData()
     {
         return PlayerPrefs.HasKey("GameSave");
     }
+
 
     private void UpdateContinueButton()
     {
