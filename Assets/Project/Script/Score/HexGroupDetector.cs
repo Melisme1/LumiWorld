@@ -53,6 +53,10 @@ public class HexGroupDetector : MonoBehaviour
             if (card.cardData.alwaysBaseScore)
                 continue;
 
+            // Chỉ gom nhóm các thẻ cùng loại (Creature với Creature, Terrain với Terrain)
+            if (card.CardType != startCard.CardType)
+                continue;
+
             if (!cardsByHex.ContainsKey(card.placedHex))
             {
                 cardsByHex.Add(
