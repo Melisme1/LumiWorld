@@ -29,6 +29,15 @@ public class CardData : ScriptableObject
     [Tooltip("Nếu tích chọn: lá bài này LUÔN chỉ cộng baseScore, không bao giờ được nhân hệ số nhóm (dùng cho card Special như Rain với baseScore = 1).")]
     public bool alwaysBaseScore = false;
 
+    [Header("Economy (Lumi Coin)")]
+    [Tooltip("Giá mua lá bài này trong Shop (Coins). 0 = chưa đặt giá.")]
+    [Min(0)]
+    public int shopPrice = 0;
+
+    [Tooltip("Phí trả mỗi lần đặt lá bài này lên bản đồ (Coins). Chỉ trừ khi đặt thành công. 0 = miễn phí.")]
+    [Min(0)]
+    public int placementFee = 0;
+
     [Header("Placement")]
     [Tooltip("Prefab to instantiate on the hex tile when played")]
     public GameObject prefabToPlace;

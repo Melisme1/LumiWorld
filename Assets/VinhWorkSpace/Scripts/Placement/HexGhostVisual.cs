@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -22,6 +23,12 @@ public class HexGhostVisual : MonoBehaviour
     [Tooltip("Màu đỏ cảnh báo khi trỏ ra ngoài ô")]
     [SerializeField] private Color invalidColor = new Color(0.95f, 0.20f, 0.20f, 0.70f);
 
+    [Header("Placement Fee Label")]
+    [Tooltip("Độ cao của nhãn phí đặt thẻ so với mặt ô")]
+    [SerializeField] private float feeLabelHeight = 0.9f;
+    [Tooltip("Màu nhãn phí khi đủ Coins (thiếu Coins thì nhãn dùng màu đỏ cảnh báo)")]
+    [SerializeField] private Color feeAffordableColor = new Color(1.0f, 0.84f, 0.25f, 1.0f);
+
     public Material GhostMaterial { get => ghostMaterial; set => ghostMaterial = value; }
     public float PreviewHeightOffset { get => previewHeightOffset; set => previewHeightOffset = value; }
     public Vector3 PreviewScale { get => previewScale; set => previewScale = value; }
@@ -38,10 +45,24 @@ public class HexGhostVisual : MonoBehaviour
     private MaterialPropertyBlock propBlock;
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
     private Coroutine snapPunchCoroutine;
+    private TextMeshPro feeLabel;
+    private Camera cachedCam;
 
     private void Awake()
     {
         propBlock = new MaterialPropertyBlock();
+    }
+
+    private void LateUpdate()
+    {
+        // Nhãn phí luôn quay mặt về phía Camera (Billboard)
+        if (feeLabel == null || !feeLabel.gameObject.activeInHierarchy) return;
+
+        if (cachedCam == null) cachedCam = Camera.main;
+        if (cachedCam != null)
+        {
+            feeLabel.transform.rotation = cachedCam.transform.rotation;
+        }
     }
 
     /// <summary>
@@ -90,6 +111,42 @@ public class HexGhostVisual : MonoBehaviour
             Vector3 offset = cardData != null ? cardData.placementOffset : Vector3.zero;
             itemGhostInstance.transform.localPosition = new Vector3(0f, localY, 0f) + offset;
         }
+
+        if (feeLabel != null)
+        {
+            feeLabel.transform.localPosition = new Vector3(0f, surfaceY - baseTilePos.y + feeLabelHeight, 0f);
+        }
+    }
+
+    /// <summary>
+    /// Hiển thị phí đặt thẻ phía trên Ghost: màu vàng khi đủ Coins, màu đỏ khi thiếu.
+    /// Thẻ miễn phí (phí = 0) thì không hiện nhãn.
+    /// </summary>
+    public void SetPlacementFee(int fee, bool canAfford)
+    {
+        if (ghostRoot == null) return;
+
+        if (fee <= 0)
+        {
+            if (feeLabel != null) feeLabel.gameObject.SetActive(false);
+            return;
+        }
+
+        if (feeLabel == null)
+        {
+            GameObject labelObj = new GameObject("PlacementFeeLabel");
+            labelObj.transform.SetParent(ghostRoot.transform, false);
+
+            feeLabel = labelObj.AddComponent<TextMeshPro>();
+            feeLabel.fontSize = 3.5f;
+            feeLabel.fontStyle = FontStyles.Bold;
+            feeLabel.alignment = TextAlignmentOptions.Center;
+            feeLabel.sortingOrder = 500;
+        }
+
+        feeLabel.gameObject.SetActive(true);
+        feeLabel.text = $"-{fee} Coins";
+        feeLabel.color = canAfford ? feeAffordableColor : new Color(invalidColor.r, invalidColor.g, invalidColor.b, 1f);
     }
 
     /// <summary>
@@ -237,6 +294,7 @@ public class HexGhostVisual : MonoBehaviour
             ghostRoot = null;
             hologramShellObj = null;
             itemGhostInstance = null;
+            feeLabel = null;
         }
     }
 
@@ -266,6 +324,9 @@ public class HexGhostVisual : MonoBehaviour
         if (ghostRoot != null)
         {
             ghostRoot.GetComponentsInChildren(true, cachedGhostRenderers);
+
+            // Nhãn phí giữ màu riêng, không nhuộm theo màu Ghost
+            if (feeLabel != null) cachedGhostRenderers.Remove(feeLabel.GetComponent<Renderer>());
         }
     }
 

@@ -321,6 +321,9 @@ public class BiomeHarvestIndicator : MonoBehaviour, IPointerClickHandler
         // 2. Kích hoạt logic thu hoạch trên Cụm Biome
         cluster.CollectHarvest();
 
+        // Kho đầy: cụm vẫn giữ phần còn lại và đã gọi SetHarvestReady để vẽ lại bong bóng
+        if (cluster.IsReadyToHarvest) yield break;
+
         isReady = false;
         transform.localScale = baseScale;
         transform.position = baseWorldCenter;
