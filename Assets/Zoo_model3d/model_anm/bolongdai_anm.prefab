@@ -415,7 +415,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 7756772649778174663}
@@ -469,6 +469,10 @@ MonoBehaviour:
   yOffset: 0.05
   currentState: 0
   groupPartners: []
+  fastCooldownForTesting: 0
+  isConnectionOnCooldown: 0
+  cooldownRemainingSeconds: 0
+  formattedCooldownRemaining: "S\u1EB5n s\xE0ng (Ready)"
 --- !u!114 &9100000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0

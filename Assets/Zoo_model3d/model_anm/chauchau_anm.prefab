@@ -14,15 +14,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.4
+      value: 0.45000002
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.4
+      value: 0.45000002
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.4
+      value: 0.45000002
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -124,6 +124,10 @@ MonoBehaviour:
   yOffset: 0.05
   currentState: 0
   groupPartners: []
+  fastCooldownForTesting: 0
+  isConnectionOnCooldown: 0
+  cooldownRemainingSeconds: 0
+  formattedCooldownRemaining: "S\u1EB5n s\xE0ng (Ready)"
 --- !u!114 &-4369867354337910924
 MonoBehaviour:
   m_ObjectHideFlags: 0
