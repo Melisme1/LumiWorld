@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9c1a415b3d047a4ab5a8f21e51b2c3d, type: 3}
+  m_Name: GrassFoxSpecies
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
+  speciesID: grassfox
+  speciesName: "Cáo Cỏ"
+  description: "Loài cáo huyền thoại được thiên nhiên ban tặng chiếc đuôi dương xỉ xanh biếc, hòa quyện tuyệt đối cùng cây cỏ đại ngàn."
+  locomotionType: 0
+  baseWalkSpeed: 0.52
+  baseRunSpeed: 1.05
+  flightAltitude: 1.2
+  personalRadius: 0.35
+  yOffset: 0
+  baseResourceAmount: 2
+  baseProductionInterval: 22
+  weight1Star: 44
+  weight2Star: 30
+  weight3Star: 16
+  weight4Star: 7
+  weight5Star: 3
+  traitPool:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5

@@ -14,15 +14,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.5
+      value: 0.55
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.5
+      value: 0.55
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.5
+      value: 0.55
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 0b29c728c14ee4d40abd85954f31690c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -135,7 +135,7 @@ MonoBehaviour:
   rotationSpeed: 220
   turnBeforeWalking: 1
   turnThresholdAngle: 30
-  yOffset: 0.35
+  yOffset: 0
   autoDetectYOffset: 1
   stayInCurrentHexChance: 0.6
   maxWanderRadius: 0.45

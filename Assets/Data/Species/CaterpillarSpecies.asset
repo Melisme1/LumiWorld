@@ -10,24 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e9c1a415b3d047a4ab5a8f21e51b2c3d, type: 3}
-  m_Name: CowSpecies
+  m_Name: CaterpillarSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
-  speciesID: cow
-  speciesName: "B\xF2 S\u1EEFa"
-  description: "Lo\xE0i b\xF2 s\u1EEFa hi\u1EC1n l\xE0nh, th\xEDch nhai c\u1ECF
-    non d\u01B0\u1EDBi b\xF3ng r\xE2m v\xE0 cung c\u1EA5p ngu\u1ED3n s\u1EEFa th\u01A1m
-    ngon."
-  baseWalkSpeed: 0.45
-  baseRunSpeed: 0.9
-  personalRadius: 0.4
+  speciesID: caterpillar
+  speciesName: "Sâu Bướm"
+  description: "Chú sâu bướm dễ thương ngọ nguậy gặm lá hoa thơm, là khởi đầu cho những vũ điệu bướm rực rỡ sắc màu."
+  locomotionType: 0
+  baseWalkSpeed: 0.35
+  baseRunSpeed: 0.65
+  flightAltitude: 1.2
+  personalRadius: 0.28
   yOffset: 0
   baseResourceAmount: 1
-  baseProductionInterval: 20
-  weight1Star: 50
-  weight2Star: 28
-  weight3Star: 14
-  weight4Star: 6
-  weight5Star: 2
+  baseProductionInterval: 18
+  weight1Star: 55
+  weight2Star: 27
+  weight3Star: 12
+  weight4Star: 5
+  weight5Star: 1
   traitPool:
   - 0
   - 1

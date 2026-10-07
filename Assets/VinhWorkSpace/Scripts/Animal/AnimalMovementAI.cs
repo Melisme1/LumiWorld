@@ -38,8 +38,8 @@ public class AnimalMovementAI : MonoBehaviour
     [Tooltip("Kiểu vận động của con thú: Ground (Đi bộ) hoặc Flying (Bay lượn)")]
     [SerializeField] private AnimalLocomotionType locomotionType = AnimalLocomotionType.Ground;
 
-    [Tooltip("Tự động nhận diện kiểu bay nếu model có clip Fly / Glide / Flap")]
-    [SerializeField] private bool autoDetectFlying = true;
+    [Tooltip("Tự động nhận diện kiểu bay nếu model có clip Fly / Glide / Flap (mặc định tắt để tôn trọng cấu hình loài)")]
+    [SerializeField] private bool autoDetectFlying = false;
 
     [Tooltip("Độ cao bay trên không so với mặt đất (mét)")]
     [SerializeField] private float flightAltitude = 1.35f;
@@ -77,8 +77,8 @@ public class AnimalMovementAI : MonoBehaviour
     [Tooltip("Độ cao nâng Y để chân chạm mặt cỏ (Bù trừ pivot nằm giữa bụng của model 3D)")]
     [SerializeField] private float yOffset = 0.35f;
 
-    [Tooltip("Tự động tính yOffset dựa trên kích thước thực tế của SkinnedMeshRenderer")]
-    [SerializeField] private bool autoDetectYOffset = true;
+    [Tooltip("Tự động tính yOffset dựa trên kích thước thực tế của SkinnedMeshRenderer (mặc định tắt để tôn trọng cấu hình loài)")]
+    [SerializeField] private bool autoDetectYOffset = false;
 
     [Header("Wander Settings")]
     [Tooltip("Tỉ lệ % thú chọn đi lại trong CHÍNH Ô HIỆN TẠI thay vì bước sang ô láng giềng (0.6 = 60%)")]
@@ -131,6 +131,10 @@ public class AnimalMovementAI : MonoBehaviour
     private float currentBankAngle = 0f;
     private float currentWorldY = 0f;
 
+    // Cờ bảo vệ ngăn Start() tự ý ghi đè khi đã được cấu hình từ SpeciesData / Code
+    private bool isLocomotionExplicitlyConfigured = false;
+    private bool isYOffsetExplicitlyConfigured = false;
+
     public bool IsMoving => isMoving;
     public float YOffset => yOffset;
     public AnimalLocomotionType LocomotionType => locomotionType;
@@ -152,6 +156,9 @@ public class AnimalMovementAI : MonoBehaviour
     public void SetLocomotion(AnimalLocomotionType type, float altitude)
     {
         this.locomotionType = type;
+        this.autoDetectFlying = false; // Khi đã được chỉ định (từ SpeciesData / Individual), KHÔNG được tự động biến thành sinh vật bay
+        this.isLocomotionExplicitlyConfigured = true;
+
         if (altitude > 0.1f)
         {
             this.flightAltitude = altitude;
@@ -169,6 +176,25 @@ public class AnimalMovementAI : MonoBehaviour
             this.targetAltitudeOffset = this.yOffset;
             this.currentAltitudeOffset = this.yOffset;
             PlayStationaryAnimation();
+        }
+    }
+
+    /// <summary>
+    /// Gán độ cao Y offset tiếp xúc mặt đất thủ công (cho phép ép buộc 0)
+    /// </summary>
+    public void SetYOffset(float offset, bool disableAutoDetect = true)
+    {
+        this.yOffset = offset;
+        if (disableAutoDetect)
+        {
+            this.autoDetectYOffset = false;
+        }
+        this.isYOffsetExplicitlyConfigured = true;
+
+        if (locomotionType != AnimalLocomotionType.Flying)
+        {
+            this.targetAltitudeOffset = offset;
+            this.currentAltitudeOffset = offset;
         }
     }
 
@@ -209,8 +235,8 @@ public class AnimalMovementAI : MonoBehaviour
     {
         worldGen = FindAnyObjectByType<HexWorldGenerator>();
 
-        // Tự động tính toán yOffset nếu bật auto
-        if (autoDetectYOffset)
+        // Tự động tính toán yOffset nếu bật auto và chưa được cấu hình thủ công
+        if (autoDetectYOffset && !isYOffsetExplicitlyConfigured)
         {
             ComputeAutoYOffset();
         }
@@ -393,11 +419,24 @@ public class AnimalMovementAI : MonoBehaviour
             c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0 ||
             c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
             c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0);
+            c.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Fall", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0);
 
         if (groundClips.Count > 0)
         {
             return groundClips[Random.Range(0, groundClips.Count)];
+        }
+
+        if (moveClips.Count > 0)
+        {
+            return moveClips[0];
+        }
+
+        if (idleClips.Count > 0)
+        {
+            return idleClips[0];
         }
 
         return GetFlightClip(false);
@@ -1354,9 +1393,12 @@ public class AnimalMovementAI : MonoBehaviour
             string cName = state.name;
 
             // BỎ QUA HOÀN TOÀN Rest_Pose / BindPose (vì đây là T-pose tĩnh của exporter 3D, không phải animation diễn hoạt)
+            // BỎ QUA Death / Die để thú không tự nhiên gục chết khi đứng nghỉ
             if (cName.IndexOf("Rest_Pose", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 cName.IndexOf("RestPose", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                cName.IndexOf("BindPose", StringComparison.OrdinalIgnoreCase) >= 0)
+                cName.IndexOf("BindPose", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                cName.IndexOf("Death", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                cName.IndexOf("Die", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 continue;
             }
@@ -1371,8 +1413,8 @@ public class AnimalMovementAI : MonoBehaviour
             }
         }
 
-        // Tự động nhận diện sinh vật bay nếu có clip bay (Fly / Glide / Flap)
-        if (autoDetectFlying && locomotionType == AnimalLocomotionType.Ground)
+        // Tự động nhận diện sinh vật bay nếu có clip bay (Fly / Glide / Flap) và CHƯA bị khóa cấu hình loài
+        if (autoDetectFlying && !isLocomotionExplicitlyConfigured && locomotionType == AnimalLocomotionType.Ground)
         {
             bool hasFlyClip = false;
             foreach (var c in moveClips)
@@ -1399,7 +1441,9 @@ public class AnimalMovementAI : MonoBehaviour
         {
             foreach (AnimationState state in anim)
             {
-                if (state.name.IndexOf("Rest", StringComparison.OrdinalIgnoreCase) < 0)
+                if (state.name.IndexOf("Rest", StringComparison.OrdinalIgnoreCase) < 0 &&
+                    state.name.IndexOf("Death", StringComparison.OrdinalIgnoreCase) < 0 &&
+                    state.name.IndexOf("Die", StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     idleClips.Add(state.name);
                 }
@@ -1417,7 +1461,11 @@ public class AnimalMovementAI : MonoBehaviour
                name.IndexOf("Swim", StringComparison.OrdinalIgnoreCase) >= 0 ||
                name.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0 ||
                name.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
-               name.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0;
+               name.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Fall", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     /// <summary>

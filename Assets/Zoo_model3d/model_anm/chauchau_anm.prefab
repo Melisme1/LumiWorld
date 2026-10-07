@@ -135,7 +135,7 @@ MonoBehaviour:
   rotationSpeed: 220
   turnBeforeWalking: 1
   turnThresholdAngle: 30
-  yOffset: 0.35
+  yOffset: 0
   autoDetectYOffset: 1
   stayInCurrentHexChance: 0.6
   maxWanderRadius: 0.45

@@ -339,6 +339,7 @@ public class AnimalIndividual : MonoBehaviour
             if (speciesData != null)
             {
                 moveAI.SetLocomotion(speciesData.locomotionType, speciesData.flightAltitude);
+                moveAI.SetYOffset(speciesData.yOffset);
             }
         }
     }
