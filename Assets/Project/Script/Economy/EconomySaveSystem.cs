@@ -46,6 +46,18 @@ public class EconomySaveSystem : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Giờ có đơn mới của các ô vừa bị bỏ đơn. Bảng Đơn Hàng sửa trực tiếp danh sách này rồi gọi MarkDirty().
+    /// </summary>
+    public List<OrderSlotRefill> OrderRefills
+    {
+        get
+        {
+            EnsureLoaded();
+            return data.orderRefills;
+        }
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -100,6 +112,7 @@ public class EconomySaveSystem : MonoBehaviour
         data = store.Load() ?? new EconomySaveData();
         if (data.resources == null) data.resources = new List<ResourceStack>();
         if (data.openOrders == null) data.openOrders = new List<ActiveOrder>();
+        if (data.orderRefills == null) data.orderRefills = new List<OrderSlotRefill>();
     }
 
     // Dữ liệu được cập nhật ngay khi ví/kho đổi (không đợi lúc lưu),

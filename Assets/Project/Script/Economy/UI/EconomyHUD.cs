@@ -5,11 +5,12 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Gốc giao diện kinh tế trên màn chơi: CoinHUD ở góc trên bên phải, InventoryUI ở góc trên bên trái.
+/// Gốc giao diện kinh tế trên màn chơi: CoinHUD ở góc trên bên phải, InventoryUI ở góc trên bên trái,
+/// và Bảng Đơn Hàng (OrderBoardUI, nút "Đơn hàng" ngay dưới số Coins).
 /// Tự sinh khi vào scene có bản đồ lục giác (HexWorldGenerator) và gắn vào Canvas màn hình của scene đó,
 /// nên không cần sửa Scene hay tạo prefab. Muốn tự đặt thì thêm script này vào một object con của Canvas
 /// trong scene; khi đó game không sinh thêm bản thứ hai.
-/// HUD chỉ để xem: không chặn chuột, kéo thẻ hay bấm bong bóng thu hoạch phía sau.
+/// CoinHUD và InventoryUI chỉ để xem: không chặn chuột, kéo thẻ hay bấm bong bóng thu hoạch phía sau.
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class EconomyHUD : MonoBehaviour
@@ -20,6 +21,7 @@ public class EconomyHUD : MonoBehaviour
     // Sprite vẽ bằng code, tạo một lần rồi dùng chung
     private static Sprite roundedSprite;
     private static Sprite coinSprite;
+    private static Sprite circleSprite;
 
     private void Awake()
     {
@@ -31,6 +33,15 @@ public class EconomyHUD : MonoBehaviour
         if (GetComponentInChildren<InventoryUI>(true) == null)
         {
             CreateCorner<InventoryUI>("InventoryUI", new Vector2(0f, 1f), new Vector2(screenMargin.x, -screenMargin.y));
+        }
+
+        // Bảng Đơn Hàng cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
+        if (transform.parent != null && FindAnyObjectByType<OrderBoardUI>(FindObjectsInactive.Include) == null)
+        {
+            RectTransform board = CreateRect("OrderBoardUI", transform.parent);
+            Stretch(board);
+            board.SetAsLastSibling();
+            board.gameObject.AddComponent<OrderBoardUI>();
         }
     }
 
@@ -96,11 +107,12 @@ public class EconomyHUD : MonoBehaviour
         ownCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
         ownCanvas.sortingOrder = 50;
         canvasObject.AddComponent<CanvasScaler>();
+        canvasObject.AddComponent<GraphicRaycaster>();
         return canvasObject.transform;
     }
 
     // =========================================================
-    // DỰNG UI DÙNG CHUNG CHO CoinHUD VÀ InventoryUI
+    // DỰNG UI DÙNG CHUNG CHO CoinHUD, InventoryUI VÀ OrderBoardUI
     // =========================================================
 
     internal static RectTransform CreateRect(string objectName, Transform parent)
@@ -163,6 +175,38 @@ public class EconomyHUD : MonoBehaviour
         label.color = color;
         label.raycastTarget = false;
         return label;
+    }
+
+    /// <summary>
+    /// Biến rect thành nút bấm bo tròn màu color: sáng lên khi rê chuột, tối đi khi bấm, xám khi tắt (interactable = false).
+    /// </summary>
+    internal static Button AddButton(RectTransform rect, Color color)
+    {
+        Image image = rect.gameObject.AddComponent<Image>();
+        image.sprite = RoundedSprite;
+        image.type = Image.Type.Sliced;
+        image.color = Color.white;
+        image.raycastTarget = true;
+
+        // Màu thật nằm trong ColorBlock để Button tự đổi màu theo trạng thái
+        Button button = rect.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        ColorBlock colors = button.colors;
+        colors.normalColor = color;
+        colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
+        colors.pressedColor = Color.Lerp(color, Color.black, 0.25f);
+        colors.selectedColor = color;
+        colors.disabledColor = new Color(0.30f, 0.32f, 0.38f, 0.75f);
+        colors.colorMultiplier = 1f;
+        colors.fadeDuration = 0.08f;
+        button.colors = colors;
+
+        // Không giữ trạng thái "đang chọn" sau khi bấm, để nút không sáng mãi và phím Enter không bấm lại
+        button.navigation = new Navigation { mode = Navigation.Mode.None };
+
+        // Lên màu ngay, không mờ dần từ màu trắng mặc định trong frame đầu
+        image.CrossFadeColor(color, 0f, true, true);
+        return button;
     }
 
     /// <summary>
@@ -255,6 +299,18 @@ public class EconomyHUD : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Hình tròn trắng, tô màu bằng Image.color (huy hiệu, ảnh khách).
+    /// </summary>
+    internal static Sprite CircleSprite
+    {
+        get
+        {
+            if (circleSprite == null) circleSprite = CreateCircleSprite(64);
+            return circleSprite;
+        }
+    }
+
     private static Sprite CreateRoundedSprite(int size, int radius)
     {
         Texture2D texture = NewTexture(size);
@@ -316,6 +372,30 @@ public class EconomyHUD : MonoBehaviour
 
                 color.a = Mathf.Clamp01(radius - distance + 0.5f);
                 pixels[y * size + x] = color;
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f));
+    }
+
+    private static Sprite CreateCircleSprite(int size)
+    {
+        Texture2D texture = NewTexture(size);
+        Color[] pixels = new Color[size * size];
+
+        float center = size * 0.5f;
+        float radius = center - 1f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x + 0.5f - center;
+                float dy = y + 0.5f - center;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(radius - distance + 0.5f));
             }
         }
 

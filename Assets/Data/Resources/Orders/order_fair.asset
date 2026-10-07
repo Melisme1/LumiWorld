@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7b7652ee60c4d19a56e9a81cc64e26d, type: 3}
+  m_Name: order_fair
+  m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
+  templateId: order_fair
+  customerName: "H\u1ED9i ch\u1EE3 \u0111\u1EA3o"
+  portrait: {fileID: 0}
+  portraitColor: {r: 0.47, g: 0.36, b: 0.73, a: 1}
+  requirements:
+  - resource: {fileID: 11400000, guid: 35c07cfa06e949298f3f4ee44ccf0a79, type: 2}
+    minAmount: 7
+    maxAmount: 9
+  - resource: {fileID: 11400000, guid: e0fca13f9eec4df2880f62a38ab11d27, type: 2}
+    minAmount: 5
+    maxAmount: 7
+  - resource: {fileID: 11400000, guid: c051e312543046fb9e751531a812af52, type: 2}
+    minAmount: 5
+    maxAmount: 7
+  rewardMultiplier: 1.6
+  isBaseline: 0
