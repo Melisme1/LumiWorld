@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: order_fair
   m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
   templateId: order_fair
-  customerName: "H\u1ED9i ch\u1EE3 \u0111\u1EA3o"
+  customerName: Island Fair
   portrait: {fileID: 0}
   portraitColor: {r: 0.47, g: 0.36, b: 0.73, a: 1}
   requirements:

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: order_herb_basic
   m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
   templateId: order_herb_basic
-  customerName: "Th\u1EA7y lang"
+  customerName: Village Healer
   portrait: {fileID: 0}
   portraitColor: {r: 0.16, g: 0.55, b: 0.47, a: 1}
   requirements:

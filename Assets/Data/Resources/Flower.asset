@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Flower
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: flower
-  resourceName: "Hoa t\u01B0\u01A1i"
-  description: "Nh\u1EEFng \u0111\xF3a hoa d\u1EA1i ng\xE1t h\u01B0\u01A1ng thu ho\u1EA1ch t\u1EEB th\u1EA3o nguy\xEAn Bloomfield r\u1EF1c r\u1EE1."
+  resourceName: Flower
+  description: Fragrant wildflowers harvested from the vivid Bloomfield meadows.
   icon: {fileID: 0}
   resourceColor: {r: 0.96, g: 0.45, b: 0.71, a: 1}
   hexColor: "#F472B6"

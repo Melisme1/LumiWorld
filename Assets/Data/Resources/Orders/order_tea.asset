@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: order_tea
   m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
   templateId: order_tea
-  customerName: "Qu\xE1n tr\xE0"
+  customerName: Tea House
   portrait: {fileID: 0}
   portraitColor: {r: 0.42, g: 0.58, b: 0.22, a: 1}
   requirements:

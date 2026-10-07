@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: order_wood_basic
   m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
   templateId: order_wood_basic
-  customerName: "Th\u1EE3 m\u1ED9c l\xE0ng"
+  customerName: Village Carpenter
   portrait: {fileID: 0}
   portraitColor: {r: 0.78, g: 0.5, b: 0.16, a: 1}
   requirements:

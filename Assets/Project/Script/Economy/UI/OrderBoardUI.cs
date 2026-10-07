@@ -296,7 +296,7 @@ public class OrderBoardUI : MonoBehaviour
         }
 
         OrderTemplate template = board.FindTemplate(order.templateId);
-        string customer = template != null && !string.IsNullOrEmpty(template.customerName) ? template.customerName : "Khách hàng";
+        string customer = template != null && !string.IsNullOrEmpty(template.customerName) ? template.customerName : "Customer";
         card.customer.text = customer;
 
         // Mẫu đơn chưa có ảnh khách: chữ cái đầu của tên trên nền tròn màu portraitColor
@@ -307,7 +307,7 @@ public class OrderBoardUI : MonoBehaviour
         card.initials.text = Initials(customer);
 
         bool baseline = card.slot == OrderBoardSystem.BaselineSlot;
-        card.tag.text = baseline ? "Đơn cơ bản" : order.requirements.Count > 1 ? "Đơn nhiều loại" : "Đơn thường";
+        card.tag.text = baseline ? "Basic order" : order.requirements.Count > 1 ? "Mixed order" : "Regular order";
         card.tag.color = baseline ? baselineColor : mutedColor;
 
         for (int i = 0; i < card.rows.Count; i++)
@@ -331,7 +331,7 @@ public class OrderBoardUI : MonoBehaviour
 
         bool ready = board.CanFulfill(card.slot);
         SetButton(card.deliver, card.deliverLabel, ready);
-        card.deliverLabel.text = ready ? "Giao" : "Chưa đủ hàng";
+        card.deliverLabel.text = ready ? "Deliver" : "Not enough";
     }
 
     private void ShowEmptyCard(CardView card)
@@ -339,15 +339,15 @@ public class OrderBoardUI : MonoBehaviour
         TimeSpan wait = board.GetTimeUntilRefill(card.slot);
         if (wait > TimeSpan.Zero)
         {
-            card.emptyText.text = "Đơn mới sau\n<size=34><color=#FFFFFF>" + FormatWait(wait) + "</color></size>";
+            card.emptyText.text = "New order in\n<size=34><color=#FFFFFF>" + FormatWait(wait) + "</color></size>";
         }
         else if (board.IsWaitingForResources(card.slot))
         {
-            card.emptyText.text = "Chưa có đơn\n<size=14>Đặt thú lên vùng đất để làm ra tài nguyên, khách sẽ tới đặt hàng.</size>";
+            card.emptyText.text = "No orders yet\n<size=14>Place animals on your land to produce resources, then customers will order.</size>";
         }
         else
         {
-            card.emptyText.text = "Khách sắp tới...";
+            card.emptyText.text = "A customer is on the way...";
         }
     }
 
@@ -428,7 +428,7 @@ public class OrderBoardUI : MonoBehaviour
         openButton.anchoredPosition = buttonCorner - buttonSize * 0.5f;
 
         EconomyHUD.AddButton(openButton, hudColor).onClick.AddListener(Toggle);
-        CreateLabel(openButton, "Đơn hàng", 20f);
+        CreateLabel(openButton, "Orders", 20f);
 
         // Huy hiệu xanh ở góc trái: số đơn đang đủ hàng để giao
         RectTransform badgeRect = EconomyHUD.CreateRect("ReadyBadge", openButton);
@@ -488,12 +488,12 @@ public class OrderBoardUI : MonoBehaviour
     {
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 26f, textColor, TextAlignmentOptions.Left);
         Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -16f), new Vector2(420f, 36f));
-        title.text = "Bảng Đơn Hàng";
+        title.text = "Order Board";
 
         TextMeshProUGUI subtitle = EconomyHUD.CreateText("Subtitle", panel, 15f, mutedColor, TextAlignmentOptions.Left);
         subtitle.fontStyle = FontStyles.Normal;
         Place(subtitle.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -52f), new Vector2(460f, 22f));
-        subtitle.text = "Giao tài nguyên cho khách để nhận Coins";
+        subtitle.text = "Deliver resources to customers to earn Coins";
 
         // Nút đóng ở góc phải, số dư Coins nằm ngay bên trái nút
         RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
@@ -590,7 +590,7 @@ public class OrderBoardUI : MonoBehaviour
         TextMeshProUGUI rewardLabel = EconomyHUD.CreateText("Label", rewardRect, 15f, mutedColor, TextAlignmentOptions.Left);
         rewardLabel.fontStyle = FontStyles.Normal;
         EconomyHUD.Stretch(rewardLabel.rectTransform);
-        rewardLabel.text = "Thưởng";
+        rewardLabel.text = "Reward";
 
         RectTransform coinRect = EconomyHUD.CreateRect("CoinIcon", rewardRect);
         Place(coinRect, new Vector2(1f, 0.5f), Vector2.zero, new Vector2(24f, 24f));
@@ -613,14 +613,14 @@ public class OrderBoardUI : MonoBehaviour
         Place(deliverRect, Vector2.zero, new Vector2(12f, 12f), new Vector2(deliverWidth, 42f));
         card.deliver = EconomyHUD.AddButton(deliverRect, deliverColor);
         card.deliver.onClick.AddListener(() => Deliver(card));
-        card.deliverLabel = CreateLabel(deliverRect, "Giao", 18f);
+        card.deliverLabel = CreateLabel(deliverRect, "Deliver", 18f);
 
         if (!baseline)
         {
             RectTransform discardRect = EconomyHUD.CreateRect("DiscardButton", content);
             Place(discardRect, new Vector2(1f, 0f), new Vector2(-12f, 12f), new Vector2(discardWidth, 42f));
             EconomyHUD.AddButton(discardRect, secondaryColor).onClick.AddListener(() => Discard(card));
-            CreateLabel(discardRect, "Bỏ", 17f);
+            CreateLabel(discardRect, "Drop", 17f);
         }
 
         // Ô trống: đếm ngược tới đơn mới, hoặc hướng dẫn cách có đơn
@@ -644,12 +644,12 @@ public class OrderBoardUI : MonoBehaviour
 
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", section, 16f, textColor, TextAlignmentOptions.Left);
         Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(16f, -10f), new Vector2(width * 0.5f, 24f));
-        title.text = "Thương nhân mua tài nguyên dư";
+        title.text = "The merchant buys spare resources";
 
         TextMeshProUGUI hint = EconomyHUD.CreateText("Hint", section, 13f, mutedColor, TextAlignmentOptions.Right);
         hint.fontStyle = FontStyles.Normal;
         Place(hint.rectTransform, new Vector2(1f, 1f), new Vector2(-16f, -12f), new Vector2(width * 0.5f - 24f, 22f));
-        hint.text = "Giá sàn, giao đơn được nhiều Coins hơn";
+        hint.text = "Base price, orders pay more Coins";
 
         IReadOnlyList<ResourceData> resources = ResourceCatalog.All;
         if (resources.Count == 0)
@@ -675,19 +675,19 @@ public class OrderBoardUI : MonoBehaviour
             TextMeshProUGUI price = EconomyHUD.CreateText("Price", column, 13f, mutedColor, TextAlignmentOptions.Left);
             price.fontStyle = FontStyles.Normal;
             Place(price.rectTransform, new Vector2(0f, 1f), new Vector2(40f, -28f), new Vector2(64f, 20f));
-            price.text = "Giá " + NpcMerchant.GetUnitPrice(view.resource);
+            price.text = "Price " + NpcMerchant.GetUnitPrice(view.resource);
 
             RectTransform tenRect = EconomyHUD.CreateRect("SellTenButton", column);
             Place(tenRect, new Vector2(1f, 0.5f), Vector2.zero, new Vector2(62f, 36f));
             view.sellTen = EconomyHUD.AddButton(tenRect, secondaryColor);
             view.sellTen.onClick.AddListener(() => Sell(view, 10));
-            view.sellTenLabel = CreateLabel(tenRect, "Bán 10", 15f);
+            view.sellTenLabel = CreateLabel(tenRect, "Sell 10", 15f);
 
             RectTransform oneRect = EconomyHUD.CreateRect("SellOneButton", column);
             Place(oneRect, new Vector2(1f, 0.5f), new Vector2(-68f, 0f), new Vector2(54f, 36f));
             view.sellOne = EconomyHUD.AddButton(oneRect, secondaryColor);
             view.sellOne.onClick.AddListener(() => Sell(view, 1));
-            view.sellOneLabel = CreateLabel(oneRect, "Bán 1", 15f);
+            view.sellOneLabel = CreateLabel(oneRect, "Sell 1", 15f);
 
             view.floatLayer = EconomyHUD.CreateRect("FloatingNumbers", column);
             EconomyHUD.Stretch(view.floatLayer);

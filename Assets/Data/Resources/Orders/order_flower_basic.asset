@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: order_flower_basic
   m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
   templateId: order_flower_basic
-  customerName: "Ti\u1EC7m hoa"
+  customerName: Flower Shop
   portrait: {fileID: 0}
   portraitColor: {r: 0.8, g: 0.36, b: 0.55, a: 1}
   requirements:

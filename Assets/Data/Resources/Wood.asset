@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Wood
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: wood
-  resourceName: "G\u1ED7"
-  description: "G\u1ED7 t\u1EF1 nhi\xEAn thu ho\u1EA1ch t\u1EEB nh\u1EEFng c\xE1nh r\u1EEBng Leafwood r\u1EE3p b\xF3ng m\xE1t."
+  resourceName: Wood
+  description: Natural wood harvested from the shady Leafwood forests.
   icon: {fileID: 0}
   resourceColor: {r: 0.72, g: 0.45, b: 0.2, a: 1}
   hexColor: "#B87333"

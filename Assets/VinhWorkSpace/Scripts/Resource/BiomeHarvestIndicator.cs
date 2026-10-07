@@ -265,7 +265,7 @@ public class BiomeHarvestIndicator : MonoBehaviour, IPointerClickHandler
 
         if (subText != null)
         {
-            subText.text = "<color=#FEF08A>GẶT</color>";
+            subText.text = "<color=#FEF08A>HARVEST</color>";
             subText.fontSize = 10f;
             subText.rectTransform.anchoredPosition = new Vector2(0f, -24f);
         }

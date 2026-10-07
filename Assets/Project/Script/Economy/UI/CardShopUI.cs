@@ -202,7 +202,7 @@ public class CardShopUI : MonoBehaviour
         foreach (TileView tile in tiles)
         {
             hand.TryGetValue(CardShop.CardKey(tile.card), out int owned);
-            tile.owned.text = owned > 0 ? "Trên tay: " + owned + " lá" : "Chưa có trên tay";
+            tile.owned.text = owned > 0 ? "In hand: " + owned : "Not in hand";
 
             // Phải đủ cả giá thẻ lẫn phí đặt; thiếu thì nút ghi rõ số Coins cần có
             int required = CardShop.GetRequiredCoins(tile.card);
@@ -212,7 +212,7 @@ public class CardShopUI : MonoBehaviour
             bool canBuy = CardShop.CanBuy(tile.card);
             tile.buy.interactable = canBuy;
             tile.buyLabel.color = canBuy ? Color.white : mutedColor;
-            tile.buyLabel.text = affordable ? "Mua" : "Cần " + FormatNumber(required) + " Coins";
+            tile.buyLabel.text = affordable ? "Buy" : "Need " + FormatNumber(required) + " Coins";
         }
     }
 
@@ -229,7 +229,7 @@ public class CardShopUI : MonoBehaviour
         Punch(ref tile.punch, tile.rect, 1.05f);
 
         float x = TileWidth * 0.5f - 12f - 56f;
-        StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, "+1 lá", enoughColor, 22f,
+        StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, "+1 card", enoughColor, 22f,
             new Vector2(x, 54f), new Vector2(x, 100f), 1f));
     }
 
@@ -255,7 +255,7 @@ public class CardShopUI : MonoBehaviour
         openButton.anchoredPosition = buttonCorner - buttonSize * 0.5f;
 
         EconomyHUD.AddButton(openButton, hudColor).onClick.AddListener(Toggle);
-        CreateLabel(openButton, "Cửa hàng", 20f);
+        CreateLabel(openButton, "Shop", 20f);
     }
 
     private void BuildWindow()
@@ -305,7 +305,7 @@ public class CardShopUI : MonoBehaviour
         {
             TextMeshProUGUI empty = EconomyHUD.CreateText("Empty", content, 17f, mutedColor, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(empty.rectTransform);
-            empty.text = "Cửa hàng chưa có thẻ nào để bán";
+            empty.text = "The shop has no cards for sale yet";
         }
 
         window.SetActive(false);
@@ -315,12 +315,12 @@ public class CardShopUI : MonoBehaviour
     {
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 26f, textColor, TextAlignmentOptions.Left);
         Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -16f), new Vector2(420f, 36f));
-        title.text = "Cửa Hàng Thẻ";
+        title.text = "Card Shop";
 
         TextMeshProUGUI subtitle = EconomyHUD.CreateText("Subtitle", panel, 15f, mutedColor, TextAlignmentOptions.Left);
         subtitle.fontStyle = FontStyles.Normal;
         Place(subtitle.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -52f), new Vector2(500f, 22f));
-        subtitle.text = "Giá thẻ trả lúc mua, phí đặt trả mỗi lần đặt thẻ lên bản đồ";
+        subtitle.text = "The price is paid once, the placement fee every time you place the card";
 
         // Nút đóng ở góc phải, số dư Coins nằm ngay bên trái nút
         RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
@@ -457,7 +457,7 @@ public class CardShopUI : MonoBehaviour
         TextMeshProUGUI info = EconomyHUD.CreateText("Info", tile.rect, 13f, mutedColor, TextAlignmentOptions.Left);
         info.fontStyle = FontStyles.Normal;
         Place(info.rectTransform, new Vector2(0f, 1f), new Vector2(textX, -40f), new Vector2(textWidth, 18f));
-        info.text = TypeName(card.cardType) + " · " + (card.placementFee > 0 ? "phí đặt " + FormatNumber(card.placementFee) : "đặt miễn phí");
+        info.text = TypeName(card.cardType) + " · " + (card.placementFee > 0 ? "fee " + FormatNumber(card.placementFee) : "free to place");
 
         tile.owned = EconomyHUD.CreateText("Owned", tile.rect, 13f, mutedColor, TextAlignmentOptions.Left);
         tile.owned.fontStyle = FontStyles.Normal;
@@ -481,7 +481,7 @@ public class CardShopUI : MonoBehaviour
         tile.buy = EconomyHUD.AddButton(buyRect, buyColor);
         tile.buy.onClick.AddListener(() => Buy(tile));
         // Chữ tự thu nhỏ khi dài (ví dụ "Cần 1,250 Coins"), chừa lề hai bên nút
-        tile.buyLabel = CreateLabel(buyRect, "Mua", 16f);
+        tile.buyLabel = CreateLabel(buyRect, "Buy", 16f);
         tile.buyLabel.enableAutoSizing = true;
         tile.buyLabel.fontSizeMin = 11f;
         tile.buyLabel.fontSizeMax = 16f;
@@ -508,10 +508,10 @@ public class CardShopUI : MonoBehaviour
     {
         switch (type)
         {
-            case CardType.Creature: return "Thẻ thú";
-            case CardType.Terrain: return "Thẻ đất";
-            case CardType.Building: return "Thẻ công trình";
-            default: return "Thẻ đặc biệt";
+            case CardType.Creature: return "Creature card";
+            case CardType.Terrain: return "Terrain card";
+            case CardType.Building: return "Building card";
+            default: return "Special card";
         }
     }
 
