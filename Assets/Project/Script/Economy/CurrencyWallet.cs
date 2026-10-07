@@ -53,6 +53,14 @@ public class CurrencyWallet : MonoBehaviour
     public int StarterCoins => starterCoins;
 
     /// <summary>
+    /// Coins được tặng ngay lúc nạp ví (Starter Kit). Khoản này có trước khi CoinHUD kịp nghe OnBalanceChanged,
+    /// nên CoinHUD đọc số này để vẫn hiện số bay.
+    /// </summary>
+    public int GrantedOnLoad { get; private set; }
+
+    private int restoredBalance;
+
+    /// <summary>
     /// Bắn ra sau mỗi lần số dư đổi: (số dư mới, chênh lệch, lý do).
     /// </summary>
     public event Action<int, int, CoinReason> OnBalanceChanged;
@@ -67,6 +75,7 @@ public class CurrencyWallet : MonoBehaviour
 
         _instance = this;
         EconomySaveSystem.Instance.Attach(this);
+        GrantedOnLoad = balance - restoredBalance;
     }
 
     private void OnDestroy()
@@ -106,6 +115,7 @@ public class CurrencyWallet : MonoBehaviour
     internal void RestoreBalance(int savedBalance)
     {
         balance = Mathf.Max(0, savedBalance);
+        restoredBalance = balance;
     }
 
     private void NotifyChanged(int delta, CoinReason reason)

@@ -18,7 +18,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(RectTransform))]
 public class CardShopUI : MonoBehaviour
 {
-    // Kích thước tính bằng pixel: Canvas của màn chơi không co giãn theo màn hình
+    // Kích thước tính bằng pixel màn hình (EconomyHUD bù Scale Factor của Canvas)
     private const float PanelPadding = 24f;
     private const float HeaderHeight = 84f;
     private const int Columns = 2;
@@ -276,6 +276,7 @@ public class CardShopUI : MonoBehaviour
         RectTransform windowRect = EconomyHUD.CreateRect("Window", transform);
         EconomyHUD.Stretch(windowRect);
         window = windowRect.gameObject;
+        EconomyHUD.RegisterWindow(window);
 
         // Nền mờ phủ cả màn hình: chặn chuột tới thẻ bài và bản đồ, bấm vào thì đóng cửa hàng
         RectTransform backdropRect = EconomyHUD.CreateRect("Backdrop", windowRect);

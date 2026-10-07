@@ -19,7 +19,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(RectTransform))]
 public class OrderBoardUI : MonoBehaviour
 {
-    // Kích thước tính bằng pixel: Canvas của màn chơi không co giãn theo màn hình
+    // Kích thước tính bằng pixel màn hình (EconomyHUD bù Scale Factor của Canvas)
     private const float PanelPadding = 24f;
     private const float HeaderHeight = 84f;
     private const float CardWidth = 236f;
@@ -28,6 +28,10 @@ public class OrderBoardUI : MonoBehaviour
     private const float SectionGap = 16f;
     private const float MerchantHeight = 104f;
     private const int RequirementRows = 3;
+
+    // Giao xong, ô có ngay đơn mới: trong khoảng này nút Giao của ô đó không nhận bấm,
+    // để cú bấm thứ hai của một lần bấm đúp không giao luôn đơn mới khi người chơi chưa kịp xem
+    private const float DeliverLockSeconds = 0.6f;
 
     [Header("Nút mở bảng")]
     [Tooltip("Góc trên phải của nút, tính từ góc trên phải màn hình (mặc định nằm ngay dưới CoinHUD)")]
@@ -65,6 +69,7 @@ public class OrderBoardUI : MonoBehaviour
         public TextMeshProUGUI emptyText;
         public RectTransform floatLayer;
         public Coroutine punch;
+        public float deliverLockedUntil;
     }
 
     private class RequirementRow
@@ -369,11 +374,15 @@ public class OrderBoardUI : MonoBehaviour
 
     private void Deliver(CardView card)
     {
+        if (Time.unscaledTime < card.deliverLockedUntil) return;
+
         ActiveOrder order = board.GetOrder(card.slot);
         if (order == null) return;
 
         int reward = order.rewardCoins;
         if (!board.TryFulfill(card.slot)) return;
+
+        card.deliverLockedUntil = Time.unscaledTime + DeliverLockSeconds;
 
         // Thẻ đã chuyển sang đơn mới (qua OnBoardChanged); thêm hiệu ứng nhận thưởng
         Punch(ref card.punch, card.rect, 1.06f);
@@ -448,6 +457,7 @@ public class OrderBoardUI : MonoBehaviour
         RectTransform windowRect = EconomyHUD.CreateRect("Window", transform);
         EconomyHUD.Stretch(windowRect);
         window = windowRect.gameObject;
+        EconomyHUD.RegisterWindow(window);
 
         // Nền mờ phủ cả màn hình: chặn chuột tới thẻ bài và bản đồ, bấm vào thì đóng bảng
         RectTransform backdropRect = EconomyHUD.CreateRect("Backdrop", windowRect);

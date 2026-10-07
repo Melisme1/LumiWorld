@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -11,6 +13,8 @@ using UnityEngine.UI;
 /// nên không cần sửa Scene hay tạo prefab. Muốn tự đặt thì thêm script này vào một object con của Canvas
 /// trong scene; khi đó game không sinh thêm bản thứ hai.
 /// CoinHUD và InventoryUI chỉ để xem: không chặn chuột, kéo thẻ hay bấm bong bóng thu hoạch phía sau.
+/// Kích thước giao diện kinh tế tính bằng pixel thật. Canvas của scene MapBuilding để Scale Factor 0,5
+/// (khay bài tự bù bằng scale 2), nên HUD và hai bảng được phóng lại theo Canvas để không bị thu nhỏ một nửa.
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class EconomyHUD : MonoBehaviour
@@ -23,8 +27,20 @@ public class EconomyHUD : MonoBehaviour
     private static Sprite coinSprite;
     private static Sprite circleSprite;
 
+    // Cửa sổ của Bảng Đơn Hàng và Cửa hàng thẻ, để camera và thu hoạch biết đang có bảng mở
+    private static readonly List<GameObject> windows = new List<GameObject>();
+    private static readonly List<RaycastResult> pointerHits = new List<RaycastResult>();
+
+    // Gốc của HUD và hai bảng, được phóng theo Scale Factor của Canvas
+    private readonly List<RectTransform> pixelRoots = new List<RectTransform>();
+    private Canvas canvas;
+    private float fittedCanvasScale;
+    private Vector2 fittedCanvasSize;
+
     private void Awake()
     {
+        pixelRoots.Add((RectTransform)transform);
+
         if (GetComponentInChildren<CoinHUD>(true) == null)
         {
             CreateCorner<CoinHUD>("CoinHUD", new Vector2(1f, 1f), new Vector2(-screenMargin.x, -screenMargin.y));
@@ -38,6 +54,14 @@ public class EconomyHUD : MonoBehaviour
         // Bảng Đơn Hàng và Cửa hàng thẻ cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
         CreateOverlay<OrderBoardUI>("OrderBoardUI");
         CreateOverlay<CardShopUI>("CardShopUI");
+
+        FitToCanvas();
+    }
+
+    private void LateUpdate()
+    {
+        // Cửa sổ Game đổi cỡ hoặc Canvas đổi Scale Factor thì phóng lại
+        FitToCanvas();
     }
 
     private T CreateCorner<T>(string objectName, Vector2 corner, Vector2 offset) where T : Component
@@ -58,6 +82,90 @@ public class EconomyHUD : MonoBehaviour
         Stretch(rect);
         rect.SetAsLastSibling();
         rect.gameObject.AddComponent<T>();
+        pixelRoots.Add(rect);
+    }
+
+    private void FitToCanvas()
+    {
+        if (canvas == null)
+        {
+            Canvas parentCanvas = GetComponentInParent<Canvas>();
+            if (parentCanvas == null) return;
+            canvas = parentCanvas.rootCanvas;
+        }
+
+        float canvasScale = canvas.scaleFactor;
+        Vector2 canvasSize = ((RectTransform)canvas.transform).rect.size;
+        if (canvasScale <= 0f || canvasSize.x <= 0f || canvasSize.y <= 0f) return;
+        if (canvasScale == fittedCanvasScale && canvasSize == fittedCanvasSize) return;
+
+        fittedCanvasScale = canvasScale;
+        fittedCanvasSize = canvasSize;
+
+        // Mỗi gốc phủ kín parent (thường là Canvas), nhưng 1 đơn vị bên trong luôn bằng 1 pixel màn hình
+        foreach (RectTransform root in pixelRoots)
+        {
+            if (root == null) continue;
+
+            Vector2 area = root.parent is RectTransform parent ? parent.rect.size : canvasSize;
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.zero;
+            root.pivot = Vector2.zero;
+            root.anchoredPosition = Vector2.zero;
+            root.sizeDelta = area * canvasScale;
+            root.localScale = new Vector3(1f / canvasScale, 1f / canvasScale, 1f);
+        }
+    }
+
+    // =========================================================
+    // CHO CAMERA VÀ THU HOẠCH BIẾT KHI NÀO KHÔNG ĐƯỢC PHẢN ỨNG VỚI CHUỘT
+    // =========================================================
+
+    /// <summary>
+    /// Bảng Đơn Hàng hoặc Cửa hàng thẻ đang mở.
+    /// </summary>
+    public static bool IsWindowOpen
+    {
+        get
+        {
+            windows.RemoveAll(window => window == null);
+            foreach (GameObject window in windows)
+            {
+                if (window.activeInHierarchy) return true;
+            }
+            return false;
+        }
+    }
+
+    internal static void RegisterWindow(GameObject window)
+    {
+        if (window != null && !windows.Contains(window)) windows.Add(window);
+    }
+
+    /// <summary>
+    /// Chuột đang chỉ vào UI bấm được (nút, thẻ bài, bong bóng thu hoạch...), hoặc đang mở Bảng Đơn Hàng hay Cửa hàng.
+    /// Ảnh không bấm được thì không tính (như khung trong suốt của khay bài), nên vẫn thu hoạch được ô đất nằm sau nó.
+    /// </summary>
+    public static bool IsPointerOverInteractiveUI(Vector2 screenPosition)
+    {
+        if (IsWindowOpen) return true;
+
+        EventSystem eventSystem = EventSystem.current;
+        if (eventSystem == null) return false;
+
+        pointerHits.Clear();
+        eventSystem.RaycastAll(new PointerEventData(eventSystem) { position = screenPosition }, pointerHits);
+
+        // Giống EventSystem: chỉ vật trên cùng nhận cú bấm, nó hoặc object cha phải có hàm xử lý bấm hay kéo
+        foreach (RaycastResult hit in pointerHits)
+        {
+            if (hit.gameObject == null) continue;
+
+            return ExecuteEvents.GetEventHandler<IPointerClickHandler>(hit.gameObject) != null
+                || ExecuteEvents.GetEventHandler<IPointerDownHandler>(hit.gameObject) != null
+                || ExecuteEvents.GetEventHandler<IBeginDragHandler>(hit.gameObject) != null;
+        }
+        return false;
     }
 
     // =========================================================

@@ -5,7 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// Số Lumi Coin ở góc trên màn chơi. Khi số dư đổi, con số chạy dần tới số mới, ô Coins nảy nhẹ
-/// và hiện số bay: +75 màu xanh bay lên vào ô, -10 màu đỏ rơi khỏi ô.
+/// và hiện số bay ngay bên trái ô: +75 màu xanh bay lên ngang ô, -10 màu đỏ rơi xuống.
 /// EconomyHUD tự tạo script này, không cần gắn tay.
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
@@ -26,6 +26,9 @@ public class CoinHUD : MonoBehaviour
     [Tooltip("Quãng đường số bay di chuyển (pixel)")]
     [SerializeField] private float floatDistance = 34f;
 
+    // Số bay nằm bên trái ô Coins (tâm chữ cách mép trái ô 56 pixel), vì ngay dưới ô là nút Đơn hàng và Cửa hàng sẽ che mất
+    private const float FloatOffsetX = -56f;
+
     private CurrencyWallet wallet;
     private RectTransform body;
     private RectTransform floatLayer;
@@ -43,8 +46,12 @@ public class CoinHUD : MonoBehaviour
     {
         // Lần đầu gọi Instance sẽ tạo ví và nạp số dư đã lưu (người chơi mới nhận Starter Kit)
         wallet = CurrencyWallet.Instance;
-        ShowBalance(wallet.Balance);
         wallet.OnBalanceChanged += HandleBalanceChanged;
+
+        // Starter Kit được cộng ngay lúc tạo ví, trước khi HUD kịp nghe sự kiện: vẫn cho số chạy và hiện "+200"
+        int granted = wallet.GrantedOnLoad;
+        ShowBalance(wallet.Balance - granted);
+        if (granted > 0) HandleBalanceChanged(wallet.Balance, granted, CoinReason.StarterKit);
     }
 
     private void OnDisable()
@@ -86,8 +93,11 @@ public class CoinHUD : MonoBehaviour
         valueText.fontSizeMax = 26f;
         valueText.text = "0";
 
+        // Điểm gốc của số bay: giữa cạnh trái ô Coins
         floatLayer = EconomyHUD.CreateRect("FloatingNumbers", rect);
-        EconomyHUD.Stretch(floatLayer);
+        floatLayer.anchorMin = new Vector2(0f, 0.5f);
+        floatLayer.anchorMax = new Vector2(0f, 0.5f);
+        floatLayer.sizeDelta = Vector2.zero;
     }
 
     private void HandleBalanceChanged(int balance, int delta, CoinReason reason)
@@ -106,15 +116,15 @@ public class CoinHUD : MonoBehaviour
 
         if (delta > 0)
         {
-            // Coins vào: số bay từ dưới lên, chui vào ô
+            // Coins vào: số bay từ dưới lên tới ngang ô
             StartCoroutine(EconomyHUD.FloatText(floatLayer, "+" + FormatCoins(delta), gainColor, 24f,
-                new Vector2(0f, -floatDistance - 14f), new Vector2(0f, -14f), floatDuration));
+                new Vector2(FloatOffsetX, -floatDistance), new Vector2(FloatOffsetX, 0f), floatDuration));
         }
         else if (delta < 0)
         {
-            // Coins ra: số bay từ ô rơi xuống
+            // Coins ra: số bay từ ngang ô rơi xuống
             StartCoroutine(EconomyHUD.FloatText(floatLayer, "-" + FormatCoins(-delta), spendColor, 24f,
-                new Vector2(0f, -14f), new Vector2(0f, -floatDistance - 14f), floatDuration));
+                new Vector2(FloatOffsetX, 0f), new Vector2(FloatOffsetX, -floatDistance), floatDuration));
         }
     }
 

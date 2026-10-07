@@ -7,7 +7,8 @@ using UnityEngine;
 /// <summary>
 /// Bảng Đơn Hàng: các ô đơn của khách NPC. Người chơi giao tài nguyên trong kho để nhận Coins.
 /// - Ô đầu tiên luôn là đơn cơ bản (mẫu có isBaseline) và không bỏ được, nên lúc nào cũng có đơn để làm.
-/// - Đơn chỉ yêu cầu loại tài nguyên người chơi làm ra được: có cụm biome đang có thú, hoặc đang có trong kho.
+/// - Đơn chỉ yêu cầu loại tài nguyên người chơi làm ra được (có cụm biome đang có thú),
+///   hoặc loại kho đã có đủ cho số lượng cao nhất của đơn. Nhờ vậy đơn cơ bản không bao giờ kẹt ở mức không giao được.
 /// - Giao đơn: trừ kho và cộng Coins cùng lúc (đủ hết mới trừ), rồi ô đó có ngay đơn mới.
 /// - Bỏ đơn: miễn phí, ô trống có đơn mới sau refillSeconds (mặc định 5 phút, tính cả lúc tắt game).
 /// Đơn đang mở và giờ có đơn mới được lưu cùng ví và kho trong EconomySaveData.
@@ -181,7 +182,7 @@ public class OrderBoardSystem : MonoBehaviour
         orders.Remove(order);
         Debug.Log($"<color=#38BDF8>📋 [LumiWorld Đơn hàng] Đã giao {Describe(order)} cho {CustomerName(order)}, nhận {order.rewardCoins} Coins.</color>");
 
-        TryCreateOrder(slot, GetAvailableResourceIds());
+        TryCreateOrder(slot, GetProducingResourceIds());
         NotifyChanged();
         return true;
     }
@@ -212,7 +213,7 @@ public class OrderBoardSystem : MonoBehaviour
     {
         if (orders == null) return;
 
-        HashSet<string> available = null;
+        HashSet<string> producing = null;
         bool changed = false;
         DateTime now = DateTime.UtcNow;
 
@@ -220,16 +221,16 @@ public class OrderBoardSystem : MonoBehaviour
         {
             if (GetOrder(slot) != null || GetRefillTime(slot) > now) continue;
 
-            if (available == null) available = GetAvailableResourceIds();
-            if (TryCreateOrder(slot, available)) changed = true;
+            if (producing == null) producing = GetProducingResourceIds();
+            if (TryCreateOrder(slot, producing)) changed = true;
         }
 
         if (changed) NotifyChanged();
     }
 
-    private bool TryCreateOrder(int slot, HashSet<string> available)
+    private bool TryCreateOrder(int slot, HashSet<string> producing)
     {
-        OrderTemplate template = PickTemplate(slot, available);
+        OrderTemplate template = PickTemplate(slot, producing);
         if (template == null)
         {
             slotsWaitingForResources.Add(slot);
@@ -256,7 +257,8 @@ public class OrderBoardSystem : MonoBehaviour
             baseValueTotal += amount * Mathf.Max(0, requirement.resource.baseValue);
         }
 
-        order.rewardCoins = Mathf.Max(1, Mathf.RoundToInt(baseValueTotal * template.rewardMultiplier));
+        // Làm tròn .5 lên (Mathf.RoundToInt làm tròn 82,5 thành 82)
+        order.rewardCoins = Mathf.Max(1, Mathf.FloorToInt(baseValueTotal * template.rewardMultiplier + 0.5f));
         orders.Add(order);
         refills.RemoveAll(refill => refill.slot == slot);
         slotsWaitingForResources.Remove(slot);
@@ -265,7 +267,7 @@ public class OrderBoardSystem : MonoBehaviour
         return true;
     }
 
-    private OrderTemplate PickTemplate(int slot, HashSet<string> available)
+    private OrderTemplate PickTemplate(int slot, HashSet<string> producing)
     {
         List<OrderTemplate> candidates = new List<OrderTemplate>();
         List<OrderTemplate> notOnBoard = new List<OrderTemplate>();
@@ -273,7 +275,7 @@ public class OrderBoardSystem : MonoBehaviour
         foreach (OrderTemplate template in templates)
         {
             if (slot == BaselineSlot && !template.isBaseline) continue;
-            if (!UsesOnly(template, available)) continue;
+            if (!CanMake(template, producing)) continue;
 
             candidates.Add(template);
             if (!IsOnBoard(template.templateId)) notOnBoard.Add(template);
@@ -293,20 +295,40 @@ public class OrderBoardSystem : MonoBehaviour
         return false;
     }
 
-    private static bool UsesOnly(OrderTemplate template, HashSet<string> available)
+    /// <summary>
+    /// Người chơi giao được mẫu đơn này: mọi loại trong đơn đều đang làm ra được,
+    /// hoặc kho đã đủ cho số lượng cao nhất mẫu có thể đòi.
+    /// </summary>
+    private static bool CanMake(OrderTemplate template, HashSet<string> producing)
     {
+        ResourceInventory inventory = ResourceInventory.Instance;
         foreach (OrderRequirement requirement in template.requirements)
         {
             if (requirement == null || requirement.resource == null) continue;
-            if (!available.Contains(requirement.resource.resourceID)) return false;
+
+            string resourceId = requirement.resource.resourceID;
+            if (producing.Contains(resourceId)) continue;
+            if (inventory.GetAmount(resourceId) < GetMaxAmount(template, resourceId)) return false;
         }
         return true;
     }
 
+    private static int GetMaxAmount(OrderTemplate template, string resourceId)
+    {
+        // Cộng mọi dòng cùng loại, vì lúc tạo đơn chúng được gộp thành một dòng
+        int total = 0;
+        foreach (OrderRequirement requirement in template.requirements)
+        {
+            if (requirement == null || requirement.resource == null || requirement.resource.resourceID != resourceId) continue;
+            total += Mathf.Max(Mathf.Max(1, requirement.minAmount), requirement.maxAmount);
+        }
+        return total;
+    }
+
     /// <summary>
-    /// Loại tài nguyên người chơi làm ra được: cụm biome đang có thú sản xuất, hoặc đang có trong kho.
+    /// Loại tài nguyên người chơi đang làm ra: có cụm biome đang có thú sản xuất.
     /// </summary>
-    private static HashSet<string> GetAvailableResourceIds()
+    private static HashSet<string> GetProducingResourceIds()
     {
         HashSet<string> ids = new HashSet<string>();
 
@@ -321,12 +343,6 @@ public class OrderBoardSystem : MonoBehaviour
                     ids.Add(cluster.ResourceData.resourceID);
                 }
             }
-        }
-
-        ResourceInventory inventory = ResourceInventory.Instance;
-        foreach (ResourceData resource in ResourceCatalog.All)
-        {
-            if (inventory.GetAmount(resource) > 0) ids.Add(resource.resourceID);
         }
         return ids;
     }
@@ -354,9 +370,21 @@ public class OrderBoardSystem : MonoBehaviour
         {
             if (refill.slot != slot) continue;
 
-            return DateTime.TryParse(refill.refillAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime time)
-                ? time.ToUniversalTime()
-                : DateTime.MinValue;
+            if (!DateTime.TryParse(refill.refillAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime time))
+            {
+                return DateTime.MinValue;
+            }
+
+            // Đồng hồ máy bị chỉnh lùi sau khi bỏ đơn: không bắt chờ lâu hơn một lượt chờ đầy đủ
+            DateTime latest = DateTime.UtcNow.AddSeconds(refillSeconds);
+            time = time.ToUniversalTime();
+            if (time > latest)
+            {
+                time = latest;
+                refill.refillAtUtc = latest.ToString("o", CultureInfo.InvariantCulture);
+                EconomySaveSystem.Instance.MarkDirty();
+            }
+            return time;
         }
         return DateTime.MinValue;
     }

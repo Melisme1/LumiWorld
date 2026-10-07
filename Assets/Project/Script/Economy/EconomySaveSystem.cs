@@ -33,6 +33,7 @@ public class EconomySaveSystem : MonoBehaviour
     private IEconomySaveStore store;
     private EconomySaveData data;
     private bool isDirty;
+    private float nextSaveTime;
 
     /// <summary>
     /// Các đơn hàng đang mở đã lưu. Bảng Đơn Hàng sửa trực tiếp danh sách này rồi gọi MarkDirty().
@@ -138,7 +139,8 @@ public class EconomySaveSystem : MonoBehaviour
 
     private void LateUpdate()
     {
-        SaveIfDirty();
+        // Lần lưu trước bị lỗi thì đợi một lúc mới thử lại, không ghi file mỗi frame
+        if (Time.unscaledTime >= nextSaveTime) SaveIfDirty();
     }
 
     private void OnApplicationPause(bool paused)
@@ -162,7 +164,13 @@ public class EconomySaveSystem : MonoBehaviour
         if (!isDirty || data == null) return;
 
         data.savedAtUtc = DateTime.UtcNow.ToString("o");
-        store.Save(data);
-        isDirty = false;
+        if (store.Save(data))
+        {
+            isDirty = false;
+        }
+        else
+        {
+            nextSaveTime = Time.unscaledTime + 2f;
+        }
     }
 }
