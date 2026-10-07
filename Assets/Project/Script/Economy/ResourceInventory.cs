@@ -96,6 +96,53 @@ public class ResourceInventory : MonoBehaviour
     }
 
     /// <summary>
+    /// Kho có đủ mọi dòng yêu cầu không (ví dụ yêu cầu của một đơn hàng). Các dòng trùng loại được cộng dồn.
+    /// </summary>
+    public bool HasAll(IList<ResourceStack> requirements)
+    {
+        foreach (KeyValuePair<string, int> need in SumByResource(requirements))
+        {
+            if (GetAmount(need.Key) < need.Value) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Trừ đủ mọi dòng yêu cầu, hoặc không trừ gì nếu thiếu dù chỉ một loại. Trả về true khi đã trừ.
+    /// </summary>
+    public bool TryRemoveAll(IList<ResourceStack> requirements)
+    {
+        Dictionary<string, int> needs = SumByResource(requirements);
+        foreach (KeyValuePair<string, int> need in needs)
+        {
+            if (GetAmount(need.Key) < need.Value) return false;
+        }
+
+        foreach (KeyValuePair<string, int> need in needs)
+        {
+            int newAmount = GetAmount(need.Key) - need.Value;
+            amounts[need.Key] = newAmount;
+            OnInventoryChanged?.Invoke(need.Key, newAmount, -need.Value);
+        }
+        return true;
+    }
+
+    private static Dictionary<string, int> SumByResource(IList<ResourceStack> stacks)
+    {
+        Dictionary<string, int> totals = new Dictionary<string, int>();
+        if (stacks == null) return totals;
+
+        foreach (ResourceStack stack in stacks)
+        {
+            if (stack == null || string.IsNullOrEmpty(stack.resourceId) || stack.amount <= 0) continue;
+
+            totals.TryGetValue(stack.resourceId, out int total);
+            totals[stack.resourceId] = total + stack.amount;
+        }
+        return totals;
+    }
+
+    /// <summary>
     /// Nạp lại kho đã lưu. Chỉ EconomySaveSystem gọi lúc vào game, không bắn sự kiện.
     /// </summary>
     internal void RestoreAmounts(List<ResourceStack> stacks)
@@ -109,4 +156,30 @@ public class ResourceInventory : MonoBehaviour
             amounts[stack.resourceId] = stack.amount;
         }
     }
+
+#if UNITY_EDITOR
+    [ContextMenu("Test: +10 mỗi loại tài nguyên")]
+    private void DevAddEach()
+    {
+        foreach (ResourceData resource in ResourceCatalog.All)
+        {
+            Add(resource, 10);
+        }
+    }
+
+    [ContextMenu("Test: trừ 5 mỗi loại tài nguyên")]
+    private void DevRemoveEach()
+    {
+        List<ResourceStack> cost = new List<ResourceStack>();
+        foreach (ResourceData resource in ResourceCatalog.All)
+        {
+            cost.Add(new ResourceStack { resourceId = resource.resourceID, amount = 5 });
+        }
+
+        if (!TryRemoveAll(cost))
+        {
+            Debug.LogWarning("[LumiWorld Kho] Có loại chưa đủ 5 nên không trừ gì.");
+        }
+    }
+#endif
 }
