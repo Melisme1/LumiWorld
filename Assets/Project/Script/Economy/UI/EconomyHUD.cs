@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Gốc giao diện kinh tế trên màn chơi: CoinHUD ở góc trên bên phải, InventoryUI ở góc trên bên trái,
-/// và Bảng Đơn Hàng (OrderBoardUI, nút "Đơn hàng" ngay dưới số Coins).
+/// Bảng Đơn Hàng (OrderBoardUI, nút "Đơn hàng" ngay dưới số Coins) và Cửa hàng thẻ (CardShopUI, nút "Cửa hàng" dưới nút "Đơn hàng").
 /// Tự sinh khi vào scene có bản đồ lục giác (HexWorldGenerator) và gắn vào Canvas màn hình của scene đó,
 /// nên không cần sửa Scene hay tạo prefab. Muốn tự đặt thì thêm script này vào một object con của Canvas
 /// trong scene; khi đó game không sinh thêm bản thứ hai.
@@ -35,14 +35,9 @@ public class EconomyHUD : MonoBehaviour
             CreateCorner<InventoryUI>("InventoryUI", new Vector2(0f, 1f), new Vector2(screenMargin.x, -screenMargin.y));
         }
 
-        // Bảng Đơn Hàng cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
-        if (transform.parent != null && FindAnyObjectByType<OrderBoardUI>(FindObjectsInactive.Include) == null)
-        {
-            RectTransform board = CreateRect("OrderBoardUI", transform.parent);
-            Stretch(board);
-            board.SetAsLastSibling();
-            board.gameObject.AddComponent<OrderBoardUI>();
-        }
+        // Bảng Đơn Hàng và Cửa hàng thẻ cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
+        CreateOverlay<OrderBoardUI>("OrderBoardUI");
+        CreateOverlay<CardShopUI>("CardShopUI");
     }
 
     private T CreateCorner<T>(string objectName, Vector2 corner, Vector2 offset) where T : Component
@@ -53,6 +48,16 @@ public class EconomyHUD : MonoBehaviour
         rect.pivot = corner;
         rect.anchoredPosition = offset;
         return rect.gameObject.AddComponent<T>();
+    }
+
+    private void CreateOverlay<T>(string objectName) where T : Component
+    {
+        if (transform.parent == null || FindAnyObjectByType<T>(FindObjectsInactive.Include) != null) return;
+
+        RectTransform rect = CreateRect(objectName, transform.parent);
+        Stretch(rect);
+        rect.SetAsLastSibling();
+        rect.gameObject.AddComponent<T>();
     }
 
     // =========================================================
@@ -112,7 +117,7 @@ public class EconomyHUD : MonoBehaviour
     }
 
     // =========================================================
-    // DỰNG UI DÙNG CHUNG CHO CoinHUD, InventoryUI VÀ OrderBoardUI
+    // DỰNG UI DÙNG CHUNG CHO CoinHUD, InventoryUI, OrderBoardUI VÀ CardShopUI
     // =========================================================
 
     internal static RectTransform CreateRect(string objectName, Transform parent)
