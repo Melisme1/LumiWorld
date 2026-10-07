@@ -486,6 +486,10 @@ public class HexHabitatSpawner : MonoBehaviour
             Vector3 localMax = Vector3.Scale(b.max, prefab.transform.localScale);
             Quaternion rot = prefab.transform.localRotation;
             float minY = float.MaxValue;
+<<<<<<< HEAD
+=======
+            float maxY = float.MinValue;
+>>>>>>> origin/AnKhang_zoo_connection
 
             for (int x = 0; x <= 1; x++)
             {
@@ -500,16 +504,29 @@ public class HexHabitatSpawner : MonoBehaviour
                         );
                         float rotY = (rot * corner).y;
                         if (rotY < minY) minY = rotY;
+<<<<<<< HEAD
+=======
+                        if (rotY > maxY) maxY = rotY;
+>>>>>>> origin/AnKhang_zoo_connection
                     }
                 }
             }
 
+<<<<<<< HEAD
             float groundEmbed = 0.03f;
 
+=======
+            float totalHeight = Mathf.Max(0.01f, maxY - minY);
+            float groundEmbed = 0.02f;
+            float maxRatio = 0.25f;
+
+            // 1. Ưu tiên số 1: customEmbed do quy tắc riêng trong CardData ghi đè (nếu designer cố tình nhập > 0)
+>>>>>>> origin/AnKhang_zoo_connection
             if (customEmbed > 0f)
             {
                 groundEmbed = customEmbed;
             }
+<<<<<<< HEAD
             else
             {
                 string pName = prefab.name;
@@ -616,6 +633,33 @@ public class HexHabitatSpawner : MonoBehaviour
                 }
             }
 
+=======
+            // 2. Ưu tiên số 2: Lấy trực tiếp từ component HexPropConfig gắn trên chính Prefab đó
+            else
+            {
+                HexPropConfig propConfig = prefab.GetComponent<HexPropConfig>();
+                if (propConfig == null)
+                {
+                    propConfig = prefab.GetComponentInChildren<HexPropConfig>();
+                }
+
+                if (propConfig != null)
+                {
+                    groundEmbed = propConfig.GroundEmbed;
+                    maxRatio = propConfig.MaxEmbedHeightRatio;
+                }
+                else
+                {
+                    // 3. Fallback mặc định an toàn: Tự động tính 5% theo chiều cao mô hình (tối đa 5cm)
+                    // Hoàn toàn KHÔNG dùng so khớp chuỗi tên (string matching)!
+                    groundEmbed = Mathf.Clamp(totalHeight * 0.05f, 0.005f, 0.05f);
+                }
+            }
+
+            // Trần an toàn: Không bao giờ cho phép chìm quá tỉ lệ tối đa của chiều cao prefab (mặc định 25%)
+            groundEmbed = Mathf.Min(groundEmbed, totalHeight * maxRatio);
+
+>>>>>>> origin/AnKhang_zoo_connection
             offset = -minY - groundEmbed;
         }
 

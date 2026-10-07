@@ -53,6 +53,13 @@ public class HexGroupDetector : MonoBehaviour
             if (card.cardData.alwaysBaseScore)
                 continue;
 
+<<<<<<< HEAD
+=======
+            // Chỉ gom nhóm các thẻ cùng loại (Creature với Creature, Terrain với Terrain)
+            if (card.CardType != startCard.CardType)
+                continue;
+
+>>>>>>> origin/AnKhang_zoo_connection
             if (!cardsByHex.ContainsKey(card.placedHex))
             {
                 cardsByHex.Add(

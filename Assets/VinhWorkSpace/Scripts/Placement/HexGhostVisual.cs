@@ -34,7 +34,11 @@ public class HexGhostVisual : MonoBehaviour
     private GameObject hologramShellObj;
     private GameObject itemGhostInstance;
     private CardData activeCardData;
+<<<<<<< HEAD
     private readonly List<MeshRenderer> cachedGhostRenderers = new List<MeshRenderer>();
+=======
+    private readonly List<Renderer> cachedGhostRenderers = new List<Renderer>();
+>>>>>>> origin/AnKhang_zoo_connection
     private MaterialPropertyBlock propBlock;
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
     private Coroutine snapPunchCoroutine;
@@ -67,7 +71,11 @@ public class HexGhostVisual : MonoBehaviour
             itemGhostInstance.name = "GhostItemPreview";
             itemGhostInstance.transform.localPosition = Vector3.zero;
 
+<<<<<<< HEAD
             DisableColliders(itemGhostInstance);
+=======
+            NeutralizeGhostInstance(itemGhostInstance);
+>>>>>>> origin/AnKhang_zoo_connection
             ApplyGhostMaterial(itemGhostInstance);
         }
 
@@ -276,6 +284,7 @@ public class HexGhostVisual : MonoBehaviour
 
         for (int i = 0; i < cachedGhostRenderers.Count; i++)
         {
+<<<<<<< HEAD
             var mr = cachedGhostRenderers[i];
             if (mr == null) continue;
             mr.GetPropertyBlock(propBlock);
@@ -287,20 +296,89 @@ public class HexGhostVisual : MonoBehaviour
     private void DisableColliders(GameObject obj)
     {
         Collider[] colliders = obj.GetComponentsInChildren<Collider>();
+=======
+            var r = cachedGhostRenderers[i];
+            if (r == null) continue;
+            r.GetPropertyBlock(propBlock);
+            propBlock.SetColor(ColorProperty, targetColor);
+            r.SetPropertyBlock(propBlock);
+        }
+    }
+
+    /// <summary>
+    /// Vô hiệu hóa toàn bộ chuyển động, hoạt ảnh, collider và AI trên mô hình preview.
+    /// Giúp mô hình đứng yên hoàn toàn (static dummy), không mô phỏng con thú thật khi đang rê chuột.
+    /// </summary>
+    private void NeutralizeGhostInstance(GameObject obj)
+    {
+        if (obj == null) return;
+
+        // 1. Tắt toàn bộ Collider để không bắt va chạm hoặc cản trở Raycast chuột
+        Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
+>>>>>>> origin/AnKhang_zoo_connection
         foreach (var col in colliders)
         {
             col.enabled = false;
         }
+<<<<<<< HEAD
+=======
+
+        // 2. Tắt toàn bộ Animator để mô hình đứng yên hoàn toàn (bind/idle pose tĩnh)
+        Animator[] animators = obj.GetComponentsInChildren<Animator>(true);
+        foreach (var anim in animators)
+        {
+            anim.enabled = false;
+        }
+
+        // 3. Tắt và dừng toàn bộ Animation truyền thống (Legacy)
+        Animation[] legacyAnims = obj.GetComponentsInChildren<Animation>(true);
+        foreach (var legAnim in legacyAnims)
+        {
+            legAnim.Stop();
+            legAnim.enabled = false;
+        }
+
+        // 4. Vô hiệu hóa toàn bộ MonoBehaviour (AnimalMovementAI, FarmAnimalAI, AnimalVisualEnhancer, AnimalIndividual...)
+        // Tránh việc con thú chạy script di chuyển, tính toán tài nguyên hay hiệu ứng trong preview
+        MonoBehaviour[] scripts = obj.GetComponentsInChildren<MonoBehaviour>(true);
+        foreach (var script in scripts)
+        {
+            script.enabled = false;
+        }
+
+        // 5. Khóa Rigidbody nếu có
+        Rigidbody[] rbs = obj.GetComponentsInChildren<Rigidbody>(true);
+        foreach (var rb in rbs)
+        {
+            rb.isKinematic = true;
+            rb.detectCollisions = false;
+        }
+
+        // 6. Tắt AudioSource nếu có
+        AudioSource[] audios = obj.GetComponentsInChildren<AudioSource>(true);
+        foreach (var a in audios)
+        {
+            a.enabled = false;
+        }
+>>>>>>> origin/AnKhang_zoo_connection
     }
 
     private void ApplyGhostMaterial(GameObject obj)
     {
         if (ghostMaterial == null) return;
 
+<<<<<<< HEAD
         MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>();
         foreach (var mr in renderers)
         {
             mr.sharedMaterial = ghostMaterial;
+=======
+        // Áp dụng cho cả MeshRenderer và SkinnedMeshRenderer (đối với mô hình thú)
+        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
+        foreach (var r in renderers)
+        {
+            r.sharedMaterial = ghostMaterial;
+>>>>>>> origin/AnKhang_zoo_connection
         }
     }
 

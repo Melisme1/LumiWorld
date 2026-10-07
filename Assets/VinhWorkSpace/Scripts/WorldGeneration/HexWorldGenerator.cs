@@ -23,10 +23,27 @@ public class HexWorldGenerator : MonoBehaviour
     [Tooltip("Độ cao cơ sở khi spawn (để chân khối lục giác chìm xuống dưới mặt nước, tránh lơ lửng). Mặc định -0.5f")]
     [SerializeField] private float spawnOffsetY = -0.5f;
 
+<<<<<<< HEAD
+=======
+    [Header("Tỷ lệ phân bố tầng địa hình (Noise Thresholds)")]
+    [Tooltip("Ngưỡng phân cách Tầng thấp (Dưới ngưỡng này = Tầng thấp / Bloomfield). Giữ vừa phải (~25-28%), không quá nhiều. Mặc định 0.38")]
+    [Range(0.2f, 0.6f)]
+    [SerializeField] private float lowTierThreshold = 0.38f;
+
+    [Tooltip("Ngưỡng phân cách Tầng trung (Từ lowTierThreshold đến ngưỡng này = Tầng trung / Leafwood ~52-55% cao nhất; trên ngưỡng này = Tầng cao / Windheath ~20-22%). Mặc định 0.63")]
+    [Range(0.5f, 0.85f)]
+    [SerializeField] private float midTierThreshold = 0.63f;
+
+>>>>>>> origin/AnKhang_zoo_connection
     public float StepHeight => stepHeight;
     public GameObject[] TerrainPrefabs => terrainPrefabs;
     public float NoiseScale => noiseScale;
     public float SpawnOffsetY => spawnOffsetY;
+<<<<<<< HEAD
+=======
+    public float LowTierThreshold => lowTierThreshold;
+    public float MidTierThreshold => midTierThreshold;
+>>>>>>> origin/AnKhang_zoo_connection
 
     private float seedX;
     private float seedZ;
@@ -71,32 +88,32 @@ public class HexWorldGenerator : MonoBehaviour
             }
         }
 
-        // 1. Phân loại theo tỷ lệ Perlin Noise tự nhiên: Cỏ chiếm đa số (~60%), Nước (~25%), Núi là điểm nhấn (~15%)
+        // 1. Phân loại theo tỷ lệ Perlin Noise: Tầng trung cao nhất (~52-55%), Tầng thấp vừa phải (~25-28%), Tầng cao tăng nhẹ (~20-22%)
         int[] tileLevels = new int[tileNoiseList.Count];
         int mountainCount = 0;
-        int waterCount = 0;
+        int lowTierCount = 0;
 
         for (int i = 0; i < tileNoiseList.Count; i++)
         {
             float noise = tileNoiseList[i].noise;
-            if (noise < 0.33f)
+            if (noise < lowTierThreshold)
             {
-                tileLevels[i] = 0; // Nước
-                waterCount++;
+                tileLevels[i] = 0; // Tầng thấp (Bloomfield - thung lũng hoa)
+                lowTierCount++;
             }
-            else if (noise < 0.68f)
+            else if (noise < midTierThreshold)
             {
-                tileLevels[i] = 1; // Cỏ (chiếm đa số diện tích)
+                tileLevels[i] = 1; // Tầng trung (Leafwood - rừng xanh, chiếm cao nhất)
             }
             else
             {
-                tileLevels[i] = 2; // Đồi / Núi (điểm nhấn cao tầng)
+                tileLevels[i] = 2; // Tầng cao (Windheath - cao nguyên gió, tăng nhẹ)
                 mountainCount++;
             }
         }
 
-        // 2. Bảo hiểm: Bắt buộc phải có núi (tối thiểu 2 ô tại các đỉnh noise cao nhất)
-        int minMountains = Mathf.Max(2, tileNoiseList.Count / 10);
+        // 2. Bảo hiểm: Bắt buộc phải có tầng cao (tối thiểu ~18-20% diện tích, ví dụ đảo 19 ô có ít nhất 3-4 ô cao)
+        int minMountains = Mathf.Max(3, Mathf.RoundToInt(tileNoiseList.Count * 0.18f));
         if (mountainCount < minMountains)
         {
             List<int> sortedIndices = new List<int>();
@@ -105,7 +122,7 @@ public class HexWorldGenerator : MonoBehaviour
 
             for (int k = 0; k < minMountains; k++)
             {
-                tileLevels[sortedIndices[k]] = 2; // Đảm bảo các ô đỉnh cao nhất luôn là Núi
+                tileLevels[sortedIndices[k]] = 2; // Đảm bảo các ô đỉnh cao nhất luôn là Tầng cao
             }
         }
 

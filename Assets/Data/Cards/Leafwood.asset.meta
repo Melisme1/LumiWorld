@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Data/Cards/Leafwood.asset.meta
 guid: 92520ce0377b5f9439d278fd0632194f
+========
+guid: 87faf1d7c23602e47bd19b55edc61d75
+>>>>>>>> origin/AnKhang_zoo_connection:Assets/Data/Cards/Windheath.asset.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 0
