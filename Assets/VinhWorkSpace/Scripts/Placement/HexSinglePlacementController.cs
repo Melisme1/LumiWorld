@@ -269,6 +269,10 @@ public class HexSinglePlacementController : MonoBehaviour
     {
         placedHex = currentHoverHex;
 
+        var pointer = UnityEngine.InputSystem.Pointer.current;
+        if (EconomyHUD.IsWindowOpen || (pointer != null && EconomyHUD.IsPointerOverInteractiveUI(pointer.position.ReadValue())))
+        { CancelPreview(); return false; }
+
         if (!isPreviewing || !isHoveringValidTile || worldGenerator == null || validator == null)
         {
             CancelPreview();

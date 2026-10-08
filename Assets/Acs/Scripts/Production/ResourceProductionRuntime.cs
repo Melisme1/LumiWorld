@@ -28,6 +28,7 @@ namespace LumiWorld.Acs
         private readonly ResourceCollectionService collectionService = new ResourceCollectionService();
         public HabitatRuntimeManager HabitatManager => habitatManager;
         public ProductionRuntimeSettings Settings => settings;
+        public ResourceInventory Inventory => inventory != null ? inventory : (inventory = ResourceInventory.Instance);
         public IReadOnlyList<HabitatProductionState> States => ledger != null ? ledger.States : Array.Empty<HabitatProductionState>();
         public string Status { get; private set; } = "Chưa Play.";
         public event Action ProductionChanged;
@@ -137,12 +138,13 @@ namespace LumiWorld.Acs
             string.IsNullOrWhiteSpace(habitatId) || string.IsNullOrWhiteSpace(resourceId) ?
             ResourceCollectionService.Failure(ResourceCollectionStatus.Unavailable, "Thiếu habitat hoặc resource ID.") : Collect(habitatId, resourceId);
         public ResourceCollectionReceipt CollectAll() => Collect(null, null);
+        public ResourceCollectionReceipt CollectRecovery() => Collect(null, null, true);
 
         // Void entry point for a future Unity Button; all callers share the same command.
         [ContextMenu("Collect All To Inventory")]
         public void CollectAllToInventory() => CollectAll();
 
-        private ResourceCollectionReceipt Collect(string habitatId, string resourceId)
+        private ResourceCollectionReceipt Collect(string habitatId, string resourceId, bool recoveryOnly = false)
         {
             if (collecting) return ResourceCollectionService.Failure(ResourceCollectionStatus.Busy, "Đang xử lý lần thu trước.");
             if (!Application.isPlaying || ledger == null || !isActiveAndEnabled)
@@ -157,7 +159,14 @@ namespace LumiWorld.Acs
                 else ledger.Stop(clock.UtcSeconds);
                 ledger.Settle(clock.UtcSeconds);
                 if (inventory == null) inventory = ResourceInventory.Instance;
-                LastCollection = collectionService.Collect(States, inventory, ResolveResource, habitatId, resourceId);
+                IReadOnlyList<HabitatProductionState> sources = States;
+                if (recoveryOnly)
+                {
+                    var recovery = new List<HabitatProductionState>();
+                    foreach (var state in States) if (state.isRecovery) recovery.Add(state);
+                    sources = recovery;
+                }
+                LastCollection = collectionService.Collect(sources, inventory, ResolveResource, habitatId, resourceId);
                 Debug.Log("[LumiWorld Collect] " + LastCollection.Message + " Nhận " + LastCollection.TotalTransferred +
                     "; còn chờ " + LastCollection.TotalRemaining + ". Action=" + LastCollection.ActionId, this);
                 foreach (var item in LastCollection.Items)
