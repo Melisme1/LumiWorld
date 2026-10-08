@@ -451,26 +451,22 @@ MonoBehaviour:
   cardsToSpawn:
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
+  cardWidth: 210
   appearDelay: 0.1
   rearrangeDuration: 0.25
   showRewardToast: 0
@@ -1663,6 +1659,12 @@ MonoBehaviour:
   clusterRadius: 2
   stepHeight: 0
   smoothSpeed: 25
+  availableExpansionCharges: 0
+  createLandButton: {fileID: 0}
+  createLandButtonText: {fileID: 0}
+  readyTextFormat: Create ({0})
+  lockedText: Create (Locked)
+  landPlacementRewardCards: []
 --- !u!4 &1038811525
 Transform:
   m_ObjectHideFlags: 0
@@ -2631,6 +2633,7 @@ MonoBehaviour:
     - {fileID: 0}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 1
   - scoreThreshold: 15
     rewardCards:
     - {fileID: 0}
@@ -2638,8 +2641,13 @@ MonoBehaviour:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 1
   - scoreThreshold: 15
     rewardCards: []
+    grantLandExpansion: 1
+  endlessInterval: 30
+  endlessRainCard: {fileID: 0}
+  endlessRewardPool: []
 --- !u!1 &1786140941
 GameObject:
   m_ObjectHideFlags: 0

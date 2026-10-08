@@ -32,6 +32,7 @@ public class CardDrag : MonoBehaviour,
     [SerializeField] private float maxTiltAngle = 18f;
 
     private RectTransform rectTransform;
+    private RectTransform parentRect;
     private Canvas canvas;
     private CanvasGroup canvasGroup;
 
@@ -49,6 +50,13 @@ public class CardDrag : MonoBehaviour,
     private float targetTilt = 0f;
     private Vector2 currentPointerPosition;
 
+    // Độ lệch giữa con trỏ và tâm lá lúc bắt đầu kéo, đo theo ĐƠN VỊ CỦA LÁ (đã bỏ scale).
+    // Vì card scale quanh tâm (pivot 0.5,0.5) và scale thay đổi khi kéo, nếu lưu offset
+    // theo đơn vị tuyệt đối thì mỗi lần đổi scale lá sẽ trượt khỏi con trỏ -> cảm giác
+    // "không nhất quán". Lưu theo tỉ lệ nội suy (localRatio) rồi nhân lại với scale hiện
+    // tại mỗi frame để điểm nắm luôn nằm đúng dưới con trỏ.
+    private Vector2 dragGrabOffset;
+
     // Important:
     // CardHover uses this to know whether
     // the card is currently being dragged.
@@ -58,6 +66,7 @@ public class CardDrag : MonoBehaviour,
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
+        parentRect = rectTransform.parent as RectTransform;
         canvas = GetComponentInParent<Canvas>();
         canvasGroup = GetComponent<CanvasGroup>();
         handSlot = GetComponent<CardHandSlot>();
@@ -130,6 +139,14 @@ public class CardDrag : MonoBehaviour,
         currentTilt = 0f;
         currentPointerPosition = eventData.position;
 
+        // Ghi lại điểm "nắm" lá: khoảng cách từ con trỏ tới tâm lá tại thời điểm bắt đầu.
+        // Chia cho scale lúc bắt đầu để quy về "đơn vị gốc" (scale 1). Nhờ vậy:
+        //  - Lá không bị giật về tâm chuột (giữ đúng chỗ đã nắm).
+        //  - Khi lá thu nhỏ/phóng to trong lúc kéo, OnDrag nhân lại với scale hiện tại
+        //    để điểm nắm vẫn nằm đúng dưới con trỏ.
+        float beginScale = Mathf.Max(0.0001f, transform.localScale.x);
+        dragGrabOffset = (rectTransform.anchoredPosition - ScreenToCardParentPosition(eventData.position)) / beginScale;
+
         if (cameraController != null)
         {
             cameraController.SetCardDragging(true);
@@ -180,7 +197,12 @@ public class CardDrag : MonoBehaviour,
         if (canvas == null) return;
 
         currentPointerPosition = eventData.position;
-        rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
+
+        // Đặt lá theo vị trí TUYỆT ĐỐI của con trỏ + độ lệch đã nắm.
+        // Nhân offset với scale hiện tại vì lá scale quanh tâm: khi thu nhỏ, điểm nắm
+        // phải co lại theo để vẫn nằm đúng dưới con trỏ (nếu không lá sẽ trượt khỏi chuột).
+        float scaleFactor = transform.localScale.x;
+        rectTransform.anchoredPosition = ScreenToCardParentPosition(eventData.position) + dragGrabOffset * scaleFactor;
 
         // Cập nhật góc nghiêng theo vận tốc kéo chuột sang trái/phải
         float deltaX = eventData.delta.x;
@@ -190,6 +212,38 @@ public class CardDrag : MonoBehaviour,
         {
             singlePlacementController.UpdatePreview(eventData.position);
         }
+    }
+
+    /// <summary>
+    /// Đổi vị trí con trỏ (screen pixel) sang toạ độ anchoredPosition của LÁ BÀI.
+    ///
+    /// Phải dùng đúng parent RectTransform của lá (cardContainer) làm hệ quy chiếu,
+    /// KHÔNG dùng RectTransform của Canvas: anchoredPosition của lá được đo so với
+    /// pivot của parent, còn toạ độ tính từ Canvas sẽ lệch đúng bằng độ lệch của
+    /// cardContainer so với tâm Canvas -> lá trôi khỏi con trỏ khi kéo.
+    /// </summary>
+    private Vector2 ScreenToCardParentPosition(Vector2 screenPosition)
+    {
+        RectTransform reference = parentRect != null ? parentRect : canvas?.transform as RectTransform;
+        if (reference == null) return screenPosition;
+
+        Camera cam = null;
+        if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            cam = canvas.worldCamera;
+        }
+
+        Vector2 localPoint;
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                reference,
+                screenPosition,
+                cam,
+                out localPoint))
+        {
+            return localPoint;
+        }
+
+        return screenPosition / (canvas != null ? canvas.scaleFactor : 1f);
     }
 
     public void OnEndDrag(PointerEventData eventData)
