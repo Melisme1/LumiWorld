@@ -126,6 +126,7 @@ public class BiomeHarvestCluster
     /// </summary>
     public void Update(float deltaTime)
     {
+        if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld) return;
         // 1. Nếu Cụm chưa có con thú nào: Không sản xuất (đất tĩnh, ẩn hoặc chờ có thú)
         if (Animals.Count == 0)
         {
@@ -221,6 +222,7 @@ public class BiomeHarvestCluster
     /// </summary>
     public int CollectHarvest()
     {
+        if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld) return 0;
         if (!IsReadyToHarvest) return 0;
 
         // Chỉ lấy phần kho còn chứa được, phần còn lại ở lại trong bong bóng

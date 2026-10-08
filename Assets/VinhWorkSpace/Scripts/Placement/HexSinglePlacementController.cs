@@ -294,6 +294,7 @@ public class HexSinglePlacementController : MonoBehaviour
             return false;
         }
 
+        LumiWorld.Acs.HabitatRuntimeManager.PrepareForWorldChange();
         currentActiveTileObj = null;
 
         float surfaceY = raycaster != null ? raycaster.GetTileSurfaceY(targetTileObj) : HexMetrics.TileHeight;
@@ -382,6 +383,9 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
             }
 
+            if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out _))
+                LumiWorld.Acs.HabitatPlacementIdentity.BindPlacedCard(placedCardInstance);
+
             // 1. Phân bổ Cụm Biome & Kết nối các khối trong cụm (Preserve-style seamless cluster connection)
             if (HexBiomeClusterConnector.Instance != null && placedCardInstance != null)
             {
@@ -398,10 +402,13 @@ public class HexSinglePlacementController : MonoBehaviour
             ShowPlacementScorePopup(placedCardInstance);
 
             // 4. Cập nhật hệ thống cụm thu hoạch tài nguyên Biome
-            if (BiomeHarvestManager.Instance != null)
+            if (!LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld && BiomeHarvestManager.Instance != null)
             {
                 BiomeHarvestManager.Instance.OnWorldChanged();
             }
+
+            LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
+            if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var currentHabitatManager)) currentHabitatManager.RefreshNow();
 
             // Đặt thành công: trừ phí đặt thẻ (đã kiểm tra đủ Coins ở trên)
             if (placementFee > 0)

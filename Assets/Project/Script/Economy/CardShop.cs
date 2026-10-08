@@ -11,6 +11,7 @@ using UnityEngine;
 public static class CardShop
 {
     private static List<CardData> cards;
+    private static Dictionary<string, int> testPrices;
 
     /// <summary>
     /// Các thẻ đang bán (đã có giá), xếp theo loại thẻ rồi tới tên giống bài trên tay.
@@ -26,7 +27,10 @@ public static class CardShop
 
     public static int GetPrice(CardData card)
     {
-        return card != null ? Mathf.Max(0, card.shopPrice) : 0;
+        if (card == null) return 0;
+        if (cards == null) Load();
+        return testPrices.TryGetValue(CardKey(card), out int temporaryPrice) ?
+            temporaryPrice : Mathf.Max(0, card.shopPrice);
     }
 
     /// <summary>
@@ -77,7 +81,7 @@ public static class CardShop
     public static Dictionary<string, int> CountHand()
     {
         Dictionary<string, int> counts = new Dictionary<string, int>();
-        foreach (CardUI slot in UnityEngine.Object.FindObjectsByType<CardUI>(FindObjectsSortMode.None))
+        foreach (CardUI slot in UnityEngine.Object.FindObjectsByType<CardUI>())
         {
             if (slot.CardData == null) continue;
 
@@ -110,23 +114,32 @@ public static class CardShop
     private static void ResetCache()
     {
         cards = null;
+        testPrices = null;
     }
 
     private static void Load()
     {
         cards = new List<CardData>();
+        testPrices = new Dictionary<string, int>();
         HashSet<string> seenKeys = new HashSet<string>();
         List<string> unpriced = new List<string>();
 
         foreach (ShopCatalog catalog in Resources.LoadAll<ShopCatalog>(string.Empty))
         {
-            if (catalog.cards == null) continue;
+            List<CardData> offeredCards = catalog.useTestCardList ? catalog.testCards : catalog.cards;
+            if (offeredCards == null) continue;
 
-            foreach (CardData card in catalog.cards)
+            foreach (CardData card in offeredCards)
             {
                 if (card == null || !seenKeys.Add(CardKey(card))) continue;
 
-                if (GetPrice(card) <= 0)
+                int price = Mathf.Max(0, card.shopPrice);
+                if (price <= 0 && catalog.useTestCardList)
+                {
+                    price = Mathf.Max(1, catalog.unpricedTestCardPrice);
+                    testPrices[CardKey(card)] = price;
+                }
+                if (price <= 0)
                 {
                     unpriced.Add(CardName(card));
                     continue;

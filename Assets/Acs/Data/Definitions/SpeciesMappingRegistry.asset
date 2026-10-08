@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4b5ff2b2ce146afb8701972654c6da9, type: 3}
+  m_Name: SpeciesMappingRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.SpeciesMappingRegistry
+  entries:
+  - gddKey: spriglide
+    displayName: Spriglide
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000005, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000005, type: 2}
+    primaryAffinity: 1
+    secondaryAffinity: 3
+    integrationStatus: 0
+  - gddKey: bramblet
+    displayName: Bramblet
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000007, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+    primaryAffinity: 1
+    secondaryAffinity: 3
+    integrationStatus: 0
+  - gddKey: frondle
+    displayName: Frondle
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000004, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
+    primaryAffinity: 1
+    secondaryAffinity: 2
+    integrationStatus: 0
+  - gddKey: petaluff
+    displayName: Petaluff
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000012, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
+    primaryAffinity: 2
+    secondaryAffinity: 1
+    integrationStatus: 0
+  - gddKey: dandrift
+    displayName: Dandrift
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000010, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000010, type: 2}
+    primaryAffinity: 2
+    secondaryAffinity: 3
+    integrationStatus: 0
+  - gddKey: galume
+    displayName: Galume
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000002, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
+    primaryAffinity: 3
+    secondaryAffinity: 2
+    integrationStatus: 0
+  - gddKey: heathorn
+    displayName: Heathorn
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000006, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
+    primaryAffinity: 3
+    secondaryAffinity: 2
+    integrationStatus: 0

@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: Capybara
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_capybara
-  cardName: "Capybara"
-  cardImage: {fileID: 0}
+  cardName: Capybara
+  cardImage: {fileID: 21300000, guid: 77231ee8d3bb7434badb7592a154f8e1, type: 3}
   cardType: 0
   baseScore: 3
   alwaysBaseScore: 0
+  shopPrice: 0
+  placementFee: 0
   prefabToPlace: {fileID: 6961502231064128621, guid: b7a0b2b83ef8c094999df6aaad4ddba3, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
@@ -27,6 +29,7 @@ MonoBehaviour:
   producedResource: {fileID: 0}
   landResourceBonus: 0
   biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
   transformRules: []
   habitatSpawnMargin: 0.5
   habitatProps: []

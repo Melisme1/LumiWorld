@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Danh sách thẻ bán trong Cửa hàng thẻ. Giá mua và phí đặt nằm trên từng CardData (shopPrice, placementFee);
-/// thẻ có shopPrice = 0 là chưa có giá nên chưa hiện trong cửa hàng.
+/// Shop thường ẩn thẻ có shopPrice = 0; chế độ test dùng giá mua tạm, không đổi CardData.
 ///
 /// Asset phải nằm trong một thư mục Resources (hiện là Assets/Data/Resources/Shop) để game tự tìm thấy.
 /// Thêm thẻ mới: kéo CardData vào danh sách, hoặc bấm menu ⋮ của asset rồi chọn
@@ -15,6 +15,14 @@ public class ShopCatalog : ScriptableObject
 {
     [Tooltip("Các thẻ bán trong cửa hàng. Cửa hàng tự xếp theo loại thẻ rồi tới tên, giống bài trên tay.")]
     public List<CardData> cards = new List<CardData>();
+
+    [Header("Temporary test shop")]
+    [Tooltip("Bật để shop dùng Test Cards thay danh sách Cards. Tắt rồi chạy lại để trở về shop thường.")]
+    public bool useTestCardList;
+    [Tooltip("Danh sách mở sẵn để test. Chỉ ảnh hưởng shop, không tự cấp thẻ hoặc đổi CardData.")]
+    public List<CardData> testCards = new List<CardData>();
+    [Tooltip("Giá mua tạm cho thẻ Test Cards có shopPrice = 0. Thẻ đã có giá vẫn dùng giá của CardData.")]
+    [Min(1)] public int unpricedTestCardPrice = 50;
 
     [Tooltip("Giá theo loại thẻ (bảng giá trong plan Coins). Chỉ dùng cho menu \"Điền giá mặc định cho thẻ chưa có giá\", lúc chơi không đọc tới.")]
     public List<CardTypePrice> defaultPrices = new List<CardTypePrice>

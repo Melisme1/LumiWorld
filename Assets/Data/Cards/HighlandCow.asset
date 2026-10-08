@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: HighlandCow
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_highlandcow
-  cardName: "Bò Lông Dài"
-  cardImage: {fileID: 0}
+  cardName: "B\xF2 L\xF4ng D\xE0i"
+  cardImage: {fileID: 21300000, guid: 6e73df3f87d3a0948a50af5c6f22a70c, type: 3}
   cardType: 0
   baseScore: 2
   alwaysBaseScore: 0
+  shopPrice: 0
+  placementFee: 0
   prefabToPlace: {fileID: 3144340137285038028, guid: 5869844d7f1c50b4fa907e35b2d1046f, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
@@ -27,6 +29,7 @@ MonoBehaviour:
   producedResource: {fileID: 0}
   landResourceBonus: 0
   biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
   transformRules: []
   habitatSpawnMargin: 0.5
   habitatProps: []

@@ -772,6 +772,52 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &776994036
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 776994038}
+  - component: {fileID: 776994037}
+  m_Layer: 0
+  m_Name: CurrencyWallet
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &776994037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 776994036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f20cd9c9f714b858f5b8a1c32fd216b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CurrencyWallet
+  starterCoins: 1000
+  balance: 0
+--- !u!4 &776994038
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 776994036}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 34.36924, y: 11.53456, z: 8.36158}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &780073131
 GameObject:
   m_ObjectHideFlags: 0
@@ -1057,10 +1103,10 @@ RectTransform:
   m_Father: {fileID: 1357980051}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 177.14307, y: -877.25415}
-  m_SizeDelta: {x: 884.85693, y: -1486.5042}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 884.85693, y: 350}
+  m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1103706577
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1090,6 +1136,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000005, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
   maxSpacing: 190
   minSpacing: 80
   handWidth: 900
@@ -1719,6 +1771,84 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::OceanFollowCamera
   targetCamera: {fileID: 1110052839}
   waterLevelY: -0.3
+--- !u!1 &1617469024
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1617469026}
+  - component: {fileID: 1617469025}
+  - component: {fileID: 1617469027}
+  m_Layer: 0
+  m_Name: HabitatSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1617469025
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1617469024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e07673786cc4598820fdaaeb3eb6971, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.HabitatRuntimeManager
+  catalog: {fileID: 11400000, guid: 5815a1cc97c1e044190f8854390b7165, type: 2}
+  worldGenerator: {fileID: 832299767}
+  worldId: mapbuilding
+  refreshInterval: 0.5
+  habitats: []
+  diagnostics: []
+--- !u!4 &1617469026
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1617469024}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 34.36924, y: 11.53456, z: 8.36158}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1617469027
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1617469024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdb659c6a78d93d4b9c6d0df7455b9e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.ResourceProductionRuntime
+  habitatManager: {fileID: 1617469025}
+  settings:
+    productionEnabled: 1
+    tier1UnitsPerInterval: 20
+    tier1IntervalSeconds: 10
+    tier2UnitsPerInterval: 5
+    tier2IntervalSeconds: 30
+    rankIContribution: 1
+    rankIIContribution: 1.5
+    rankIIIContribution: 2
+    sharingPolicy: 1
+    comboPolicy: 1
+    tier1BufferCap: 100
+    tier2BufferCap: 50
+  displayRefreshSeconds: 0.5
 --- !u!1 &1638345601
 GameObject:
   m_ObjectHideFlags: 0
@@ -1996,3 +2126,5 @@ SceneRoots:
   - {fileID: 1574008526}
   - {fileID: 1491331005}
   - {fileID: 1136503281}
+  - {fileID: 1617469026}
+  - {fileID: 776994038}

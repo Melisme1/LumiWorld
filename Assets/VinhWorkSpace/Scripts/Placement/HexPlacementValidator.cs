@@ -39,6 +39,7 @@ public class HexPlacementValidator : MonoBehaviour
         out GameObject tileObj)
     {
         tileObj = null;
+        lastValidationError = string.Empty;
         if (worldGen == null || worldGen.MapTiles == null) return false;
 
         if (!worldGen.MapTiles.TryGetValue(coords, out tileObj) || tileObj == null)
@@ -46,12 +47,15 @@ public class HexPlacementValidator : MonoBehaviour
             return false;
         }
 
+        bool useHabitatRules = LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager);
+
         // 1. Phân biệt theo loại thẻ:
         if (cardData != null && cardData.cardType == CardType.Creature)
         {
             // Thẻ thú không được đặt nếu ô này ĐÃ CÓ một con thú khác
-            if (HasPlacedCreature(tileObj))
+            if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
             {
+                lastValidationError = "Mỗi home hex chỉ chứa một creature.";
                 return false;
             }
 
@@ -61,6 +65,9 @@ public class HexPlacementValidator : MonoBehaviour
             {
                 return false;
             }
+
+            if (useHabitatRules && !habitatManager.CanPlaceCreature(cardData, GetPlacedTerrainCard(tileObj), coords, out lastValidationError))
+                return false;
         }
         else if (cardData != null && cardData.cardType == CardType.Terrain)
         {
@@ -98,7 +105,8 @@ public class HexPlacementValidator : MonoBehaviour
             }
         }
 
-        if (cardData != null && !cardData.IsTileAllowed(tileObj, worldGen))
+        // Mapped creature residency follows GDD affinities; physical prefab lists remain for other cards.
+        if (cardData != null && !(useHabitatRules && cardData.cardType == CardType.Creature) && !cardData.IsTileAllowed(tileObj, worldGen))
         {
             return false;
         }
@@ -294,9 +302,6 @@ public class HexPlacementValidator : MonoBehaviour
     /// </summary>
     public static bool IsMatchingTerrainOrBiome(CardData a, CardData b)
     {
-        if (a == null || b == null) return false;
-        if (a.cardID == b.cardID) return true;
-        if (a.cardName == b.cardName) return true;
-        return HexBiomeClusterConnector.AreHabitatsMatching(a, b);
+        return HexBiomeClusterConnector.AreNatureCardsMatching(a, b);
     }
 }

@@ -18,6 +18,20 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
   - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  useTestCardList: 1
+  testCards:
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+  - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000005, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000010, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
+  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  unpricedTestCardPrice: 50
   defaultPrices:
   - cardType: 1
     shopPrice: 20

@@ -3,9 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// Danh sách mọi loại tài nguyên (ResourceData) trong game, nạp một lần từ các thư mục Resources
-/// (hiện là Assets/Data/Resources). Kho và file lưu chỉ giữ resourceID, nên phần nào cần icon,
+/// (ví dụ Assets/Data/Resources hoặc Assets/Acs/Data/Resources). Kho và file lưu chỉ giữ resourceID, nên phần nào cần icon,
 /// màu hay tên (InventoryUI, sau này là Bảng Đơn Hàng) thì tra ngược ResourceData ở đây.
-/// Thêm loại tài nguyên mới: tạo asset ResourceData trong Assets/Data/Resources là đủ.
+/// Thêm loại tài nguyên mới: tạo asset ResourceData trong một folder Resources thuộc Assets.
 /// </summary>
 public static class ResourceCatalog
 {
@@ -67,7 +67,8 @@ public static class ResourceCatalog
 
         if (all.Count == 0)
         {
-            Debug.LogWarning("[LumiWorld Kho] Không tìm thấy ResourceData nào trong thư mục Resources (Assets/Data/Resources).");
+            Debug.LogWarning("[LumiWorld Kho] Không tìm thấy ResourceData nào trong các thư mục Resources " +
+                "(ví dụ Assets/Acs/Data/Resources hoặc Assets/Data/Resources).");
         }
     }
 }

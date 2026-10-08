@@ -132,8 +132,11 @@ public class AnimalIndividual : MonoBehaviour
         string resourceLabel = activeResource != null ? activeResource.GetColoredName() : "<color=grey>(Vùng đất này không có tài nguyên)</color>";
         string terrainLabel = habitatTerrain != null ? $"tại vùng đất <b>{habitatTerrain.cardName}</b>" : "";
 
+        string productionLabel = LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld ?
+            "→ Production GDD: chọn tài nguyên trong HabitatSystem; rate theo Rank GDD và Settings trong Hierarchy." :
+            $"→ Khai thác: {resourceLabel} | Năng suất: {actualResourceAmount} mỗi {actualProductionInterval:F1}s";
         Debug.Log($"<color={GetRankHexColor(rank)}><b>[LumiWorld Động Vật]</b> Bạn vừa triệu hồi: {individualName} {terrainLabel}!</color>\n" +
-                  $"→ Khai thác: {resourceLabel} | Năng suất: {actualResourceAmount} mỗi {actualProductionInterval:F1}s | Tốc độ: {actualWalkSpeed:F2}m/s");
+                  productionLabel + $" | Tốc độ: {actualWalkSpeed:F2}m/s");
     }
 
     /// <summary>
@@ -230,6 +233,8 @@ public class AnimalIndividual : MonoBehaviour
     private void Update()
     {
         if (!isInitialized || speciesData == null) return;
+
+        if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld) return;
 
         // Nếu đang dùng hệ thống gom cụm Biome thì BiomeHarvestManager sẽ quản lý chu kỳ tập trung
         if (useBiomeClusterProduction) return;

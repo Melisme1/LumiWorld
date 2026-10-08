@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: GrassFox
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_grassfox
-  cardName: "Cáo Cỏ"
-  cardImage: {fileID: 0}
+  cardName: "C\xE1o C\u1ECF"
+  cardImage: {fileID: 21300000, guid: 21541f471cdefc240addaf39836e4977, type: 3}
   cardType: 0
   baseScore: 3
   alwaysBaseScore: 0
+  shopPrice: 0
+  placementFee: 0
   prefabToPlace: {fileID: 3339340868661782871, guid: e06e5310ac05e384197dc3e0535a9544, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
@@ -27,6 +29,7 @@ MonoBehaviour:
   producedResource: {fileID: 0}
   landResourceBonus: 0
   biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
   transformRules: []
   habitatSpawnMargin: 0.5
   habitatProps: []

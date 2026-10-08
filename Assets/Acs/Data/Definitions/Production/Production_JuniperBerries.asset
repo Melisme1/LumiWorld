@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e8bc293fd30460f91267106615b0ec9, type: 3}
+  m_Name: Production_JuniperBerries
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.ResourceProductionDefinition
+  resource: {fileID: 11400000, guid: d18c55a6fab206d4faf1ac18fee715ad, type: 2}
+  tier: 2
+  affinity: 3
+  isEnabled: 1
+  requirements:
+  - gddSpeciesKey: heathorn
+    role: 1
+    minimumCount: 1
+  - gddSpeciesKey: spriglide
+    role: 2
+    minimumCount: 1
+  - gddSpeciesKey: bramblet
+    role: 2
+    minimumCount: 1

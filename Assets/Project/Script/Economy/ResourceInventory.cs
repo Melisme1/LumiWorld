@@ -95,6 +95,59 @@ public class ResourceInventory : MonoBehaviour
         return stored;
     }
 
+    internal readonly struct Deposit
+    {
+        public ResourceData Resource { get; }
+        public int Amount { get; }
+        public Deposit(ResourceData resource, int amount) { Resource = resource; Amount = amount; }
+    }
+
+    /// <summary>
+    /// Collection batch: validate capacity, update all stock and commit source buffers,
+    /// then notify save/HUD. commitSource must only mutate the already validated sources.
+    /// </summary>
+    internal bool TryAddAll(IReadOnlyList<Deposit> deposits, Action commitSource)
+    {
+        if (deposits == null || deposits.Count == 0 || commitSource == null) return false;
+        var deltas = new Dictionary<string, int>(StringComparer.Ordinal);
+        var limits = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var deposit in deposits)
+        {
+            var resource = deposit.Resource;
+            if (resource == null || string.IsNullOrWhiteSpace(resource.resourceID) || deposit.Amount <= 0) return false;
+            string id = resource.resourceID;
+            deltas.TryGetValue(id, out int delta);
+            long combined = (long)delta + deposit.Amount;
+            if (combined > int.MaxValue) return false;
+            deltas[id] = (int)combined;
+            limits[id] = limits.TryGetValue(id, out int limit) ? Math.Min(limit, resource.maxStackSize) : resource.maxStackSize;
+        }
+        var previous = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var pair in deltas)
+        {
+            int old = GetAmount(pair.Key);
+            if (old < 0 || (long)old + pair.Value > limits[pair.Key]) return false;
+            previous[pair.Key] = old;
+        }
+        foreach (var pair in deltas) amounts[pair.Key] = previous[pair.Key] + pair.Value;
+        try { commitSource(); }
+        catch
+        {
+            foreach (var pair in previous) amounts[pair.Key] = pair.Value;
+            throw;
+        }
+        // Isolate listeners: a presentation exception must not skip save or other resource notifications.
+        foreach (var pair in deltas)
+        {
+            var listeners = OnInventoryChanged;
+            if (listeners == null) continue;
+            foreach (Action<string, int, int> listener in listeners.GetInvocationList())
+                try { listener(pair.Key, previous[pair.Key] + pair.Value, pair.Value); }
+                catch (Exception exception) { Debug.LogException(exception, this); }
+        }
+        return true;
+    }
+
     /// <summary>
     /// Kho có đủ mọi dòng yêu cầu không (ví dụ yêu cầu của một đơn hàng). Các dòng trùng loại được cộng dồn.
     /// </summary>

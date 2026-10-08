@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: Otter
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_otter
-  cardName: "Rái Cá"
-  cardImage: {fileID: 0}
+  cardName: "R\xE1i C\xE1"
+  cardImage: {fileID: 21300000, guid: b60ad376383f09b4f9746c14f0959039, type: 3}
   cardType: 0
   baseScore: 2
   alwaysBaseScore: 0
+  shopPrice: 0
+  placementFee: 0
   prefabToPlace: {fileID: 6956003824428999412, guid: 0d833fcc247355e459037b30ff32e074, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
@@ -27,6 +29,7 @@ MonoBehaviour:
   producedResource: {fileID: 0}
   landResourceBonus: 0
   biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
   transformRules: []
   habitatSpawnMargin: 0.5
   habitatProps: []

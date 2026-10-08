@@ -200,13 +200,15 @@ public class HexBiomeClusterConnector : MonoBehaviour
             ? ((placedCard.cardData.maxBiomeTilesOverride > 0) ? placedCard.cardData.maxBiomeTilesOverride : maxTilesPerCluster)
             : int.MaxValue;
         if (limit <= 0) limit = int.MaxValue;
+        if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager) &&
+            habitatManager.Catalog.TryGetHabitat(placedCard.CardID, out _)) limit = LumiWorld.Acs.HabitatTopologyService.MaximumHexCount;
 
         // 1. Quét tìm kích thước hiện tại của tất cả các cụm cùng loại habitat
-        PlacedCard[] allCards = FindObjectsByType<PlacedCard>(FindObjectsInactive.Exclude);
+        PlacedCard[] allCards = FindObjectsByType<PlacedCard>(FindObjectsInactive.Include);
         Dictionary<int, int> clusterSizes = new Dictionary<int, int>();
         foreach (var c in allCards)
         {
-            if (c != null && c != placedCard && c.clusterId > 0 && AreHabitatsMatching(placedCard.cardData, c.cardData))
+            if (c != null && c != placedCard && c.clusterId > 0 && AreNatureCardsMatching(placedCard.cardData, c.cardData))
             {
                 if (!clusterSizes.ContainsKey(c.clusterId)) clusterSizes[c.clusterId] = 0;
                 clusterSizes[c.clusterId]++;
@@ -222,7 +224,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
             if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
             {
                 PlacedCard neighborCard = GetHabitatCardOnTile(neighborTile);
-                if (neighborCard != null && neighborCard != placedCard && AreHabitatsMatching(placedCard.cardData, neighborCard.cardData))
+                if (neighborCard != null && neighborCard != placedCard && AreNatureCardsMatching(placedCard.cardData, neighborCard.cardData))
                 {
                     // Nếu ô láng giềng chưa có clusterId, khởi tạo cho nó
                     if (neighborCard.clusterId <= 0)
@@ -268,6 +270,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
             // Kề cận nhiều hơn 1 cụm còn chỗ:
             // Kiểm tra xem có thể gộp (merge) các cụm lại mà không vượt quá limit không?
             List<int> candidateClusterIds = new List<int>(eligibleNeighborClusters.Keys);
+            candidateClusterIds.Sort();
             int primaryClusterId = candidateClusterIds[0];
             int totalMergedSize = 1; // bản thân ô mới
 
@@ -470,9 +473,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
     {
         if (tileObj == null) return null;
 
-        PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>();
+        PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>(true);
         if (cards != null)
         {
+            foreach (var c in cards)
+                if (c != null && c.CardType == CardType.Terrain) return c;
             foreach (var c in cards)
             {
                 if (c != null && c.cardData != null && c.cardData.HasHabitatProps())
@@ -488,6 +493,13 @@ public class HexBiomeClusterConnector : MonoBehaviour
     /// <summary>
     /// So khớp xem 2 thẻ bài có cùng loại Habitat hay không
     /// </summary>
+    // Gameplay grouping key; biome-family names are reserved for visual presentation.
+    public static bool AreNatureCardsMatching(CardData a, CardData b)
+    {
+        return a != null && b != null && a.cardType == CardType.Terrain && b.cardType == CardType.Terrain &&
+            !string.IsNullOrEmpty(a.cardID) && string.Equals(a.cardID, b.cardID, StringComparison.Ordinal);
+    }
+
     public static bool AreHabitatsMatching(CardData a, CardData b)
     {
         if (a == null || b == null) return false;

@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: BlossomFrog
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_blossomfrog
-  cardName: "Ếch Hoa"
-  cardImage: {fileID: 0}
+  cardName: "\u1EBEch Hoa"
+  cardImage: {fileID: 21300000, guid: 8729242851ebce344801f8b230cc7028, type: 3}
   cardType: 0
   baseScore: 2
   alwaysBaseScore: 0
+  shopPrice: 0
+  placementFee: 0
   prefabToPlace: {fileID: 6409893887626921149, guid: 90a568a2c9a4c0a4d86b322c46fd1e7d, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
@@ -27,6 +29,7 @@ MonoBehaviour:
   producedResource: {fileID: 0}
   landResourceBonus: 0
   biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
   transformRules: []
   habitatSpawnMargin: 0.5
   habitatProps: []

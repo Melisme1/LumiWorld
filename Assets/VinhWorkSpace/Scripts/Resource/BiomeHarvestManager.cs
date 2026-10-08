@@ -17,6 +17,8 @@ public class BiomeHarvestManager : MonoBehaviour
     {
         get
         {
+            // The manually enabled GDD component owns production; never bootstrap the seed loop.
+            if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld) return null;
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<BiomeHarvestManager>();
@@ -76,11 +78,17 @@ public class BiomeHarvestManager : MonoBehaviour
 
     private void ScheduleRefresh()
     {
+        if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld) return;
         refreshTimer = refreshDebounceTime;
     }
 
     private void Update()
     {
+        if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld)
+        {
+            ClearLegacyClusters();
+            return;
+        }
         // 1. Quét lại cụm khi có yêu cầu (Debounced)
         if (refreshTimer >= 0f)
         {
@@ -166,6 +174,7 @@ public class BiomeHarvestManager : MonoBehaviour
     /// </summary>
     public void RebuildClusters()
     {
+        if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld) { ClearLegacyClusters(); return; }
         // 1. Thu thập tất cả các PlacedCard loại Terrain có tài nguyên sản xuất
         PlacedCard[] allCards = FindObjectsByType<PlacedCard>(FindObjectsInactive.Exclude);
         List<PlacedCard> resourceTerrains = new List<PlacedCard>();
@@ -304,6 +313,12 @@ public class BiomeHarvestManager : MonoBehaviour
     }
 
     private void OnDestroy()
+    {
+        ClearLegacyClusters();
+        if (_instance == this) _instance = null;
+    }
+
+    private void ClearLegacyClusters()
     {
         foreach (var c in clusters)
         {
