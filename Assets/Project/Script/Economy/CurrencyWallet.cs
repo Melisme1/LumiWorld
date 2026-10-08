@@ -120,7 +120,6 @@ public class CurrencyWallet : MonoBehaviour
 
     private void NotifyChanged(int delta, CoinReason reason)
     {
-        Debug.Log($"<color=#FACC15>🪙 [LumiWorld Coins] {delta:+#;-#;0} ({reason}) → số dư {balance}</color>");
         OnBalanceChanged?.Invoke(balance, delta, reason);
     }
 

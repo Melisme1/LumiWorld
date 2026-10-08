@@ -222,8 +222,6 @@ public class AnimalIndividual : MonoBehaviour
         if (trait == AnimalTrait.LuckyStar && Random.value < 0.15f)
         {
             amount *= 2;
-            string resLabel = activeResource != null ? activeResource.GetColoredName() : "Tài nguyên";
-            Debug.Log($"<color=yellow>✨ [May mắn!] {individualName} kích hoạt nhân đôi sản lượng đóng góp: +{amount} {resLabel}!</color>");
         }
 
         totalProducedCount += amount;
@@ -268,7 +266,6 @@ public class AnimalIndividual : MonoBehaviour
         if (trait == AnimalTrait.LuckyStar && Random.value < 0.15f)
         {
             amount *= 2;
-            Debug.Log($"<color=yellow>✨ [May mắn!] {individualName} kích hoạt nhân đôi sản lượng: +{amount} {activeResource.GetColoredName()}!</color>");
         }
 
         totalProducedCount += amount;
@@ -276,9 +273,6 @@ public class AnimalIndividual : MonoBehaviour
         // Bắn sự kiện
         OnResourceProduced?.Invoke(this, activeResource.resourceName, amount);
         OnResourceDataProduced?.Invoke(this, activeResource, amount);
-
-        string terrainLabel = habitatTerrain != null ? $"[Vùng đất {habitatTerrain.cardName}]" : "";
-        Debug.Log($"🌾 {terrainLabel} <b>{individualName}</b> vừa thu hoạch +{amount} {activeResource.GetColoredName()}! (Tổng tích lũy: {totalProducedCount})");
     }
 
     private void ComputeEffectiveStats()

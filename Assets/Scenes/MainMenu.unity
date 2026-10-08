@@ -887,7 +887,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c54274b05ae436a41921cfbc1d581b63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
-  gameSceneName: Chitan
+  gameSceneName: MapBuilding
   settingsPanel: {fileID: 0}
   continueButton: {fileID: 0}
 --- !u!1 &1236036259

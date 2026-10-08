@@ -26,9 +26,14 @@ public class CardDeskController : MonoBehaviour
     [SerializeField] private List<CardData> cardsToSpawn = new();
 
     [Header("Layout")]
-    [SerializeField] private float maxSpacing = 170f;
-    [SerializeField] private float minSpacing = 80f;
+    [Tooltip("Khoảng cách tối đa giữa 2 tâm lá.")]
+    [SerializeField] private float maxSpacing = 165f;
+    [Tooltip("Khoảng cách tối thiểu. PHẢI >= chiều rộng lá để các lá không chồng lên nhau.")]
+    [SerializeField] private float minSpacing = 150f;
     [SerializeField] private float handWidth = 900f;
+
+    [Tooltip("Bề rộng 1 lá (dùng làm khoảng cách tối thiểu tuyệt đối để chặn chồng). Khớp với SizeDelta.x của card prefab.")]
+    [SerializeField] private float cardWidth = 150f;
 
     [Header("Appear Animation")]
     [SerializeField] private float appearDelay = 0.15f;
@@ -661,9 +666,14 @@ private void TryPlayRewardFeedback(
             handWidth /
             (cardCount - 1);
 
+        // Chặn dưới bằng bề rộng lá: nếu ép spacing nhỏ hơn cardWidth thì các lá
+        // sẽ chồng lên nhau (bug "2 card kế bên trồng lên lá giữa"). Thà hand tràn
+        // ra ngoài handWidth còn hơn để các lá đè nhau.
+        float effectiveMin = Mathf.Max(minSpacing, cardWidth);
+
         return Mathf.Clamp(
             spacing,
-            minSpacing,
+            effectiveMin,
             maxSpacing
         );
     }
