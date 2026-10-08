@@ -14,15 +14,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.45000002
+      value: 0.35
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.45000002
+      value: 0.35
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.45000002
+      value: 0.35
       objectReference: {fileID: 0}
     - target: {fileID: -6601043233671942095, guid: 52db86bb1332617438b7011947e9b05d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -110,6 +110,10 @@ MonoBehaviour:
   animalID: 
   biome: 0
   isAquatic: 0
+  isFlying: 0
+  flightAltitude: 1.35
+  flightBobbingAmplitude: 0.08
+  flightBobbingFrequency: 3.2
   moveAnimName: Walk
   idleAnimName: Idle
   mountainTileTag: MountainTile
