@@ -105,6 +105,9 @@ public class AnimalVisualEnhancer : MonoBehaviour
 
         mainCamera = Camera.main;
 
+        // Đảm bảo không bao giờ có bất kỳ Tile hay khối đất nào bị kẹt trạng thái Transparent
+        RestoreAllTilesToOpaque();
+
         // Kích hoạt Viền sáng Rim Glow (Additive Material trên Slot 2)
         if (enableRimGlow)
         {
@@ -131,6 +134,12 @@ public class AnimalVisualEnhancer : MonoBehaviour
         }
     }
 
+    // Trạng thái tương tác với Placement Guide (Khi người chơi cầm thẻ Thú)
+    private bool isGreetingHighlighted = false;
+    private float excitementTimer = 0f;
+    private Vector3 originalLocalScale = Vector3.one;
+    private bool capturedOriginalScale = false;
+
     private void LateUpdate()
     {
         if (enableCanopyFade)
@@ -141,6 +150,23 @@ public class AnimalVisualEnhancer : MonoBehaviour
         if (enableOverheadCrest && crestObj != null)
         {
             AnimateOverheadCrest();
+        }
+
+        // Hiệu ứng nhảy nhót vui vẻ khi người chơi hover trúng ô nhà của con thú
+        if (excitementTimer > 0f)
+        {
+            excitementTimer -= Time.deltaTime;
+            float bounceProgress = 1f - Mathf.Clamp01(excitementTimer / 0.45f);
+            float squash = Mathf.Sin(bounceProgress * Mathf.PI) * 0.18f;
+            transform.localScale = new Vector3(
+                originalLocalScale.x * (1f - squash * 0.4f),
+                originalLocalScale.y * (1f + squash),
+                originalLocalScale.z * (1f - squash * 0.4f)
+            );
+            if (excitementTimer <= 0f)
+            {
+                transform.localScale = originalLocalScale;
+            }
         }
     }
 
@@ -218,11 +244,70 @@ public class AnimalVisualEnhancer : MonoBehaviour
         if (crestObj == null) return;
 
         // Hiệu ứng nhấp nhô bồng bềnh theo nhịp thở (Sine Wave)
-        float bob = Mathf.Sin(Time.time * crestBobSpeed) * crestBobAmplitude;
+        float currentBobSpeed = isGreetingHighlighted ? crestBobSpeed * 1.8f : crestBobSpeed;
+        float currentBobAmp = isGreetingHighlighted ? crestBobAmplitude * 1.6f : crestBobAmplitude;
+        float bob = Mathf.Sin(Time.time * currentBobSpeed) * currentBobAmp;
         crestObj.transform.localPosition = new Vector3(0f, detectedModelHeight + crestHeightOffset + bob, 0f);
 
-        // Xoay nhẹ nhàng quanh trục Y tạo cảm giác tinh thể lơ lửng kỳ ảo
-        crestObj.transform.Rotate(Vector3.up, 50f * Time.deltaTime, Space.Self);
+        // Xoay quanh trục Y (Xoay nhanh hơn khi đang được gọi tên chào mừng)
+        float rotSpeed = isGreetingHighlighted ? 120f : 50f;
+        crestObj.transform.Rotate(Vector3.up, rotSpeed * Time.deltaTime, Space.Self);
+
+        // Nhấp nháy ánh hào quang khi chào mừng người chơi cầm thẻ
+        if (isGreetingHighlighted && crestMaterialInstance != null)
+        {
+            float pulse = 2.4f + 0.8f * Mathf.Sin(Time.time * 6f);
+            Color highlightC = crestColor * pulse;
+            highlightC.a = 1.0f;
+            if (crestMaterialInstance.HasProperty("_BaseColor")) crestMaterialInstance.SetColor("_BaseColor", highlightC);
+            if (crestMaterialInstance.HasProperty("_Color")) crestMaterialInstance.SetColor("_Color", highlightC);
+        }
+    }
+
+    /// <summary>
+    /// Bật/Tắt hiệu ứng chào mừng khi người chơi cầm thẻ Thú (Creature Placement Guide):
+    /// Chấm ngọc trên đầu và viền sáng phát quang rực rỡ hơn (x2.5), nhấp nháy để người chơi nhận ra ngay.
+    /// </summary>
+    public void SetGreetingHighlight(bool active)
+    {
+        isGreetingHighlighted = active;
+        if (!active)
+        {
+            if (crestMaterialInstance != null)
+            {
+                if (crestMaterialInstance.HasProperty("_BaseColor")) crestMaterialInstance.SetColor("_BaseColor", crestColor);
+                if (crestMaterialInstance.HasProperty("_Color")) crestMaterialInstance.SetColor("_Color", crestColor);
+            }
+            if (rimMaterialInstance != null)
+            {
+                rimMaterialInstance.SetFloat("_RimIntensity", rimIntensity);
+            }
+            if (capturedOriginalScale)
+            {
+                transform.localScale = originalLocalScale;
+                excitementTimer = 0f;
+            }
+        }
+        else
+        {
+            if (rimMaterialInstance != null)
+            {
+                rimMaterialInstance.SetFloat("_RimIntensity", rimIntensity * 2.2f);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Thú nhún nhảy phấn khích khi người chơi rê chuột trúng vào ô lãnh địa của nó
+    /// </summary>
+    public void TriggerExtraExcitement()
+    {
+        if (!capturedOriginalScale)
+        {
+            originalLocalScale = transform.localScale;
+            capturedOriginalScale = true;
+        }
+        excitementTimer = 0.45f;
     }
 
     /// <summary>
@@ -277,6 +362,92 @@ public class AnimalVisualEnhancer : MonoBehaviour
 
     #region 2. Canopy Fade Implementation (Tán cây bán trong suốt)
 
+    /// <summary>
+    /// Kiểm tra xem Renderer có thuộc về khối đất lục giác (Hex Tile), nền đất hoặc cầu nối địa hình hay không.
+    /// TUYỆT ĐỐI KHÔNG BAO GIỜ áp dụng hiệu ứng làm mờ / trong suốt (Canopy Fade) lên các khối Tile!
+    /// </summary>
+    public static bool IsTileOrTerrainRenderer(Renderer r)
+    {
+        if (r == null) return true;
+
+        // 1. Kiểm tra Component HexTileInfo
+        if (r.GetComponent<HexTileInfo>() != null || r.GetComponentInParent<HexTileInfo>() != null)
+        {
+            // Nếu có HexTileInfo, chỉ chấp nhận nếu renderer này nằm sâu trong container thực vật (Habitat_ / Flora_)
+            Transform t = r.transform;
+            bool insideHabitat = false;
+            while (t != null && t.GetComponent<HexTileInfo>() == null)
+            {
+                string tName = t.name;
+                if (tName.StartsWith("Habitat_") || tName.StartsWith("EdgeFlora_") || tName.StartsWith("CornerFlora_") || tName.StartsWith("Prop_"))
+                {
+                    insideHabitat = true;
+                    break;
+                }
+                t = t.parent;
+            }
+            if (!insideHabitat) return true; // Đây chính là thân/mesh của khối Tile lục giác!
+        }
+
+        // 2. Kiểm tra tên GameObject của renderer và các cấp cha
+        string goName = r.gameObject.name;
+        if (goName.StartsWith("Hex_") ||
+            goName.StartsWith("Tile_") ||
+            goName.StartsWith("SeamBridge") ||
+            goName.StartsWith("CornerFiller") ||
+            goName.StartsWith("Preserve_") ||
+            goName.Equals("default", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // 3. Kiểm tra các container địa hình kết nối
+        Transform curr = r.transform;
+        while (curr != null)
+        {
+            string cName = curr.name;
+            if (cName.StartsWith("SeamBridge") || cName.StartsWith("CornerFiller") || cName == "Biome_Cluster_Connections")
+            {
+                return true;
+            }
+            if (cName.StartsWith("Habitat_") || cName.StartsWith("EdgeFlora_") || cName.StartsWith("CornerFlora_"))
+            {
+                return false; // Nằm trong container thực vật -> Cho phép xét tán cây
+            }
+            curr = curr.parent;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Đảm bảo toàn bộ các khối lục giác và nền đất trên map không bao giờ bị dính trạng thái Transparent
+    /// </summary>
+    public static void RestoreAllTilesToOpaque()
+    {
+        List<Renderer> toRemove = null;
+        foreach (var pair in ActiveFadingTrees)
+        {
+            if (pair.Key == null || IsTileOrTerrainRenderer(pair.Key))
+            {
+                if (pair.Value != null && pair.Value.materials != null)
+                {
+                    RestoreTreeMaterialsToOpaque(pair.Value.materials);
+                }
+                if (toRemove == null) toRemove = new List<Renderer>();
+                toRemove.Add(pair.Key);
+            }
+        }
+
+        if (toRemove != null)
+        {
+            for (int i = 0; i < toRemove.Count; i++)
+            {
+                ActiveFadingTrees.Remove(toRemove[i]);
+            }
+        }
+    }
+
     private void RefreshCandidateRenderers()
     {
         candidateRenderers.Clear();
@@ -290,6 +461,7 @@ public class AnimalVisualEnhancer : MonoBehaviour
         float searchRadius = canopyCheckRadius + 1.8f;
 
         // 1. Quét cây từ các ô lục giác lân cận (ô hiện tại + 6 ô hàng xóm)
+        // CHỈ quét bên trong container Habitat_ (chứa cây cối), tuyệt đối KHÔNG quét thân khối Hex Tile!
         if (cachedWorldGen != null && cachedWorldGen.MapTiles != null)
         {
             HexCoordinates myHex = HexMetrics.WorldToHex(myPos);
@@ -303,16 +475,22 @@ public class AnimalVisualEnhancer : MonoBehaviour
             {
                 if (cachedWorldGen.MapTiles.TryGetValue(hexesToCheck[h], out GameObject tileObj) && tileObj != null)
                 {
-                    Renderer[] rends = tileObj.GetComponentsInChildren<Renderer>(false);
-                    for (int r = 0; r < rends.Length; r++)
+                    for (int c = 0; c < tileObj.transform.childCount; c++)
                     {
-                        Renderer rend = rends[r];
-                        if (rend == null || rend.transform.IsChildOf(transform)) continue;
-                        if (Vector3.Distance(rend.bounds.center, myPos) <= searchRadius)
+                        Transform child = tileObj.transform.GetChild(c);
+                        if (child == null || !child.name.StartsWith("Habitat_")) continue;
+
+                        Renderer[] rends = child.GetComponentsInChildren<Renderer>(false);
+                        for (int r = 0; r < rends.Length; r++)
                         {
-                            if (!candidateRenderers.Contains(rend))
+                            Renderer rend = rends[r];
+                            if (rend == null || rend.transform.IsChildOf(transform) || IsTileOrTerrainRenderer(rend)) continue;
+                            if (Vector3.Distance(rend.bounds.center, myPos) <= searchRadius)
                             {
-                                candidateRenderers.Add(rend);
+                                if (!candidateRenderers.Contains(rend))
+                                {
+                                    candidateRenderers.Add(rend);
+                                }
                             }
                         }
                     }
@@ -320,33 +498,40 @@ public class AnimalVisualEnhancer : MonoBehaviour
             }
         }
 
-        // 2. Quét cây kết nối giữa các ô (Connections Container)
+        // 2. Quét cây kết nối giữa các ô (Connections Container) - Bỏ qua SeamBridge và CornerFiller
         GameObject connObj = GameObject.Find("Biome_Cluster_Connections");
         if (connObj != null)
         {
-            Renderer[] connRends = connObj.GetComponentsInChildren<Renderer>(false);
-            for (int r = 0; r < connRends.Length; r++)
+            for (int c = 0; c < connObj.transform.childCount; c++)
             {
-                Renderer rend = connRends[r];
-                if (rend == null) continue;
-                if (Vector3.Distance(rend.bounds.center, myPos) <= searchRadius)
+                Transform child = connObj.transform.GetChild(c);
+                if (child == null) continue;
+                if (!child.name.StartsWith("EdgeFlora") && !child.name.StartsWith("CornerFlora")) continue;
+
+                Renderer[] connRends = child.GetComponentsInChildren<Renderer>(false);
+                for (int r = 0; r < connRends.Length; r++)
                 {
-                    if (!candidateRenderers.Contains(rend))
+                    Renderer rend = connRends[r];
+                    if (rend == null || IsTileOrTerrainRenderer(rend)) continue;
+                    if (Vector3.Distance(rend.bounds.center, myPos) <= searchRadius)
                     {
-                        candidateRenderers.Add(rend);
+                        if (!candidateRenderers.Contains(rend))
+                        {
+                            candidateRenderers.Add(rend);
+                        }
                     }
                 }
             }
         }
 
-        // 3. Fallback: Nếu không tìm thấy qua generator, quét từ GameObject cha
+        // 3. Fallback: Nếu không tìm thấy qua generator, quét từ GameObject cha (loại trừ Tile)
         if (candidateRenderers.Count == 0 && transform.parent != null)
         {
             Renderer[] pRends = transform.parent.GetComponentsInChildren<Renderer>(false);
             for (int r = 0; r < pRends.Length; r++)
             {
                 Renderer rend = pRends[r];
-                if (rend == null || rend.transform.IsChildOf(transform)) continue;
+                if (rend == null || rend.transform.IsChildOf(transform) || IsTileOrTerrainRenderer(rend)) continue;
                 if (Vector3.Distance(rend.bounds.center, myPos) <= searchRadius)
                 {
                     candidateRenderers.Add(rend);
@@ -378,11 +563,11 @@ public class AnimalVisualEnhancer : MonoBehaviour
 
         HashSet<Renderer> newlyOccludingTrees = new HashSet<Renderer>();
 
-        // Kiểm tra xem Renderer nào là tán cây che khuất con thú
+        // Kiểm tra xem Renderer nào là tán cây che khuất con thú (TUYỆT ĐỐI BỎ QUA TILE)
         for (int i = 0; i < candidateRenderers.Count; i++)
         {
             Renderer r = candidateRenderers[i];
-            if (r == null || r.transform.IsChildOf(transform)) continue;
+            if (r == null || r.transform.IsChildOf(transform) || IsTileOrTerrainRenderer(r)) continue;
 
             Bounds b = r.bounds;
 
@@ -441,7 +626,7 @@ public class AnimalVisualEnhancer : MonoBehaviour
 
     private static void RegisterTreeOcclusion(Renderer r, AnimalVisualEnhancer animal)
     {
-        if (r == null) return;
+        if (r == null || IsTileOrTerrainRenderer(r)) return;
         if (!ActiveFadingTrees.TryGetValue(r, out TreeFadeInfo info))
         {
             info = new TreeFadeInfo
@@ -472,8 +657,12 @@ public class AnimalVisualEnhancer : MonoBehaviour
             Renderer r = pair.Key;
             TreeFadeInfo info = pair.Value;
 
-            if (r == null)
+            if (r == null || IsTileOrTerrainRenderer(r))
             {
+                if (info != null && info.materials != null)
+                {
+                    RestoreTreeMaterialsToOpaque(info.materials);
+                }
                 if (finishedTrees == null) finishedTrees = new List<Renderer>();
                 finishedTrees.Add(r);
                 continue;

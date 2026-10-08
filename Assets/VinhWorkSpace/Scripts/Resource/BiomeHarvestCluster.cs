@@ -174,8 +174,6 @@ public class BiomeHarvestCluster
             {
                 Indicator.SetHarvestReady(PendingHarvestAmount);
             }
-
-            Debug.Log($"<color=#38BDF8>🔔 [LumiWorld Cụm Biome] Cụm <b>{TerrainCard.cardName}</b> ({Tiles.Count} ô, {Animals.Count} thú) đã sản xuất xong: +{PendingHarvestAmount} {ResourceData?.resourceName}! Chờ người chơi thu hoạch.</color>");
         }
     }
 
@@ -231,8 +229,6 @@ public class BiomeHarvestCluster
         {
             // Sinh popup chữ nổi bay lên tại tâm cụm
             ResourceHarvestPopup.Spawn(CenterPosition + Vector3.up * 0.8f, ResourceData, amount);
-
-            Debug.Log($"<color=green>✨ [THU HOẠCH THÀNH CÔNG] Bạn vừa gặt hái +{amount} {ResourceData?.GetColoredName()} từ cụm {TerrainCard.cardName}!</color>");
         }
 
         if (PendingHarvestAmount > 0)

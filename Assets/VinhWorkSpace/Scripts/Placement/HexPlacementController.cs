@@ -51,6 +51,9 @@ public class HexPlacementController : MonoBehaviour
 
     public static HexPlacementController Instance { get; private set; }
 
+    public event System.Action<int> OnExpansionChargesChanged;
+    public event System.Action<bool> OnPlacementModeChanged;
+
     [Header("Mở rộng bản đồ theo Milestone (Land Expansion)")]
     [Tooltip("Số lượt mở rộng đất hiện có (được cấp khi đạt mốc điểm trong ScoreManager)")]
     [SerializeField] private int availableExpansionCharges = 0;
@@ -64,6 +67,7 @@ public class HexPlacementController : MonoBehaviour
     [SerializeField] private List<CardData> landPlacementRewardCards = new();
 
     public int AvailableExpansionCharges => availableExpansionCharges;
+    public UnityEngine.UI.Button CreateLandButton => createLandButton;
 
     private void Awake()
     {
@@ -111,6 +115,7 @@ public class HexPlacementController : MonoBehaviour
     {
         availableExpansionCharges += Mathf.Max(0, amount);
         UpdateCreateButtonState();
+        OnExpansionChargesChanged?.Invoke(availableExpansionCharges);
     }
 
     /// <summary>
@@ -120,6 +125,7 @@ public class HexPlacementController : MonoBehaviour
     {
         availableExpansionCharges = 0;
         UpdateCreateButtonState();
+        OnExpansionChargesChanged?.Invoke(availableExpansionCharges);
     }
 
     /// <summary>
@@ -200,6 +206,7 @@ public class HexPlacementController : MonoBehaviour
 
         currentRotationStep = 0;
         isInPlacementMode = true;
+        OnPlacementModeChanged?.Invoke(true);
 
         CreateOrRebuildGhost();
     }
@@ -469,6 +476,7 @@ public class HexPlacementController : MonoBehaviour
         // Tiêu hao 1 lượt mở rộng đất và khóa lại nếu hết lượt
         availableExpansionCharges = Mathf.Max(0, availableExpansionCharges - 1);
         UpdateCreateButtonState();
+        OnExpansionChargesChanged?.Invoke(availableExpansionCharges);
 
         // Tặng ngay gói thẻ bài khai hoang vào tay để có bài phủ xanh mảng đất mới
         if (landPlacementRewardCards != null && landPlacementRewardCards.Count > 0 && CardDeskController.Instance != null)
@@ -491,6 +499,7 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     public void CancelPlacement()
     {
+        bool wasInPlacement = isInPlacementMode;
         isInPlacementMode = false;
         currentCluster = null;
 
@@ -498,6 +507,11 @@ public class HexPlacementController : MonoBehaviour
         {
             Destroy(previewGhostInstance.gameObject);
             previewGhostInstance = null;
+        }
+
+        if (wasInPlacement)
+        {
+            OnPlacementModeChanged?.Invoke(false);
         }
     }
 }
