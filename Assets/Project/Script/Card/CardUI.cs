@@ -181,8 +181,8 @@ public class CardUI : MonoBehaviour
         badgeRect.anchorMin = new Vector2(0f, 1f);
         badgeRect.anchorMax = new Vector2(0f, 1f);
         badgeRect.pivot = new Vector2(0f, 1f);
-        badgeRect.anchoredPosition = new Vector2(25f, -15f);
-        badgeRect.sizeDelta = new Vector2(60f, 60f);
+        badgeRect.anchoredPosition = new Vector2(20f, -12f);
+        badgeRect.sizeDelta = new Vector2(44f, 44f);
 
         TextMeshProUGUI tmp = badgeObj.AddComponent<TextMeshProUGUI>();
         tmp.text = "1";

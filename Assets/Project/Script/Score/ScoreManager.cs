@@ -16,6 +16,9 @@ public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance;
 
+    public event Action<int> OnScoreChanged;
+    public event Action<ScoreRewardMilestone> OnMilestoneReached;
+
     [Header("Current Score")]
     [SerializeField] private int currentScore = 0;
 
@@ -70,6 +73,7 @@ public class ScoreManager : MonoBehaviour
 
         CheckCardReward();
 
+        OnScoreChanged?.Invoke(currentScore);
     }
 
     // =========================================
@@ -142,6 +146,8 @@ public class ScoreManager : MonoBehaviour
             {
                 HexPlacementController.Instance.AddExpansionCharge(1);
             }
+
+            OnMilestoneReached?.Invoke(milestone);
         }
 
         // Kiểm tra phần thưởng Endless sau khi vượt qua mốc cao nhất
@@ -243,6 +249,148 @@ public class ScoreManager : MonoBehaviour
         }
 
         UpdateUI();
+        OnScoreChanged?.Invoke(0);
+    }
+
+    // =========================================
+    // MILESTONE PROGRESS HELPER
+    // =========================================
+
+    /// <summary>
+    /// Lấy tiến trình điểm số hướng tới mốc mở rộng đất (Land Expansion) kế tiếp.
+    /// </summary>
+    public void GetLandExpansionProgress(out int currentPointsInStep, out int targetPointsInStep, out float fillRatio, out int nextThreshold)
+    {
+        List<int> landThresholds = new();
+        if (rewardMilestones != null)
+        {
+            foreach (var m in rewardMilestones)
+            {
+                if (m != null && m.grantLandExpansion && m.scoreThreshold > 0)
+                {
+                    if (!landThresholds.Contains(m.scoreThreshold))
+                    {
+                        landThresholds.Add(m.scoreThreshold);
+                    }
+                }
+            }
+        }
+
+        landThresholds.Sort();
+
+        // Nếu danh sách không có mốc nào có grantLandExpansion, fallback theo interval
+        if (landThresholds.Count == 0)
+        {
+            int interval = Mathf.Max(10, endlessInterval > 0 ? endlessInterval : scorePerReward);
+            int step = currentScore / interval;
+            int prev = step * interval;
+            nextThreshold = prev + interval;
+            currentPointsInStep = currentScore - prev;
+            targetPointsInStep = interval;
+            fillRatio = Mathf.Clamp01((float)currentPointsInStep / targetPointsInStep);
+            return;
+        }
+
+        int maxThreshold = landThresholds[^1];
+
+        // Nếu đã vượt qua mốc cao nhất -> chuyển sang chế độ Endless
+        if (currentScore >= maxThreshold)
+        {
+            int interval = Mathf.Max(10, endlessInterval);
+            int stepsBeyond = (currentScore - maxThreshold) / interval;
+            int prev = maxThreshold + stepsBeyond * interval;
+            nextThreshold = prev + interval;
+            currentPointsInStep = currentScore - prev;
+            targetPointsInStep = interval;
+            fillRatio = Mathf.Clamp01((float)currentPointsInStep / targetPointsInStep);
+            return;
+        }
+
+        // Đang nằm giữa các mốc trong danh sách
+        int prevThreshold = 0;
+        nextThreshold = landThresholds[0];
+
+        for (int i = 0; i < landThresholds.Count; i++)
+        {
+            if (currentScore < landThresholds[i])
+            {
+                nextThreshold = landThresholds[i];
+                prevThreshold = (i > 0) ? landThresholds[i - 1] : 0;
+                break;
+            }
+        }
+
+        currentPointsInStep = Mathf.Max(0, currentScore - prevThreshold);
+        targetPointsInStep = Mathf.Max(1, nextThreshold - prevThreshold);
+        fillRatio = Mathf.Clamp01((float)currentPointsInStep / targetPointsInStep);
+    }
+
+    /// <summary>
+    /// Lấy bộ 3 mốc mở rộng đất (Mốc vừa xong, Mốc đang nạp, Mốc tương lai) cùng tỉ lệ xanh của mốc đang nạp.
+    /// </summary>
+    public void GetMilestoneLeafTrio(out int completedThreshold, out int activeThreshold, out int upcomingThreshold, out float activeFillRatio)
+    {
+        List<int> landThresholds = new();
+        if (rewardMilestones != null)
+        {
+            foreach (var m in rewardMilestones)
+            {
+                if (m != null && m.grantLandExpansion && m.scoreThreshold > 0)
+                {
+                    if (!landThresholds.Contains(m.scoreThreshold))
+                    {
+                        landThresholds.Add(m.scoreThreshold);
+                    }
+                }
+            }
+        }
+
+        landThresholds.Sort();
+
+        if (landThresholds.Count == 0)
+        {
+            int interval = Mathf.Max(10, endlessInterval > 0 ? endlessInterval : 30);
+            int step = currentScore / interval;
+            completedThreshold = Mathf.Max(0, (step - 1) * interval);
+            activeThreshold = step * interval;
+            upcomingThreshold = (step + 1) * interval;
+            activeFillRatio = Mathf.Clamp01((float)(currentScore - completedThreshold) / interval);
+            return;
+        }
+
+        int maxThreshold = landThresholds[^1];
+
+        if (currentScore >= maxThreshold)
+        {
+            int interval = Mathf.Max(10, endlessInterval);
+            int steps = (currentScore - maxThreshold) / interval;
+            completedThreshold = maxThreshold + (steps - 1) * interval;
+            activeThreshold = maxThreshold + steps * interval;
+            upcomingThreshold = activeThreshold + interval;
+            activeFillRatio = Mathf.Clamp01((float)(currentScore - completedThreshold) / interval);
+            return;
+        }
+
+        // Tìm vị trí của mốc hiện tại
+        int activeIdx = 0;
+        for (int i = 0; i < landThresholds.Count; i++)
+        {
+            if (currentScore < landThresholds[i])
+            {
+                activeIdx = i;
+                break;
+            }
+        }
+
+        activeThreshold = landThresholds[activeIdx];
+        completedThreshold = (activeIdx > 0) ? landThresholds[activeIdx - 1] : 0;
+        upcomingThreshold = (activeIdx + 1 < landThresholds.Count)
+            ? landThresholds[activeIdx + 1]
+            : activeThreshold + Mathf.Max(10, endlessInterval);
+
+        int curInStep = Mathf.Max(0, currentScore - completedThreshold);
+        int targetInStep = Mathf.Max(1, activeThreshold - completedThreshold);
+        activeFillRatio = Mathf.Clamp01((float)curInStep / targetInStep);
     }
 
     // =========================================

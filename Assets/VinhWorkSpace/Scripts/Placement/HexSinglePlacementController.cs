@@ -9,14 +9,17 @@ using UnityEngine;
 public class HexSinglePlacementController : MonoBehaviour
 {
     private static HexSinglePlacementController _instance;
+    private static bool isApplicationQuitting = false;
+
     public static HexSinglePlacementController Instance
     {
         get
         {
+            if (isApplicationQuitting) return null;
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<HexSinglePlacementController>();
-                if (_instance == null)
+                if (_instance == null && !isApplicationQuitting)
                 {
                     GameObject go = new GameObject("HexSinglePlacementController");
                     _instance = go.AddComponent<HexSinglePlacementController>();
@@ -187,6 +190,16 @@ public class HexSinglePlacementController : MonoBehaviour
         {
             ghostVisual.BuildPreview(cardData, ghostMaterial);
         }
+
+        // Bật chỉ dẫn định vị ô đã có thú / ô trống hợp lệ khi kéo thẻ Thú
+        if (cardData != null && cardData.cardType == CardType.Creature)
+        {
+            HexCreatureTileGuide.Instance.ShowGuide(cardData, worldGenerator, validator);
+        }
+        else
+        {
+            HexCreatureTileGuide.Instance.HideGuide();
+        }
     }
 
     /// <summary>
@@ -236,6 +249,9 @@ public class HexSinglePlacementController : MonoBehaviour
             currentHoverHex = targetHex;
             isHoveringValidTile = isValid;
             hasValidPreviousHex = true;
+
+            // Cập nhật phản hồi ô đang rê chuột trong Creature Guide
+            HexCreatureTileGuide.Instance.UpdateHover(targetHex);
 
             if (ghostVisual != null)
             {
@@ -574,6 +590,32 @@ public class HexSinglePlacementController : MonoBehaviour
         if (ghostVisual != null)
         {
             ghostVisual.ClearVisuals();
+        }
+
+        if (HexCreatureTileGuide.HasInstance)
+        {
+            HexCreatureTileGuide.Instance?.HideGuide();
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        isApplicationQuitting = true;
+    }
+
+    private void OnDestroy()
+    {
+        if (_instance == this)
+        {
+            _instance = null;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (!isApplicationQuitting)
+        {
+            CancelPreview();
         }
     }
 

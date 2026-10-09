@@ -63,6 +63,7 @@ public class HexPlacementValidator : MonoBehaviour
             // (Kể cả khi ô đã được tưới Rain thành Lush, người chơi vẫn BẮT BUỘC phải đặt thẻ Terrain lên trước rồi mới được đặt thú)
             if (!HasPlacedTerrain(tileObj))
             {
+                lastValidationError = "Cần đặt thẻ Địa hình (Terrain) trước khi thả thú";
                 return false;
             }
 
@@ -74,12 +75,14 @@ public class HexPlacementValidator : MonoBehaviour
             // Ô này đã có thẻ Terrain từ trước thì không được đè thêm thẻ Terrain khác
             if (HasPlacedTerrain(tileObj))
             {
+                lastValidationError = "Ô này đã được phủ địa hình";
                 return false;
             }
 
             // Các thẻ Terrain tuân theo quy tắc kiểm tra chiếm ô
             if (IsTileOccupied(tileObj))
             {
+                lastValidationError = "Ô này đã bị chiếm dụng";
                 return false;
             }
         }
@@ -88,6 +91,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Các thẻ khác (Building...): Tuân theo quy tắc kiểm tra chiếm ô thông thường
             if (IsTileOccupied(tileObj))
             {
+                lastValidationError = "Ô này đã bị chiếm dụng";
                 return false;
             }
         }
@@ -100,6 +104,7 @@ public class HexPlacementValidator : MonoBehaviour
             {
                 if (pc != null && pc.cardData != null && pc.cardData.IsTileTransformCard())
                 {
+                    lastValidationError = "Ô này đã được biến đổi địa hình";
                     return false;
                 }
             }
@@ -108,9 +113,11 @@ public class HexPlacementValidator : MonoBehaviour
         // Mapped creature residency follows GDD affinities; physical prefab lists remain for other cards.
         if (cardData != null && !(useHabitatRules && cardData.cardType == CardType.Creature) && !cardData.IsTileAllowed(tileObj, worldGen))
         {
+            lastValidationError = "Địa hình không thích hợp với loài thú/thẻ bài này";
             return false;
         }
 
+        lastValidationError = "";
         return true;
     }
 
