@@ -1,0 +1,500 @@
+{
+  "pack": "LumiWorld_Step09_Resource_Inventory_UI_Assets",
+  "version": 1,
+  "created_date": "2026-10-08",
+  "palette": {
+    "ivory": "#F7F2E8",
+    "ivoryInset": "#EEE7D7",
+    "sage": "#78936D",
+    "forest": "#435B45",
+    "gold": "#C6AE78",
+    "muted": "#AAA89C"
+  },
+  "png_policy": "Unmodified original RGBA PNGs. Sprite Rects select a region in Unity without rewriting PNG bytes.",
+  "sprite_rect_method": "Bounds of alpha >= 8 plus 2 px safety padding, clipped to canvas; Unity bottom-left origin.",
+  "recommendations_status": "Sprite borders and UI sizes are starting recommendations; not validated in Unity Play Mode.",
+  "unity_texture_import_recommended": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple (one named sprite per PNG)",
+    "mesh_type": "Full Rect",
+    "pixels_per_unit": 100,
+    "alpha_source": "Input Texture Alpha",
+    "alpha_is_transparency": true,
+    "generate_mip_maps": false,
+    "filter_mode": "Bilinear",
+    "wrap_mode": "Clamp",
+    "max_texture_size": 4096,
+    "compression": "None during first visual QA"
+  },
+  "assets": [
+    {
+      "key": "panel_habitat",
+      "file": "UI_PNG/UI_Panel_Habitat_Background.png",
+      "role": "Nền Habitat Panel bên phải; nội dung và chữ là UI con.",
+      "canvas_px": {
+        "width": 1024,
+        "height": 1536
+      },
+      "sprite_rect_unity_px": {
+        "x": 154,
+        "y": 16,
+        "width": 715,
+        "height": 1504
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 120,
+        "bottom": 60,
+        "right": 120,
+        "top": 130
+      },
+      "ugui_image_type_recommended": "Sliced",
+      "preserve_aspect": false,
+      "pixels_per_unit_multiplier_start": 2.25,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "181017f6232c976990f826eb9f52a067ebcef6b3cb69092ff375720dcd3f0d2b",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 254,
+        "center_alpha": 254,
+        "zero_alpha_fraction": 0.31866
+      },
+      "previous_filename": "01_panel_habitat.png",
+      "display_role_vi": "Nền panel habitat bên phải"
+    },
+    {
+      "key": "window_main",
+      "file": "UI_PNG/UI_Window_Modal_Background.png",
+      "role": "Nền Warehouse / Resource Selector / Offline Summary / Recovery Claim.",
+      "canvas_px": {
+        "width": 1536,
+        "height": 1024
+      },
+      "sprite_rect_unity_px": {
+        "x": 30,
+        "y": 72,
+        "width": 1476,
+        "height": 883
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 128,
+        "bottom": 128,
+        "right": 128,
+        "top": 128
+      },
+      "ugui_image_type_recommended": "Sliced",
+      "preserve_aspect": false,
+      "pixels_per_unit_multiplier_start": 2.5,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "e5aba0ca5437c5f4883a62a71355554ce666a415a741de03c4426c5c87699ba6",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 254,
+        "center_alpha": 254,
+        "zero_alpha_fraction": 0.17353
+      },
+      "previous_filename": "02_window_main.png",
+      "display_role_vi": "Nền cửa sổ Kho / chọn resource / summary"
+    },
+    {
+      "key": "surface_inset",
+      "file": "UI_PNG/UI_Panel_InfoInset_Background.png",
+      "role": "Nền nhóm thông tin, chi tiết resource hoặc thông báo nhỏ.",
+      "canvas_px": {
+        "width": 1536,
+        "height": 1024
+      },
+      "sprite_rect_unity_px": {
+        "x": 60,
+        "y": 124,
+        "width": 1416,
+        "height": 777
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 96,
+        "bottom": 96,
+        "right": 96,
+        "top": 96
+      },
+      "ugui_image_type_recommended": "Sliced",
+      "preserve_aspect": false,
+      "pixels_per_unit_multiplier_start": 4,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "acac544fbe3c9222e6eb3abb3fc65c13fbc31fee3c3d87b791aa8a2964f17a44",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 254,
+        "center_alpha": 254,
+        "zero_alpha_fraction": 0.30451
+      },
+      "previous_filename": "03_surface_inset.png",
+      "display_role_vi": "Nền khối thông tin / thông báo nhỏ"
+    },
+    {
+      "key": "button_primary",
+      "file": "UI_PNG/UI_Button_Primary_Background.png",
+      "role": "Nút hành động chính: Thu tất cả, Áp dụng, Nhận.",
+      "canvas_px": {
+        "width": 2172,
+        "height": 724
+      },
+      "sprite_rect_unity_px": {
+        "x": 0,
+        "y": 121,
+        "width": 2172,
+        "height": 483
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 210,
+        "bottom": 190,
+        "right": 210,
+        "top": 190
+      },
+      "ugui_image_type_recommended": "Sliced",
+      "preserve_aspect": false,
+      "pixels_per_unit_multiplier_start": 8,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "00ced9328323c7fb0a9f18c07095bc54eff93a9aa10f47a4e6c3dda38e42d99a",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 249,
+        "zero_alpha_fraction": 0.34985
+      },
+      "previous_filename": "04_button_primary.png",
+      "display_role_vi": "Nút chính: Thu tất cả / Áp dụng / Nhận"
+    },
+    {
+      "key": "button_secondary",
+      "file": "UI_PNG/UI_Button_Secondary_Background.png",
+      "role": "Nút hành động phụ: Hủy, Quay lại.",
+      "canvas_px": {
+        "width": 2172,
+        "height": 724
+      },
+      "sprite_rect_unity_px": {
+        "x": 51,
+        "y": 162,
+        "width": 2072,
+        "height": 414
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 220,
+        "bottom": 170,
+        "right": 220,
+        "top": 170
+      },
+      "ugui_image_type_recommended": "Sliced",
+      "preserve_aspect": false,
+      "pixels_per_unit_multiplier_start": 8,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "07f4f9e3973dcfe88e37fe1e13b5b7d0d9350d1af81bb949ac85e1ac55f40f14",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 254,
+        "zero_alpha_fraction": 0.4653
+      },
+      "previous_filename": "05_button_secondary.png",
+      "display_role_vi": "Nút phụ: Hủy / Quay lại"
+    },
+    {
+      "key": "slot_resource",
+      "file": "UI_PNG/UI_Slot_Resource_Default_Background.png",
+      "role": "Nền slot resource thường; icon và số lượng là lớp riêng.",
+      "canvas_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sprite_rect_unity_px": {
+        "x": 82,
+        "y": 94,
+        "width": 1090,
+        "height": 1066
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 0,
+        "bottom": 0,
+        "right": 0,
+        "top": 0
+      },
+      "ugui_image_type_recommended": "Simple",
+      "preserve_aspect": true,
+      "pixels_per_unit_multiplier_start": 1,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "28a21f13f9485c15261ae1812a1a275b24870fd13985724c1491655bb3675587",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 253,
+        "zero_alpha_fraction": 0.27122
+      },
+      "previous_filename": "06_slot_resource.png",
+      "display_role_vi": "Nền slot tài nguyên thường"
+    },
+    {
+      "key": "slot_selected",
+      "file": "UI_PNG/UI_Slot_Resource_Selected_Border.png",
+      "role": "Viền chọn phủ lên slot; phần giữa trong suốt.",
+      "canvas_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sprite_rect_unity_px": {
+        "x": 77,
+        "y": 82,
+        "width": 1102,
+        "height": 1090
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 0,
+        "bottom": 0,
+        "right": 0,
+        "top": 0
+      },
+      "ugui_image_type_recommended": "Simple",
+      "preserve_aspect": true,
+      "pixels_per_unit_multiplier_start": 1,
+      "raycast_target": false,
+      "sha256": "6de51964dd0942cdc61155067205dd516899e982eda916adf61c19636afb2abd",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 0,
+        "zero_alpha_fraction": 0.7645
+      },
+      "previous_filename": "07_slot_selected.png",
+      "display_role_vi": "Viền chọn, phần giữa trong suốt"
+    },
+    {
+      "key": "slot_locked",
+      "file": "UI_PNG/UI_Slot_Resource_Locked_Background.png",
+      "role": "Nền slot chưa mở; kết hợp tint, icon khóa và lý do.",
+      "canvas_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sprite_rect_unity_px": {
+        "x": 67,
+        "y": 72,
+        "width": 1120,
+        "height": 1113
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 0,
+        "bottom": 0,
+        "right": 0,
+        "top": 0
+      },
+      "ugui_image_type_recommended": "Simple",
+      "preserve_aspect": true,
+      "pixels_per_unit_multiplier_start": 1,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "afd32d8c4bc9a0d133a2e5fdb061d4e8223681882a82d7deed1fd9e3515acb19",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 254,
+        "zero_alpha_fraction": 0.21932
+      },
+      "previous_filename": "08_slot_locked.png",
+      "display_role_vi": "Nền slot chưa mở, ghép icon khóa"
+    },
+    {
+      "key": "button_icon",
+      "file": "UI_PNG/UI_Button_Icon_Round_Background.png",
+      "role": "Nền nút tròn; icon Kho hoặc Đóng đặt ở lớp riêng.",
+      "canvas_px": {
+        "width": 1263,
+        "height": 1246
+      },
+      "sprite_rect_unity_px": {
+        "x": 12,
+        "y": 20,
+        "width": 1236,
+        "height": 1219
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 0,
+        "bottom": 0,
+        "right": 0,
+        "top": 0
+      },
+      "ugui_image_type_recommended": "Simple",
+      "preserve_aspect": true,
+      "pixels_per_unit_multiplier_start": 1,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "2f8c469d3a31856aa9fc6d095b20769698181b76a6de4a263f304572ce174783",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 253,
+        "zero_alpha_fraction": 0.297
+      },
+      "previous_filename": "09_button_icon.png",
+      "display_role_vi": "Nền nút tròn để ghép icon"
+    },
+    {
+      "key": "icon_warehouse",
+      "file": "UI_PNG/UI_Icon_Warehouse.png",
+      "role": "Icon nút mở Kho.",
+      "canvas_px": {
+        "width": 1358,
+        "height": 1159
+      },
+      "sprite_rect_unity_px": {
+        "x": 129,
+        "y": 87,
+        "width": 1131,
+        "height": 930
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 0,
+        "bottom": 0,
+        "right": 0,
+        "top": 0
+      },
+      "ugui_image_type_recommended": "Simple",
+      "preserve_aspect": true,
+      "pixels_per_unit_multiplier_start": 1,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "7e0c3edacb25c649da6d634c64be2ffc2696b855a059dd30b799dafd0420ac0b",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 253,
+        "zero_alpha_fraction": 0.46474
+      },
+      "previous_filename": "10_icon_warehouse.png",
+      "display_role_vi": "Icon Kho"
+    },
+    {
+      "key": "icon_close",
+      "file": "UI_PNG/UI_Icon_Close.png",
+      "role": "Icon nút Đóng.",
+      "canvas_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sprite_rect_unity_px": {
+        "x": 195,
+        "y": 166,
+        "width": 859,
+        "height": 860
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 0,
+        "bottom": 0,
+        "right": 0,
+        "top": 0
+      },
+      "ugui_image_type_recommended": "Simple",
+      "preserve_aspect": true,
+      "pixels_per_unit_multiplier_start": 1,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "060a751c7ea4dbb445dcfcc6128f271276bccd0f87687940c48ae1a0f67705c6",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 254,
+        "zero_alpha_fraction": 0.75743
+      },
+      "previous_filename": "11_icon_close.png",
+      "display_role_vi": "Icon Đóng"
+    },
+    {
+      "key": "icon_lock",
+      "file": "UI_PNG/UI_Icon_Lock.png",
+      "role": "Icon slot chưa mở / chưa đủ điều kiện.",
+      "canvas_px": {
+        "width": 1224,
+        "height": 1285
+      },
+      "sprite_rect_unity_px": {
+        "x": 265,
+        "y": 214,
+        "width": 694,
+        "height": 888
+      },
+      "sprite_pivot_normalized": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "border_lbrt_px_recommended": {
+        "left": 0,
+        "bottom": 0,
+        "right": 0,
+        "top": 0
+      },
+      "ugui_image_type_recommended": "Simple",
+      "preserve_aspect": true,
+      "pixels_per_unit_multiplier_start": 1,
+      "raycast_target": "context-dependent; enable only on interactive/blocking UI surfaces",
+      "sha256": "58346ec10b5488287fe4b491553e7807a2e21460b3fc890e65e47d7b16701e1e",
+      "qa": {
+        "mode": "RGBA",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "center_alpha": 254,
+        "zero_alpha_fraction": 0.72693
+      },
+      "previous_filename": "12_icon_lock.png",
+      "display_role_vi": "Icon Khóa / chưa đủ điều kiện"
+    }
+  ],
+  "filename_revision": "Descriptive UI filenames; original PNG bytes and sprite import geometry preserved."
+}

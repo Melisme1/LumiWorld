@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fb73a36f0a2cfb499b0ecb1f3d8608c, type: 3}
+  m_Name: ResourceInventoryUISkin
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.ResourceInventoryUISkin
+  uiPrefab: {fileID: 4757662964058591937, guid: 69ec948664c558e4588a438bd08a90f7, type: 3}
+  font: {fileID: 11400000, guid: ce27f2b5f8bacc4469c24fbfea1e5ecc, type: 2}
+  panelHabitat: {fileID: -1084475956, guid: 15bbe6e3ddcb10344847e2a9f4a0615e, type: 3}
+  windowMain: {fileID: 1041309989, guid: 1eeed9b63eb542c4f951288db56d8106, type: 3}
+  surfaceInset: {fileID: -392175211, guid: 3e5533bcb36ce454fa915336daf34b3e, type: 3}
+  buttonPrimary: {fileID: -699730770, guid: fca5b7a5e15e1aa4381b57e82cda6825, type: 3}
+  buttonSecondary: {fileID: 745054716, guid: 2d9a26dcf5071a7439040428b8cb8efd, type: 3}
+  slotResource: {fileID: 2073047897, guid: 6c0ef3aec3548534bbad3914dd3c0b04, type: 3}
+  slotSelected: {fileID: -371095536, guid: 3cc8ea7741d1ac641a8abe4cdaa99421, type: 3}
+  slotLocked: {fileID: -1050850667, guid: ca1a67b1652cff84b8fe61ff586d9fce, type: 3}
+  buttonIcon: {fileID: 1104061638, guid: 538a30c90c5333c40b91431351b3426d, type: 3}
+  iconWarehouse: {fileID: 491542789, guid: bcb60d86bf8054144a389bd8de288515, type: 3}
+  iconClose: {fileID: 1969001864, guid: 77a9ed5e634a554499dba1dadf91dcf8, type: 3}
+  iconLock: {fileID: -1786443629, guid: d78e419825148bf4685419d0404e9924, type: 3}
+  ivory: {r: 0.96862745, g: 0.9490196, b: 0.9098039, a: 1}
+  sage: {r: 0.47058824, g: 0.5764706, b: 0.42745098, a: 1}
+  forest: {r: 0.2627451, g: 0.35686275, b: 0.27058825, a: 1}
+  gold: {r: 0.7764706, g: 0.68235296, b: 0.47058824, a: 1}
+  muted: {r: 0.4509804, g: 0.4509804, b: 0.39215687, a: 1}
+  panelPPU: 2.25
+  windowPPU: 2.5
+  insetPPU: 4
+  buttonPPU: 8

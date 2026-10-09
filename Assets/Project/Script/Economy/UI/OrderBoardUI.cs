@@ -141,12 +141,6 @@ public class OrderBoardUI : MonoBehaviour
     {
         if (!IsOpen) return;
 
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-        {
-            Close();
-            return;
-        }
 
         // Cập nhật đồng hồ đếm ngược của các ô trống
         countdownTimer -= Time.unscaledDeltaTime;
@@ -197,6 +191,7 @@ public class OrderBoardUI : MonoBehaviour
         // Lên trên cùng Canvas để phủ cả thẻ bài và thông báo đang hiện
         transform.SetAsLastSibling();
         window.SetActive(true);
+        EconomyHUD.BringWindowToFront(window);
 
         // Màn hình nhỏ (ví dụ cửa sổ Game trong Editor) thì thu nhỏ bảng cho vừa
         Rect area = ((RectTransform)transform).rect;
@@ -214,6 +209,7 @@ public class OrderBoardUI : MonoBehaviour
     {
         if (!IsOpen) return;
         window.SetActive(false);
+        EconomyHUD.MarkWindowClosed();
     }
 
     public void Toggle()
@@ -457,7 +453,7 @@ public class OrderBoardUI : MonoBehaviour
         RectTransform windowRect = EconomyHUD.CreateRect("Window", transform);
         EconomyHUD.Stretch(windowRect);
         window = windowRect.gameObject;
-        EconomyHUD.RegisterWindow(window);
+        EconomyHUD.RegisterWindow(window, Close);
 
         // Nền mờ phủ cả màn hình: chặn chuột tới thẻ bài và bản đồ, bấm vào thì đóng bảng
         RectTransform backdropRect = EconomyHUD.CreateRect("Backdrop", windowRect);

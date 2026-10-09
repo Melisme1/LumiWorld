@@ -72,11 +72,11 @@ public class HexCameraController : MonoBehaviour
         bool isAltHeld = keyboard != null && (keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed);
         Vector2 mouseDelta = mouse.delta.ReadValue();
 
-        bool isOverUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        bool isOverUI = EconomyHUD.IsPointerOverInteractiveUI(mouse.position.ReadValue());
         bool isInPlacement = placementController != null && placementController.IsInPlacementMode;
 
         // 1. ĐIỀU KHIỂN CHUỘT
-        if (!isCardDragging)
+        if (!isCardDragging && !isOverUI)
         {
             if (isAltHeld)
             {
@@ -135,7 +135,7 @@ public class HexCameraController : MonoBehaviour
         HandleKeyboardMovement(keyboard);
 
         // 3. ZOOM BẰNG CON LĂN CHUỘT (Mouse Scroll Wheel)
-        HandleScrollZoom(mouse, isInPlacement, isAltHeld);
+        if (!isOverUI) HandleScrollZoom(mouse, isInPlacement, isAltHeld);
 
         // 4. XOAY BẰNG PHÍM Q / E (Khi không trong Placement Mode)
         if (!isInPlacement)

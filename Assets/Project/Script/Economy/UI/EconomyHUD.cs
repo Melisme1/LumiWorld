@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Gốc giao diện kinh tế trên màn chơi: CoinHUD ở góc trên bên phải, InventoryUI ở góc trên bên trái,
@@ -17,6 +18,7 @@ using UnityEngine.UI;
 /// (khay bài tự bù bằng scale 2), nên HUD và hai bảng được phóng lại theo Canvas để không bị thu nhỏ một nửa.
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
+[DefaultExecutionOrder(-250)]
 public class EconomyHUD : MonoBehaviour
 {
     [Tooltip("Khoảng cách từ mép màn hình tới CoinHUD và InventoryUI (pixel)")]
@@ -29,6 +31,8 @@ public class EconomyHUD : MonoBehaviour
 
     // Cửa sổ của Bảng Đơn Hàng và Cửa hàng thẻ, để camera và thu hoạch biết đang có bảng mở
     private static readonly List<GameObject> windows = new List<GameObject>();
+    private static readonly Dictionary<GameObject, System.Action> windowClosers = new Dictionary<GameObject, System.Action>();
+    private static int windowClosedFrame = -1;
     private static readonly List<RaycastResult> pointerHits = new List<RaycastResult>();
 
     // Gốc của HUD và hai bảng, được phóng theo Scale Factor của Canvas
@@ -63,6 +67,14 @@ public class EconomyHUD : MonoBehaviour
         // Cửa sổ Game đổi cỡ hoặc Canvas đổi Scale Factor thì phóng lại
         FitToCanvas();
     }
+
+    private void Update()
+    {
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) TryCloseTopWindow();
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetWindows() { windows.Clear(); windowClosers.Clear(); pointerHits.Clear(); windowClosedFrame = -1; }
 
     private T CreateCorner<T>(string objectName, Vector2 corner, Vector2 offset) where T : Component
     {
@@ -128,6 +140,7 @@ public class EconomyHUD : MonoBehaviour
     {
         get
         {
+            if (windowClosedFrame == Time.frameCount) return true;
             windows.RemoveAll(window => window == null);
             foreach (GameObject window in windows)
             {
@@ -137,9 +150,33 @@ public class EconomyHUD : MonoBehaviour
         }
     }
 
-    internal static void RegisterWindow(GameObject window)
+    internal static void RegisterWindow(GameObject window, System.Action close = null)
     {
         if (window != null && !windows.Contains(window)) windows.Add(window);
+        if (window != null && close != null) windowClosers[window] = close;
+    }
+
+    internal static void UnregisterWindow(GameObject window)
+    { if (window == null) return; windows.Remove(window); windowClosers.Remove(window); }
+
+    internal static void BringWindowToFront(GameObject window)
+    {
+        if (window == null) return;
+        window.transform.parent?.SetAsLastSibling();
+        windows.Remove(window); windows.Add(window);
+    }
+
+    internal static void MarkWindowClosed() => windowClosedFrame = Time.frameCount;
+
+    internal static bool TryCloseTopWindow()
+    {
+        for (int i = windows.Count - 1; i >= 0; i--)
+        {
+            var window = windows[i];
+            if (window == null || !window.activeInHierarchy || !windowClosers.TryGetValue(window, out var close)) continue;
+            close(); MarkWindowClosed(); return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -204,7 +241,7 @@ public class EconomyHUD : MonoBehaviour
 
     private static Transform FindScreenCanvas(Scene scene)
     {
-        foreach (Canvas canvas in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+        foreach (Canvas canvas in FindObjectsByType<Canvas>())
         {
             if (canvas.isRootCanvas && canvas.renderMode != RenderMode.WorldSpace && canvas.gameObject.scene == scene)
             {

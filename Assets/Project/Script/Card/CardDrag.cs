@@ -257,17 +257,16 @@ public class CardDrag : MonoBehaviour,
             cameraController.SetCardDragging(false);
         }
 
-        if (canvasGroup != null)
-        {
-            canvasGroup.blocksRaycasts = true;
-        }
-
         bool placedSuccessfully = false;
 
         if (singlePlacementController != null && cardUI != null)
         {
             placedSuccessfully = singlePlacementController.TryConfirmPlacement(cardUI.CardData, out _);
         }
+
+        // Keep the dragged card out of the UI raycast until placement checks the drop target.
+        // Otherwise its own Image would be mistaken for a panel blocking the map.
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
 
         if (placedSuccessfully)
         {
