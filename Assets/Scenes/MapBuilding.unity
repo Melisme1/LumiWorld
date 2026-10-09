@@ -410,6 +410,84 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 74655633}
   m_CullTransparentMesh: 1
+--- !u!1 &88682138
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 88682141}
+  - component: {fileID: 88682140}
+  - component: {fileID: 88682139}
+  m_Layer: 0
+  m_Name: HabitatSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &88682139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 88682138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdb659c6a78d93d4b9c6d0df7455b9e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.ResourceProductionRuntime
+  habitatManager: {fileID: 88682140}
+  settings:
+    productionEnabled: 1
+    tier1UnitsPerInterval: 20
+    tier1IntervalSeconds: 10
+    tier2UnitsPerInterval: 5
+    tier2IntervalSeconds: 30
+    rankIContribution: 1
+    rankIIContribution: 1.5
+    rankIIIContribution: 2
+    sharingPolicy: 1
+    comboPolicy: 1
+    tier1BufferCap: 100
+    tier2BufferCap: 50
+  displayRefreshSeconds: 0.5
+  inventory: {fileID: 0}
+--- !u!114 &88682140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 88682138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e07673786cc4598820fdaaeb3eb6971, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.HabitatRuntimeManager
+  catalog: {fileID: 11400000, guid: 5815a1cc97c1e044190f8854390b7165, type: 2}
+  worldGenerator: {fileID: 832299767}
+  worldId: mapbuilding
+  refreshInterval: 0.5
+  habitats: []
+  diagnostics: []
+--- !u!4 &88682141
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 88682138}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 401.25644, y: 260.3619, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &229421895
 GameObject:
   m_ObjectHideFlags: 0
@@ -3033,5 +3111,4 @@ SceneRoots:
   - {fileID: 1574008526}
   - {fileID: 1491331005}
   - {fileID: 1136503281}
-  - {fileID: 1617469026}
-  - {fileID: 776994038}
+  - {fileID: 88682141}
