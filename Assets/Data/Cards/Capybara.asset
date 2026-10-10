@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_capybara
   cardName: Capybara
-  cardImage: {fileID: 21300000, guid: 77231ee8d3bb7434badb7592a154f8e1, type: 3}
+  cardImage: {fileID: 21300000, guid: 7db9f7d2e8754c54985bd4b8cc53dc6e, type: 3}
   cardType: 0
   baseScore: 3
   alwaysBaseScore: 0
