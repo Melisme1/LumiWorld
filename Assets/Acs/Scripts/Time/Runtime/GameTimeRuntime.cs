@@ -13,6 +13,7 @@ namespace LumiWorld.Acs.TimeSystem
         private TimerService timers;
         private float resumeTimeScale = 1;
         private bool ownsPause;
+        private bool changingPause;
 
         public static GameTimeRuntime Instance
         {
@@ -30,6 +31,8 @@ namespace LumiWorld.Acs.TimeSystem
         public GameClock Clock { get { Initialize(); return clock; } }
         public TimerService Timers { get { Initialize(); return timers; } }
         public bool IsPaused => clock != null && clock.IsPaused;
+        // Work owners can credit the last active segment here, before the clock freezes.
+        public event Action<bool> PauseChanging;
         public event Action<bool> PauseChanged;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -66,18 +69,28 @@ namespace LumiWorld.Acs.TimeSystem
 
         public void SetPaused(bool paused)
         {
-            if (!Application.isPlaying) return;
-            Timers.Tick();
-            if (!Clock.SetPaused(paused)) return;
-            if (paused)
+            if (!Application.isPlaying || changingPause || IsPaused == paused) return;
+            changingPause = true;
+            try
             {
-                resumeTimeScale = UnityEngine.Time.timeScale;
-                ownsPause = true;
-                UnityEngine.Time.timeScale = 0;
+                Timers.Tick();
+                Publish(PauseChanging, paused);
+                if (!Clock.SetPaused(paused)) return;
+                if (paused)
+                {
+                    resumeTimeScale = UnityEngine.Time.timeScale;
+                    ownsPause = true;
+                    UnityEngine.Time.timeScale = 0;
+                }
+                else RestoreTimeScale();
+                Publish(PauseChanged, paused);
             }
-            else RestoreTimeScale();
+            finally { changingPause = false; }
+        }
+
+        private void Publish(Action<bool> handlers, bool paused)
+        {
             // One presentation subscriber must not prevent other systems observing pause.
-            var handlers = PauseChanged;
             if (handlers != null)
                 foreach (Action<bool> handler in handlers.GetInvocationList())
                     try { handler(paused); } catch (Exception exception) { Debug.LogException(exception, this); }

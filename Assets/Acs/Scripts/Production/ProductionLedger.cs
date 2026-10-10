@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace LumiWorld.Acs
 {
-    // Pure accrual over cached rates. Synchronize first settles the old rates, then installs new ones.
+    // Pure accrual over a monotonic gameplay timeline (seconds, not UTC).
+    // Synchronize first settles the old rates, then installs new ones.
     // This class neither deposits into Inventory nor reads/writes a save file.
     public sealed class ProductionLedger
     {
@@ -11,17 +12,17 @@ namespace LumiWorld.Acs
         public IReadOnlyList<HabitatProductionState> States => states;
         public HabitatProductionState Find(string habitatId) => states.Find(s => s.habitatId == habitatId);
 
-        public void Settle(double utcSeconds)
+        public void Settle(double settlementSeconds)
         {
-            if (!Finite(utcSeconds)) throw new ArgumentOutOfRangeException(nameof(utcSeconds));
+            if (!Finite(settlementSeconds)) throw new ArgumentOutOfRangeException(nameof(settlementSeconds));
             foreach (var state in states)
             {
                 if (!state.hasSettlementTime)
-                { state.lastSettledUtc = utcSeconds; state.hasSettlementTime = true; continue; }
-                // Keep a high-water mark when the device clock moves backwards.
-                if (utcSeconds <= state.lastSettledUtc) continue;
-                double elapsedMinutes = (utcSeconds - state.lastSettledUtc) / 60d;
-                state.lastSettledUtc = utcSeconds;
+                { state.lastSettledSeconds = settlementSeconds; state.hasSettlementTime = true; continue; }
+                // Keep a high-water mark if a caller supplies an older settlement point.
+                if (settlementSeconds <= state.lastSettledSeconds) continue;
+                double elapsedMinutes = (settlementSeconds - state.lastSettledSeconds) / 60d;
+                state.lastSettledSeconds = settlementSeconds;
                 foreach (var rate in state.rates)
                 {
                     if (rate.unitsPerMinute <= 0 || !Finite(rate.unitsPerMinute) || rate.bufferCap <= 0 ||
@@ -51,9 +52,9 @@ namespace LumiWorld.Acs
         }
 
         public void Synchronize(IReadOnlyList<HabitatState> habitats,
-            Func<HabitatState, List<ProductionSlotRate>> buildRates, double utcSeconds)
+            Func<HabitatState, List<ProductionSlotRate>> buildRates, double settlementSeconds)
         {
-            Settle(utcSeconds);
+            Settle(settlementSeconds);
             var active = new Dictionary<string, HabitatState>(StringComparer.Ordinal);
             if (habitats != null)
                 foreach (var habitat in habitats)
@@ -66,7 +67,7 @@ namespace LumiWorld.Acs
             foreach (var habitat in active.Values)
                 if (Find(habitat.habitatId) == null)
                     states.Add(new HabitatProductionState { habitatId = habitat.habitatId,
-                        hasSettlementTime = true, lastSettledUtc = utcSeconds });
+                        hasSettlementTime = true, lastSettledSeconds = settlementSeconds });
 
             // A split keeps the entire old buffer with the surviving ID. Merged IDs transfer their
             // buffers to the group with greatest shared membership. No remaining home => recovery.
@@ -88,7 +89,7 @@ namespace LumiWorld.Acs
                 if (destination != null)
                 {
                     var target = Find(destination.habitatId);
-                    target.lastSettledUtc = Math.Max(target.lastSettledUtc, old.lastSettledUtc);
+                    target.lastSettledSeconds = Math.Max(target.lastSettledSeconds, old.lastSettledSeconds);
                     foreach (var source in old.buffers) MergeBuffer(target, source);
                     states.Remove(old);
                 }
@@ -111,9 +112,9 @@ namespace LumiWorld.Acs
             }
         }
 
-        public void Stop(double utcSeconds)
+        public void Stop(double settlementSeconds)
         {
-            Settle(utcSeconds);
+            Settle(settlementSeconds);
             foreach (var state in states) state.rates.Clear();
         }
 

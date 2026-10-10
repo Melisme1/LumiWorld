@@ -51,7 +51,7 @@ public class ActiveOrder
 
 /// <summary>
 /// Ô đơn đang trống vì người chơi vừa bỏ đơn: tới refillAtUtc (ISO 8601, UTC) thì có đơn mới.
-/// Tính theo giờ thật nên vẫn chạy khi tắt game.
+/// Vẫn chạy khi tắt game; OrderBoardSystem cập nhật deadline trước save để loại quãng pause trong phiên.
 /// </summary>
 [Serializable]
 public class OrderSlotRefill

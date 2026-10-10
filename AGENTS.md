@@ -10,7 +10,10 @@ Các quy tắc dưới đây do chủ dự án yêu cầu ngày 10/10/2026.
 - Giữ code sạch, trách nhiệm rõ, API dễ hiểu và cấu hình tách khỏi logic. Đặt tên theo trách nhiệm, tránh gắn tên stage vào code dùng lâu dài.
 - Chỉ tạo mức trừu tượng cần thiết cho các use case đã xác nhận; không tự xây framework cho các tình huống chưa được yêu cầu.
 
-## Phạm vi planning hiện tại
+## Phạm vi time và gameplay hiện tại
 
-- Yêu cầu về timer, chăm sóc, obstacles và save/cloud hiện đang ở bước phân tích/định hướng. Không xem việc chủ dự án trả lời câu hỏi planning là lệnh triển khai gameplay.
+- Chủ dự án đã yêu cầu triển khai lõi time dùng chung và tích hợp production/Order Board. Các use case đã xác nhận ở mức lõi: countdown/deadline/cooldown, lịch định kỳ, đếm thời gian làm việc; API snapshot có version để lưu/khôi phục, chưa nối world save bước 8.
+- Pause thủ công dừng đồng hồ gameplay trong phiên, resume không cộng bù thời gian pause. Chuyển ứng dụng/mất focus vẫn tính thời gian. Offline theo policy từng timer; đóng game khi pause không làm dừng vĩnh viễn deadline có policy chạy offline.
+- Đói/bệnh, obstacles, breeding, minigame và save/cloud/visiting vẫn là định hướng cho các lượt sau. Không xem việc viết lõi time là lệnh triển khai gameplay của những hệ thống này.
+- Hướng dẫn code/time đã triển khai: `D:/Dev/LumiWorld/docs/LumiWorld_Time_System_Setup.md`. Logic chung tại `Assets/Acs/Scripts/Time/Core` không phụ thuộc Unity, gameplay hoặc nơi lưu dữ liệu.
 - Quyết định đã thống nhất và các điểm còn mở được ghi trong `D:/Dev/LumiWorld/docs/LumiWorld_Time_Incidents_Creature_Care_Plan.md`. GDD có thể chưa cập nhật các thay đổi hướng thử nghiệm; ưu tiên quyết định trực tiếp mới nhất của chủ dự án.

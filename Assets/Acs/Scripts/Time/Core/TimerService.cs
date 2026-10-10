@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LumiWorld.Acs.TimeSystem
 {
-    // A bounded set of timers owned by one feature. Pull results instead of persisting callbacks.
+    // A set of timers owned by one feature. Pull results instead of persisting callbacks.
     // Completion signals are not resource transactions; persist consumption with the owner's state.
     public sealed class TimerService
     {

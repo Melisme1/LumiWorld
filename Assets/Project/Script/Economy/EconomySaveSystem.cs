@@ -35,6 +35,9 @@ public class EconomySaveSystem : MonoBehaviour
     private bool isDirty;
     private float nextSaveTime;
 
+    // Adapters project pause-aware runtime timers to portable UTC deadlines before serialization.
+    public event Action PreparingSave;
+
     /// <summary>
     /// Các đơn hàng đang mở đã lưu. Bảng Đơn Hàng sửa trực tiếp danh sách này rồi gọi MarkDirty().
     /// </summary>
@@ -152,23 +155,32 @@ public class EconomySaveSystem : MonoBehaviour
 
     private void OnApplicationPause(bool paused)
     {
-        if (paused) SaveIfDirty();
+        if (paused) SaveIfDirty(true);
     }
 
     private void OnApplicationQuit()
     {
-        SaveIfDirty();
+        SaveIfDirty(true);
     }
 
     private void OnDestroy()
     {
-        SaveIfDirty();
+        SaveIfDirty(true);
         if (_instance == this) _instance = null;
     }
 
-    private void SaveIfDirty()
+    private void SaveIfDirty(bool force = false)
     {
-        if (!isDirty || data == null) return;
+        if ((!isDirty && !force) || data == null) return;
+
+        try { PreparingSave?.Invoke(); }
+        catch (Exception exception)
+        {
+            isDirty = true;
+            nextSaveTime = Time.unscaledTime + 2f;
+            Debug.LogException(exception, this);
+            return;
+        }
 
         data.savedAtUtc = DateTime.UtcNow.ToString("o");
         if (store.Save(data))
@@ -177,6 +189,7 @@ public class EconomySaveSystem : MonoBehaviour
         }
         else
         {
+            isDirty = true;
             nextSaveTime = Time.unscaledTime + 2f;
         }
     }
