@@ -107,9 +107,6 @@ public class CardRewardJuice : MonoBehaviour
 
         if (Instance == null)
         {
-            Debug.LogWarning(
-                "CardRewardJuice chưa được đặt vào Scene."
-            );
 
             return;
         }

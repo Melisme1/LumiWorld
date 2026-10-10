@@ -1,0 +1,174 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace LumiWorld.Acs
+{
+    /// <summary>
+    /// Gắn lên GameObject của một ô lục giác (HexTileInfo) để lưu trạng thái thiên tai/vật cản
+    /// đang phủ lên ô đó. Là cầu nối duy nhất giữa DisasterRuntimeManager và các hệ thống khác
+    /// (khai thác, đặt thẻ, UI highlight, tô màu) — nhờ vậy không phải sửa sâu vào từng hệ thống.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class TileDisasterState : MonoBehaviour
+    {
+        private static readonly List<TileDisasterState> Active = new List<TileDisasterState>();
+
+        [Tooltip("Môi trường (biome) của ô, dùng để thiên tai cháy/hạn lan đúng vùng.")]
+        public BiomeAffinity affinity = BiomeAffinity.None;
+
+        [Tooltip("Vật cản tĩnh trên ô (đá, gỗ mục). Chặn khai thác, KHÔNG phá hủy ô.")]
+        public bool hasObstacle;
+
+        [Tooltip("Ô đã bị cháy rừng phá hủy môi trường. Chặn khai thác tới khi hồi phục.")]
+        public bool isBurned;
+
+        [Tooltip("Mức khô cằn 0..1. Ô chưa từng nhận nước nên mưa nhỏ không thấm.")]
+        [Range(0f, 1f)] public float aridity;
+
+        [Tooltip("Ô đã từng được tưới nước (áp dụng mưa nhỏ) hay chưa.")]
+        public bool hasReceivedWater;
+
+        // Mỗi loại thiên tai có thể cùng phủ lên 1 ô (cháy + hạn). Ta lưu tập kind -> instanceId.
+        private readonly Dictionary<DisasterKind, string> activeDisasters = new Dictionary<DisasterKind, string>();
+
+        public IReadOnlyDictionary<DisasterKind, string> ActiveDisasters => activeDisasters;
+        public bool HasAnyDisaster => activeDisasters.Count > 0;
+        public bool IsArid => aridity >= 0.5f && !hasReceivedWater;
+
+        /// <summary>
+        /// Ô là ĐẤT TƯƠI TỐT (Lush) — tức đã có môi trường sống, không phải đất thô Arid.
+        ///
+        /// Dùng đúng quy ước của project: FarmAnimalAI.HasHabitatResourceOnTile cũng nhận diện
+        /// bằng cách kiểm tra tên GameObject có "arid" hay không.
+        ///
+        /// Ý nghĩa: CHỈ ô Lush mới có cây cỏ để cháy. Đất thô Arid không có gì để cháy, nên
+        /// cháy rừng không được lan vào.
+        /// </summary>
+        public bool IsLushTile
+        {
+            get
+            {
+                if (isBurned) return false;
+                if (string.IsNullOrEmpty(gameObject.name)) return false;
+                return gameObject.name.IndexOf("arid", StringComparison.OrdinalIgnoreCase) < 0;
+            }
+        }
+
+        /// <summary>
+        /// Khi tắt Domain Reload lúc vào Play Mode, biến static KHÔNG tự xóa: danh sách Active
+        /// giữ lại component của lần chơi trước (đã bị hủy) và trạng thái thiên tai rò rỉ sang
+        /// lần chơi mới. Reset tường minh ở đây để mỗi lần Play đều bắt đầu sạch.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Active.Clear();
+
+        private void OnEnable()
+        {
+            if (!Active.Contains(this)) Active.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            Active.Remove(this);
+        }
+
+        /// <summary>Tất cả ô đang có state (kể cả ô chưa có thiên tai).</summary>
+        public static IReadOnlyList<TileDisasterState> All => Active;
+
+        public static TileDisasterState Ensure(GameObject tileObj)
+        {
+            if (tileObj == null) return null;
+            var state = tileObj.GetComponent<TileDisasterState>();
+            if (state == null) state = tileObj.AddComponent<TileDisasterState>();
+            return state;
+        }
+
+        public static bool TryGet(GameObject tileObj, out TileDisasterState state)
+        {
+            state = tileObj != null ? tileObj.GetComponent<TileDisasterState>() : null;
+            return state != null;
+        }
+
+        public bool Has(DisasterKind kind) => activeDisasters.ContainsKey(kind);
+
+        public void Mark(DisasterKind kind, string instanceId)
+        {
+            activeDisasters[kind] = instanceId;
+        }
+
+        public void Clear(DisasterKind kind)
+        {
+            activeDisasters.Remove(kind);
+        }
+
+        public void ClearAll()
+        {
+            activeDisasters.Clear();
+        }
+
+        /// <summary>
+        /// Hệ số tốc độ khai thác của ô = tích các hệ số của mọi thiên tai đang phủ.
+        /// 0 = dừng khai thác hoàn toàn (hạn hán/bão/cháy), 1 = bình thường.
+        /// </summary>
+        public float HarvestSpeedMultiplier(DisasterBalance balance)
+        {
+            if (hasObstacle || isBurned) return 0f;
+
+            float multiplier = 1f;
+            if (balance == null) return multiplier;
+
+            foreach (var kind in activeDisasters.Keys)
+            {
+                multiplier *= balance.ResolveHarvestMultiplier(kind);
+            }
+            return multiplier;
+        }
+
+        public bool BlocksHarvest(DisasterBalance balance)
+        {
+            if (hasObstacle || isBurned) return true;
+            foreach (var kind in activeDisasters.Keys)
+            {
+                if (DisasterCatalog.BlocksHarvest(kind)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Loại thiên tai ưu tiên hiển thị cảnh báo (số enum nhỏ nhất = ưu tiên cao).</summary>
+        public DisasterKind DominantKind()
+        {
+            if (hasObstacle) return DisasterKind.Obstacle;
+
+            DisasterKind best = DisasterKind.Obstacle;
+            bool found = false;
+            foreach (var kind in activeDisasters.Keys)
+            {
+                if (!found || (int)kind < (int)best)
+                {
+                    best = kind;
+                    found = true;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Đồng bộ lại lớp tô màu của ô theo trạng thái hiện tại.
+        /// Tự gắn TileDisasterVisualTint nếu ô chưa có, nên không cần setup trong Scene.
+        /// </summary>
+        public void RefreshVisual()
+        {
+            var tint = GetComponent<TileDisasterVisualTint>();
+            if (tint == null) tint = gameObject.AddComponent<TileDisasterVisualTint>();
+            tint.Apply(this);
+        }
+
+        /// <summary>Gỡ sạch lớp tô màu của ô (dùng khi thiên tai kết thúc hoặc khi xóa hết).</summary>
+        public void ClearVisual()
+        {
+            var tint = GetComponent<TileDisasterVisualTint>();
+            if (tint != null) tint.Clear();
+        }
+    }
+}

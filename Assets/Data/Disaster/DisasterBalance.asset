@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f9c4be7421668f4f8878200d5b2c96d, type: 3}
+  m_Name: DisasterBalance
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.DisasterBalance
+  minSpawnIntervalMinutes: 5
+  maxSpawnIntervalMinutes: 10
+  enableAutoSpawn: 1
+  maxConcurrentDisasters: 3
+  obstacleWeight: 3
+  obstaclePrefab: {fileID: 0}
+  rules:
+  - kind: 0
+    weight: 0
+    restrictToBiomes: 0
+    affectedBiomes: 00000000
+    spreadRadius: 0
+    spreadIntervalSeconds: 0
+    maxTiles: 1
+    durationSeconds: 120
+    rainToCure: 1
+    harvestSpeedMultiplier: 0
+  - kind: 1
+    weight: 1
+    restrictToBiomes: 0
+    affectedBiomes: 
+    spreadRadius: 0
+    spreadIntervalSeconds: 0
+    maxTiles: 1
+    durationSeconds: 90
+    rainToCure: 1
+    harvestSpeedMultiplier: 0.5
+  - kind: 2
+    weight: 1.2
+    restrictToBiomes: 1
+    affectedBiomes: 020000000100000003000000
+    spreadRadius: 0
+    spreadIntervalSeconds: 0
+    maxTiles: 1
+    durationSeconds: 60
+    rainToCure: 1
+    harvestSpeedMultiplier: 0
+  - kind: 3
+    weight: 0
+    restrictToBiomes: 0
+    affectedBiomes: 
+    spreadRadius: 2
+    spreadIntervalSeconds: 5
+    maxTiles: 7
+    durationSeconds: 40
+    rainToCure: 2
+    harvestSpeedMultiplier: 0
+  - kind: 4
+    weight: 1
+    restrictToBiomes: 1
+    affectedBiomes: 01000000
+    spreadRadius: 1
+    spreadIntervalSeconds: 4
+    maxTiles: 6
+    durationSeconds: 45
+    rainToCure: 1
+    harvestSpeedMultiplier: 0
+  cycloneRainThreshold: 4
+  cycloneRainWindowSeconds: 10
+  spawnCycloneOnRainOverdose: 1
+  defaultDurationSeconds: 60
+  defaultMaxTiles: 1
+  defaultRainToCure: 1
