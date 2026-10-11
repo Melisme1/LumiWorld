@@ -1,15 +1,19 @@
 using System;
+using LumiWorld.Acs.TimeSystem;
 
 namespace LumiWorld.Acs
 {
+    [Obsolete("Use GameClock for pause-aware gameplay or ITimeSource for UTC persistence.")]
     public interface IProductionClock
     {
         double UtcSeconds { get; }
     }
 
-    // Production uses elapsed wall time, independently of frame rate and Time.timeScale.
+    // Compatibility for old callers only. ResourceProductionRuntime now uses GameTimeRuntime.Clock.
+    [Obsolete("Use GameTimeRuntime.Clock. Raw UTC does not honor gameplay pause.")]
     public sealed class SystemProductionClock : IProductionClock
     {
-        public double UtcSeconds => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000d;
+        private readonly SystemTimeSource source = new SystemTimeSource();
+        public double UtcSeconds => source.UtcSeconds;
     }
 }

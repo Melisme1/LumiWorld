@@ -34,7 +34,8 @@ namespace LumiWorld.Acs
         public List<string> memberIds = new List<string>();
         public bool isRecovery;
         public bool hasSettlementTime;
-        public double lastSettledUtc;
+        // Session gameplay clock, NOT UTC. World restore must rebase after offline settlement.
+        public double lastSettledSeconds;
         public List<ResourceProductionBuffer> buffers = new List<ResourceProductionBuffer>();
         public List<ProductionSlotRate> rates = new List<ProductionSlotRate>();
 

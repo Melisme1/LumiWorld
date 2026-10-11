@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using LumiWorld.Acs.TimeSystem;
 
 namespace LumiWorld.Acs
 {
@@ -13,13 +14,15 @@ namespace LumiWorld.Acs
         [SerializeField] private HabitatRuntimeManager habitatManager = null;
         [Tooltip("Balance chạy thực tế của map này. Chỉnh trên Hierarchy; component không ghi đè SO ProductionBalance.")]
         [SerializeField] private ProductionRuntimeSettings settings = new ProductionRuntimeSettings();
-        [Tooltip("Chu kỳ cập nhật số hiển thị; sản lượng dùng UTC elapsed, không dùng khoảng này làm timer.")]
+        [Tooltip("Chu kỳ cập nhật số hiển thị; sản lượng dùng đồng hồ gameplay chung, loại trừ quãng pause.")]
         [Min(0.1f)] [SerializeField] private float displayRefreshSeconds = 0.5f;
         [Tooltip("Kho dùng cho Collect. Có thể để trống để dùng ResourceInventory hiện có của game.")]
         [SerializeField] private ResourceInventory inventory = null;
 
         private ProductionLedger ledger;
-        private IProductionClock clock = new SystemProductionClock();
+        private GameTimeRuntime timeRuntime;
+        private GameClock clock;
+        private double ProductionSeconds => clock.Read().GameSeconds;
         private string settingsFingerprint;
         private float nextDisplayRefresh;
         private bool subscribed;
@@ -30,7 +33,12 @@ namespace LumiWorld.Acs
         public ProductionRuntimeSettings Settings => settings;
         public ResourceInventory Inventory => inventory != null ? inventory : (inventory = ResourceInventory.Instance);
         public IReadOnlyList<HabitatProductionState> States => ledger != null ? ledger.States : Array.Empty<HabitatProductionState>();
-        public string Status { get; private set; } = "Chưa Play.";
+        private string status = "Chưa Play.";
+        public string Status
+        {
+            get => clock != null && clock.IsPaused ? "Game đang pause; giữ buffer, không tính quãng pause." : status;
+            private set => status = value;
+        }
         public event Action ProductionChanged;
         public ResourceCollectionReceipt LastCollection { get; private set; }
         public event Action<ResourceCollectionReceipt> ResourcesCollected;
@@ -56,6 +64,9 @@ namespace LumiWorld.Acs
             if (instance != null && instance != this && instance.isActiveAndEnabled)
             { Debug.LogError("[LumiWorld Production] Chỉ dùng một ResourceProductionRuntime trong map.", this); enabled = false; return; }
             instance = this;
+            timeRuntime = GameTimeRuntime.Instance;
+            clock = timeRuntime.Clock;
+            timeRuntime.PauseChanged += OnPauseChanged;
             if (habitatManager == null) habitatManager = GetComponent<HabitatRuntimeManager>();
             if (ledger == null) ledger = new ProductionLedger();
             if (habitatManager == null) return;
@@ -77,7 +88,7 @@ namespace LumiWorld.Acs
             if (ledger == null || habitatManager == null) return;
             if (!habitatManager.isActiveAndEnabled || !habitatManager.IsConfigured)
             {
-                ledger.Stop(clock.UtcSeconds);
+                ledger.Stop(ProductionSeconds);
                 Status = "Habitat Manager đang tắt hoặc chưa cấu hình Catalog.";
                 settingsFingerprint = null;
                 return;
@@ -95,14 +106,14 @@ namespace LumiWorld.Acs
             applyingSettings = true;
             try
             {
-                ledger.Settle(clock.UtcSeconds); // Cached old rates, unaffected by edited fields.
+                ledger.Settle(ProductionSeconds); // Cached old rates, unaffected by edited fields.
                 if (habitatManager != null) habitatManager.RefreshNow();
                 Synchronize();
             }
             finally { applyingSettings = false; }
         }
 
-        private void BeforeHabitatChange(IReadOnlyList<HabitatState> previous) => ledger?.Settle(clock.UtcSeconds);
+        private void BeforeHabitatChange(IReadOnlyList<HabitatState> previous) => ledger?.Settle(ProductionSeconds);
 
         private void Synchronize()
         {
@@ -111,13 +122,13 @@ namespace LumiWorld.Acs
             if (settings != null) settings.TryValidate(out reason);
             if (!habitatManager.IsConfigured || !habitatManager.isActiveAndEnabled)
             {
-                ledger.Stop(clock.UtcSeconds);
+                ledger.Stop(ProductionSeconds);
                 Status = "Habitat Manager đang tắt hoặc chưa cấu hình Catalog.";
                 return;
             }
             Status = reason;
             ledger.Synchronize(habitatManager.Habitats,
-                h => ProductionRateCalculator.Calculate(h, habitatManager.Catalog, settings), clock.UtcSeconds);
+                h => ProductionRateCalculator.Calculate(h, habitatManager.Catalog, settings), ProductionSeconds);
             settingsFingerprint = JsonUtility.ToJson(settings);
             ProductionChanged?.Invoke();
         }
@@ -126,7 +137,7 @@ namespace LumiWorld.Acs
         public void SettleNow()
         {
             if (!Application.isPlaying || ledger == null) return;
-            ledger.Settle(clock.UtcSeconds);
+            ledger.Settle(ProductionSeconds);
             ProductionChanged?.Invoke();
         }
 
@@ -149,6 +160,8 @@ namespace LumiWorld.Acs
             if (collecting) return ResourceCollectionService.Failure(ResourceCollectionStatus.Busy, "Đang xử lý lần thu trước.");
             if (!Application.isPlaying || ledger == null || !isActiveAndEnabled)
                 return ResourceCollectionService.Failure(ResourceCollectionStatus.Unavailable, "Collect cần ResourceProductionRuntime đang bật trong Play Mode.");
+            if (clock.IsPaused)
+                return ResourceCollectionService.Failure(ResourceCollectionStatus.Unavailable, "Game đang pause. Resume trước khi thu.");
             collecting = true;
             try
             {
@@ -156,8 +169,8 @@ namespace LumiWorld.Acs
                 if (settingsFingerprint != JsonUtility.ToJson(settings)) ApplySettingsChange();
                 if (habitatManager != null && habitatManager.isActiveAndEnabled && habitatManager.IsConfigured)
                     habitatManager.RefreshNow();
-                else ledger.Stop(clock.UtcSeconds);
-                ledger.Settle(clock.UtcSeconds);
+                else ledger.Stop(ProductionSeconds);
+                ledger.Settle(ProductionSeconds);
                 if (inventory == null) inventory = ResourceInventory.Instance;
                 IReadOnlyList<HabitatProductionState> sources = States;
                 if (recoveryOnly)
@@ -217,10 +230,12 @@ namespace LumiWorld.Acs
 
         private void OnApplicationPause(bool paused) { if (ledger != null) SettleNow(); }
         private void OnApplicationFocus(bool focused) { if (ledger != null) SettleNow(); }
+        private void OnPauseChanged(bool paused) => SettleNow();
 
         private void OnDisable()
         {
-            if (Application.isPlaying) ledger?.Stop(clock.UtcSeconds);
+            if (Application.isPlaying && clock != null) ledger?.Stop(ProductionSeconds);
+            if (timeRuntime != null) timeRuntime.PauseChanged -= OnPauseChanged;
             if (subscribed && habitatManager != null)
             {
                 habitatManager.BeforeStateChanged -= BeforeHabitatChange;
