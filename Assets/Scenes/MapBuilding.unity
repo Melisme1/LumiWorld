@@ -1599,7 +1599,7 @@ MonoBehaviour:
   lookSensitivity: 0.2
   zoomSensitivity: 0.05
   scrollZoomSpeed: 3
-  minHeight: 5
+  minHeight: 2
   maxHeight: 20
   smoothTime: 18
   autoSetupStartingView: 1
