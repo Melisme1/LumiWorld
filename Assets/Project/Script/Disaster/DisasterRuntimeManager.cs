@@ -50,6 +50,11 @@ namespace LumiWorld.Acs
         [Tooltip("Màu khối debug đánh dấu vật cản khi chưa gán obstaclePrefab.")]
         [SerializeField] private Color debugObstacleColor = new Color(0.35f, 0.36f, 0.40f, 1f);
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [Tooltip("In log xác nhận chuỗi spawn -> state -> renderer/shader khi sinh thiên tai. Chỉ có trong Editor/Development Build.")]
+        [SerializeField] private bool debugSpawnDiagnostics = true;
+#endif
+
         private IDisasterClock clock;
         private readonly Dictionary<string, DisasterInstance> disasters = new Dictionary<string, DisasterInstance>();
         private readonly List<DisasterInstance> activeList = new List<DisasterInstance>();
@@ -85,8 +90,9 @@ namespace LumiWorld.Acs
 
         private void OnEnable()
         {
-            if (!Application.isPlaying) return;
-            ScheduleNextSpawn();
+            // CỐ Ý KHÔNG ScheduleNextSpawn() ở đây: OnEnable chạy TRƯỚC Start, lúc đó balance
+            // còn null nên lịch sẽ không được đặt và nextSpawnAt giữ nguyên 0 -> thiên tai spawn
+            // ngay frame đầu. Lịch được đặt ở cuối Start() sau khi balance đã sẵn sàng.
         }
 
         private void Start()
@@ -106,6 +112,11 @@ namespace LumiWorld.Acs
 
             EnsureTileDisasterStates();
             DisasterWarningUI.AttachWhenReady(this);
+
+            // Đặt lịch spawn ĐẦU TIÊN sau khi balance đã chắc chắn sẵn sàng.
+            // Nhờ vậy lần sinh thiên tai đầu tiên cách thời điểm vào game đúng nhịp
+            // minSpawnIntervalMinutes..maxSpawnIntervalMinutes, không còn nổ ngay frame 1.
+            ScheduleNextSpawn();
         }
 
         /// <summary>Gắn TileDisasterState lên mọi ô hiện có để hệ thống khác truy vấn được ngay.</summary>
@@ -138,7 +149,13 @@ namespace LumiWorld.Acs
 
         private void ScheduleNextSpawn()
         {
-            if (balance == null) return;
+            if (balance == null)
+            {
+                // Không có balance thì không thể biết nhịp. Đẩy lịch ra vô cực để TickSpawn
+                // KHÔNG hiểu nhầm nextSpawnAt = 0 là "đã tới hạn" mà spawn ngay frame đầu.
+                nextSpawnAt = double.MaxValue;
+                return;
+            }
             float minMinutes = Mathf.Max(0f, balance.minSpawnIntervalMinutes);
             float maxMinutes = Mathf.Max(minMinutes, balance.maxSpawnIntervalMinutes);
             double seconds = Mathf.Lerp(minMinutes, maxMinutes, (float)rng.NextDouble()) * 60.0;
@@ -150,14 +167,36 @@ namespace LumiWorld.Acs
             if (!balance.enableAutoSpawn) return;
             if (now < nextSpawnAt) return;
 
+            DisasterKind kind = balance.PickRandomKind(BiomeAffinity.None, rng);
+
             ScheduleNextSpawn();
 
             if (disasters.Count >= Mathf.Max(0, balance.maxConcurrentDisasters)) return;
 
-            if (TryPickSpawnTile(out HexCoordinates origin, out BiomeAffinity affinity))
+            // CHÁY RỪNG bắt buộc phải sinh trên ô Lush (đất tươi tốt) — giống hệt TestSpawn.
+            // Trước đây auto-spawn bỏ qua bộ lọc này nên đám cháy có thể nổ trên ô không có gì
+            // để cháy rồi đứng yên (không lan được) => "đám cháy câm".
+            bool requireLush = kind == DisasterKind.ForestFire;
+
+            if (TryPickSpawnTile(out HexCoordinates origin, out BiomeAffinity affinity, requireLushForFire: requireLush))
             {
-                SpawnDisaster(balance.PickRandomKind(affinity, rng), origin);
+                // Chọn loại theo môi trường của ô ĐÃ CHỌN THẬT, nếu không thì
+                // rule restrictToBiomes (hạn hán/cháy) có thể bị áp lên môi trường không hợp lệ.
+                if (requireLush || !BiomeRestrictsKind(kind, affinity))
+                {
+                    SpawnDisaster(kind, origin);
+                }
+                else
+                {
+                    SpawnDisaster(balance.PickRandomKind(affinity, rng), origin);
+                }
             }
+        }
+
+        /// <summary>Loại thiên tai này có bị rule giới hạn môi trường và ô đích có nằm ngoài vùng cho phép không?</summary>
+        private bool BiomeRestrictsKind(DisasterKind kind, BiomeAffinity affinity)
+        {
+            return balance != null && !balance.AffectsBiome(kind, affinity);
         }
 
         /// <summary>Chọn một ô đất liền đang trống làm điểm phát sinh.</summary>
@@ -187,8 +226,13 @@ namespace LumiWorld.Acs
                 // Đã có thiên tai hoặc đã là vật cản thì bỏ qua để tránh chồng đè.
                 if (state != null && (state.hasObstacle || state.HasAnyDisaster)) continue;
 
-                // Cháy rừng chỉ bắt đầu trên ô Lush; bỏ qua đất thô Arid và ô đã cháy.
-                if (requireLushForFire && state != null && !state.IsLushTile) continue;
+                // CHÁY RỪNG: chỉ nhận ô CHẮC CHẮN Lush.
+                //
+                // Bản cũ viết `requireLushForFire && state != null && !state.IsLushTile` — điều kiện
+                // `state != null` khiến ô CHƯA có TileDisasterState (chưa được quét) LỌT QUA bộ lọc,
+                // rơi vào nhánh Mark-only của ApplyToTile rồi đứng yên vì không lan được => "cháy câm".
+                // Bộ lọc phải là điều kiện KHẲNG ĐỊNH: không chứng minh được Lush thì loại.
+                if (requireLushForFire && (state == null || !state.IsLushTile)) continue;
 
                 candidates.Add(pair);
             }
@@ -254,6 +298,40 @@ namespace LumiWorld.Acs
             spreadFrontier[instance.instanceId] = new List<HexCoordinates> { origin };
 
             ApplyToTile(instance, originTile);
+
+            // Tô lại ngay lúc sinh để ô gốc đổi màu tức thì.
+            TileDisasterState.TryGet(originTile, out var originState);
+            originState?.RefreshVisual();
+
+            // CHẨN ĐOÁN: xác nhận chuỗi spawn -> state -> tô màu có chạy hết không.
+            // Nếu dòng này in ra mà ô không đổi màu thì lỗi nằm ở khâu RENDERER/SHADER
+            // (xem cảnh báo của TileDisasterVisualTint), không phải ở logic thiên tai.
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (debugSpawnDiagnostics && kind == DisasterKind.ForestFire)
+            {
+                var st = originState;
+                var rends = originTile.GetComponentsInChildren<Renderer>(true);
+                string shaders = string.Empty;
+                int shown = 0;
+                foreach (var rr in rends)
+                {
+                    if (rr == null || rr.sharedMaterial == null) continue;
+                    if (shown++ >= 3) break;
+                    var sh = rr.sharedMaterial.shader;
+                    bool hasBase = rr.sharedMaterial.HasProperty(Shader.PropertyToID("_BaseColor"));
+                    bool hasColor = rr.sharedMaterial.HasProperty(Shader.PropertyToID("_Color"));
+                    shaders += $"\n      - '{rr.name}' shader={(sh != null ? sh.name : "?")} _BaseColor={hasBase} _Color={hasColor}";
+                }
+
+                Debug.Log(
+                    $"[LumiWorld Disaster DIAG] Spawn cháy tại {origin} trên ô '{originTile.name}'\n" +
+                    $"  • state: isBurned={(st != null && st.isBurned)} " +
+                    $"Has(ForestFire)={(st != null && st.Has(DisasterKind.ForestFire))} " +
+                    $"aridity={(st != null ? st.aridity : -1f)} IsLush={(st != null && st.IsLushTile)}\n" +
+                    $"  • TileDisasterState trên: {(st != null ? st.gameObject.name : "(KHÔNG CÓ)")}\n" +
+                    $"  • Renderer tìm được trong cây con: {rends.Length}{shaders}", originTile);
+            }
+#endif
 
             DisasterStarted?.Invoke(instance);
             DisasterChanged?.Invoke(instance);
@@ -410,6 +488,7 @@ namespace LumiWorld.Acs
                         continue;
                     }
 
+                    // ApplyToTile đã tự RefreshVisual() ở cuối; DestroyTile cũng vậy.
                     if (instance.kind == DisasterKind.ForestFire) DestroyTile(instance, neighborTile);
                     else ApplyToTile(instance, neighborTile);
 
@@ -447,9 +526,16 @@ namespace LumiWorld.Acs
             var burned = TileDisasterState.Ensure(tileObj);
             if (burned != null)
             {
+                // Ô đã cháy là BẤT KHẢ HỒI PHỤC cho tới khi người chơi dùng mưa hạ nhiệt:
+                // vẫn ghi Mark để UI/tô màu biết ô nằm trong sự kiện cháy.
                 burned.isBurned = true; // ô cháy không khai thác/môi trường nữa cho tới khi hồi phục
                 burned.Mark(DisasterKind.ForestFire, instance.instanceId);
                 burned.aridity = 1f;
+
+                // QUAN TRỌNG: tô màu SAU khi đã set xong isBurned/Mark/aridity.
+                // Bản cũ gọi RefreshVisual() bên trong ApplyToTile ngay trước khi DestroyTile,
+                // nên ô vừa bắt lửa vẫn giữ màu "chưa cháy" tới tận nhịp lan kế tiếp
+                // (spreadIntervalSeconds = 4s) => nhìn như cháy rừng không đổi màu ô.
                 burned.RefreshVisual();
             }
 
@@ -496,11 +582,33 @@ namespace LumiWorld.Acs
             foreach (var state in TileDisasterState.All)
             {
                 if (state == null) continue;
-                state.Clear(instance.kind);
+
+                // CHỈ dọn ô nào ĐANG giữ ĐÚNG instance này. Trước đây gỡ theo kind nên khi có 2
+                // đám cháy song song, đám nào kết thúc trước cũng reset isBurned của tất cả ô
+                // trên bản đồ — kể cả ô vẫn đang cháy do instance còn lại.
+                if (!state.Clear(instance.kind, instance.instanceId))
+                {
+                    // Ô không liên quan tới instance này -> bỏ qua, KHÔNG chạm cờ của nó.
+                    continue;
+                }
+
                 if (instance.kind == DisasterKind.Obstacle) state.hasObstacle = false;
+
                 // Ô cháy hồi phục khi đám cháy kết thúc (môi trường mọc lại).
-                if (instance.kind == DisasterKind.ForestFire) state.isBurned = false;
-                if (instance.kind == DisasterKind.BarrenLand && instance.rainApplied > 0) state.aridity = 0f;
+                // isBurned chỉ được hạ khi instance cháy này thực sự hết hạn/mưa đủ.
+                if (instance.kind == DisasterKind.ForestFire)
+                {
+                    state.isBurned = false;
+                    // Ô vừa hồi phục không còn khô cằn. Trước đây aridity = 1 do cháy để lại
+                    // khiến IsArid vẫn true -> mưa nhỏ bị từ chối và vẫn bị tô màu khô trên một
+                    // ô đã sạch thiên tai (state thừa hưởng từ lúc bị cháy).
+                    state.aridity = 0f;
+                }
+
+                // BarrenLand: dọn aridity KHÔNG phụ thuộc rainApplied. Trước đây nếu thiên tai
+                // tự hết hạn mà chưa hứng mưa nào thì aridity kẹt ở 1 -> ô khô vĩnh viễn.
+                // Việc cứu bằng mưa đã được xử lý ngay trong ApplyRain (EndDisaster ngay khi đủ liều).
+                if (instance.kind == DisasterKind.BarrenLand) state.aridity = 0f;
 
                 state.RefreshVisual();
             }
@@ -541,7 +649,22 @@ namespace LumiWorld.Acs
                     state.aridity = 0f;
                     state.hasReceivedWater = true;
                     anyAccepted = true;
-                    state.Clear(DisasterKind.BarrenLand);
+
+                    // Cải tạo xong thì phải KẾT THÚC luôn instance BarrenLand, không chỉ gỡ mark
+                    // trên ô. Trước đây chỉ Clear(BarrenLand) nên instance vẫn nằm trong
+                    // disasters/activeList tới hết duration: vẫn chiếm slot maxConcurrentDisasters,
+                    // vẫn tick lan, và khi hết hạn lại tô màu khô trở lại trên ô đã cải tạo.
+                    if (state.ActiveDisasters.TryGetValue(DisasterKind.BarrenLand, out var barrenId) &&
+                        disasters.TryGetValue(barrenId, out var barrenInstance))
+                    {
+                        barrenInstance.rainApplied++;
+                        EndDisaster(barrenInstance);
+                    }
+                    else
+                    {
+                        // Ô khô không còn instance (thiên tai đã tự tắt trước đó) -> chỉ cần gỡ mark.
+                        state.Clear(DisasterKind.BarrenLand);
+                    }
                 }
                 else
                 {
@@ -728,17 +851,77 @@ namespace LumiWorld.Acs
 
             // Cháy rừng chỉ cháy được ô Lush, nên phải lọc ô phát sinh theo yêu cầu đó.
             bool requireLush = kind == DisasterKind.ForestFire;
+
+            // Thu thập lý do để thông báo chính xác (trước đây báo "không tìm được ô trống"
+            // kể cả khi bản đồ đầy đất Arid — thông báo sai hướng khiến khó chẩn đoán).
             if (!TryPickSpawnTile(out HexCoordinates origin, out _, requireLushForFire: requireLush))
             {
-                Debug.LogWarning(requireLush
-                    ? "[LumiWorld Disaster] Chưa có ô Lush nào trống để cháy. Hãy đặt thẻ địa hình (Forest/Habitat) lên bản đồ trước."
-                    : "[LumiWorld Disaster] Không tìm được ô trống để đặt thiên tai.");
+                if (!requireLush)
+                {
+                    Debug.LogWarning("[LumiWorld Disaster] Không tìm được ô trống để đặt thiên tai " +
+                        "(mọi ô đều đã có thiên tai/vật cản).");
+                    return;
+                }
+
+                Debug.LogWarning(BuildNoLushTilesMessage());
                 return;
             }
 
             var instance = SpawnDisaster(kind, origin);
             if (instance != null)
                 Debug.Log($"[LumiWorld Disaster] TEST spawn {DisasterCatalog.DisplayName(kind)} tại {origin}.");
+        }
+
+        /// <summary>
+        /// Giải thích vì sao không có ô nào để cháy, kèm số liệu THỰC ĐO được trên bản đồ.
+        /// Đây là thông báo hay gặp nhất: bản đồ còn toàn đất thô Arid (Tile_..._Arid) nên
+        /// cháy rừng không thể bắt đầu ở đâu cả.
+        /// </summary>
+        private string BuildNoLushTilesMessage()
+        {
+            int total = 0;
+            int lush = 0;
+            int occupied = 0;
+            int missingState = 0;
+            string sampleName = "(trống)";
+
+            if (worldGenerator != null && worldGenerator.MapTiles != null)
+            {
+                foreach (var pair in worldGenerator.MapTiles)
+                {
+                    if (pair.Value == null) continue;
+                    total++;
+                    if (sampleName == "(trống)") sampleName = pair.Value.name;
+
+                    var st = pair.Value.GetComponent<TileDisasterState>();
+
+                    // QUAN TRỌNG: KHÔNG được coi "không có state" là "không Lush".
+                    // Các ô đã được biến đổi (tên có hậu tố _Transformed) từng bị mất
+                    // TileDisasterState, và cách đếm cũ đã báo nhầm "Số ô Lush: 0" dù map
+                    // có nhiều ô Lush — khiến việc chẩn đoán đi sai hướng.
+                    // Nếu chưa có state thì suy từ TÊN ô (giống ResolveAffinity).
+                    bool lushTile = st != null
+                        ? st.IsLushTile
+                        : pair.Value.name.IndexOf("arid", StringComparison.OrdinalIgnoreCase) < 0;
+
+                    if (lushTile) lush++;
+                    if (st == null) missingState++;
+                    if (st != null && (st.hasObstacle || st.HasAnyDisaster)) occupied++;
+                }
+            }
+
+            return "[LumiWorld Disaster] Cháy rừng không thể bắt đầu: không có ô LUSH nào trống.\n" +
+                $"  • Tổng số ô trên bản đồ: {total}\n" +
+                $"  • Số ô Lush (theo tên/state): {lush}   (ô đang bận: {occupied})\n" +
+                $"  • Số ô THIẾU TileDisasterState: {missingState}" +
+                (missingState > 0
+                    ? "  <-- BẤT THƯỜNG: các ô này sẽ không được thiên tai nhận ra. " +
+                      "Thường do ô sinh ra từ TransformTile trước khi có bản vá tái tạo state: " +
+                      "bấm 'R' để dọn, thoát Play Mode và vào lại."
+                    : string.Empty) + "\n" +
+                $"  • Ví dụ tên ô hiện tại: '{sampleName}'\n" +
+                $"  • CÁCH SỬA: đặt thẻ địa hình Lush (ví dụ 'Tile_..._Lush' / thẻ Forest-Habitat) lên " +
+                $"một vài ô trước, rồi bấm F lại. Đất thô Arid (hậu tố '_Arid') KHÔNG có gì để cháy theo thiết kế.";
         }
 
         private void Update()

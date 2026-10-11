@@ -62,7 +62,7 @@ MonoBehaviour:
   - kind: 4
     weight: 1
     restrictToBiomes: 1
-    affectedBiomes: 01000000
+    affectedBiomes: 0200000001000000
     spreadRadius: 1
     spreadIntervalSeconds: 4
     maxTiles: 6

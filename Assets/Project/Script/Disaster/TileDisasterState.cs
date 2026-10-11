@@ -92,14 +92,35 @@ namespace LumiWorld.Acs
 
         public bool Has(DisasterKind kind) => activeDisasters.ContainsKey(kind);
 
+        /// <summary>Ô này có đang bị ĐÚNG instance đó phủ không (không chỉ cùng loại).</summary>
+        public bool HasInstance(DisasterKind kind, string instanceId)
+        {
+            return instanceId != null &&
+                activeDisasters.TryGetValue(kind, out var held) &&
+                held == instanceId;
+        }
+
         public void Mark(DisasterKind kind, string instanceId)
         {
             activeDisasters[kind] = instanceId;
         }
 
-        public void Clear(DisasterKind kind)
+        /// <summary>
+        /// Gỡ thiên tai khỏi ô. Trả về true CHỈ KHI ô thực sự đang giữ instanceId truyền vào.
+        ///
+        /// QUAN TRỌNG: đây là điều kiện để bên gọi (EndDisaster) biết có được phép dọn các cờ
+        /// phụ (isBurned / hasObstacle / aridity) hay không. Nếu gỡ "theo loại" mà không kiểm tra
+        /// instance, việc một đám cháy kết thúc sẽ dập tắt luôn isBurned của đám cháy khác đang chạy.
+        ///
+        /// Truyền instanceId = null để gỡ bất kể instance nào (dùng cho dọn dẹp thủ công).
+        /// </summary>
+        public bool Clear(DisasterKind kind, string instanceId = null)
         {
+            if (!activeDisasters.TryGetValue(kind, out var held)) return false;
+            if (instanceId != null && held != instanceId) return false;
+
             activeDisasters.Remove(kind);
+            return true;
         }
 
         public void ClearAll()
@@ -110,6 +131,10 @@ namespace LumiWorld.Acs
         /// <summary>
         /// Hệ số tốc độ khai thác của ô = tích các hệ số của mọi thiên tai đang phủ.
         /// 0 = dừng khai thác hoàn toàn (hạn hán/bão/cháy), 1 = bình thường.
+        ///
+        /// Ô KHÔ CẰN (aridity cao và chưa từng nhận nước) cũng bị giảm tốc, dù nó không
+        /// nằm trong activeDisasters. Trước đây chỉ có kind BarrenLand mới chặn, nên ô bị
+        /// khô do cháy để lại (isBurned/aridity) hoàn toàn không ảnh hưởng sản xuất.
         /// </summary>
         public float HarvestSpeedMultiplier(DisasterBalance balance)
         {
@@ -117,6 +142,9 @@ namespace LumiWorld.Acs
 
             float multiplier = 1f;
             if (balance == null) return multiplier;
+
+            // Khô cằn dùng chung hệ số của rule BarrenLand (mặc định 0.5) — một nguồn số liệu duy nhất.
+            if (IsArid) multiplier *= balance.ResolveHarvestMultiplier(DisasterKind.BarrenLand);
 
             foreach (var kind in activeDisasters.Keys)
             {
@@ -128,6 +156,9 @@ namespace LumiWorld.Acs
         public bool BlocksHarvest(DisasterBalance balance)
         {
             if (hasObstacle || isBurned) return true;
+
+            // Khô cằn làm CHẬM khai thác chứ không chặn hẳn, nên KHÔNG đưa IsArid vào đây.
+            // (Tham số balance giữ nguyên trong chữ ký cho tương thích API đã ship.)
             foreach (var kind in activeDisasters.Keys)
             {
                 if (DisasterCatalog.BlocksHarvest(kind)) return true;

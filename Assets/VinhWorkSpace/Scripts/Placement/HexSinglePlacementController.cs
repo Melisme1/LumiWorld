@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using LumiWorld.Acs;
 
 /// <summary>
 /// Tổng tài điều phối quá trình đặt một ô lục giác (Single Placement Coordinator).
@@ -493,6 +494,25 @@ public class HexSinglePlacementController : MonoBehaviour
         newTileInfo.terrainTypeIndex = -1;
         newTileInfo.coordinates = coords;
         newTileInfo.isOccupied = cardData.occupiesTile; // Rain: occupiesTile = false
+
+        // 5. TÁI TẠO TileDisasterState cho ô mới.
+        //
+        // BẮT BUỘC: ở bước 2 ta Destroy(oldTileObj) nên TileDisasterState (và lớp tô màu)
+        // gắn trên ô cũ cũng bị hủy theo. Trước đây chỉ có HexTileInfo được tạo lại, nên các ô
+        // đã biến đổi (tên có hậu tố _Transformed) KHÔNG có TileDisasterState.
+        //
+        // Hệ quả thực tế đã gặp: hệ thống thiên tai không nhận ra các ô Lush này là Lush
+        // (vì đọc IsLushTile qua component), nên:
+        //   - Cháy rừng không bao giờ được sinh trên ô Lush.
+        //   - Cháy không lan được vào ô Lush.
+        //   - Ô Lush không được tô màu khi bị thiên tai.
+        var newDisasterState = TileDisasterState.Ensure(newTileObj);
+        if (newDisasterState != null)
+        {
+            // Ô sau biến đổi là Lush (đất tươi tốt) — giữ biome cũ để cháy/hạn lan đúng vùng.
+            BiomeAffinity affinity = LumiWorld.Acs.DisasterRuntimeManager.ResolveAffinity(oldTileObj);
+            newDisasterState.affinity = affinity;
+        }
 
         // 6. Cập nhật MapTiles trong HexWorldGenerator
         if (worldGenerator.MapTiles.ContainsKey(coords))

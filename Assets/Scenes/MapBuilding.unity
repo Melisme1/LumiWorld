@@ -745,55 +745,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 281286586}
   m_CullTransparentMesh: 1
---- !u!1 &400773908
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 400773910}
-  - component: {fileID: 400773911}
-  m_Layer: 0
-  m_Name: DisasterSystem
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &400773910
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 400773908}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 401.25644, y: 260.3619, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &400773911
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 400773908}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24521dfef09167d48ad29ed6d3f405b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.DisasterRuntimeManager
-  worldGenerator: {fileID: 832299767}
-  balance: {fileID: 11400000, guid: 1d0dfdd07073dd7499fd95c49a7dea56, type: 2}
-  clockSource: {fileID: 0}
-  enableTestHotkeys: 1
-  debugObstacleColor: {r: 0.35, g: 0.36, b: 0.4, a: 1}
 --- !u!1 &455622687
 GameObject:
   m_ObjectHideFlags: 0
@@ -3162,4 +3113,3 @@ SceneRoots:
   - {fileID: 1491331005}
   - {fileID: 1136503281}
   - {fileID: 88682141}
-  - {fileID: 400773910}
