@@ -11,8 +11,8 @@ public class HexPlacementValidator : MonoBehaviour
     [Tooltip("Bật/Tắt giới hạn số ô lục giác tối đa trong một Cụm Biome")]
     [SerializeField] private bool enableBiomeSizeLimit = true;
 
-    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 6). Nếu người chơi ghép thêm ô làm cụm vượt quá số này sẽ bị chặn.")]
-    [SerializeField] private int maxTilesPerBiome = 6;
+    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 9). Nếu người chơi ghép thêm ô làm cụm vượt quá số này sẽ bị chặn.")]
+    [SerializeField] private int maxTilesPerBiome = 9;
 
     private string lastValidationError = "";
 
@@ -67,8 +67,28 @@ public class HexPlacementValidator : MonoBehaviour
                 return false;
             }
 
-            if (useHabitatRules && !habitatManager.CanPlaceCreature(cardData, GetPlacedTerrainCard(tileObj), coords, out lastValidationError))
-                return false;
+            if (useHabitatRules)
+            {
+                if (!habitatManager.CanPlaceCreature(cardData, GetPlacedTerrainCard(tileObj), coords, out lastValidationError))
+                    return false;
+            }
+            else
+            {
+                CardData terrainCard = GetPlacedTerrainCard(tileObj);
+                var (clusterSize, creatureCount) = GetClusterCreatureStats(coords, terrainCard, worldGen);
+                if (clusterSize < 3)
+                {
+                    lastValidationError = $"Cụm Biome cần tối thiểu 3 ô Nature để nuôi thú (Hiện có: {clusterSize} ô)";
+                    return false;
+                }
+
+                int capacity = CalculateClusterCreatureCapacity(clusterSize);
+                if (creatureCount >= capacity)
+                {
+                    lastValidationError = $"Cụm Biome đã đạt giới hạn số thú ({creatureCount}/{capacity}). Hãy mở rộng cụm (mốc 3/6/9 ô)";
+                    return false;
+                }
+            }
         }
         else if (cardData != null && cardData.cardType == CardType.Terrain)
         {
@@ -310,5 +330,84 @@ public class HexPlacementValidator : MonoBehaviour
     public static bool IsMatchingTerrainOrBiome(CardData a, CardData b)
     {
         return HexBiomeClusterConnector.AreNatureCardsMatching(a, b);
+    }
+
+    /// <summary>
+    /// Tính toán sức chứa thú tối đa của một cụm Biome theo các mốc 3, 6, 9 ô:
+    /// - Dưới 3 ô: 0 thú (chưa đủ điều kiện hình thành sinh thái)
+    /// - 3 đến 5 ô: 1 thú
+    /// - 6 đến 8 ô: 2 thú
+    /// - 9 ô trở lên: 3 thú
+    /// </summary>
+    public static int CalculateClusterCreatureCapacity(int hexCount)
+    {
+        if (hexCount < 3) return 0;
+        return Mathf.Clamp(hexCount / 3, 1, 3);
+    }
+
+    /// <summary>
+    /// Đếm số ô và số lượng thú hiện có trong cụm Biome chứa ô hex này
+    /// </summary>
+    public (int clusterSize, int creatureCount) GetClusterCreatureStats(HexCoordinates targetHex, CardData terrainCard, HexWorldGenerator worldGen)
+    {
+        if (worldGen == null || worldGen.MapTiles == null || terrainCard == null) return (0, 0);
+
+        // 1. Thử lấy theo PlacedCard.clusterId nếu đã được phân cụm
+        if (worldGen.MapTiles.TryGetValue(targetHex, out GameObject targetTile) && targetTile != null)
+        {
+            PlacedCard targetPlaced = HexBiomeClusterConnector.GetHabitatCardOnTile(targetTile);
+            if (targetPlaced != null && targetPlaced.clusterId > 0)
+            {
+                int targetClusterId = targetPlaced.clusterId;
+                int size = 0;
+                int creatures = 0;
+                foreach (var pair in worldGen.MapTiles)
+                {
+                    if (pair.Value == null) continue;
+                    PlacedCard pc = HexBiomeClusterConnector.GetHabitatCardOnTile(pair.Value);
+                    if (pc != null && pc.clusterId == targetClusterId)
+                    {
+                        size++;
+                        if (HasPlacedCreature(pair.Value)) creatures++;
+                    }
+                }
+                return (size, creatures);
+            }
+        }
+
+        // 2. Fallback quét BFS theo địa hình liền kề
+        HashSet<HexCoordinates> visited = new HashSet<HexCoordinates>();
+        Queue<HexCoordinates> queue = new Queue<HexCoordinates>();
+        visited.Add(targetHex);
+        queue.Enqueue(targetHex);
+
+        int creatureCount = 0;
+        if (worldGen.MapTiles.TryGetValue(targetHex, out GameObject startTile) && startTile != null)
+        {
+            if (HasPlacedCreature(startTile)) creatureCount++;
+        }
+
+        while (queue.Count > 0)
+        {
+            HexCoordinates current = queue.Dequeue();
+            for (int dir = 0; dir < 6; dir++)
+            {
+                HexCoordinates neighborHex = current.GetNeighbor(dir);
+                if (visited.Contains(neighborHex)) continue;
+
+                if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
+                {
+                    CardData neighborTerrain = GetPlacedTerrainCard(neighborTile);
+                    if (neighborTerrain != null && IsMatchingTerrainOrBiome(terrainCard, neighborTerrain))
+                    {
+                        visited.Add(neighborHex);
+                        queue.Enqueue(neighborHex);
+                        if (HasPlacedCreature(neighborTile)) creatureCount++;
+                    }
+                }
+            }
+        }
+
+        return (visited.Count, creatureCount);
     }
 }

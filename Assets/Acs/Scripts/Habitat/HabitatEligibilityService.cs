@@ -16,7 +16,7 @@ namespace LumiWorld.Acs
         {
             if (hexCount < 3 || hexCount > HabitatTopologyService.MaximumHexCount) return 0;
             if (tier == ResourceTier.Tier1) return hexCount == 3 ? 1 : 2;
-            return tier == ResourceTier.Tier2 && hexCount == 6 ? 1 : 0;
+            return tier == ResourceTier.Tier2 && hexCount >= 6 ? 1 : 0;
         }
 
         public static bool IsSlotUnlocked(HabitatState habitat, ResourceTier tier, int index)
@@ -33,7 +33,7 @@ namespace LumiWorld.Acs
             if (definition.affinity != habitat.affinity || HabitatDataRules.GetIsland(definition.affinity) != habitat.island)
                 return Reject("Tài nguyên không thuộc biome/đảo của nhóm.");
             if (GetSlotCount(habitat.HexCount, definition.tier) == 0)
-                return Reject(definition.tier == ResourceTier.Tier2 ? "T2 cần nhóm đủ 6 hex." : "T1 cần nhóm từ 3 đến 6 hex.");
+                return Reject(definition.tier == ResourceTier.Tier2 ? "T2 cần nhóm từ 6 hex trở lên." : "T1 cần nhóm từ 3 hex trở lên.");
             if (definition.requirements == null || definition.requirements.Count == 0 ||
                 (definition.tier == ResourceTier.Tier1 && definition.requirements.Count != 1))
                 return Reject("Requirements không hợp lệ.");

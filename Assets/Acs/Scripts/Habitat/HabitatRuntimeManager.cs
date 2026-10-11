@@ -215,6 +215,29 @@ namespace LumiWorld.Acs
             if (mapping.GetRole(habitat.affinity) == AffinityRole.None)
             { reason = "Creature không có primary/secondary affinity phù hợp " + habitat.affinity + "."; return false; }
             if (HasCreatureAtHome(homeHex)) { reason = "Home hex đã có creature."; return false; }
+
+            var habitatGroup = habitats.Find(h => h != null && h.ContainsHex(homeHex));
+            if (habitatGroup == null)
+            {
+                RefreshFromWorld(false);
+                habitatGroup = habitats.Find(h => h != null && h.ContainsHex(homeHex));
+            }
+
+            if (habitatGroup != null)
+            {
+                if (habitatGroup.HexCount < 3)
+                {
+                    reason = $"Cụm Biome chưa đủ điều kiện nuôi thú (cần tối thiểu 3 ô Nature, hiện có {habitatGroup.HexCount} ô).";
+                    return false;
+                }
+
+                if (habitatGroup.residents.Count >= habitatGroup.CreatureCapacity)
+                {
+                    reason = $"Cụm Biome đã đạt giới hạn thú ({habitatGroup.residents.Count}/{habitatGroup.CreatureCapacity}). Hãy mở rộng cụm (mốc 3/6/9 ô).";
+                    return false;
+                }
+            }
+
             reason = string.Empty;
             return true;
         }

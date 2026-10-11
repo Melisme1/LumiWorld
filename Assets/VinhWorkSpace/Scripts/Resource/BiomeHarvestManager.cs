@@ -35,8 +35,8 @@ public class BiomeHarvestManager : MonoBehaviour
     [Header("Cluster Settings")]
     [Tooltip("Độ trễ sau khi đặt bài trước khi quét lại cụm (tránh giật lag)")]
     [SerializeField] private float refreshDebounceTime = 0.15f;
-    [Tooltip("Số ô tối đa trên mỗi Cụm Biome thu hoạch (Mặc định: 6 ô)")]
-    [SerializeField] private int maxTilesPerCluster = 6;
+    [Tooltip("Số ô tối đa trên mỗi Cụm Biome thu hoạch (Mặc định: 9 ô)")]
+    [SerializeField] private int maxTilesPerCluster = 9;
     public int MaxTilesPerCluster => maxTilesPerCluster;
 
     private readonly List<BiomeHarvestCluster> clusters = new List<BiomeHarvestCluster>();
