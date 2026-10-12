@@ -41,6 +41,7 @@ public class ScoreManager : MonoBehaviour
     [SerializeField] private List<CardData> endlessRewardPool = new();
 
     public int CurrentScore => currentScore;
+    public int GrantedMilestoneCount => grantedMilestoneIndices.Count;
 
     private int nextRewardScore;
     private int nextEndlessThreshold = -1;

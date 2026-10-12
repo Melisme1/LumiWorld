@@ -345,24 +345,62 @@ public class OrderBoardSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Loại tài nguyên người chơi đang làm ra: có cụm biome đang có thú sản xuất.
+    /// Loại tài nguyên người chơi đang làm ra: có cụm biome/habitat đang có thú sản xuất.
     /// </summary>
     private static HashSet<string> GetProducingResourceIds()
     {
         HashSet<string> ids = new HashSet<string>();
 
-        // Tìm chứ không gọi BiomeHarvestManager.Instance, để không tự tạo manager ở scene không có bản đồ
-        BiomeHarvestManager harvest = FindAnyObjectByType<BiomeHarvestManager>();
-        if (harvest != null)
+        // 1. Hệ thống sản xuất chuẩn GDD (ResourceProductionRuntime)
+        var production = UnityEngine.Object.FindAnyObjectByType<LumiWorld.Acs.ResourceProductionRuntime>();
+        if (production != null && production.States != null)
         {
-            foreach (BiomeHarvestCluster cluster in harvest.Clusters)
+            foreach (var state in production.States)
             {
-                if (cluster != null && cluster.ResourceData != null && cluster.Animals.Count > 0)
+                if (state?.rates == null) continue;
+                foreach (var rate in state.rates)
                 {
-                    ids.Add(cluster.ResourceData.resourceID);
+                    if (rate != null && !string.IsNullOrEmpty(rate.resourceId) && rate.unitsPerMinute > 0)
+                    {
+                        ids.Add(rate.resourceId);
+                    }
                 }
             }
         }
+
+        // 2. Dự phòng: Kiểm tra HabitatRuntimeManager trực tiếp nếu chưa settle rates
+        if (ids.Count == 0 && LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager) && habitatManager.Habitats != null)
+        {
+            foreach (var habitat in habitatManager.Habitats)
+            {
+                if (habitat == null || habitat.residents == null || habitat.residents.Count == 0) continue;
+                if (habitat.slots == null) continue;
+                foreach (var slot in habitat.slots)
+                {
+                    if (slot != null && !string.IsNullOrEmpty(slot.selectedResourceId))
+                    {
+                        ids.Add(slot.selectedResourceId);
+                    }
+                }
+            }
+        }
+
+        // 3. Dự phòng: Thú riêng lẻ trên ô đất
+        if (ids.Count == 0)
+        {
+            var animals = UnityEngine.Object.FindObjectsByType<AnimalIndividual>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            if (animals != null)
+            {
+                foreach (var animal in animals)
+                {
+                    if (animal != null && animal.ActiveResource != null && !string.IsNullOrEmpty(animal.ActiveResource.resourceID))
+                    {
+                        ids.Add(animal.ActiveResource.resourceID);
+                    }
+                }
+            }
+        }
+
         return ids;
     }
 

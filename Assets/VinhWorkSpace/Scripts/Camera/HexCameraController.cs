@@ -34,8 +34,18 @@ public class HexCameraController : MonoBehaviour
     private bool isOrbiting = false;
 
     private bool isCardDragging;
-
     private HexPlacementController placementController;
+    public static HexCameraController Instance { get; private set; }
+
+    private void Awake()
+    {
+        Instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
 
     private void Start()
     {
@@ -308,5 +318,52 @@ public class HexCameraController : MonoBehaviour
     public void SetCardDragging(bool dragging)
     {
         isCardDragging = dragging;
+    }
+
+    private Coroutine focusCoroutine;
+
+    /// <summary>
+    /// Di chuyển và zoom camera mượt mà vào mục tiêu (ví dụ khi Thú Đầu Đàn xuất hiện)
+    /// </summary>
+    public void FocusOnTarget(Vector3 targetWorldPos, float targetDistance = 11f, float duration = 1.2f)
+    {
+        if (focusCoroutine != null) StopCoroutine(focusCoroutine);
+        focusCoroutine = StartCoroutine(FocusOnTargetRoutine(targetWorldPos, targetDistance, duration));
+    }
+
+    private System.Collections.IEnumerator FocusOnTargetRoutine(Vector3 targetWorldPos, float targetDistance, float duration)
+    {
+        Vector3 forwardDir = transform.forward;
+        if (forwardDir.y >= -0.1f)
+        {
+            forwardDir = Quaternion.Euler(50f, -30f, 0f) * Vector3.forward;
+        }
+
+        Vector3 desiredCameraPos = targetWorldPos - forwardDir.normalized * targetDistance;
+        desiredCameraPos.y = Mathf.Max(desiredCameraPos.y, minHeight + 1.5f);
+
+        orbitPivotPoint = targetWorldPos;
+        currentOrbitDistance = targetDistance;
+
+        Vector3 startPos = transform.position;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            var mouse = Mouse.current;
+            if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame || mouse.middleButton.wasPressedThisFrame || Mathf.Abs(mouse.scroll.ReadValue().y) > 0.1f))
+            {
+                focusCoroutine = null;
+                yield break;
+            }
+
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            targetPosition = Vector3.Lerp(startPos, desiredCameraPos, t);
+            yield return null;
+        }
+
+        targetPosition = desiredCameraPos;
+        focusCoroutine = null;
     }
 }

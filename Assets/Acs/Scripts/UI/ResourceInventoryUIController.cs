@@ -136,6 +136,11 @@ namespace LumiWorld.Acs
             list.Sort((a,b) => string.CompareOrdinal(a.habitatId, b.habitatId));
             int index = list.FindIndex(h => h.habitatId == selectedHabitatId); Select(list[(Mathf.Max(0,index) + direction + list.Count) % list.Count]);
         }
+        public void CloseHabitatPanel()
+        {
+            if (view?.HabitatPanel != null) view.HabitatPanel.gameObject.SetActive(false);
+        }
+
         private void ToggleHabitat()
         {
             if (view.HabitatPanel.gameObject.activeSelf) { view.HabitatPanel.gameObject.SetActive(false); return; }
@@ -152,6 +157,7 @@ namespace LumiWorld.Acs
             if (!mouse.leftButton.wasReleasedThisFrame || !mapPress) return;
             mapPress = false;
             if (Vector2.Distance(position, pressPosition) > 6 || EconomyHUD.IsPointerOverInteractiveUI(position)) return;
+            if (WildAlphaInteractable.IsModalOpen) return;
             var keyboard = Keyboard.current;
             if (keyboard != null && (keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed)) return;
             foreach (var drag in FindObjectsByType<CardDrag>()) if (drag.IsDragging) return;

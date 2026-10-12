@@ -421,12 +421,7 @@ public class HexSinglePlacementController : MonoBehaviour
             // 3. Hiệu ứng cộng điểm "+X" (Preserve style)
             ShowPlacementScorePopup(placedCardInstance);
 
-            // 4. Cập nhật hệ thống cụm thu hoạch tài nguyên Biome
-            if (!LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld && BiomeHarvestManager.Instance != null)
-            {
-                BiomeHarvestManager.Instance.OnWorldChanged();
-            }
-
+            // 4. Cập nhật hệ thống Habitat theo dõi sản xuất
             LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
             if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var currentHabitatManager)) currentHabitatManager.RefreshNow();
 
