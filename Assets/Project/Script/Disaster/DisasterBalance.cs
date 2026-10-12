@@ -245,7 +245,7 @@ namespace LumiWorld.Acs
                     rule.restrictToBiomes = true;
                     rule.affectedBiomes = new List<BiomeAffinity> { BiomeAffinity.Leafwood, BiomeAffinity.Windheath };
                     rule.spreadRadius = 1;
-                    rule.spreadIntervalSeconds = 4f;
+                    rule.spreadIntervalSeconds = 5f;   // 5s mới lan sang ô kề (mặc định mới)
                     rule.maxTiles = 6;
                     rule.durationSeconds = 45f;
                     rule.rainToCure = 1;

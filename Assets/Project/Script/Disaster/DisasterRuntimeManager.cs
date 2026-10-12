@@ -63,6 +63,21 @@ namespace LumiWorld.Acs
         private readonly Dictionary<string, double> lastTick = new Dictionary<string, double>();
         private readonly Dictionary<string, GameObject> spawnedVisuals = new Dictionary<string, GameObject>();
 
+        // Ô đã được MƯA DẬP nhưng thiên tai vẫn đang cháy ở các ô khác.
+        //
+        // Cần riêng tập này vì: state.Clear(kind) chỉ gỡ Mark trên ô, nhưng ô vẫn có thể
+        // là hàng xóm của một ô đang cháy khác -> SpreadDisaster sẽ bén lửa lại (xem nhánh
+        // IsLushTile trong SpreadDisaster). Mưa phải mang nghĩa "ô này TẮT LỬA": không cháy,
+        // không bén lại, và không truyền lửa đi tiếp cho tới khi thiên tai kết thúc hẳn.
+        private readonly Dictionary<string, HashSet<HexCoordinates>> suppressedTiles =
+            new Dictionary<string, HashSet<HexCoordinates>>();
+
+        // Ô vừa bén lửa nhưng CHƯA bị phá ngay: chờ hết creationDelaySeconds mới thành ô cháy.
+        // Nhờ vậy người chơi kịp thấy "ô này sắp cháy" và có thể dập bằng mưa.
+        // Key = instanceId, value = fromTime (giây theo clock) -> danh sách ô.
+        private readonly Dictionary<string, Dictionary<HexCoordinates, double>> pendingFire =
+            new Dictionary<string, Dictionary<HexCoordinates, double>>();
+
         // Cửa sổ đếm mưa để kích hoạt bão.
         private readonly List<double> rainTimestamps = new List<double>();
 
@@ -127,7 +142,13 @@ namespace LumiWorld.Acs
             {
                 if (pair.Value == null) continue;
                 var state = TileDisasterState.Ensure(pair.Value);
-                if (state != null && state.affinity == BiomeAffinity.None)
+                if (state == null) continue;
+
+                // Ghi toạ độ ô vào state: SpreadDisaster/ApplyRain cần biết ô nằm ở đâu
+                // để xử lý theo vị trí (mưa dập lửa tại ô, hàng đợi chờ bén lửa).
+                state.coordinates = pair.Key;
+
+                if (state.affinity == BiomeAffinity.None)
                     state.affinity = ResolveAffinity(pair.Value);
             }
         }
@@ -427,6 +448,10 @@ namespace LumiWorld.Acs
                     SpreadDisaster(instance);
                 }
 
+                // Nướng các ô đang chờ bén lửa tới hạn (cháy rừng).
+                // Đặt SAU SpreadDisaster để ô vào hàng đợi ở nhịp này được đếm giờ ngay từ nhịp này.
+                ResolvePendingFire(instance, now);
+
                 if (instance.IsExpired) EndDisaster(instance);
             }
         }
@@ -444,19 +469,39 @@ namespace LumiWorld.Acs
         private void SpreadDisaster(DisasterInstance instance)
         {
             int maxTiles = balance.ResolveMaxTiles(instance.kind);
-            if (CountTiles(instance.instanceId) >= maxTiles) return;
             if (worldGenerator == null) return;
             if (!spreadFrontier.TryGetValue(instance.instanceId, out var frontier)) return;
 
             var nextFrontier = new List<HexCoordinates>();
 
+            EnsureSuppressedSet(instance.instanceId);
+
+            // ĐẾM MỘT LẦN cho cả nhịp lan rồi tự tăng dần.
+            //
+            // Bản cũ gọi CountTiles() lại NGAY SAU mỗi lần DestroyTile. Nhưng DestroyTile chỉ
+            // Mark thêm instanceId vào ô mới, còn ô gốc thì KHÔNG được Mark (ApplyToTile chỉ
+            // Mark cho kind khác ForestFire) -> lần đếm đầu tiên trong nhịp này trả về 0,
+            // khiến vòng lặp chạy thêm 1 nhịp nữa để đủ "maxTiles" => tổng số ô bị cháy luôn
+            // HỤT ĐÚNG 1 so với maxTiles (đặt 10 thì chỉ thấy 9 ô).
+            int count = CountTiles(instance.instanceId);
+
+            // Ô ĐANG CHỜ BÉN LỬA cũng chiếm suất trong maxTiles: nếu không cộng vào,
+            // mỗi nhịp lan sẽ nhồi thêm ô mới vượt trần trong khi các ô cũ còn trong hàng đợi.
+            if (IsForestFire(instance)) count += CountPendingFire(instance.instanceId);
+
+            // Ô GỐC của đám cháy không nằm trong CountTiles (xem chú thích trên) nên phải
+            // +1 thủ công, nếu không trần bị chặn sớm đúng 1 ô.
+            if (IsForestFire(instance)) count += 1;
+
+            if (count >= maxTiles) return;
+
             foreach (var hex in frontier)
             {
-                if (CountTiles(instance.instanceId) >= maxTiles) break;
+                if (count >= maxTiles) break;
 
                 for (int dir = 0; dir < 6; dir++)
                 {
-                    if (CountTiles(instance.instanceId) >= maxTiles) break;
+                    if (count >= maxTiles) break;
 
                     HexCoordinates neighbor = hex.GetNeighbor(dir);
                     if (!worldGenerator.MapTiles.TryGetValue(neighbor, out var neighborTile) || neighborTile == null) continue;
@@ -465,6 +510,9 @@ namespace LumiWorld.Acs
                     if (neighborState != null && neighborState.Has(instance.kind)) continue;
                     // Không lan vào ô đã có vật cản để tránh chồng state.
                     if (neighborState != null && neighborState.hasObstacle) continue;
+                    // Ô đã bị MƯA DẬP: tắt lửa vĩnh viễn trong vụ này -> vừa không bén lại,
+                    // vừa đóng vai trò "tường chắn" không cho lửa nhảy qua ô này.
+                    if (IsSuppressed(instance.instanceId, neighbor)) continue;
 
                     if (instance.kind == DisasterKind.ForestFire)
                     {
@@ -498,8 +546,22 @@ namespace LumiWorld.Acs
                     }
 
                     // ApplyToTile đã tự RefreshVisual() ở cuối; DestroyTile cũng vậy.
-                    if (instance.kind == DisasterKind.ForestFire) DestroyTile(instance, neighborTile);
-                    else ApplyToTile(instance, neighborTile);
+                    if (instance.kind == DisasterKind.ForestFire)
+                    {
+                        // CHÁY RỪNG: ô KHÔNG bị phá ngay mà vào HÀNG ĐỢI chờ bén lửa.
+                        // Sau creationDelaySeconds (mặc định 5s) nó mới thực sự cháy.
+                        // Trong khoảng đó người chơi có thể dập bằng mưa.
+                        EnqueuePendingFire(instance, neighbor);
+                    }
+                    else
+                    {
+                        // Truyền GameObject của ô kề (neighbor chỉ là toạ độ).
+                        ApplyToTile(instance, neighborTile);
+                    }
+
+                    // Cập nhật NGAY sau khi phủ xong ô, không đếm lại từ đầu.
+                    // Với cháy rừng, ô đang chờ cũng tính vào trần maxTiles.
+                    count++;
 
                     nextFrontier.Add(neighbor);
                 }
@@ -508,6 +570,121 @@ namespace LumiWorld.Acs
             frontier.Clear();
             frontier.AddRange(nextFrontier);
             DisasterChanged?.Invoke(instance);
+        }
+
+        private static bool IsForestFire(DisasterInstance instance)
+        {
+            return instance != null && instance.kind == DisasterKind.ForestFire;
+        }
+
+        // ------------------------------------------------------------------
+        // Ô chờ bén lửa + ô đã bị mưa dập (cháy rừng)
+        // ------------------------------------------------------------------
+
+        /// <summary>Số giây một ô nằm trong hàng đợi trước khi thực sự thành ô cháy.</summary>
+        private const float FireCreationDelaySeconds = 5f;
+
+        private void EnqueuePendingFire(DisasterInstance instance, HexCoordinates hex)
+        {
+            if (!pendingFire.TryGetValue(instance.instanceId, out var queue))
+            {
+                queue = new Dictionary<HexCoordinates, double>();
+                pendingFire[instance.instanceId] = queue;
+            }
+            if (queue.ContainsKey(hex)) return;
+            queue[hex] = clock.NowSeconds;
+        }
+
+        private int CountPendingFire(string instanceId)
+        {
+            return pendingFire.TryGetValue(instanceId, out var queue) ? queue.Count : 0;
+        }
+
+        /// <summary>
+        /// Biến các ô chờ đã hết hạn thành ô cháy thật (DestroyTile).
+        /// Chỉ cháy rừng dùng cơ chế này.
+        /// </summary>
+        private void ResolvePendingFire(DisasterInstance instance, double now)
+        {
+            if (!IsForestFire(instance)) return;
+            if (!pendingFire.TryGetValue(instance.instanceId, out var queue) || queue.Count == 0) return;
+            if (worldGenerator == null) return;
+
+            List<HexCoordinates> matured = null;
+            foreach (var pair in queue)
+            {
+                if (now - pair.Value >= FireCreationDelaySeconds)
+                {
+                    (matured ??= new List<HexCoordinates>()).Add(pair.Key);
+                }
+            }
+            if (matured == null) return;
+
+            foreach (var hex in matured)
+            {
+                queue.Remove(hex);
+
+                // Ô có thể đã bị mưa dập trong lúc chờ -> không đốt nữa.
+                if (IsSuppressed(instance.instanceId, hex)) continue;
+                if (!worldGenerator.MapTiles.TryGetValue(hex, out var tile) || tile == null) continue;
+
+                DestroyTile(instance, tile);
+            }
+        }
+
+        private void EnsureSuppressedSet(string instanceId)
+        {
+            if (!suppressedTiles.ContainsKey(instanceId))
+                suppressedTiles[instanceId] = new HashSet<HexCoordinates>();
+        }
+
+        private bool IsSuppressed(string instanceId, HexCoordinates hex)
+        {
+            return suppressedTiles.TryGetValue(instanceId, out var set) && set.Contains(hex);
+        }
+
+        /// <summary>
+        /// Mưa dập lửa TẠI MỘT Ô: ô thành "đã tắt" — không cháy, không bén lại,
+        /// không nhận chờ bén lửa, và là tường chắn không cho lửa nhảy qua.
+        /// </summary>
+        private void SuppressFireTile(string instanceId, HexCoordinates hex)
+        {
+            EnsureSuppressedSet(instanceId);
+            suppressedTiles[instanceId].Add(hex);
+
+            // Nếu ô đang trong hàng đợi chờ cháy -> rút ra luôn.
+            if (pendingFire.TryGetValue(instanceId, out var queue)) queue.Remove(hex);
+
+            // Nếu ô đã cháy -> hồi phục cờ trên ô, như bình thường khi cháy bị dập.
+            if (worldGenerator != null && worldGenerator.MapTiles.TryGetValue(hex, out var tile) && tile != null)
+            {
+                if (TileDisasterState.TryGet(tile, out var st) && st != null)
+                {
+                    if (st.Clear(DisasterKind.ForestFire, instanceId))
+                    {
+                        st.isBurned = false;
+                        st.aridity = 0f;
+                        st.RefreshVisual();
+                    }
+                }
+            }
+        }
+
+        /// <summary>Có ô nào của đám cháy này đang chờ bén lửa hoặc đã bị mưa dập không.</summary>
+        private bool HasFireTrackedTiles(string instanceId)
+        {
+            return CountPendingFire(instanceId) > 0 ||
+                (suppressedTiles.TryGetValue(instanceId, out var set) && set.Count > 0);
+        }
+
+        /// <summary>
+        /// Ô cháy rừng này còn "sống" không: đã bị đốt (còn Mark) hoặc đang chờ bén lửa.
+        /// Dùng để quyết định đám cháy đã tắt hẳn hay chưa.
+        /// </summary>
+        private bool FireStillActive(DisasterInstance instance)
+        {
+            if (!IsForestFire(instance)) return true;
+            return CountTiles(instance.instanceId) > 0 || CountPendingFire(instance.instanceId) > 0;
         }
 
         private int CountTiles(string instanceId)
@@ -568,39 +745,56 @@ namespace LumiWorld.Acs
             }
         }
 
+        /// <summary>
+        /// Ẩn sạch thực vật/cầu nối trên ô vừa cháy (không xóa đất lục giác gốc).
+        ///
+        /// VÌ SAO PHẢI QUÉT THEO VỊ TRÍ, KHÔNG PHẢI THEO CÂY CON:
+        ///  Cây cỏ của ô nằm trong container "Habitat_*" (con của ô), nhưng props viền nối
+        ///  "ConnectorProp_*" lại do HexBiomeClusterConnector sinh ra dưới
+        ///  "BiomeConnectionsContainer" (một GameObject riêng của connector, KHÔNG nằm trong ô).
+        ///  Bản cũ chỉ duyệt con trực tiếp của ô nên KHÔNG BAO GIỜ thấy được ConnectorProp_*,
+        ///  khiến trên ô cháy đen vẫn còn hoa cỏ mọc ở mép.
+        ///
+        /// Cách đúng: gom các prop Ở GẦN TÂM Ô theo khoảng cách trên mặt phẳng XZ. Bán kính dùng
+        /// inner-radius của hex (1.0f) để không vơ sang prop của ô kề (tâm 2 ô cách nhau 2.0f).
+        /// </summary>
+        private const float HabitatSuppressRadius = 1.0f;
+
         private void SuppressHabitatOnTile(GameObject tileObj)
         {
             if (tileObj == null) return;
-            // Tắt các container habitat/props đã sinh trên ô (không xóa đất lục giác gốc).
-            foreach (Transform child in tileObj.transform)
-            {
-                if (child == null) continue;
-                string name = child.name;
-                if (name.StartsWith("Habitat_", StringComparison.Ordinal) ||
-                    name.StartsWith("ConnectorProp_", StringComparison.Ordinal))
-                {
-                    // SetActive(false) trên container đã ẩn cả cây con, nên chỉ cần tắt container.
-                    // Nhưng props rải rác (hoa cỏ, đá rêu) của hàng xóm CÓ THỂ nằm trực tiếp trên ô này
-                    // (viền nối sinh vào ô bên cạnh) -> quét thêm 1 lớp con để dọn sạch thực vật,
-                    // tránh cảnh "ô bị cháy đen mà cây vẫn còn xanh".
-                    child.gameObject.SetActive(false);
-                    continue;
-                }
 
-                // Props rải trực tiếp lên ô (không nằm trong Habitat_/ConnectorProp_).
-                for (int i = 0; i < child.childCount; i++)
-                {
-                    Transform grandChild = child.GetChild(i);
-                    if (grandChild == null) continue;
-                    string grandName = grandChild.name;
-                    if (grandName.StartsWith("Habitat_", StringComparison.Ordinal) ||
-                        grandName.StartsWith("ConnectorProp_", StringComparison.Ordinal) ||
-                        grandName.StartsWith("CornerProp_", StringComparison.Ordinal) ||
-                        grandName.StartsWith("SeamBridge_", StringComparison.Ordinal))
-                    {
-                        grandChild.gameObject.SetActive(false);
-                    }
-                }
+            Vector3 center = tileObj.transform.position;
+            float radiusSqr = HabitatSuppressRadius * HabitatSuppressRadius;
+
+            // 1. Container habitat nằm ngay trong ô (cây trồng từ thẻ Terrain).
+            var own = tileObj.transform;
+            for (int i = 0; i < own.childCount; i++)
+            {
+                Transform child = own.GetChild(i);
+                if (child != null && child.name.StartsWith("Habitat_", StringComparison.Ordinal))
+                    child.gameObject.SetActive(false);
+            }
+
+            // 2. Props/cầu nối nằm ngoài ô ("BiomeConnectionsContainer") -> lọc theo khoảng cách.
+            //    Bắt luôn trường hợp connector chưa kịp tạo container (đang ở dưới transform của nó).
+            var connector = HexBiomeClusterConnector.Instance;
+            if (connector == null) return;
+
+            Transform container = connector.ConnectionsContainer;
+            if (container == null) return;
+
+            var props = container.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < props.Length; i++)
+            {
+                Transform prop = props[i];
+                if (prop == null || prop == container) continue;
+
+                Vector3 delta = prop.position - center;
+                float sqr = delta.x * delta.x + delta.z * delta.z;
+                if (sqr > radiusSqr) continue;
+
+                prop.gameObject.SetActive(false);
             }
         }
 
@@ -649,6 +843,8 @@ namespace LumiWorld.Acs
             nextSpreadAt.Remove(instance.instanceId);
             spreadFrontier.Remove(instance.instanceId);
             lastTick.Remove(instance.instanceId);
+            pendingFire.Remove(instance.instanceId);
+            suppressedTiles.Remove(instance.instanceId);
 
             DisasterEnded?.Invoke(instance);
         }
@@ -715,6 +911,29 @@ namespace LumiWorld.Acs
 
                 instance.rainApplied++;
                 anyAccepted = true;
+
+                // CHÁY RỪNG: đủ 1 thẻ mưa là TẮT LỬA TẠI Ô NÀY ngay lập tức (không chờ gom
+                // đủ rainToCure):
+                //   - Rút ô khỏi hàng đợi chờ bén lửa (nếu đang chờ).
+                //   - Hạ isBurned + gỡ Mark trên ô nếu đã cháy.
+                //   - Ghi ô vào danh sách "đã dập" để KHÔNG bén lại và không cho lửa nhảy qua.
+                //
+                // Các ô ĐANG CHÁY KHÁC của cùng đám cháy vẫn tiếp tục cháy và lan bình thường
+                // — mưa chỉ cứu được đúng vùng được tưới. Khi MỌI ô đã tắt thì đám cháy kết thúc.
+                if (kind == DisasterKind.ForestFire)
+                {
+                    SuppressFireTile(instanceId, state.coordinates);
+
+                    // Chỉ kết thúc khi KHÔNG còn ô cháy VÀ không còn ô nào đang chờ bén lửa.
+                    // Nếu chỉ đếm ô đã cháy, một đám cháy đang có ô trong hàng đợi sẽ bị
+                    // kết thúc oan, và hàng đợi treo lại (ô không bao giờ cháy).
+                    if (!FireStillActive(instance))
+                        EndDisaster(instance);
+                    else
+                        DisasterChanged?.Invoke(instance);
+
+                    continue;
+                }
 
                 if (instance.rainApplied >= balance.ResolveRainToCure(kind))
                     EndDisaster(instance);
@@ -817,6 +1036,21 @@ namespace LumiWorld.Acs
                 if (state.hasObstacle && instance.kind == DisasterKind.Obstacle) { result.Add(pair.Value); continue; }
                 if (state.Has(instance.kind)) result.Add(pair.Value);
             }
+
+            // Ô ĐANG CHỜ BÉN LỬA chưa có Mark nên vòng lặp trên không thấy. Vẫn phải đưa vào
+            // danh sách highlight: đây chính là cửa sổ để người chơi thấy "sắp cháy" và dập mưa.
+            if (IsForestFire(instance) && pendingFire.TryGetValue(instance.instanceId, out var queue))
+            {
+                foreach (var hex in queue.Keys)
+                {
+                    if (worldGenerator.MapTiles.TryGetValue(hex, out var tile) && tile != null &&
+                        !result.Contains(tile))
+                    {
+                        result.Add(tile);
+                    }
+                }
+            }
+
             return result;
         }
 
@@ -844,6 +1078,11 @@ namespace LumiWorld.Acs
         {
             var copy = new List<DisasterInstance>(activeList);
             foreach (var instance in copy) EndDisaster(instance);
+
+            // Dọn thêm các map dùng chung (hàng đợi chờ bén lửa, ô đã dập) đề phòng instance
+            // không còn trong activeList nhưng entry vẫn sót.
+            pendingFire.Clear();
+            suppressedTiles.Clear();
 
             // Quét thêm mọi ô còn sót dấu vết (thiên tai đã tự tắt trước đó, hoặc ô đã bị ẩn)
             // để bấm R luôn trả bản đồ về trạng thái sạch.

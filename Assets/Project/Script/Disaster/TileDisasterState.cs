@@ -17,6 +17,10 @@ namespace LumiWorld.Acs
         [Tooltip("Môi trường (biome) của ô, dùng để thiên tai cháy/hạn lan đúng vùng.")]
         public BiomeAffinity affinity = BiomeAffinity.None;
 
+        [Tooltip("Toạ độ lục giác của ô. Được điền lúc Ensure/Spawn và khi Rain biến đổi ô. " +
+                 "Cần cho các thao tác theo vị trí (mưa dập lửa tại ô, hàng đợi chờ bén lửa).")]
+        public HexCoordinates coordinates;
+
         [Tooltip("Vật cản tĩnh trên ô (đá, gỗ mục). Chặn khai thác, KHÔNG phá hủy ô.")]
         public bool hasObstacle;
 

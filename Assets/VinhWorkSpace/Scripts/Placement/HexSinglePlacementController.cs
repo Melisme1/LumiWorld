@@ -512,6 +512,10 @@ public class HexSinglePlacementController : MonoBehaviour
             // Ô sau biến đổi là Lush (đất tươi tốt) — giữ biome cũ để cháy/hạn lan đúng vùng.
             BiomeAffinity affinity = LumiWorld.Acs.DisasterRuntimeManager.ResolveAffinity(oldTileObj);
             newDisasterState.affinity = affinity;
+
+            // Đồng bộ toạ độ: state là nơi các xử lý theo vị trí (mưa dập lửa tại ô)
+            // đọc để biết ô này nằm ở đâu.
+            newDisasterState.coordinates = coords;
         }
 
         // 6. Cập nhật MapTiles trong HexWorldGenerator
