@@ -50,6 +50,10 @@ namespace LumiWorld.Acs
         public DisasterKind kind;
         [Tooltip("Ô bắt nguồn. Cháy rừng lan theo môi trường; bão lan theo bán kính.")]
         public HexCoordinates origin;
+        [Tooltip("Môi trường CHỐT tại thời điểm sinh (chỉ dùng cho cháy rừng). Lấy một lần ở " +
+                 "SpawnDisaster rồi giữ nguyên: nếu đọc lại từ ô gốc mỗi nhịp lan, ô gốc đã cháy sẽ " +
+                 "mất dấu vết biome (props bị ẩn) khiến mọi ô kề bị chặn -> lửa không lan được.")]
+        public BiomeAffinity originAffinity;
         [Tooltip("Số giây còn lại trước khi tự tắt. Lấy mẫu MỘT LẦN lúc tạo, không đọc lại balance.")]
         public double remainingSeconds;
         [Tooltip("Tổng thời lượng ban đầu, dùng để vẽ vòng tiến độ.")]

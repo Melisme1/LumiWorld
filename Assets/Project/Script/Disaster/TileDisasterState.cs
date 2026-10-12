@@ -37,21 +37,79 @@ namespace LumiWorld.Acs
         public bool IsArid => aridity >= 0.5f && !hasReceivedWater;
 
         /// <summary>
-        /// Ô là ĐẤT TƯƠI TỐT (Lush) — tức đã có môi trường sống, không phải đất thô Arid.
+        /// Ô là ĐẤT TƯƠI TỐT (Lush) — tức CÓ MÔI TRƯỜNG ĐỂ CHÁY. Gồm 2 trường hợp:
+        ///  - Đã có cây cỏ thật (Habitat_* / thẻ Terrain), hoặc
+        ///  - Là ô Lush do RAIN tưới (nền đất mới đã tươi tốt, cây cỏ mọc được).
         ///
-        /// Dùng đúng quy ước của project: FarmAnimalAI.HasHabitatResourceOnTile cũng nhận diện
-        /// bằng cách kiểm tra tên GameObject có "arid" hay không.
+        /// Ý nghĩa: CHỈ ô Lush mới có thứ để cháy. Ô đất khô Arid chưa cải tạo không có gì
+        /// để cháy nên cháy rừng không bén vào và không lan qua.
         ///
-        /// Ý nghĩa: CHỈ ô Lush mới có cây cỏ để cháy. Đất thô Arid không có gì để cháy, nên
-        /// cháy rừng không được lan vào.
+        /// QUAN TRỌNG — vì sao KHÔNG đoán "mọi ô không chứa arid":
+        ///  Bản cũ trả true cho MỌI ô không chứa "arid". Nhưng DisasterRuntimeManager tự gắn
+        ///  TileDisasterState lên TẤT CẢ ô (EnsureTileDisasterStates), nên ô đất trống Arid cũng
+        ///  bị coi là Lush. Khi lửa lan sang, ô đó bị Mark(ForestFire) -> isBurned = true -> các
+        ///  nhịp lan sau IsLushTile trả false -> đám cháy ĐỨNG YÊN suốt duration dù chưa hết
+        ///  maxTiles (triệu chứng "cháy câm").
+        ///
+        /// Điều kiện Lush đúng phải KHẲNG ĐỊNH sự tồn tại của môi trường: có container props
+        /// "Habitat_*", có PlacedCard Terrain, hoặc nền ô là Lush (Rain đã tưới). Đây là cùng
+        /// một nguồn dữ liệu cho cả 3 nơi: spawn, lan, ẩn props.
         /// </summary>
         public bool IsLushTile
         {
             get
             {
                 if (isBurned) return false;
-                if (string.IsNullOrEmpty(gameObject.name)) return false;
-                return gameObject.name.IndexOf("arid", StringComparison.OrdinalIgnoreCase) < 0;
+                return HasHabitatOnTile;
+            }
+        }
+
+        /// <summary>
+        /// Ô có môi trường để cháy hay không — nguồn dữ liệu DUY NHẤT cho khái niệm Lush của
+        /// hệ thống thiên tai. Dùng cho cả kiểm tra cháy bén (IsLushTile) lẫn xác định
+        /// "môi trường của đám cháy" ở DisasterRuntimeManager.
+        ///
+        /// Bốn nguồn, theo thứ tự "chắc chắn nhất trước":
+        ///  1. Container props "Habitat_*" (HexHabitatSpawner sinh từ thẻ Terrain) — có cây thật.
+        ///  2. PlacedCard loại Terrain — đã trồng, props có thể chưa kịp sinh.
+        ///  3. Nền ô là Lush qua sourcePrefab (tên chứa "_Lush") — Rain đã tưới đất tươi tốt.
+        ///  4. Tên GameObject của ô chứa "_Lush" — dự phòng khi ô sinh lại mà thiếu sourcePrefab.
+        /// </summary>
+        public bool HasHabitatOnTile
+        {
+            get
+            {
+                // 1. Container props sinh từ thẻ Habitat/Terrain.
+                var tr = transform;
+                for (int i = 0; i < tr.childCount; i++)
+                {
+                    var child = tr.GetChild(i);
+                    if (child != null && child.name.StartsWith("Habitat_", StringComparison.Ordinal))
+                        return true;
+                }
+
+                // 2. Thẻ Terrain đã đặt lên ô (trường hợp props chưa kịp sinh).
+                var cards = GetComponentsInChildren<PlacedCard>(true);
+                for (int i = 0; i < cards.Length; i++)
+                {
+                    if (cards[i] != null && cards[i].CardType == CardType.Terrain) return true;
+                }
+
+                // 3. Nền ô là Lush (Rain đã tưới). Đây là "môi trường" ở tầng đất: cây cỏ
+                //    trồng vào được, nên cháy rừng cũng bén được.
+                //    Đọc qua sourcePrefab trước (nguồn gốc prefab, không phụ thuộc tên instance),
+                //    rồi mới soi tên GameObject hiện tại.
+                var info = GetComponent<HexTileInfo>();
+                if (info != null && info.sourcePrefab != null &&
+                    info.sourcePrefab.name.IndexOf("_Lush", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                // 4. Dự phòng: tên ô (ví dụ "Hex_0_0_[Tile_Leafwood_Lush]_Type1").
+                string ownName = gameObject.name;
+                return !string.IsNullOrEmpty(ownName) &&
+                    ownName.IndexOf("_Lush", StringComparison.OrdinalIgnoreCase) >= 0;
             }
         }
 

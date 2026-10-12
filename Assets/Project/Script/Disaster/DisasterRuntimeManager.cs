@@ -287,6 +287,9 @@ namespace LumiWorld.Acs
                 instanceId = kind + "_" + (++instanceCounter).ToString("D4"),
                 kind = kind,
                 origin = origin,
+                // Chốt môi trường NGAY LÚC SINH (xem chú thích ở SpreadDisaster).
+                // Với cháy rừng, đây là biome duy nhất được phép lan sang.
+                originAffinity = ResolveAffinity(originTile),
                 totalSeconds = balance.ResolveDuration(kind),
                 startedAtUnscaledTime = Time.unscaledTime
             };
@@ -465,9 +468,10 @@ namespace LumiWorld.Acs
 
                     if (instance.kind == DisasterKind.ForestFire)
                     {
-                        // 1. CHỈ ô LUSH (đất tươi tốt có môi trường) mới bắt lửa.
-                        //    Đất thô Arid không có cây cỏ để cháy -> chặn ngay, không tốn gì thêm.
-                        //    Đây là điều kiện quan trọng hơn cả so khớp môi trường bên dưới.
+                        // 1. CHỈ ô CÓ CÂY CỎ (môi trường sống thật) mới bắt lửa.
+                        //    Ô đất trống không có gì để cháy -> chặn ngay, không tốn gì thêm.
+                        //    IsLushTile nay đòi bằng chứng khẳng định (Habitat_* / thẻ Terrain),
+                        //    nên cả ô Arid đã hứng mưa mà chưa trồng gì cũng không bắt lửa.
                         var neighborStateForFire = neighborState;
                         if (neighborStateForFire == null)
                         {
@@ -476,11 +480,16 @@ namespace LumiWorld.Acs
                         }
                         if (!neighborStateForFire.IsLushTile) continue;
 
-                        // 2. Chỉ lan trong cùng môi trường (Leafwood chỉ cháy sang Leafwood...).
-                        BiomeAffinity originAffinity =
-                            worldGenerator.MapTiles.TryGetValue(instance.origin, out var originTile) && originTile != null
-                                ? ResolveAffinity(originTile)
-                                : BiomeAffinity.None;
+                        // 2. Chỉ lan trong CÙNG MỘT môi trường (Leafwood chỉ cháy sang Leafwood...).
+                        //
+                        // Môi trường gốc được CHỐT MỘT LẦN ở SpawnDisaster và lưu vào
+                        // instance.originAffinity, KHÔNG đọc lại từ ô gốc mỗi nhịp lan.
+                        // Lý do: ô gốc bị cháy sẽ mất dấu vết môi trường (props bị ẩn, tên có thể
+                        // đổi khi TransformTile) nên suy lại sẽ ra None, và điều kiện
+                        // "None != affinity" sẽ CHẶN SẠCH mọi ô kề -> lửa chết yểu ngay nhịp đầu.
+                        // Chốt sẵn còn đảm bảo vùng cháy giữ nguyên một biome suốt vụ cháy.
+                        BiomeAffinity originAffinity = instance.originAffinity;
+                        if (originAffinity == BiomeAffinity.None) continue;
                         if (ResolveAffinity(neighborTile) != originAffinity) continue;
                     }
                     else if (!balance.AffectsBiome(instance.kind, ResolveAffinity(neighborTile)))
@@ -570,7 +579,27 @@ namespace LumiWorld.Acs
                 if (name.StartsWith("Habitat_", StringComparison.Ordinal) ||
                     name.StartsWith("ConnectorProp_", StringComparison.Ordinal))
                 {
+                    // SetActive(false) trên container đã ẩn cả cây con, nên chỉ cần tắt container.
+                    // Nhưng props rải rác (hoa cỏ, đá rêu) của hàng xóm CÓ THỂ nằm trực tiếp trên ô này
+                    // (viền nối sinh vào ô bên cạnh) -> quét thêm 1 lớp con để dọn sạch thực vật,
+                    // tránh cảnh "ô bị cháy đen mà cây vẫn còn xanh".
                     child.gameObject.SetActive(false);
+                    continue;
+                }
+
+                // Props rải trực tiếp lên ô (không nằm trong Habitat_/ConnectorProp_).
+                for (int i = 0; i < child.childCount; i++)
+                {
+                    Transform grandChild = child.GetChild(i);
+                    if (grandChild == null) continue;
+                    string grandName = grandChild.name;
+                    if (grandName.StartsWith("Habitat_", StringComparison.Ordinal) ||
+                        grandName.StartsWith("ConnectorProp_", StringComparison.Ordinal) ||
+                        grandName.StartsWith("CornerProp_", StringComparison.Ordinal) ||
+                        grandName.StartsWith("SeamBridge_", StringComparison.Ordinal))
+                    {
+                        grandChild.gameObject.SetActive(false);
+                    }
                 }
             }
         }
@@ -895,14 +924,12 @@ namespace LumiWorld.Acs
 
                     var st = pair.Value.GetComponent<TileDisasterState>();
 
-                    // QUAN TRỌNG: KHÔNG được coi "không có state" là "không Lush".
-                    // Các ô đã được biến đổi (tên có hậu tố _Transformed) từng bị mất
-                    // TileDisasterState, và cách đếm cũ đã báo nhầm "Số ô Lush: 0" dù map
-                    // có nhiều ô Lush — khiến việc chẩn đoán đi sai hướng.
-                    // Nếu chưa có state thì suy từ TÊN ô (giống ResolveAffinity).
+                    // Lush = ô CÓ CÂY CỎ thật (Habitat_* / thẻ Terrain). Ô chưa có state coi như
+                    // chưa có môi trường: hệ thống tự gắn state lên mọi ô ngay lúc Start(), còn
+                    // state hụt (ô sinh sau lúc Start) thì chỉ cần chạy lại quét là có.
                     bool lushTile = st != null
                         ? st.IsLushTile
-                        : pair.Value.name.IndexOf("arid", StringComparison.OrdinalIgnoreCase) < 0;
+                        : HexBiomeClusterConnector.GetHabitatCardOnTile(pair.Value) != null;
 
                     if (lushTile) lush++;
                     if (st == null) missingState++;
@@ -912,7 +939,7 @@ namespace LumiWorld.Acs
 
             return "[LumiWorld Disaster] Cháy rừng không thể bắt đầu: không có ô LUSH nào trống.\n" +
                 $"  • Tổng số ô trên bản đồ: {total}\n" +
-                $"  • Số ô Lush (theo tên/state): {lush}   (ô đang bận: {occupied})\n" +
+                $"  • Số ô Lush (có cây cỏ / thẻ Terrain): {lush}   (ô đang bận: {occupied})\n" +
                 $"  • Số ô THIẾU TileDisasterState: {missingState}" +
                 (missingState > 0
                     ? "  <-- BẤT THƯỜNG: các ô này sẽ không được thiên tai nhận ra. " +
@@ -920,8 +947,9 @@ namespace LumiWorld.Acs
                       "bấm 'R' để dọn, thoát Play Mode và vào lại."
                     : string.Empty) + "\n" +
                 $"  • Ví dụ tên ô hiện tại: '{sampleName}'\n" +
-                $"  • CÁCH SỬA: đặt thẻ địa hình Lush (ví dụ 'Tile_..._Lush' / thẻ Forest-Habitat) lên " +
-                $"một vài ô trước, rồi bấm F lại. Đất thô Arid (hậu tố '_Arid') KHÔNG có gì để cháy theo thiết kế.";
+                $"  • CÁCH SỬA: đặt thẻ ĐỊA HÌNH (Terrain) — ví dụ thẻ Forest/Leafwood — lên một vài ô " +
+                $"trước, rồi bấm F lại. Cháy rừng chỉ bén trên ô CÓ CÂY CỎ và chỉ lan trong cùng một môi trường; " +
+                $"ô đất trống (kể cả đã hứng mưa thành Lush nhưng chưa trồng gì) không có gì để cháy theo thiết kế.";
         }
 
         private void Update()
