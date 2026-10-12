@@ -114,6 +114,17 @@ namespace LumiWorld.Acs
         {
             if (worldGenerator == null) worldGenerator = FindAnyObjectByType<HexWorldGenerator>();
             if (balance == null) balance = Resources.Load<DisasterBalance>("DisasterBalance");
+#if UNITY_EDITOR
+            if (balance == null)
+            {
+                string[] guids = UnityEditor.AssetDatabase.FindAssets("t:DisasterBalance");
+                if (guids.Length > 0)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                    balance = UnityEditor.AssetDatabase.LoadAssetAtPath<DisasterBalance>(path);
+                }
+            }
+#endif
             if (balance != null && !balance.IsValid(out _)) balance.FillMissingRules();
 
             if (balance == null)
@@ -244,16 +255,14 @@ namespace LumiWorld.Acs
             {
                 if (pair.Value == null) continue;
                 var state = pair.Value.GetComponent<TileDisasterState>();
-                // Đã có thiên tai hoặc đã là vật cản thì bỏ qua để tránh chồng đè.
-                if (state != null && (state.hasObstacle || state.HasAnyDisaster)) continue;
+                // Đã có thiên tai, đã là vật cản, hoặc đã bị cháy thì bỏ qua để tránh chồng đè.
+                if (state != null && (state.hasObstacle || state.HasAnyDisaster || state.isBurned)) continue;
 
                 // CHÁY RỪNG: chỉ nhận ô CHẮC CHẮN Lush.
-                //
-                // Bản cũ viết `requireLushForFire && state != null && !state.IsLushTile` — điều kiện
-                // `state != null` khiến ô CHƯA có TileDisasterState (chưa được quét) LỌT QUA bộ lọc,
-                // rơi vào nhánh Mark-only của ApplyToTile rồi đứng yên vì không lan được => "cháy câm".
-                // Bộ lọc phải là điều kiện KHẲNG ĐỊNH: không chứng minh được Lush thì loại.
                 if (requireLushForFire && (state == null || !state.IsLushTile)) continue;
+
+                // ĐIỀU KIỆN SINH THÁI: Chỉ kích hoạt Cháy rừng khi cụm cây KHÔNG tiếp giáp ô Nước
+                if (requireLushForFire && ClusterTouchesWater(pair.Key)) continue;
 
                 candidates.Add(pair);
             }
@@ -264,6 +273,99 @@ namespace LumiWorld.Acs
             origin = pick.Key;
             affinity = ResolveAffinity(pick.Value);
             return true;
+        }
+
+        /// <summary>
+        /// Kiểm tra xem cụm cây/ô môi trường tại toạ độ này có tiếp giáp với bất kỳ ô Nước nào không.
+        /// Cháy rừng chỉ có thể bùng phát khi cụm cây KHÔNG tiếp giáp ô Nước.
+        /// </summary>
+        public bool ClusterTouchesWater(HexCoordinates startHex)
+        {
+            if (worldGenerator == null || worldGenerator.MapTiles == null) return false;
+
+            var visited = new HashSet<HexCoordinates>();
+            var queue = new Queue<HexCoordinates>();
+            queue.Enqueue(startHex);
+            visited.Add(startHex);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+
+                for (int dir = 0; dir < 6; dir++)
+                {
+                    HexCoordinates neighborCoord = current.GetNeighbor(dir);
+
+                    if (worldGenerator.MapTiles.TryGetValue(neighborCoord, out var neighborObj) && neighborObj != null)
+                    {
+                        if (IsWaterTile(neighborObj))
+                        {
+                            return true; // Cụm cây tiếp giáp với ô Nước!
+                        }
+
+                        // Nếu là ô cùng cụm môi trường cây xanh (Lush) và chưa duyệt qua thì mở rộng tìm kiếm
+                        if (!visited.Contains(neighborCoord))
+                        {
+                            var neighborState = neighborObj.GetComponent<TileDisasterState>();
+                            if (neighborState != null && neighborState.IsLushTile)
+                            {
+                                visited.Add(neighborCoord);
+                                queue.Enqueue(neighborCoord);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Kiểm tra ô có phải ô Nước (River, Water, Lilywater, Streamstone...) hay không.
+        /// </summary>
+        public bool IsWaterTile(GameObject tileObj)
+        {
+            if (tileObj == null) return false;
+
+            string name = tileObj.name;
+            if (name.IndexOf("water", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                name.IndexOf("river", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                name.IndexOf("ocean", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                name.IndexOf("lake", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            var state = tileObj.GetComponent<TileDisasterState>();
+            if (state != null)
+            {
+                if (state.affinity == BiomeAffinity.Lilywater ||
+                    state.affinity == BiomeAffinity.Streamstone ||
+                    state.affinity == BiomeAffinity.Reedmarsh)
+                {
+                    return true;
+                }
+            }
+
+            var placedCards = tileObj.GetComponentsInChildren<PlacedCard>();
+            for (int i = 0; i < placedCards.Length; i++)
+            {
+                var pc = placedCards[i];
+                if (pc != null && pc.cardData != null)
+                {
+                    string cName = pc.cardData.cardName;
+                    if (cName != null && (
+                        cName.IndexOf("water", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        cName.IndexOf("river", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        cName.IndexOf("lake", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        cName.IndexOf("stream", StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Suy ra môi trường của ô từ state, tên tile hoặc terrainTypeIndex.</summary>
@@ -817,15 +919,18 @@ namespace LumiWorld.Acs
 
                 if (instance.kind == DisasterKind.Obstacle) state.hasObstacle = false;
 
-                // Ô cháy hồi phục khi đám cháy kết thúc (môi trường mọc lại).
-                // isBurned chỉ được hạ khi instance cháy này thực sự hết hạn/mưa đủ.
+                // SỬA ĐỔI: Khi đám cháy rừng kết thúc:
+                // Nếu ô đã bị thiêu rụi (isBurned == true) mà chưa được dập bằng Mưa,
+                // ô đó SẼ GIỮ NGUYÊN trạng thái isBurned = true vĩnh viễn (tro tàn),
+                // cây cối bị ẩn/xóa sạch và chuyển sang màu đen tro tàn cho tới khi người chơi dùng thẻ Mưa!
                 if (instance.kind == DisasterKind.ForestFire)
                 {
-                    state.isBurned = false;
-                    // Ô vừa hồi phục không còn khô cằn. Trước đây aridity = 1 do cháy để lại
-                    // khiến IsArid vẫn true -> mưa nhỏ bị từ chối và vẫn bị tô màu khô trên một
-                    // ô đã sạch thiên tai (state thừa hưởng từ lúc bị cháy).
-                    state.aridity = 0f;
+                    if (state.isBurned)
+                    {
+                        // Giữ nguyên isBurned = true!
+                        state.aridity = 1f;
+                        SuppressHabitatOnTile(state.gameObject);
+                    }
                 }
 
                 // BarrenLand: dọn aridity KHÔNG phụ thuộc rainApplied. Trước đây nếu thiên tai
@@ -865,6 +970,35 @@ namespace LumiWorld.Acs
             if (state == null) return false;
 
             bool anyAccepted = false;
+
+            // 0. Nếu ô đang bị cháy tro tàn (isBurned), mưa sẽ dập nguội tàn tro, dọn tàn tích và phục hồi đất
+            if (state.isBurned)
+            {
+                state.isBurned = false;
+                state.aridity = 0f;
+                state.hasReceivedWater = true;
+
+                // Dọn sạch hoàn toàn các container cây cối đã chết/cháy dở trên ô
+                var own = tileObj.transform;
+                for (int i = own.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = own.GetChild(i);
+                    if (child != null && (child.name.StartsWith("Habitat_", StringComparison.Ordinal) ||
+                                          child.name.StartsWith("PlacedCard_", StringComparison.Ordinal)))
+                    {
+                        Destroy(child.gameObject);
+                    }
+                }
+
+                var tileInfo = tileObj.GetComponent<HexTileInfo>();
+                if (tileInfo != null)
+                {
+                    tileInfo.isOccupied = false;
+                }
+
+                state.RefreshVisual();
+                anyAccepted = true;
+            }
 
             // 1. Khô cằn: BẮT BUỘC mưa lớn mới thấm.
             if (state.IsArid)
@@ -1150,6 +1284,7 @@ namespace LumiWorld.Acs
             int total = 0;
             int lush = 0;
             int occupied = 0;
+            int protectedByWater = 0;
             int missingState = 0;
             string sampleName = "(trống)";
 
@@ -1163,32 +1298,31 @@ namespace LumiWorld.Acs
 
                     var st = pair.Value.GetComponent<TileDisasterState>();
 
-                    // Lush = ô CÓ CÂY CỎ thật (Habitat_* / thẻ Terrain). Ô chưa có state coi như
-                    // chưa có môi trường: hệ thống tự gắn state lên mọi ô ngay lúc Start(), còn
-                    // state hụt (ô sinh sau lúc Start) thì chỉ cần chạy lại quét là có.
                     bool lushTile = st != null
                         ? st.IsLushTile
                         : HexBiomeClusterConnector.GetHabitatCardOnTile(pair.Value) != null;
 
-                    if (lushTile) lush++;
+                    if (lushTile)
+                    {
+                        lush++;
+                        if (ClusterTouchesWater(pair.Key)) protectedByWater++;
+                    }
                     if (st == null) missingState++;
-                    if (st != null && (st.hasObstacle || st.HasAnyDisaster)) occupied++;
+                    if (st != null && (st.hasObstacle || st.HasAnyDisaster || st.isBurned)) occupied++;
                 }
             }
 
-            return "[LumiWorld Disaster] Cháy rừng không thể bắt đầu: không có ô LUSH nào trống.\n" +
+            string waterNote = protectedByWater > 0
+                ? $"  • Số ô Lush được BẢO VỆ bởi nguồn Nước tiếp giáp: {protectedByWater} (không thể bén lửa theo quy tắc sinh thái)\n"
+                : string.Empty;
+
+            return "[LumiWorld Disaster] Cháy rừng không thể bắt đầu: không có ô LUSH nào hợp lệ để bùng phát.\n" +
                 $"  • Tổng số ô trên bản đồ: {total}\n" +
-                $"  • Số ô Lush (có cây cỏ / thẻ Terrain): {lush}   (ô đang bận: {occupied})\n" +
-                $"  • Số ô THIẾU TileDisasterState: {missingState}" +
-                (missingState > 0
-                    ? "  <-- BẤT THƯỜNG: các ô này sẽ không được thiên tai nhận ra. " +
-                      "Thường do ô sinh ra từ TransformTile trước khi có bản vá tái tạo state: " +
-                      "bấm 'R' để dọn, thoát Play Mode và vào lại."
-                    : string.Empty) + "\n" +
+                $"  • Số ô Lush (có cây cỏ / thẻ Terrain): {lush}   (ô đang bận/đã cháy: {occupied})\n" +
+                waterNote +
+                $"  • Số ô THIẾU TileDisasterState: {missingState}\n" +
                 $"  • Ví dụ tên ô hiện tại: '{sampleName}'\n" +
-                $"  • CÁCH SỬA: đặt thẻ ĐỊA HÌNH (Terrain) — ví dụ thẻ Forest/Leafwood — lên một vài ô " +
-                $"trước, rồi bấm F lại. Cháy rừng chỉ bén trên ô CÓ CÂY CỎ và chỉ lan trong cùng một môi trường; " +
-                $"ô đất trống (kể cả đã hứng mưa thành Lush nhưng chưa trồng gì) không có gì để cháy theo thiết kế.";
+                $"  • QUY TẮC: Cháy rừng chỉ bùng phát trên cụm cây khô ráo KHÔNG tiếp giáp với nguồn Nước.";
         }
 
         private void Update()

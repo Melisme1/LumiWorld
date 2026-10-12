@@ -331,7 +331,54 @@ public class HexSinglePlacementController : MonoBehaviour
         // Sinh vật phẩm / hệ sinh thái Props hoặc biến đổi địa hình
         if (cardData != null)
         {
-            // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN)
+            // Kiểm tra xem có phải thẻ Mưa (Rain Card) hay không
+            bool isRainCard = cardData.cardID == "Rain" || string.Equals(cardData.cardName, "Rain", System.StringComparison.OrdinalIgnoreCase);
+            if (isRainCard)
+            {
+                var disasterState = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
+                bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
+
+                // ƯU TIÊN KIỂM TRA: Nếu ô có Disaster hoặc đang bị cháy rụi (isBurned) -> Dập lửa/chữa thiên tai bằng ApplyRain
+                if (hasDisasterOrBurned)
+                {
+                    bool applied = false;
+                    if (LumiWorld.Acs.DisasterRuntimeManager.Instance != null)
+                    {
+                        applied = LumiWorld.Acs.DisasterRuntimeManager.Instance.ApplyRain(targetTileObj, LumiWorld.Acs.DisasterRainStrength.Light);
+                    }
+                    else if (disasterState != null)
+                    {
+                        disasterState.isBurned = false;
+                        disasterState.ClearAll();
+                        disasterState.RefreshVisual();
+                        applied = true;
+                    }
+
+                    if (applied)
+                    {
+                        Debug.Log($"<color=#38BDF8>[LumiWorld Rain] Thẻ Mưa đã dập lửa / phục hồi ô {currentHoverHex} thành công!</color>");
+
+                        if (placementFee > 0)
+                        {
+                            CurrencyWallet.Instance.TrySpend(placementFee, CoinReason.PlacementFee);
+                        }
+
+                        if (ScoreCalculator.Instance != null)
+                        {
+                            ScoreCalculator.Instance.RecalculateScore();
+                        }
+
+                        LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
+                        if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var rainHabitatManager))
+                            rainHabitatManager.RefreshNow();
+
+                        CancelPreview();
+                        return true; // Tiêu hao 1 thẻ Rain và DỪNG LẠI, KHÔNG TransformTile!
+                    }
+                }
+            }
+
+            // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN TRÊN ĐẤT KHÔ ARID)
             if (cardData.IsTileTransformCard())
             {
                 placedCardInstance = TransformTile(targetTileObj, currentHoverHex, cardData);

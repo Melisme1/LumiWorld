@@ -213,11 +213,18 @@ public class HexGhostVisual : MonoBehaviour
 
         if (activeCardData != null && activeCardData.IsTileTransformCard())
         {
-            GameObject transformed = activeCardData.GetTransformedPrefab(targetTileObj);
-            if (transformed != null)
+            var disasterSt = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
+            bool hasDisaster = disasterSt != null && (disasterSt.HasAnyDisaster || disasterSt.isBurned);
+
+            // Chỉ preview mesh Lush khi ô là đất khô bình thường (không có thiên tai/cháy)
+            if (!hasDisaster)
             {
-                meshSource = transformed;
-                isTransformedPrefab = true;
+                GameObject transformed = activeCardData.GetTransformedPrefab(targetTileObj);
+                if (transformed != null)
+                {
+                    meshSource = transformed;
+                    isTransformedPrefab = true;
+                }
             }
         }
 

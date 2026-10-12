@@ -49,6 +49,58 @@ public class HexPlacementValidator : MonoBehaviour
 
         bool useHabitatRules = LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager);
 
+        // 0. Kiểm tra thẻ Mưa (Rain Card) và trạng thái thiên tai / cháy rụi (isBurned)
+        var disasterState = tileObj != null ? tileObj.GetComponent<LumiWorld.Acs.TileDisasterState>() : null;
+        bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
+        bool isRainCard = cardData != null && (cardData.cardID == "Rain" || string.Equals(cardData.cardName, "Rain", System.StringComparison.OrdinalIgnoreCase));
+
+        if (isRainCard)
+        {
+            // Nếu ô đang có thiên tai (cháy rừng, lốc xoáy, hạn hán...) hoặc đang bị cháy rụi (isBurned)
+            // -> LUÔN CHO PHÉP thả thẻ Mưa để dập lửa / dọn tàn tích phục hồi đất!
+            if (hasDisasterOrBurned)
+            {
+                lastValidationError = "";
+                return true;
+            }
+
+            // Nếu không có thiên tai, kiểm tra xem ô có phải là ô đất khô Arid cần cải tạo hay không
+            if (!cardData.IsTileTransformCard() || !cardData.IsTileAllowed(tileObj, worldGen))
+            {
+                lastValidationError = "Ô này không có thiên tai và đã tươi tốt, không cần tưới mưa";
+                return false;
+            }
+
+            // Ô đất khô đã được biến đổi trước đó thì không cho đặt thêm
+            PlacedCard[] transformCards = tileObj.GetComponentsInChildren<PlacedCard>();
+            foreach (var pc in transformCards)
+            {
+                if (pc != null && pc.cardData != null && pc.cardData.IsTileTransformCard())
+                {
+                    lastValidationError = "Ô này đã được biến đổi địa hình";
+                    return false;
+                }
+            }
+
+            lastValidationError = "";
+            return true;
+        }
+
+        // Nếu ô đang bị cháy tro tàn (isBurned), CHẶN các thẻ khác (Terrain, Creature, Building)
+        // và yêu cầu người chơi phải dùng thẻ Mưa để dọn tàn tích trước!
+        if (disasterState != null && disasterState.isBurned)
+        {
+            lastValidationError = "Ô này đang bị cháy rụi tàn tro. Cần dùng thẻ Mưa để dọn tàn tích trước!";
+            return false;
+        }
+
+        // Nếu ô đang có thiên tai hoạt động (cháy rừng, lốc xoáy...), chặn đặt thẻ thường
+        if (disasterState != null && disasterState.HasAnyDisaster)
+        {
+            lastValidationError = "Ô này đang xảy ra thiên tai, không thể đặt thẻ!";
+            return false;
+        }
+
         // 1. Phân biệt theo loại thẻ:
         if (cardData != null && cardData.cardType == CardType.Creature)
         {
