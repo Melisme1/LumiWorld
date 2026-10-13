@@ -72,6 +72,16 @@ namespace LumiWorld.Acs
         private readonly Dictionary<string, HashSet<HexCoordinates>> suppressedTiles =
             new Dictionary<string, HashSet<HexCoordinates>>();
 
+        // Theo dõi component particle theo toạ độ ô để bật/tắt khói-lửa đúng trạng thái.
+        // Key = toạ độ hex; value = component quản lý hiệu ứng của ô đó.
+        private readonly Dictionary<HexCoordinates, TileDisasterParticles> tileParticles =
+            new Dictionary<HexCoordinates, TileDisasterParticles>();
+
+        // Ô nào đang được xử lý hiệu ứng khói/lửa thuộc instance nào (để dọn khi thiên tai kết thúc).
+        // Key = instanceId; value = tập toạ độ ô đã/đang có hiệu ứng của instance đó.
+        private readonly Dictionary<string, HashSet<HexCoordinates>> particleTilesByInstance =
+            new Dictionary<string, HashSet<HexCoordinates>>();
+
         // Ô vừa bén lửa nhưng CHƯA bị phá ngay: chờ hết creationDelaySeconds mới thành ô cháy.
         // Nhờ vậy người chơi kịp thấy "ô này sắp cháy" và có thể dập bằng mưa.
         // Key = instanceId, value = fromTime (giây theo clock) -> danh sách ô.
@@ -161,6 +171,15 @@ namespace LumiWorld.Acs
 
                 if (state.affinity == BiomeAffinity.None)
                     state.affinity = ResolveAffinity(pair.Value);
+
+                // Chuẩn bị sẵn component particle cho mỗi ô (chưa bật hiệu ứng gì).
+                var fx = TileDisasterParticles.Ensure(pair.Value);
+                if (fx != null)
+                {
+                    fx.Configure(balance != null ? balance.smokeParticlePrefab : null,
+                                 balance != null ? balance.fireParticlePrefab : null);
+                    tileParticles[pair.Key] = fx;
+                }
             }
         }
 
@@ -688,6 +707,121 @@ namespace LumiWorld.Acs
         }
 
         // ------------------------------------------------------------------
+        // Hiệu ứng Particle (khói / lửa) cho ô cháy rừng
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Lấy toạ độ hex của một ô một cách chắc chắn:
+        ///  1. Từ TileDisasterState.coordinates (đã ghi sẵn ở EnsureTileDisasterStates),
+        ///  2. Nếu chưa có thì lấy từ HexTileInfo.coordinates (do HexWorldGenerator gán).
+        /// Trả về false nếu không xác định được (khi đó bỏ qua hiệu ứng particle cho ô này).
+        /// </summary>
+        private static bool TryResolveTileHex(GameObject tileObj, out HexCoordinates hex)
+        {
+            hex = default;
+            if (tileObj == null) return false;
+
+            var state = tileObj.GetComponent<TileDisasterState>();
+            if (state != null && (state.coordinates.Q != 0 || state.coordinates.R != 0))
+            {
+                hex = state.coordinates;
+                return true;
+            }
+
+            var info = tileObj.GetComponent<HexTileInfo>();
+            if (info != null)
+            {
+                hex = info.coordinates;
+                return true;
+            }
+
+            if (state != null)
+            {
+                hex = state.coordinates;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Lấy component particle của ô, tự gắn nếu thiếu (trường hợp ô sinh sau khi
+        /// EnsureTileDisasterStates đã chạy). Đồng thời nạp prefab từ balance nếu chưa có.
+        /// </summary>
+        private TileDisasterParticles GetTileParticles(GameObject tileObj, HexCoordinates hex)
+        {
+            if (tileObj == null) return null;
+
+            if (tileParticles.TryGetValue(hex, out var fx) && fx != null) return fx;
+
+            fx = TileDisasterParticles.Ensure(tileObj);
+            if (fx != null)
+            {
+                fx.Configure(balance != null ? balance.smokeParticlePrefab : null,
+                             balance != null ? balance.fireParticlePrefab : null);
+                tileParticles[hex] = fx;
+            }
+            return fx;
+        }
+
+        /// <summary>Ghi nhận ô có hiệu ứng particle thuộc một instance để dọn khi kết thúc.</summary>
+        private void TrackParticleTile(string instanceId, HexCoordinates hex)
+        {
+            if (string.IsNullOrEmpty(instanceId)) return;
+            if (!particleTilesByInstance.TryGetValue(instanceId, out var set))
+            {
+                set = new HashSet<HexCoordinates>();
+                particleTilesByInstance[instanceId] = set;
+            }
+            set.Add(hex);
+        }
+
+        /// <summary>
+        /// Bật KHÓI cho ô "sắp cháy" (đang chờ bén lửa). Đúng kịch bản: khói xuất hiện
+        /// TRƯỚC khi lửa bùng, báo hiệu cho người chơi kịp dùng mưa.
+        /// </summary>
+        private void ShowSmokeOnTile(string instanceId, HexCoordinates hex)
+        {
+            if (worldGenerator == null) return;
+            if (!worldGenerator.MapTiles.TryGetValue(hex, out var tile) || tile == null) return;
+
+            var fx = GetTileParticles(tile, hex);
+            if (fx == null) return;
+
+            fx.ShowSmokeOnly();
+            TrackParticleTile(instanceId, hex);
+        }
+
+        /// <summary>Bật KHÓI + LỬA cho ô đã bén lửa thật (đã cháy).</summary>
+        private void ShowFireOnTile(string instanceId, GameObject tileObj)
+        {
+            if (tileObj == null) return;
+            if (!TryResolveTileHex(tileObj, out var hex)) return;
+
+            var fx = GetTileParticles(tileObj, hex);
+            if (fx == null) return;
+
+            fx.ShowSmokeAndFire();
+            TrackParticleTile(instanceId, hex);
+        }
+
+        /// <summary>Tắt và hủy hiệu ứng particle của một ô (mưa dập hoặc dọn dẹp).</summary>
+        private void ClearParticlesOnTile(HexCoordinates hex)
+        {
+            if (tileParticles.TryGetValue(hex, out var fx) && fx != null)
+                fx.ClearAll();
+        }
+
+        /// <summary>Tắt và hủy mọi hiệu ứng particle của một đám cháy (khi kết thúc).</summary>
+        private void ClearParticlesForInstance(string instanceId)
+        {
+            if (particleTilesByInstance.TryGetValue(instanceId, out var set))
+            {
+                foreach (var hex in set) ClearParticlesOnTile(hex);
+                particleTilesByInstance.Remove(instanceId);
+            }
+        }
+
+        // ------------------------------------------------------------------
         // Ô chờ bén lửa + ô đã bị mưa dập (cháy rừng)
         // ------------------------------------------------------------------
 
@@ -703,6 +837,10 @@ namespace LumiWorld.Acs
             }
             if (queue.ContainsKey(hex)) return;
             queue[hex] = clock.NowSeconds;
+
+            // Ô "sắp cháy": bật KHÓI ngay (báo hiệu trước), chưa có lửa.
+            // Đây là kịch bản cốt lõi: khói xuất hiện TRƯỚC khi lửa bùng.
+            ShowSmokeOnTile(instance.instanceId, hex);
         }
 
         private int CountPendingFire(string instanceId)
@@ -764,6 +902,9 @@ namespace LumiWorld.Acs
 
             // Nếu ô đang trong hàng đợi chờ cháy -> rút ra luôn.
             if (pendingFire.TryGetValue(instanceId, out var queue)) queue.Remove(hex);
+
+            // Mưa dập: tắt và hủy hiệu ứng khói/lửa tại ô này.
+            ClearParticlesOnTile(hex);
 
             // Nếu ô đã cháy -> hồi phục cờ trên ô, như bình thường khi cháy bị dập.
             if (worldGenerator != null && worldGenerator.MapTiles.TryGetValue(hex, out var tile) && tile != null)
@@ -833,6 +974,9 @@ namespace LumiWorld.Acs
                 // nên ô vừa bắt lửa vẫn giữ màu "chưa cháy" tới tận nhịp lan kế tiếp
                 // (spreadIntervalSeconds = 4s) => nhìn như cháy rừng không đổi màu ô.
                 burned.RefreshVisual();
+
+                // Ô đã bén lửa thật: bật KHÓI + LỬA (khói đã bật từ lúc chờ, lửa mới xuất hiện).
+                ShowFireOnTile(instance.instanceId, tileObj);
             }
 
             // Ẩn môi trường (props hệ sinh thái) của ô bị cháy.
@@ -950,6 +1094,7 @@ namespace LumiWorld.Acs
             }
 
             ClearVisuals(instance);
+            ClearParticlesForInstance(instance.instanceId);
 
             disasters.Remove(instance.instanceId);
             activeList.Remove(instance);
@@ -985,6 +1130,9 @@ namespace LumiWorld.Acs
                 state.isBurned = false;
                 state.aridity = 0f;
                 state.hasReceivedWater = true;
+
+                // Tắt hiệu ứng khói/lửa còn sót trên ô tro tàn.
+                ClearParticlesOnTile(state.coordinates);
 
                 // Dọn sạch hoàn toàn các container cây cối đã chết/cháy dở trên ô
                 var own = tileObj.transform;
@@ -1225,6 +1373,13 @@ namespace LumiWorld.Acs
             // không còn trong activeList nhưng entry vẫn sót.
             pendingFire.Clear();
             suppressedTiles.Clear();
+
+            // Tắt mọi hiệu ứng particle khói/lửa còn sót lại trên bản đồ.
+            foreach (var fx in tileParticles.Values)
+            {
+                if (fx != null) fx.ClearAll();
+            }
+            particleTilesByInstance.Clear();
 
             // Quét thêm mọi ô còn sót dấu vết (thiên tai đã tự tắt trước đó, hoặc ô đã bị ẩn)
             // để bấm R luôn trả bản đồ về trạng thái sạch.

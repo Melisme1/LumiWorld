@@ -79,6 +79,15 @@ namespace LumiWorld.Acs
         [Tooltip("Prefab hiển thị vật cản (đá, gỗ mục...). Để trống thì dùng khối debug để vẫn nhìn thấy.")]
         public GameObject obstaclePrefab;
 
+        [Header("Hiệu ứng Particle (Khói / Lửa)")]
+        [Tooltip("Prefab particle KHÓI. Dùng cho ô 'sắp cháy' (đang chờ bén lửa) và ô đang cháy. " +
+                 "Để trống thì bỏ qua hiệu ứng khói (logic thiên tai vẫn chạy bình thường).")]
+        public GameObject smokeParticlePrefab;
+
+        [Tooltip("Prefab particle LỬA. Chỉ dùng khi ô đã bén lửa thật (đã cháy). " +
+                 "Để trống thì bỏ qua hiệu ứng lửa.")]
+        public GameObject fireParticlePrefab;
+
         [Header("Ràng buộc theo môi trường")]
         [Tooltip("Quy tắc riêng cho từng loại thiên tai. Loại không có mặt ở đây dùng mặc định an toàn.")]
         public List<DisasterRule> rules = new List<DisasterRule>();

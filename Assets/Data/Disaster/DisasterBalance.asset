@@ -18,6 +18,8 @@ MonoBehaviour:
   maxConcurrentDisasters: 3
   obstacleWeight: 3
   obstaclePrefab: {fileID: 0}
+  smokeParticlePrefab: {fileID: 2053766892246738088, guid: 0e0b98309af35264db70a63113917190, type: 3}
+  fireParticlePrefab: {fileID: 3111162532563435348, guid: 9d69dcc9d5319b24f88d7ad46f5e5fe3, type: 3}
   rules:
   - kind: 0
     weight: 0
