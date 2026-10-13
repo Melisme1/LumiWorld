@@ -31,11 +31,11 @@ namespace LumiWorld.Acs
         [SerializeField] private Camera targetCamera;
 
         [Header("Banner")]
-        [SerializeField] private float bannerPixelHeight = 44f;
+        [SerializeField] private float bannerPixelHeight = 88f;
         [Tooltip("Khoảng cách thụt xuống so với cạnh trên màn hình.")]
         [SerializeField] private float bannerTopMargin = 8f;
         [Tooltip("Bề ngang banner (px). Thẻ chỉ hướng thu về đúng bề ngang này khi dạt ra mép.")]
-        [SerializeField] private float bannerWidth = 430f;
+        [SerializeField] private float bannerWidth = 860f;
 
         [Header("Thẻ chỉ hướng (khi vùng thiên tai ngoài khung nhìn)")]
         [Tooltip("Khoảng cách tối thiểu từ mép màn hình (px) để thẻ không bị cắt.")]
@@ -52,8 +52,8 @@ namespace LumiWorld.Acs
         [SerializeField] private bool showWorldTag = true;
         [Tooltip("Độ nâng của thẻ so với tâm ô (mét) để thẻ không đè lên khối hex.")]
         [SerializeField] private float worldTagHeightOffset = 1.6f;
-        [SerializeField] private float worldTagWidth = 210f;
-        [SerializeField] private float worldTagHeight = 34f;
+        [SerializeField] private float worldTagWidth = 420f;
+        [SerializeField] private float worldTagHeight = 64f;
 
         [Header("Vòng highlight")]
         [SerializeField] private float highlightRadius = 0.55f;
@@ -207,7 +207,7 @@ namespace LumiWorld.Acs
             BuildWarningIcon(bannerIconRoot);
 
             // Chữ chính.
-            bannerText = CreateLabel("Text", bannerRoot, 18f, FontStyles.Normal);
+            bannerText = CreateLabel("Text", bannerRoot, 36f, FontStyles.Normal);
             bannerText.alignment = TextAlignmentOptions.Left;
             var textRect = (RectTransform)bannerText.transform;
             textRect.anchorMin = new Vector2(0f, 0f);
@@ -216,7 +216,7 @@ namespace LumiWorld.Acs
             textRect.offsetMax = new Vector2(-96f, 0f);
 
             // Khoảng cách (chỉ hiện khi vùng thiên tai ở ngoài khung nhìn).
-            distanceText = CreateLabel("Distance", bannerRoot, 15f, FontStyles.Bold);
+            distanceText = CreateLabel("Distance", bannerRoot, 30f, FontStyles.Bold);
             distanceText.alignment = TextAlignmentOptions.Right;
             var distRect = (RectTransform)distanceText.transform;
             distRect.anchorMin = new Vector2(1f, 0f);
@@ -355,7 +355,7 @@ namespace LumiWorld.Acs
             worldTagAccentBar = accent.gameObject.AddComponent<Image>();
             worldTagAccentBar.raycastTarget = false;
 
-            worldTagText = CreateLabel("Text", worldTagRoot, 14f, FontStyles.Bold);
+            worldTagText = CreateLabel("Text", worldTagRoot, 28f, FontStyles.Bold);
             worldTagText.alignment = TextAlignmentOptions.Center;
             var textRect = (RectTransform)worldTagText.transform;
             textRect.anchorMin = Vector2.zero;
@@ -724,7 +724,7 @@ namespace LumiWorld.Acs
         {
             switch (kind)
             {
-                case DisasterKind.ForestFire: return "Dùng thẻ MƯA dập lửa để cứu ô";
+                case DisasterKind.ForestFire: return "Dùng thẻ MƯA dập lửa để cứu ô trước khi nó lan rộng hơn";
                 case DisasterKind.Cyclone: return "Mưa lớn nhiều ô để dập bão";
                 case DisasterKind.Drought: return "Dùng mưa để chấm dứt hạn hán";
                 case DisasterKind.BarrenLand: return "Cần MƯA LỚN (mưa nhỏ không thấm)";

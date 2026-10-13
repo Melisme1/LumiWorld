@@ -32,6 +32,9 @@ namespace LumiWorld.Acs
                  "so với gốc/chân khối.")]
         [SerializeField] private float heightOffset = 0.12f;
 
+        [Tooltip("Độ nâng bổ sung riêng cho lửa để các hạt ở rìa không bị thành ô hex che khuất.")]
+        [SerializeField] private float fireHeightOffset = 0.55f;
+
         [Tooltip("Nếu bật: tự căn lại vị trí/scale particle theo bề rộng ô mỗi khi bật (ô đổi kích thước).")]
         [SerializeField] private bool autoFitOnEnable = true;
 
@@ -132,10 +135,21 @@ namespace LumiWorld.Acs
         private void EnsureFire()
         {
             if (fireSystem != null) return;
-            fireSystem = SpawnPrefab(firePrefab, "DisasterFire");
+            fireSystem = SpawnPrefab(firePrefab, "DisasterFire", fireHeightOffset);
+            if (fireSystem != null)
+            {
+                var renderer = fireSystem.GetComponent<ParticleSystemRenderer>();
+                if (renderer != null)
+                {
+                    // Giữ hiệu ứng dễ thấy khi camera lùi xa và không cho occlusion culling
+                    // làm mất các phần của đám lửa nằm sát phía sau hình học đảo.
+                    renderer.allowOcclusionWhenDynamic = false;
+                    renderer.minParticleSize = 0.012f;
+                }
+            }
         }
 
-        private ParticleSystem SpawnPrefab(GameObject prefab, string fallbackName)
+        private ParticleSystem SpawnPrefab(GameObject prefab, string fallbackName, float extraHeight = 0f)
         {
             if (prefab == null) return null;
 
@@ -146,7 +160,7 @@ namespace LumiWorld.Acs
             // Mỗi tầng địa hình có mặt trên cao khác nhau (Thấp 1.00 / Trung 1.80 / Cao 2.60
             // tính từ gốc khối), nên phải hỏi độ cao thật của ô thay vì dùng hằng số.
             // Particle được sinh dưới transform của ô nên localPosition là hệ toạ độ ô.
-            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset, 0f);
+            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset + extraHeight, 0f);
             go.transform.position = transform.TransformPoint(localAnchor);
 
             // Trục Y của particle phải thẳng đứng THEO THẾ GIỚI, không được kế thừa độ nghiêng
@@ -205,7 +219,10 @@ namespace LumiWorld.Acs
             particleTransform.localScale = new Vector3(fit, fit, fit);
 
             // Giữ vị trí neo đúng trên mặt khối hex mỗi lần căn lại.
-            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset, 0f);
+            float extraHeight = fireSystem != null && particleTransform == fireSystem.transform
+                ? fireHeightOffset
+                : 0f;
+            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset + extraHeight, 0f);
             particleTransform.position = transform.TransformPoint(localAnchor);
 
             // Ép thẳng đứng theo thế giới (bù rotation nghiêng của ô hex cha) sau mỗi lần căn lại.
