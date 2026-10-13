@@ -23,6 +23,8 @@ MonoBehaviour:
   rules:
   - kind: 4
     enabled: 1
+    rainCanCure: 1
+    spawnByTime: 1
     weight: 1
     restrictToBiomes: 1
     affectedBiomes: 0200000001000000
@@ -34,7 +36,9 @@ MonoBehaviour:
     harvestSpeedMultiplier: 0
   - kind: 3
     enabled: 1
-    weight: 0
+    rainCanCure: 0
+    spawnByTime: 1
+    weight: 0.8
     restrictToBiomes: 0
     affectedBiomes: 
     spreadRadius: 2
@@ -45,6 +49,8 @@ MonoBehaviour:
     harvestSpeedMultiplier: 0.22
   - kind: 2
     enabled: 1
+    rainCanCure: 1
+    spawnByTime: 1
     weight: 1.2
     restrictToBiomes: 1
     affectedBiomes: 020000000100000003000000

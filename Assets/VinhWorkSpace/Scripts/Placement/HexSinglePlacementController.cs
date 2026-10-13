@@ -358,6 +358,9 @@ public class HexSinglePlacementController : MonoBehaviour
 
                     if (applied)
                     {
+                        if (LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainManager))
+                            rainManager.RegisterRainCardUse();
+
                         Debug.Log($"<color=#38BDF8>[LumiWorld Rain] Thẻ Mưa đã dập lửa / phục hồi ô {currentHoverHex} thành công!</color>");
 
                         if (placementFee > 0)
@@ -485,6 +488,10 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 CurrencyWallet.Instance.TrySpend(placementFee, CoinReason.PlacementFee);
             }
+
+            // Rain được tính khi dùng thành công trên đất, kể cả khi không có disaster để chữa.
+            if (isRainCard && LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainCardManager))
+                rainCardManager.RegisterRainCardUse();
         }
 
         CancelPreview();

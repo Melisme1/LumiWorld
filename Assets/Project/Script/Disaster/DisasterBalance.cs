@@ -14,6 +14,10 @@ namespace LumiWorld.Acs
         public DisasterKind kind = DisasterKind.Obstacle;
         [Tooltip("Bỏ chọn để tắt loại disaster này khỏi spawn tự động. Bật lại được mà không cần tạo lại rule.")]
         public bool enabled = true;
+        [Tooltip("Tắt tùy chọn này để Rain không chữa/xóa disaster; disaster sẽ kết thúc theo Duration Seconds.")]
+        public bool rainCanCure = true;
+        [Tooltip("Cho phép loại disaster này được chọn trong lịch spawn tự động theo thời gian.")]
+        public bool spawnByTime = true;
         [Min(0f)] public float weight = 1f;
 
         [Tooltip("Bật: chỉ được spawn trên ô có affinity nằm trong affectedBiomes. Tắt: mọi môi trường.")]
@@ -137,6 +141,12 @@ namespace LumiWorld.Acs
             return rule != null ? Mathf.Max(1, rule.rainToCure) : defaultRainToCure;
         }
 
+        public bool CanBeCuredByRain(DisasterKind kind)
+        {
+            var rule = GetRule(kind);
+            return rule == null || rule.rainCanCure;
+        }
+
         public float ResolveHarvestMultiplier(DisasterKind kind)
         {
             if (!DisasterCatalog.BlocksHarvest(kind)) return 1f;
@@ -170,7 +180,7 @@ namespace LumiWorld.Acs
             {
                 if (weight <= 0f) return;
                 var rule = GetRule(kind);
-                if (rule == null || !rule.enabled) return;
+                if (rule == null || !rule.enabled || !rule.spawnByTime) return;
                 if (affinity != BiomeAffinity.None && rule.restrictToBiomes && !rule.AffectsBiome(affinity)) return;
                 pool.Add(kind);
                 weights.Add(weight);
@@ -183,7 +193,7 @@ namespace LumiWorld.Acs
                 foreach (var rule in rules)
                 {
                     if (rule == null) continue;
-                    if (rule.kind == DisasterKind.Obstacle || rule.kind == DisasterKind.Cyclone) continue;
+                    if (rule.kind == DisasterKind.Obstacle) continue;
                     consider(rule.kind, rule.weight);
                 }
             }
@@ -271,6 +281,7 @@ namespace LumiWorld.Acs
 
                 case DisasterKind.Cyclone:
                     rule.weight = 0f; // chỉ sinh khi mưa vượt ngưỡng
+                    rule.spawnByTime = false;
                     rule.spreadRadius = 2;
                     rule.spreadIntervalSeconds = 5f;
                     rule.maxTiles = 7;
