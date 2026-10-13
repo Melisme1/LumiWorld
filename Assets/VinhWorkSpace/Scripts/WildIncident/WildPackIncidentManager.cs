@@ -364,6 +364,8 @@ public class WildPackIncidentManager : MonoBehaviour
         {
             if (obj != null)
             {
+                var moveAI = obj.GetComponent<AnimalMovementAI>();
+                if (moveAI != null) moveAI.enabled = false;
                 startScales[obj] = obj.transform.localScale;
                 startPositions[obj] = obj.transform.position;
             }
@@ -557,7 +559,7 @@ public class WildPackIncidentManager : MonoBehaviour
 
         if (camController != null)
         {
-            camController.FocusOnTarget(alphaPosition, targetDistance: 10.5f, duration: 1.25f);
+            camController.FocusOnTarget(alphaPosition, targetDistance: 5.2f, duration: 1.3f);
         }
     }
 }

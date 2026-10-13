@@ -89,6 +89,13 @@ public class WildAlphaInteractable : MonoBehaviour
 
         OnAlphaClicked?.Invoke(associatedIncident);
         ShowInspectionModal();
+
+        // Tạm dừng bước chân để người chơi dễ quan sát thú khi bảng thông tin mở
+        var moveAI = GetComponent<AnimalMovementAI>();
+        if (moveAI != null)
+        {
+            moveAI.InterruptWandering();
+        }
     }
 
     /// <summary>
@@ -132,11 +139,11 @@ public class WildAlphaInteractable : MonoBehaviour
         Button bgBtn = backdrop.AddComponent<Button>();
         bgBtn.onClick.AddListener(CloseModal);
 
-        // 2. Khung Bảng Thông Tin Chính (Parchment Card)
+        // 2. Khung Bảng Thông Tin Chính (Parchment Card - Kích thước lớn 720x600 chuẩn tỷ lệ màn hình)
         GameObject panel = new GameObject("PanelCard");
         panel.transform.SetParent(activeModalCanvasObj.transform, false);
         RectTransform panelRect = panel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(560f, 480f);
+        panelRect.sizeDelta = new Vector2(850f, 680f);
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.anchoredPosition = Vector2.zero;
@@ -157,43 +164,29 @@ public class WildAlphaInteractable : MonoBehaviour
             outline.effectDistance = new Vector2(2f, -2f);
         }
 
-        // 3. Header: Nhãn phụ & Tiêu đề chính
-        GameObject badgeObj = new GameObject("HeaderBadge");
-        badgeObj.transform.SetParent(panel.transform, false);
-        RectTransform badgeRect = badgeObj.AddComponent<RectTransform>();
-        badgeRect.sizeDelta = new Vector2(400f, 20f);
-        badgeRect.anchoredPosition = new Vector2(0f, 198f);
-        TextMeshProUGUI badgeText = badgeObj.AddComponent<TextMeshProUGUI>();
-        if (fontAsset != null) badgeText.font = fontAsset;
-        badgeText.text = "SỰ CỐ ĐẢO HOANG";
-        badgeText.fontSize = 11;
-        badgeText.fontStyle = FontStyles.Bold;
-        badgeText.characterSpacing = 2.5f;
-        badgeText.alignment = TextAlignmentOptions.Center;
-        badgeText.color = skin != null ? skin.gold : new Color(0.78f, 0.68f, 0.47f, 1f);
-
+        // 3. Header: Tiêu đề chính thanh thoát
         GameObject titleObj = new GameObject("Title");
         titleObj.transform.SetParent(panel.transform, false);
         RectTransform titleRect = titleObj.AddComponent<RectTransform>();
-        titleRect.sizeDelta = new Vector2(460f, 32f);
-        titleRect.anchoredPosition = new Vector2(0f, 172f);
+        titleRect.sizeDelta = new Vector2(700f, 44f);
+        titleRect.anchoredPosition = new Vector2(0f, 275f);
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) titleText.font = fontAsset;
         titleText.text = "Thú Đầu Đàn Xuất Hiện";
-        titleText.fontSize = 23;
+        titleText.fontSize = 28f;
         titleText.fontStyle = FontStyles.Bold;
         titleText.alignment = TextAlignmentOptions.Center;
-        titleText.color = skin != null ? skin.forest : new Color(0.26f, 0.36f, 0.27f, 1f);
+        titleText.color = skin != null ? skin.forest : new Color(0.24f, 0.35f, 0.25f, 1f);
 
         // Nút đóng tròn góc trên bên phải
-        CreateCloseButton(panel.transform, new Vector2(242f, 192f), new Vector2(34f, 34f), skin, fontAsset, CloseModal);
+        CreateCloseButton(panel.transform, new Vector2(382f, 282f), new Vector2(42f, 42f), skin, fontAsset, CloseModal);
 
         // 4. Khung Chứa Nội Dung (Surface Inset)
         GameObject insetObj = new GameObject("ContentInset");
         insetObj.transform.SetParent(panel.transform, false);
         RectTransform insetRect = insetObj.AddComponent<RectTransform>();
-        insetRect.sizeDelta = new Vector2(504f, 268f);
-        insetRect.anchoredPosition = new Vector2(0f, 10f);
+        insetRect.sizeDelta = new Vector2(770f, 440f);
+        insetRect.anchoredPosition = new Vector2(0f, 15f);
 
         Image insetImg = insetObj.AddComponent<Image>();
         if (skin != null && skin.surfaceInset != null)
@@ -213,106 +206,120 @@ public class WildAlphaInteractable : MonoBehaviour
         AnimalRank alphaRank = associatedIncident != null ? associatedIncident.AlphaRank : AnimalRank.Common;
         string rankTitle = GetRankDisplayName(alphaRank);
         string hostBiome = associatedIncident?.HostCluster != null ? associatedIncident.HostCluster.BiomeName : "Đất Hoang";
-        int hexCount = associatedIncident?.HostCluster != null ? associatedIncident.HostCluster.HexCount : 3;
 
         GameObject creatureInfoObj = new GameObject("CreatureInfo");
         creatureInfoObj.transform.SetParent(insetObj.transform, false);
         RectTransform creatureInfoRect = creatureInfoObj.AddComponent<RectTransform>();
-        creatureInfoRect.sizeDelta = new Vector2(464f, 66f);
-        creatureInfoRect.anchoredPosition = new Vector2(0f, 82f);
+        creatureInfoRect.sizeDelta = new Vector2(720f, 65f);
+        creatureInfoRect.anchoredPosition = new Vector2(0f, 155f);
 
         TextMeshProUGUI creatureInfoText = creatureInfoObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) creatureInfoText.font = fontAsset;
-        creatureInfoText.fontSize = 15;
-        creatureInfoText.lineSpacing = 10f;
+        creatureInfoText.fontSize = 22f;
+        creatureInfoText.lineSpacing = 6f;
         creatureInfoText.alignment = TextAlignmentOptions.Center;
-        creatureInfoText.color = skin != null ? skin.forest : new Color(0.26f, 0.36f, 0.27f, 1f);
+        creatureInfoText.color = skin != null ? skin.forest : new Color(0.24f, 0.35f, 0.25f, 1f);
         creatureInfoText.text =
-            $"<size=20><b>{speciesName}</b></size>   <size=13><color=#8C651E><b>[{rankTitle}]</b></color></size>\n" +
-            $"<size=13.5><color=#455947>Địa bàn chiếm giữ: Cụm <b>{hostBiome}</b> ({hexCount} ô lục giác)</color></size>";
+            $"<b>{speciesName} Đầu Đàn</b>\n" +
+            $"<size=16><color=#854D0E><b>{rankTitle}</b></color>  •  <color=#4B5563>Cụm {hostBiome}</color></size>";
 
-        // B. Hộp Cảnh Báo Phong Tỏa (Phần giữa inset)
+        // B. Hộp Cảnh Báo Phong Tỏa & Hướng Dẫn Tự Nhiên (Phần giữa inset)
         GameObject alertCardObj = new GameObject("AlertCard");
         alertCardObj.transform.SetParent(insetObj.transform, false);
         RectTransform alertCardRect = alertCardObj.AddComponent<RectTransform>();
-        alertCardRect.sizeDelta = new Vector2(464f, 86f);
-        alertCardRect.anchoredPosition = new Vector2(0f, -8f);
+        alertCardRect.sizeDelta = new Vector2(710f, 210f);
+        alertCardRect.anchoredPosition = new Vector2(0f, -10f);
 
         Image alertCardImg = alertCardObj.AddComponent<Image>();
-        alertCardImg.color = new Color(0.99f, 0.94f, 0.92f, 0.95f);
+        alertCardImg.color = new Color(0.96f, 0.94f, 0.90f, 0.95f);
         Outline alertOutline = alertCardObj.AddComponent<Outline>();
-        alertOutline.effectColor = new Color(0.88f, 0.55f, 0.50f, 0.40f);
+        alertOutline.effectColor = new Color(0.76f, 0.70f, 0.58f, 0.85f);
         alertOutline.effectDistance = new Vector2(1f, -1f);
 
-        GameObject alertTextObj = new GameObject("AlertText");
+        // Header thẻ tác động
+        GameObject alertHeaderObj = new GameObject("AlertHeader");
+        alertHeaderObj.transform.SetParent(alertCardObj.transform, false);
+        RectTransform alertHeaderRect = alertHeaderObj.AddComponent<RectTransform>();
+        alertHeaderRect.sizeDelta = new Vector2(650f, 28f);
+        alertHeaderRect.anchoredPosition = new Vector2(0f, 68f);
+        TextMeshProUGUI alertHeaderText = alertHeaderObj.AddComponent<TextMeshProUGUI>();
+        if (fontAsset != null) alertHeaderText.font = fontAsset;
+        alertHeaderText.text = "Khu Vực Bị Phong Tỏa";
+        alertHeaderText.fontSize = 17.5f;
+        alertHeaderText.fontStyle = FontStyles.Bold;
+        alertHeaderText.alignment = TextAlignmentOptions.TopLeft;
+        alertHeaderText.color = new Color(0.75f, 0.22f, 0.12f, 1f);
+
+        // Nội dung chi tiết - viết tự nhiên, không ký hiệu thừa
+        GameObject alertTextObj = new GameObject("AlertBody");
         alertTextObj.transform.SetParent(alertCardObj.transform, false);
         RectTransform alertTextRect = alertTextObj.AddComponent<RectTransform>();
-        alertTextRect.anchorMin = Vector2.zero;
-        alertTextRect.anchorMax = Vector2.one;
-        alertTextRect.offsetMin = new Vector2(14f, 8f);
-        alertTextRect.offsetMax = new Vector2(-14f, -8f);
+        alertTextRect.sizeDelta = new Vector2(650f, 130f);
+        alertTextRect.anchoredPosition = new Vector2(0f, -18f);
 
-        int minionCount = associatedIncident?.SatelliteClusters != null ? associatedIncident.SatelliteClusters.Count : 0;
         TextMeshProUGUI alertText = alertTextObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) alertText.font = fontAsset;
-        alertText.fontSize = 13.5f;
-        alertText.lineSpacing = 13f;
-        alertText.color = new Color(0.22f, 0.22f, 0.20f, 1f);
+        alertText.fontSize = 16f;
+        alertText.lineSpacing = 6f;
+        alertText.color = new Color(0.20f, 0.24f, 0.22f, 1f);
         alertText.alignment = TextAlignmentOptions.TopLeft;
         alertText.text =
-            $"<color=#B91C1C><b>⚠️ Tác động phong tỏa:</b></color>\n" +
-            $"• Đóng băng <color=#B91C1C><b>100%</b></color> sản xuất tại Cụm Đầu Đàn.\n" +
-            $"• Có <b>{minionCount}</b> thú con quấy rối cụm vệ tinh (-30% tốc độ).";
+            $"Đàn thú đang chiếm giữ cụm <b>{hostBiome}</b>, khiến các ô đất tạm ngừng sinh tài nguyên.\n\n" +
+            $"Hãy thuần hóa để giải phóng hòn đảo và nhận thẻ thú vào bộ bài!";
 
-        // C. Lời khuyên hướng dẫn (Phần dưới inset)
-        GameObject hintObj = new GameObject("HintText");
-        hintObj.transform.SetParent(insetObj.transform, false);
-        RectTransform hintRect = hintObj.AddComponent<RectTransform>();
-        hintRect.sizeDelta = new Vector2(464f, 26f);
-        hintRect.anchoredPosition = new Vector2(0f, -88f);
-
-        TextMeshProUGUI hintText = hintObj.AddComponent<TextMeshProUGUI>();
-        if (fontAsset != null) hintText.font = fontAsset;
-        hintText.text = "Hãy thuần hóa để nhận Thẻ Thú vào tay và khôi phục sản xuất của đảo!";
-        hintText.fontSize = 12.5f;
-        hintText.fontStyle = FontStyles.Italic;
-        hintText.alignment = TextAlignmentOptions.Center;
-        hintText.color = skin != null ? skin.muted : new Color(0.45f, 0.45f, 0.39f, 1f);
-
-        // 5. Nút Bấm Hành Động (Bottom Actions)
-        // Nút Xanh: Thuần Hóa (Lấy Thẻ)
+        // 5. Nút Bấm Hành Động (Bottom Actions - 2 nút lớn 310x56px cân đối, sang trọng)
+        // Nút Xanh: Thuần Hóa
         CreateActionButton(
             panel.transform,
             "TameButton",
-            new Vector2(-126f, -180f),
-            new Vector2(226f, 48f),
+            new Vector2(-175f, -255f),
+            new Vector2(310f, 56f),
             skin != null ? skin.buttonPrimary : null,
             skin != null ? skin.buttonPPU : 8f,
-            new Color(0.26f, 0.58f, 0.33f, 1f),
-            "Thuần Hóa (Lấy Thẻ)",
+            new Color(0.24f, 0.52f, 0.30f, 1f),
+            "Thuần Hóa",
             fontAsset,
             skin != null ? skin.ivory : Color.white,
             () => {
                 CloseModal();
-                if (WildPackIncidentManager.Instance != null && associatedIncident != null)
+                if (associatedIncident != null)
                 {
-                    WildPackIncidentManager.Instance.OnAlphaInteracted(associatedIncident);
+                    var context = new MinigameContext
+                    {
+                        SpeciesName = GetSpeciesDisplayName(),
+                        Rank = associatedIncident.AlphaRank,
+                        BiomeName = associatedIncident.HostCluster != null ? associatedIncident.HostCluster.BiomeName : "Đất Hoang",
+                        CreatureCard = associatedIncident.AlphaCreatureCard,
+                        Incident = associatedIncident,
+                        TimeLimitSeconds = 24f
+                    };
+
+                    MinigameManager.Instance.StartMinigame(MinigameType.RhythmResonance, context, (result) =>
+                    {
+                        if (result != null && result.IsSuccess)
+                        {
+                            if (WildPackIncidentManager.Instance != null && associatedIncident != null)
+                            {
+                                WildPackIncidentManager.Instance.OnAlphaInteracted(associatedIncident);
+                            }
+                        }
+                    });
                 }
             }
         );
 
-        // Nút Cát/Gỗ: Giữ Lại (Chỉ Ngắm)
+        // Nút Cát/Gỗ: Để Lại
         CreateActionButton(
             panel.transform,
             "ObserveButton",
-            new Vector2(126f, -180f),
-            new Vector2(226f, 48f),
+            new Vector2(175f, -255f),
+            new Vector2(310f, 56f),
             skin != null ? skin.buttonSecondary : null,
             skin != null ? skin.buttonPPU : 8f,
             new Color(0.88f, 0.85f, 0.78f, 1f),
-            "Giữ Lại (Chỉ Ngắm)",
+            "Để Lại",
             fontAsset,
-            skin != null ? skin.forest : new Color(0.26f, 0.36f, 0.27f, 1f),
+            skin != null ? skin.forest : new Color(0.24f, 0.35f, 0.25f, 1f),
             CloseModal
         );
     }
@@ -357,7 +364,7 @@ public class WildAlphaInteractable : MonoBehaviour
         TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
         if (font != null) tmp.font = font;
         tmp.text = label;
-        tmp.fontSize = 15;
+        tmp.fontSize = 18;
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = textColor;
@@ -462,11 +469,11 @@ public class WildAlphaInteractable : MonoBehaviour
     {
         return rank switch
         {
-            AnimalRank.Common => "Cấp 1 • Phổ thông",
-            AnimalRank.Uncommon => "Cấp 2 • Hảo hạng",
-            AnimalRank.Rare => "Cấp 3 • Quý hiếm",
-            AnimalRank.Epic => "Cấp 4 • Sử thi",
-            AnimalRank.Legendary => "Cấp 5 • Huyền thoại",
+            AnimalRank.Common => "Cấp 1 - Phổ thông",
+            AnimalRank.Uncommon => "Cấp 2 - Hảo hạng",
+            AnimalRank.Rare => "Cấp 3 - Quý hiếm",
+            AnimalRank.Epic => "Cấp 4 - Sử thi",
+            AnimalRank.Legendary => "Cấp 5 - Huyền thoại",
             _ => $"Cấp {(int)rank}"
         };
     }

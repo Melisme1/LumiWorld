@@ -131,19 +131,12 @@ public class WildCreatureVisuals : MonoBehaviour
     /// </summary>
     private void ApplyRedCreatureMaterials()
     {
-        // 1. Tắt và gỡ bỏ hoàn toàn các AI nội địa & enhancer của thú nuôi để thú hoang đứng uy nghi tại chỗ
+        // 1. Tắt và dọn dẹp các AI sản xuất / kịch bản nông trại của thú nuôi
         FarmAnimalAI farmAI = GetComponent<FarmAnimalAI>();
         if (farmAI != null)
         {
             farmAI.enabled = false;
             Destroy(farmAI);
-        }
-
-        AnimalMovementAI moveAI = GetComponent<AnimalMovementAI>();
-        if (moveAI != null)
-        {
-            moveAI.enabled = false;
-            Destroy(moveAI);
         }
 
         AnimalIndividual individual = GetComponent<AnimalIndividual>();
@@ -162,34 +155,20 @@ public class WildCreatureVisuals : MonoBehaviour
         Transform crest = transform.Find("Runtime_OverheadCrest");
         if (crest != null) Destroy(crest.gameObject);
 
-        // Phát animation Idle tự nhiên nếu có Animation component
-        Animation anim = GetComponentInChildren<Animation>();
-        if (anim != null)
+        // Kích hoạt AI di chuyển tự nhiên cho thú hoang trong khu vực lãnh thổ của chúng
+        AnimalMovementAI moveAI = GetComponent<AnimalMovementAI>();
+        if (moveAI == null)
         {
-            string idleClip = "";
-            foreach (AnimationState state in anim)
-            {
-                if (state.name.IndexOf("Idle", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    idleClip = state.name;
-                    break;
-                }
-            }
-            if (string.IsNullOrEmpty(idleClip))
-            {
-                foreach (AnimationState state in anim)
-                {
-                    if (state.name.IndexOf("Rest", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        idleClip = state.name;
-                        break;
-                    }
-                }
-            }
-            if (!string.IsNullOrEmpty(idleClip))
-            {
-                anim.CrossFade(idleClip, 0.2f);
-            }
+            moveAI = gameObject.AddComponent<AnimalMovementAI>();
+        }
+        if (moveAI != null)
+        {
+            moveAI.enabled = true;
+            // Thú hoang di chuyển tự nhiên:
+            // Alpha: bước đi khoan thai, uy nghi, quan sát địa bàn
+            // Minions: hiếu động, nhanh nhẹn hơn
+            float walkSpeed = isAlpha ? 0.42f : 0.52f;
+            moveAI.SetSpeeds(walkSpeed, walkSpeed * 1.85f);
         }
 
         // 2. Nhuộm đỏ chất liệu lông/da gốc của thú (Base Texture Red Tint)

@@ -325,7 +325,7 @@ public class HexCameraController : MonoBehaviour
     /// <summary>
     /// Di chuyển và zoom camera mượt mà vào mục tiêu (ví dụ khi Thú Đầu Đàn xuất hiện)
     /// </summary>
-    public void FocusOnTarget(Vector3 targetWorldPos, float targetDistance = 11f, float duration = 1.2f)
+    public void FocusOnTarget(Vector3 targetWorldPos, float targetDistance = 5.5f, float duration = 1.25f)
     {
         if (focusCoroutine != null) StopCoroutine(focusCoroutine);
         focusCoroutine = StartCoroutine(FocusOnTargetRoutine(targetWorldPos, targetDistance, duration));

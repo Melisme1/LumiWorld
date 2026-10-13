@@ -235,6 +235,14 @@ public class AnimalMovementAI : MonoBehaviour
     private void Awake()
     {
         anim = GetComponent<Animation>();
+        if (anim == null || anim.GetClipCount() == 0)
+        {
+            var childAnim = GetComponentInChildren<Animation>();
+            if (childAnim != null && childAnim.GetClipCount() > 0)
+            {
+                anim = childAnim;
+            }
+        }
         if (anim == null)
         {
             Debug.LogWarning($"[AnimalMovementAI] Không tìm thấy component Animation trên {gameObject.name}");
@@ -303,6 +311,25 @@ public class AnimalMovementAI : MonoBehaviour
         else
         {
             currentHex = HexMetrics.WorldToHex(transform.position);
+            if (worldGen != null && worldGen.MapTiles != null && !worldGen.MapTiles.ContainsKey(currentHex))
+            {
+                float bestDistSqr = float.MaxValue;
+                HexCoordinates bestHex = currentHex;
+                foreach (var kvp in worldGen.MapTiles)
+                {
+                    if (kvp.Value == null) continue;
+                    Vector3 tilePos = kvp.Value.transform.position;
+                    float dx = tilePos.x - transform.position.x;
+                    float dz = tilePos.z - transform.position.z;
+                    float dSqr = dx * dx + dz * dz;
+                    if (dSqr < bestDistSqr)
+                    {
+                        bestDistSqr = dSqr;
+                        bestHex = kvp.Key;
+                    }
+                }
+                currentHex = bestHex;
+            }
         }
 
         // Đảm bảo vị trí ban đầu nằm an toàn trong ô lục giác
