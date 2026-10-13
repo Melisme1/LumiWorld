@@ -20,6 +20,7 @@ MonoBehaviour:
   obstaclePrefab: {fileID: 0}
   rules:
   - kind: 0
+    enabled: 1
     weight: 0
     restrictToBiomes: 0
     affectedBiomes: 00000000
@@ -30,6 +31,7 @@ MonoBehaviour:
     rainToCure: 1
     harvestSpeedMultiplier: 0
   - kind: 1
+    enabled: 1
     weight: 1
     restrictToBiomes: 0
     affectedBiomes: 
@@ -40,6 +42,7 @@ MonoBehaviour:
     rainToCure: 1
     harvestSpeedMultiplier: 0.5
   - kind: 2
+    enabled: 1
     weight: 1.2
     restrictToBiomes: 1
     affectedBiomes: 020000000100000003000000
@@ -50,6 +53,7 @@ MonoBehaviour:
     rainToCure: 1
     harvestSpeedMultiplier: 0
   - kind: 3
+    enabled: 1
     weight: 0
     restrictToBiomes: 0
     affectedBiomes: 
@@ -60,6 +64,7 @@ MonoBehaviour:
     rainToCure: 2
     harvestSpeedMultiplier: 0
   - kind: 4
+    enabled: 1
     weight: 1
     restrictToBiomes: 1
     affectedBiomes: 0200000001000000

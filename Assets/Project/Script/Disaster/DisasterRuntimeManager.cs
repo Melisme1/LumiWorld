@@ -135,7 +135,8 @@ namespace LumiWorld.Acs
                 }
             }
 #endif
-            if (balance != null && !balance.IsValid(out _)) balance.FillMissingRules();
+            if (balance != null && !balance.IsValid(out string balanceError))
+                Debug.LogWarning($"[LumiWorld Disaster] DisasterBalance chưa hợp lệ: {balanceError}", balance);
 
             if (balance == null)
             {
@@ -218,7 +219,11 @@ namespace LumiWorld.Acs
             if (!balance.enableAutoSpawn) return;
             if (now < nextSpawnAt) return;
 
-            DisasterKind kind = balance.PickRandomKind(BiomeAffinity.None, rng);
+            if (!balance.TryPickRandomKind(BiomeAffinity.None, rng, out DisasterKind kind))
+            {
+                ScheduleNextSpawn();
+                return;
+            }
 
             ScheduleNextSpawn();
 
@@ -239,7 +244,8 @@ namespace LumiWorld.Acs
                 }
                 else
                 {
-                    SpawnDisaster(balance.PickRandomKind(affinity, rng), origin);
+                    if (balance.TryPickRandomKind(affinity, rng, out DisasterKind fallbackKind))
+                        SpawnDisaster(fallbackKind, origin);
                 }
             }
         }
@@ -1317,6 +1323,8 @@ namespace LumiWorld.Acs
             rainTimestamps.RemoveAll(t => now - t > window);
 
             if (!balance.spawnCycloneOnRainOverdose) return;
+            var cycloneRule = balance.GetRule(DisasterKind.Cyclone);
+            if (cycloneRule == null || !cycloneRule.enabled) return;
             if (rainTimestamps.Count < balance.cycloneRainThreshold) return;
             if (disasters.Count >= Mathf.Max(0, balance.maxConcurrentDisasters)) return;
 
