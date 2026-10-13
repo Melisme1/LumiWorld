@@ -425,7 +425,15 @@ namespace LumiWorld.Acs
 
             ApplyToTile(instance, originTile);
 
+            // Ô GỐC phải cháy THẬT ngay từ đầu, không chờ nhịp lan:
+            //  - ApplyToTile chỉ Mark (và tô màu nhẹ) chứ KHÔNG đặt isBurned/aridity và không
+            //    ẩn props, nên ô gốc trước đây trông khác hẳn các ô kề đã cháy.
+            //  - Với cháy rừng, gọi DestroyTile để ô gốc đồng bộ với các ô lân cận
+            //    (tro đen, mất môi trường, aridity = 1). Các loại thiên tai khác vẫn chỉ Mark.
+            if (IsForestFire(instance)) DestroyTile(instance, originTile);
+
             // Tô lại ngay lúc sinh để ô gốc đổi màu tức thì.
+            // DestroyTile đã tự RefreshVisual() nên lần này chỉ là bước chốt an toàn.
             TileDisasterState.TryGet(originTile, out var originState);
             originState?.RefreshVisual();
 
@@ -591,9 +599,9 @@ namespace LumiWorld.Acs
             // mỗi nhịp lan sẽ nhồi thêm ô mới vượt trần trong khi các ô cũ còn trong hàng đợi.
             if (IsForestFire(instance)) count += CountPendingFire(instance.instanceId);
 
-            // Ô GỐC của đám cháy không nằm trong CountTiles (xem chú thích trên) nên phải
-            // +1 thủ công, nếu không trần bị chặn sớm đúng 1 ô.
-            if (IsForestFire(instance)) count += 1;
+            // Ô GỐC nay cũng được DestroyTile (xem SpawnDisaster) nên nó ĐÃ nằm trong
+            // CountTiles và trong CountPendingFire khi vào hàng đợi -> KHÔNG cộng +1 nữa,
+            // nếu không trần maxTiles sẽ bị chặn sớm đúng 1 ô.
 
             if (count >= maxTiles) return;
 
