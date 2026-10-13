@@ -138,15 +138,23 @@ namespace LumiWorld.Acs
         {
             if (prefab == null) return null;
 
-            var go = Instantiate(prefab, transform);
+            var go = Instantiate(prefab);
             go.name = fallbackName;
 
             // Neo vào tâm ô rồi nâng lên trên MẶT TRÊN thật của khối hex.
             // Mỗi tầng địa hình có mặt trên cao khác nhau (Thấp 1.00 / Trung 1.80 / Cao 2.60
             // tính từ gốc khối), nên phải hỏi độ cao thật của ô thay vì dùng hằng số.
             // Particle được sinh dưới transform của ô nên localPosition là hệ toạ độ ô.
-            go.transform.localPosition = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset, 0f);
-            go.transform.localRotation = Quaternion.identity;
+            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset, 0f);
+            go.transform.position = transform.TransformPoint(localAnchor);
+
+            // Trục Y của particle phải thẳng đứng THEO THẾ GIỚI, không được kế thừa độ nghiêng
+            // của ô hex cha. Ô hex do HexBiomeClusterConnector sinh ra có nghiêng ngẫu nhiên
+            // tới +-3 độ ở trục X/Z (Quaternion.Euler(Random(-3,3), ..., Random(-3,3))), nên nếu
+            // để localRotation = identity thì khói/lửa sẽ chúi theo hướng nghiêng của ô.
+            // Bù ngược rotation của cha để particle luôn dựng thẳng đứng.
+            go.transform.rotation = Quaternion.identity;
+            go.transform.SetParent(transform, true);
 
             if (autoFitOnEnable) ApplyFitScale(go.transform);
 
@@ -196,7 +204,11 @@ namespace LumiWorld.Acs
             particleTransform.localScale = new Vector3(fit, fit, fit);
 
             // Giữ vị trí neo đúng trên mặt khối hex mỗi lần căn lại.
-            particleTransform.localPosition = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset, 0f);
+            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset, 0f);
+            particleTransform.position = transform.TransformPoint(localAnchor);
+
+            // Ép thẳng đứng theo thế giới (bù rotation nghiêng của ô hex cha) sau mỗi lần căn lại.
+            particleTransform.rotation = Quaternion.Euler(-90f, 0f, 0f);
         }
 
         private void OnEnable()

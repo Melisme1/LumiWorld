@@ -60,7 +60,7 @@ MonoBehaviour:
     maxTiles: 7
     durationSeconds: 40
     rainToCure: 2
-    harvestSpeedMultiplier: 0
+    harvestSpeedMultiplier: 0.22
   - kind: 4
     weight: 1
     restrictToBiomes: 1
