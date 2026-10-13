@@ -82,16 +82,17 @@ namespace LumiWorld.Acs
         }
 
         /// <summary>
-        /// KHÓI + LỬA — trạng thái ô đã bén lửa thật (đã cháy / tro tàn còn khói).
+        /// LỬA — trạng thái ô đã bén lửa thật. Khói báo trước được dừng khi lửa xuất hiện.
         /// </summary>
         public void ShowSmokeAndFire()
         {
-            EnsureSmoke();
-            if (smokeSystem != null && !smokeSystem.gameObject.activeSelf)
+            if (smokeSystem != null)
             {
-                smokeSystem.gameObject.SetActive(true);
-                smokeSystem.Play(true);
+                smokeSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                Destroy(smokeSystem.gameObject);
+                smokeSystem = null;
             }
+
             EnsureFire();
             if (fireSystem != null && !fireSystem.gameObject.activeSelf)
             {
