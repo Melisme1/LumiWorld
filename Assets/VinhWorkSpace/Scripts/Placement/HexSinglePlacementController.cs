@@ -337,9 +337,11 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 var disasterState = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
                 bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
+                bool hasPendingFire = LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var activeDisasterManager) &&
+                                      activeDisasterManager.IsTilePendingFire(targetTileObj);
 
                 // ƯU TIÊN KIỂM TRA: Nếu ô có Disaster hoặc đang bị cháy rụi (isBurned) -> Dập lửa/chữa thiên tai bằng ApplyRain
-                if (hasDisasterOrBurned)
+                if (hasDisasterOrBurned || hasPendingFire)
                 {
                     bool applied = false;
                     if (LumiWorld.Acs.DisasterRuntimeManager.Instance != null)

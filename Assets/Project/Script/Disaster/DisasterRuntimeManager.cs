@@ -626,6 +626,9 @@ namespace LumiWorld.Acs
 
             foreach (var hex in frontier)
             {
+                // Ô đã được Rain dập có thể vẫn còn trong frontier từ nhịp lan trước,
+                // dù hàng đợi bén lửa đã bị xóa. Không cho ô đó tiếp tục làm nguồn lan.
+                if (IsSuppressed(instance.instanceId, hex)) continue;
                 if (count >= maxTiles) break;
 
                 for (int dir = 0; dir < 6; dir++)
@@ -848,6 +851,17 @@ namespace LumiWorld.Acs
             return pendingFire.TryGetValue(instanceId, out var queue) ? queue.Count : 0;
         }
 
+        /// <summary>Trả về true nếu ô đang trong giai đoạn khói báo trước của đám cháy.</summary>
+        public bool IsTilePendingFire(GameObject tileObj)
+        {
+            if (!TryResolveTileHex(tileObj, out var hex)) return false;
+            foreach (var queue in pendingFire.Values)
+            {
+                if (queue.ContainsKey(hex)) return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// Biến các ô chờ đã hết hạn thành ô cháy thật (DestroyTile).
         /// Chỉ cháy rừng dùng cơ chế này.
@@ -902,6 +916,11 @@ namespace LumiWorld.Acs
 
             // Nếu ô đang trong hàng đợi chờ cháy -> rút ra luôn.
             if (pendingFire.TryGetValue(instanceId, out var queue)) queue.Remove(hex);
+
+            // Ô khói đã có thể được đưa vào frontier ở nhịp lan trước đó. Gỡ nó khỏi
+            // frontier để nó không thể bén lửa hoặc tiếp tục truyền lửa ở các nhịp sau.
+            if (spreadFrontier.TryGetValue(instanceId, out var frontier))
+                frontier.RemoveAll(candidate => candidate.Equals(hex));
 
             // Mưa dập: tắt và hủy hiệu ứng khói/lửa tại ô này.
             ClearParticlesOnTile(hex);
@@ -1123,6 +1142,32 @@ namespace LumiWorld.Acs
             if (state == null) return false;
 
             bool anyAccepted = false;
+
+            // Ô đang bốc khói có thể chưa được Mark(ForestFire) cho tới khi hết thời gian chuẩn bị.
+            // Vẫn cho phép thẻ mưa nhắm vào ô này để hủy hàng đợi bén lửa.
+            if (TryResolveTileHex(tileObj, out var targetHex))
+            {
+                foreach (var pair in pendingFire)
+                {
+                    if (!pair.Value.ContainsKey(targetHex) ||
+                        !disasters.TryGetValue(pair.Key, out var fireInstance) ||
+                        !IsForestFire(fireInstance) ||
+                        !KindAcceptsRain(DisasterKind.ForestFire, strength))
+                    {
+                        continue;
+                    }
+
+                    fireInstance.rainApplied++;
+                    SuppressFireTile(pair.Key, targetHex);
+                    anyAccepted = true;
+
+                    if (!FireStillActive(fireInstance))
+                        EndDisaster(fireInstance);
+                    else
+                        DisasterChanged?.Invoke(fireInstance);
+                    break;
+                }
+            }
 
             // 0. Nếu ô đang bị cháy tro tàn (isBurned), mưa sẽ dập nguội tàn tro, dọn tàn tích và phục hồi đất
             if (state.isBurned)

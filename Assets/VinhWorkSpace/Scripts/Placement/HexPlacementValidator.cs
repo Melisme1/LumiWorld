@@ -52,13 +52,15 @@ public class HexPlacementValidator : MonoBehaviour
         // 0. Kiểm tra thẻ Mưa (Rain Card) và trạng thái thiên tai / cháy rụi (isBurned)
         var disasterState = tileObj != null ? tileObj.GetComponent<LumiWorld.Acs.TileDisasterState>() : null;
         bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
+        bool hasPendingFire = LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var disasterManager) &&
+                              disasterManager.IsTilePendingFire(tileObj);
         bool isRainCard = cardData != null && (cardData.cardID == "Rain" || string.Equals(cardData.cardName, "Rain", System.StringComparison.OrdinalIgnoreCase));
 
         if (isRainCard)
         {
             // Nếu ô đang có thiên tai (cháy rừng, lốc xoáy, hạn hán...) hoặc đang bị cháy rụi (isBurned)
             // -> LUÔN CHO PHÉP thả thẻ Mưa để dập lửa / dọn tàn tích phục hồi đất!
-            if (hasDisasterOrBurned)
+            if (hasDisasterOrBurned || hasPendingFire)
             {
                 lastValidationError = "";
                 return true;
