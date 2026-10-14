@@ -234,7 +234,7 @@ public class AnimalIndividual : MonoBehaviour
 
         if (LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld) return;
 
-        // Nếu đang dùng hệ thống gom cụm Biome thì BiomeHarvestManager sẽ quản lý chu kỳ tập trung
+        // Nếu đang dùng hệ thống gom cụm sản xuất Habitat thì Habitat/ProductionRuntime sẽ quản lý chu kỳ tập trung
         if (useBiomeClusterProduction) return;
 
         // CHỈ sản xuất khi con thú đang ở trên vùng đất có tài nguyên (ví dụ Leafwood sinh Gỗ)
@@ -417,4 +417,13 @@ public class AnimalIndividual : MonoBehaviour
         AnimalRank.Legendary => "#FBBF24",
         _ => "#FFFFFF"
     };
+
+    private void OnMouseDown()
+    {
+        if (EconomyHUD.IsWindowOpen) return;
+        if (CreatureCareUI.Instance != null)
+        {
+            CreatureCareUI.Instance.OpenForCreature(this, GetComponent<LumiWorld.Acs.HabitatPlacementIdentity>());
+        }
+    }
 }

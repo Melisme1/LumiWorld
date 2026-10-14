@@ -22,6 +22,9 @@ public class BiomeHarvestCluster
     public bool IsReadyToHarvest { get; private set; } = false;
     public int PendingHarvestAmount { get; private set; } = 0;
 
+    public bool IsDisrupted { get; private set; } = false;
+    public float SpeedMultiplier { get; private set; } = 1.0f;
+
     public BiomeHarvestIndicator Indicator { get; private set; }
     public Vector3 CenterPosition { get; private set; }
 
@@ -94,6 +97,16 @@ public class BiomeHarvestCluster
         }
     }
 
+    public void SetDisrupted(bool disrupted)
+    {
+        IsDisrupted = disrupted;
+    }
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        SpeedMultiplier = Mathf.Clamp(multiplier, 0.1f, 3.0f);
+    }
+
     /// <summary>
     /// Quét lại các con thú đang sinh sống trong phạm vi các ô thuộc cụm này
     /// </summary>
@@ -149,8 +162,14 @@ public class BiomeHarvestCluster
             return;
         }
 
-        // 4. Đang trong chu kỳ sản xuất
-        Timer += deltaTime;
+        // 3b. Nếu đang bị Thú hoang chiếm cứ (Disrupted): Tạm dừng sản xuất hoàn toàn!
+        if (IsDisrupted)
+        {
+            return;
+        }
+
+        // 4. Đang trong chu kỳ sản xuất (áp dụng hệ số tốc độ nếu có Minion quấy phá)
+        Timer += deltaTime * SpeedMultiplier;
         float progress = Mathf.Clamp01(Timer / CycleDuration);
 
         // Tính sản lượng dự kiến

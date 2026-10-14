@@ -50,6 +50,7 @@ namespace LumiWorld.Acs
             new ResourceSpec("bloomfield", "wild_daisies", BiomeAffinity.Bloomfield, ResourceTier.Tier1, "petaluff"),
             new ResourceSpec("bloomfield", "dandelion_flowers", BiomeAffinity.Bloomfield, ResourceTier.Tier1, "dandrift"),
             new ResourceSpec("bloomfield", "nectar", BiomeAffinity.Bloomfield, ResourceTier.Tier2, "petaluff", "galume"),
+            new ResourceSpec("bloomfield", "wheat", BiomeAffinity.Bloomfield, ResourceTier.Tier2, "dandrift", "heathorn"),
             new ResourceSpec("bloomfield", "lavender_sprigs", BiomeAffinity.Bloomfield, ResourceTier.Tier2, "dandrift", "frondle,heathorn"),
             new ResourceSpec("windheath", "foxtail_plumes", BiomeAffinity.Windheath, ResourceTier.Tier1, "galume"),
             new ResourceSpec("windheath", "lichen", BiomeAffinity.Windheath, ResourceTier.Tier1, "heathorn"),

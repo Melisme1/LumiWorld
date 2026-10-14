@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_deer
   cardName: "Nai R\u1EEBng"
-  cardImage: {fileID: 21300000, guid: e336c43c1d0c4c749ab98d41c72bc149, type: 3}
+  cardImage: {fileID: 21300000, guid: b4b0962e75f5c9e4fafd3d816aa60eb8, type: 3}
   cardType: 0
   baseScore: 3
   alwaysBaseScore: 0

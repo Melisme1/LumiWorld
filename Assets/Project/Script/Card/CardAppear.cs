@@ -57,6 +57,13 @@ public class CardAppear : MonoBehaviour
     private Vector2 targetPosition;
     private Coroutine appearCoroutine;
 
+    private float baseScale = 1f;
+
+    public void SetBaseScale(float scale)
+    {
+        baseScale = scale;
+    }
+
     /// <summary>
     /// True khi appear animation đang chạy. CardHover đọc cờ này để nhường
     /// quyền điều khiển anchoredPosition, tránh hai hệ thống giằng co nhau.
@@ -135,7 +142,7 @@ public class CardAppear : MonoBehaviour
             startPosition;
 
         rectTransform.localScale =
-            Vector3.one * startScale;
+            Vector3.one * (startScale * baseScale);
 
         SetAlpha(0f);
 
@@ -168,7 +175,7 @@ public class CardAppear : MonoBehaviour
                 : Mathf.Lerp(popScale, 1f, Mathf.SmoothStep(0f, 1f, (t - 0.78f) / 0.22f));
 
             rectTransform.localScale =
-                Vector3.one * scaleCurve;
+                Vector3.one * (scaleCurve * baseScale);
 
             SetAlpha(Mathf.Clamp01(t * 2f));
 
@@ -180,7 +187,7 @@ public class CardAppear : MonoBehaviour
             targetPosition;
 
         rectTransform.localScale =
-            Vector3.one;
+            Vector3.one * baseScale;
 
         SetAlpha(1f);
 
@@ -195,7 +202,7 @@ public class CardAppear : MonoBehaviour
 
     private IEnumerator Punch(float scaleAmount, float wobbleAngleDegrees)
     {
-        rectTransform.localScale = Vector3.one;
+        rectTransform.localScale = Vector3.one * baseScale;
         rectTransform.localRotation = Quaternion.identity;
         SetAlpha(1f);
 
@@ -207,7 +214,7 @@ public class CardAppear : MonoBehaviour
         {
             time += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / up));
-            rectTransform.localScale = Vector3.Lerp(Vector3.one, Vector3.one * scaleAmount, t);
+            rectTransform.localScale = Vector3.Lerp(Vector3.one * baseScale, Vector3.one * (baseScale * scaleAmount), t);
             yield return null;
         }
 
@@ -216,18 +223,18 @@ public class CardAppear : MonoBehaviour
         {
             time += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / down));
-            rectTransform.localScale = Vector3.Lerp(Vector3.one * scaleAmount, Vector3.one, t);
+            rectTransform.localScale = Vector3.Lerp(Vector3.one * (baseScale * scaleAmount), Vector3.one * baseScale, t);
             yield return null;
         }
 
-        rectTransform.localScale = Vector3.one;
+        rectTransform.localScale = Vector3.one * baseScale;
         SetAlpha(1f);
 
         // Punch là báo hiệu "vừa được cộng thêm 1 lá" -> kèm lắc nhẹ.
         yield return Wobble(0.22f, wobbleAngleDegrees, 1.5f, 0.06f);
 
         rectTransform.localRotation = Quaternion.identity;
-        rectTransform.localScale = Vector3.one;
+        rectTransform.localScale = Vector3.one * baseScale;
 
         appearCoroutine = null;
     }
@@ -258,13 +265,13 @@ public class CardAppear : MonoBehaviour
             float squash = Mathf.Sin(t * Mathf.PI) * squashY;
 
             rectTransform.localRotation = Quaternion.Euler(0f, 0f, angle);
-            rectTransform.localScale = new Vector3(1f + squash * 0.6f, 1f - squash, 1f);
+            rectTransform.localScale = new Vector3(baseScale * (1f + squash * 0.6f), baseScale * (1f - squash), 1f);
 
             yield return null;
         }
 
         rectTransform.localRotation = Quaternion.identity;
-        rectTransform.localScale = Vector3.one;
+        rectTransform.localScale = Vector3.one * baseScale;
     }
 
     /// <summary>
@@ -312,7 +319,7 @@ public class CardAppear : MonoBehaviour
             position;
 
         rectTransform.localScale =
-            Vector3.one;
+            Vector3.one * baseScale;
 
         rectTransform.localRotation =
             Quaternion.identity;

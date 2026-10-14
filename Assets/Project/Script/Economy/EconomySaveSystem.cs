@@ -13,17 +13,27 @@ using UnityEngine;
 public class EconomySaveSystem : MonoBehaviour
 {
     private static EconomySaveSystem _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static EconomySaveSystem Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<EconomySaveSystem>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("EconomySaveSystem");
                     _instance = go.AddComponent<EconomySaveSystem>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -34,6 +44,9 @@ public class EconomySaveSystem : MonoBehaviour
     private EconomySaveData data;
     private bool isDirty;
     private float nextSaveTime;
+
+    // Adapters project pause-aware runtime timers to portable UTC deadlines before serialization.
+    public event Action PreparingSave;
 
     /// <summary>
     /// Các đơn hàng đang mở đã lưu. Bảng Đơn Hàng sửa trực tiếp danh sách này rồi gọi MarkDirty().
@@ -59,6 +72,13 @@ public class EconomySaveSystem : MonoBehaviour
         }
     }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -68,6 +88,8 @@ public class EconomySaveSystem : MonoBehaviour
         }
 
         _instance = this;
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
         EnsureLoaded();
     }
 
@@ -294,24 +316,36 @@ public class EconomySaveSystem : MonoBehaviour
 
     private void OnApplicationPause(bool paused)
     {
-        if (paused) SaveIfDirty();
+        if (paused) SaveIfDirty(true);
     }
 
     private void OnApplicationQuit()
     {
-        SaveIfDirty();
+        _isQuitting = true;
+        SaveIfDirty(true);
     }
 
     private void OnDestroy()
     {
-        SaveIfDirty();
+        SaveIfDirty(true);
         if (_instance == this) _instance = null;
     }
 
-    private void SaveIfDirty()
+    private void SaveIfDirty(bool force = false)
     {
+        if ((!isDirty && !force) || data == null || SaveSync.SavesSuspended) return;
+
+        try { PreparingSave?.Invoke(); }
+        catch (Exception exception)
+        {
+            isDirty = true;
+            nextSaveTime = Time.unscaledTime + 2f;
+            Debug.LogException(exception, this);
+            return;
+        }
+
         // Đang tải lại bản server sau xung đột: bản trong bộ nhớ đã cũ, không ghi đè
-        if (!isDirty || data == null || SaveSync.SavesSuspended) return;
+
 
         data.savedAtUtc = DateTime.UtcNow.ToString("o");
         if (store.Save(data))
@@ -321,6 +355,7 @@ public class EconomySaveSystem : MonoBehaviour
         }
         else
         {
+            isDirty = true;
             nextSaveTime = Time.unscaledTime + 2f;
         }
     }

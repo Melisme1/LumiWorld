@@ -16,7 +16,7 @@ namespace LumiWorld.Acs
         }
 
         public static List<ProductionSlotRate> Calculate(HabitatState habitat, ResourceProductionCatalog catalog,
-            ProductionRuntimeSettings settings)
+            ProductionRuntimeSettings settings, Func<string, bool> canProduce = null)
         {
             var result = new List<ProductionSlotRate>();
             if (habitat == null || habitat.slots == null) return result;
@@ -31,7 +31,7 @@ namespace LumiWorld.Acs
                         slot.tier == ResourceTier.Tier1 ? settings.tier1BufferCap : settings.tier2BufferCap };
                 result.Add(rate);
                 var eligibility = HabitatEligibilityService.EvaluateSelection(habitat, slot.tier, slot.index,
-                    slot.selectedResourceId, catalog);
+                    slot.selectedResourceId, catalog, canProduce);
                 rate.reason = configured ? eligibility.Reason : configReason;
                 if (!configured || !eligibility.IsEligible) continue;
                 var eligible = new EligibleSlot { rate = rate,
@@ -49,6 +49,7 @@ namespace LumiWorld.Acs
             foreach (var resident in habitat.residents)
             {
                 if (resident == null || string.IsNullOrEmpty(resident.speciesId) || !habitat.ContainsHex(resident.homeHex)) continue;
+                if (canProduce != null && !canProduce(resident.individualId)) continue;
                 var matching = active.FindAll(s => s.requiredSpecies.TryGetValue(resident.speciesId, out var role) && role == resident.role);
                 if (matching.Count == 0) continue;
                 double contribution = settings.GetContribution(resident.qualityRank);
@@ -58,7 +59,11 @@ namespace LumiWorld.Acs
                     return result;
                 }
                 double share = contribution / matching.Count;
-                foreach (var match in matching) match.contributions[resident.speciesId] += share;
+                foreach (var match in matching)
+                {
+                    match.contributions[resident.speciesId] += share;
+                    match.rate.contributingIndividualIds.Add(resident.individualId);
+                }
             }
             foreach (var slot in active)
             {

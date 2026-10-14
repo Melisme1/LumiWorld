@@ -6,6 +6,7 @@ namespace LumiWorld.Acs.Editor
     [CustomEditor(typeof(ResourceProductionRuntime))]
     public sealed class ResourceProductionRuntimeEditor : UnityEditor.Editor
     {
+        private int foodTransferAmount = 50;
         public override bool RequiresConstantRepaint() => Application.isPlaying;
 
         public override void OnInspectorGUI()
@@ -39,6 +40,53 @@ namespace LumiWorld.Acs.Editor
                 foreach (var item in receipt.Items)
                     EditorGUILayout.LabelField(item.ResourceName, "+" + item.Transferred + "; còn " + item.Remaining);
             }
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Creature Care — test cư dân", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Độ no giảm khi làm việc; mỗi cá thể tự ăn từ ngăn riêng ở ngưỡng cấu hình. " +
+                "Nạp từ Warehouse. Độ no và thức ăn đã nạp chưa lưu qua Stop Play; kho vẫn bị trừ. UI mới nối sau.", MessageType.Info);
+            foodTransferAmount = Mathf.Max(1, EditorGUILayout.IntField("Số lượng nạp/rút", foodTransferAmount));
+            if (runtime.HabitatManager != null)
+                foreach (var habitat in runtime.HabitatManager.Habitats)
+                {
+                    EditorGUILayout.LabelField(habitat.affinity + " · " + habitat.residents.Count + "/" + habitat.CreatureCapacity,
+                        habitat.habitatId);
+                    foreach (var resident in runtime.GetResidents(habitat.habitatId))
+                    {
+                        var care = resident.Care; if (care == null) continue;
+                        EditorGUILayout.LabelField(resident.Name + " · " + care.Rank, resident.IndividualId);
+                        foreach (var food in runtime.FoodTypes)
+                        {
+                            EditorGUILayout.LabelField(food.ResourceId, "Kho " + runtime.Inventory.GetAmount(food.ResourceId) +
+                                " · Ngăn cá thể " + runtime.GetCreatureFoodAmount(resident.IndividualId, food.ResourceId));
+                            if (GUILayout.Button("Nạp " + foodTransferAmount + " cho " + resident.Name))
+                            { runtime.DepositCreatureFood(habitat.habitatId, resident.IndividualId, food.ResourceId, foodTransferAmount, out var message); Debug.Log(message, runtime); return; }
+                            if (GUILayout.Button("Rút " + foodTransferAmount + " từ " + resident.Name + " về Warehouse"))
+                            { runtime.WithdrawCreatureFood(resident.IndividualId, food.ResourceId, foodTransferAmount, out var message); Debug.Log(message, runtime); return; }
+                        }
+                        EditorGUILayout.LabelField("Tình trạng", care.Status == CreatureHungerStatus.Hungry ? "Đói" :
+                            care.Status == CreatureHungerStatus.Eating ? care.WaitingForFood ? "Chờ thêm thức ăn" : "Đang ăn " + care.EatingResourceId :
+                            resident.IsWorking ? "Khỏe — đang làm việc" : "Khỏe — không cộng work");
+                        using (new EditorGUI.DisabledScope(true))
+                            EditorGUILayout.Slider("Độ no", (float)care.Satiety, 0, 100);
+                        EditorGUILayout.LabelField("Còn làm được tới đói", care.WorkSecondsRemaining.ToString("0.0") + "s");
+                        var preview = runtime.PreviewFeed(habitat.habitatId, resident.IndividualId);
+                        EditorGUILayout.LabelField("Món chọn · trong ngăn / cần đầy", preview.ResourceId + " · " + preview.Available + " / " + preview.Required + (preview.IsFavorite ? " · Favorite" : ""));
+                        using (new EditorGUI.DisabledScope(!preview.CanFeed))
+                            if (GUILayout.Button("Cho ăn sớm " + resident.Name))
+                            {
+                                runtime.TryFeed(habitat.habitatId, resident.IndividualId, out string message);
+                                Debug.Log("[LumiWorld Care] " + message, runtime); return;
+                            }
+                        if (!preview.CanFeed) EditorGUILayout.LabelField("Lý do", preview.Reason);
+                    }
+                }
+            foreach (var food in runtime.GetAllCreatureFoodStocks())
+                if (food.IsOrphan || !System.Linq.Enumerable.Any(runtime.FoodTypes, f => f.ResourceId == food.ResourceId))
+                {
+                    EditorGUILayout.LabelField("Thức ăn cần thu hồi", food.IndividualId + " · " + food.ResourceId + " · " + food.Amount);
+                    if (GUILayout.Button("Rút thức ăn tồn về Warehouse"))
+                    { runtime.WithdrawCreatureFood(food.IndividualId, food.ResourceId, foodTransferAmount, out var message); Debug.Log(message, runtime); return; }
+                }
             foreach (var state in runtime.States)
             {
                 EditorGUILayout.Space();

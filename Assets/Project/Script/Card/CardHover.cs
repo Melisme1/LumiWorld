@@ -16,7 +16,18 @@ public class CardHover : MonoBehaviour,
     private CardAppear cardAppear;
     private CanvasGroup canvasGroup;
 
-    private Vector3 normalScale;
+    private Vector3 normalScale = Vector3.one;
+
+    public float BaseScale => normalScale.x;
+
+    public void SetBaseScale(float scale)
+    {
+        normalScale = Vector3.one * scale;
+        if (!isHovering)
+        {
+            targetScale = normalScale;
+        }
+    }
 
     private Vector3 targetScale;
     private Vector2 targetPosition;
@@ -143,7 +154,7 @@ public class CardHover : MonoBehaviour,
         transform.SetAsLastSibling();
 
         targetScale =
-            normalScale * hoverScale;
+            Vector3.one * Mathf.Max(normalScale.x * hoverScale, 1.05f);
 
         targetPosition =
             GetHomePosition() +

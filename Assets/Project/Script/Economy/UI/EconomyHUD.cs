@@ -59,6 +59,24 @@ public class EconomyHUD : MonoBehaviour
         CreateOverlay<OrderBoardUI>("OrderBoardUI");
         CreateOverlay<CardShopUI>("CardShopUI");
         CreateOverlay<MarketUI>("MarketUI");
+        CreateOverlay<LumiWorld.Economy.Crafting.CraftingUI>("CraftingUI");
+
+        CreateOverlay<AchievementUI>("AchievementUI");
+        CreateOverlay<CreatureCareUI>("CreatureCareUI");
+        CreateOverlay<HabitatCreaturePanelUI>("HabitatCreaturePanelUI");
+        CreateOverlay<HexPlacementPreviewHUD>("HexPlacementPreviewHUD");
+
+        // Đảm bảo các Manager trung tâm tự động khởi chạy an toàn
+        if (HabitatDiamondBadgeManager.Instance == null)
+        {
+            var badgeGo = new GameObject("HabitatDiamondBadgeManager");
+            badgeGo.AddComponent<HabitatDiamondBadgeManager>();
+            DontDestroyOnLoad(badgeGo);
+        }
+        _ = CardLockManager.Instance;
+        _ = AchievementManager.Instance;
+        _ = CreatureCareManager.Instance;
+
 
         FitToCanvas();
     }
