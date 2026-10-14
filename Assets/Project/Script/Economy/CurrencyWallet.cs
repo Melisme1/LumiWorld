@@ -25,17 +25,27 @@ public enum CoinReason
 public class CurrencyWallet : MonoBehaviour
 {
     private static CurrencyWallet _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static CurrencyWallet Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<CurrencyWallet>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("CurrencyWallet");
                     _instance = go.AddComponent<CurrencyWallet>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -65,6 +75,13 @@ public class CurrencyWallet : MonoBehaviour
     /// </summary>
     public event Action<int, int, CoinReason> OnBalanceChanged;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -74,8 +91,15 @@ public class CurrencyWallet : MonoBehaviour
         }
 
         _instance = this;
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
         EconomySaveSystem.Instance.Attach(this);
         GrantedOnLoad = balance - restoredBalance;
+    }
+
+    private void OnApplicationQuit()
+    {
+        _isQuitting = true;
     }
 
     private void OnDestroy()

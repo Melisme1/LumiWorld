@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b5da6da733295d4da40e551f45db946, type: 3}
+  m_Name: WildIncidentConfig
+  m_EditorClassIdentifier: Assembly-CSharp::WildIncidentConfig
+  requiredUnlockMilestone: 0
+  minIncidentIntervalSeconds: 180
+  maxIncidentIntervalSeconds: 300
+  incidentIntervalSeconds: 240
+  maxConcurrentIncidents: 1
+  minClusterSizeToHost: 3
+  satelliteSpeedDebuff: 0.7
+  milestoneRankWeights:
+  - minMilestoneIndex: 0
+    weight1Star: 100
+    weight2Star: 0
+    weight3Star: 0
+    weight4Star: 0
+    weight5Star: 0
+  - minMilestoneIndex: 1
+    weight1Star: 75
+    weight2Star: 25
+    weight3Star: 0
+    weight4Star: 0
+    weight5Star: 0
+  - minMilestoneIndex: 2
+    weight1Star: 50
+    weight2Star: 35
+    weight3Star: 15
+    weight4Star: 0
+    weight5Star: 0
+  - minMilestoneIndex: 3
+    weight1Star: 20
+    weight2Star: 40
+    weight3Star: 30
+    weight4Star: 10
+    weight5Star: 0
+  biomeSpeciesMappings:
+  - terrainCard: {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    compatibleCreatures:
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000008, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000005, type: 2}
+  - terrainCard: {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    compatibleCreatures:
+    - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000010, type: 2}
+  - terrainCard: {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    compatibleCreatures:
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}

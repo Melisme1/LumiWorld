@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_flyingsquirrel
   cardName: "S\xF3c Bay"
-  cardImage: {fileID: 21300000, guid: cc888a8030ad688499c5c0f89c558f2e, type: 3}
+  cardImage: {fileID: 21300000, guid: 4ea2f9e53ae1ad74884b29f071699444, type: 3}
   cardType: 0
   baseScore: 2
   alwaysBaseScore: 0

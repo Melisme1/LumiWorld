@@ -36,7 +36,7 @@ public static class ResourceCatalog
 
     // Khi tắt Domain Reload lúc vào Play Mode, biến static không tự xóa: nạp lại danh sách mỗi lần chạy
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetCache()
+    public static void ResetCache()
     {
         all = null;
     }

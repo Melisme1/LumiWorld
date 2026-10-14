@@ -58,6 +58,23 @@ public class EconomyHUD : MonoBehaviour
         // Bảng Đơn Hàng và Cửa hàng thẻ cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
         CreateOverlay<OrderBoardUI>("OrderBoardUI");
         CreateOverlay<CardShopUI>("CardShopUI");
+        CreateOverlay<LumiWorld.Economy.Crafting.CraftingUI>("CraftingUI");
+
+        CreateOverlay<AchievementUI>("AchievementUI");
+        CreateOverlay<CreatureCareUI>("CreatureCareUI");
+        CreateOverlay<HabitatCreaturePanelUI>("HabitatCreaturePanelUI");
+        CreateOverlay<HexPlacementPreviewHUD>("HexPlacementPreviewHUD");
+
+        // Đảm bảo các Manager trung tâm tự động khởi chạy an toàn
+        if (HabitatDiamondBadgeManager.Instance == null)
+        {
+            var badgeGo = new GameObject("HabitatDiamondBadgeManager");
+            badgeGo.AddComponent<HabitatDiamondBadgeManager>();
+            DontDestroyOnLoad(badgeGo);
+        }
+        _ = CardLockManager.Instance;
+        _ = AchievementManager.Instance;
+        _ = CreatureCareManager.Instance;
 
         FitToCanvas();
     }

@@ -31,12 +31,38 @@ public class CardUI : MonoBehaviour
     [Tooltip("Màu badge khi vừa tăng số lượng, sau đó trả về màu gốc.")]
     [SerializeField] private Color badgeHighlightColor = new Color(1f, 0.94f, 0.45f, 1f);
 
+    [Header("Lock / Escrow Badge")]
+    [SerializeField] private Image lockBadgeImage;
+
     public CardData CardData => cardData;
+
+    /// <summary>
+    /// Trạng thái khóa của lá bài (Marketplace Escrow, Breeding, hoặc Account-Bound)
+    /// </summary>
+    public bool IsLocked { get; private set; }
+    public CardLockType CurrentLockType { get; private set; }
+    public string CurrentLockReason { get; private set; }
 
     /// <summary>
     /// Số lượng card cùng loại đang có trong chồng (do CardDeskController quản lý).
     /// </summary>
     public int Count { get; private set; } = 1;
+
+    private void OnEnable()
+    {
+        if (CardLockManager.Instance != null)
+        {
+            CardLockManager.Instance.OnLockStateChanged += Refresh;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (CardLockManager.HasInstance)
+        {
+            CardLockManager.Instance.OnLockStateChanged -= Refresh;
+        }
+    }
 
     private void Start()
     {
@@ -68,7 +94,7 @@ public class CardUI : MonoBehaviour
         }
     }
 
-    private void Refresh()
+    public void Refresh()
     {
         if (cardData == null)
         {
@@ -85,6 +111,62 @@ public class CardUI : MonoBehaviour
         }
 
         UpdateCountBadge();
+        UpdateLockBadge();
+    }
+
+    private void UpdateLockBadge()
+    {
+        CardLockType lockType = CardLockType.None;
+        string reason = string.Empty;
+        IsLocked = CardLockManager.Instance != null && CardLockManager.Instance.IsCardLocked(cardData, out lockType, out reason);
+        CurrentLockType = IsLocked ? lockType : CardLockType.None;
+        CurrentLockReason = IsLocked ? reason : string.Empty;
+
+        if (IsLocked)
+        {
+            if (lockBadgeImage == null)
+            {
+                lockBadgeImage = CreateLockBadge();
+            }
+            if (lockBadgeImage != null)
+            {
+                lockBadgeImage.gameObject.SetActive(true);
+            }
+            if (cardImage != null)
+            {
+                cardImage.color = new Color(0.72f, 0.72f, 0.72f, 0.88f); // Hơi tối màu để biểu thị đang bị khóa
+            }
+        }
+        else
+        {
+            if (lockBadgeImage != null)
+            {
+                lockBadgeImage.gameObject.SetActive(false);
+            }
+            if (cardImage != null)
+            {
+                cardImage.color = Color.white;
+            }
+        }
+    }
+
+    private Image CreateLockBadge()
+    {
+        GameObject lockObj = new GameObject("LockBadge", typeof(RectTransform), typeof(Image));
+        lockObj.transform.SetParent(transform, false);
+
+        RectTransform rt = lockObj.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(4f, -4f);
+        rt.sizeDelta = new Vector2(26f, 26f);
+
+        Image img = lockObj.GetComponent<Image>();
+        img.sprite = PreserveDiamondStyle.LockIcon;
+        img.color = Color.white;
+        img.raycastTarget = false;
+        return img;
     }
 
     private void UpdateCountBadge()

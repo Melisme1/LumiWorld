@@ -9,7 +9,7 @@ public class PlacedCard : MonoBehaviour
     public HexCoordinates placedHex;
 
     [Header("Biome Cluster")]
-    [Tooltip("ID của Cụm Biome độc lập mà ô này trực thuộc (mỗi cụm tối đa 6 ô theo mặc định). Các ô khác cụm sẽ không tạo viền nối.")]
+    [Tooltip("ID của Cụm Biome độc lập mà ô này trực thuộc (mỗi cụm tối đa 9 ô theo mặc định). Các ô khác cụm sẽ không tạo viền nối.")]
     public int clusterId = -1;
 
     [Header("Score Display")]

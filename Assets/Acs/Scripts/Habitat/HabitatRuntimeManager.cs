@@ -188,6 +188,8 @@ namespace LumiWorld.Acs
 
         public HabitatState FindHabitat(string habitatId) => habitats.Find(h => h != null && h.habitatId == habitatId);
 
+        public HabitatState FindHabitatByHex(HexCoordinates hex) => habitats.Find(h => h != null && h.ContainsHex(hex));
+
         public bool HasCreatureAtHome(HexCoordinates hex)
         {
             foreach (var habitat in habitats)
@@ -215,6 +217,23 @@ namespace LumiWorld.Acs
             if (mapping.GetRole(habitat.affinity) == AffinityRole.None)
             { reason = "Creature không có primary/secondary affinity phù hợp " + habitat.affinity + "."; return false; }
             if (HasCreatureAtHome(homeHex)) { reason = "Home hex đã có creature."; return false; }
+            var homeHabitat = FindHabitatByHex(homeHex);
+            if (homeHabitat == null) { RefreshFromWorld(false); homeHabitat = FindHabitatByHex(homeHex); }
+            if (homeHabitat != null)
+            {
+                int maxAllowed = homeHabitat.CreatureCapacity;
+                if (homeHabitat.residents.Count >= maxAllowed)
+                {
+                    int nextMilestone = homeHabitat.HexCount < 3 ? 3 : (homeHabitat.HexCount < 6 ? 6 : 10);
+                    reason = maxAllowed >= 6 ? "Biome đã đủ 6 sinh vật." : $"Cần đạt mốc {nextMilestone} ô môi trường cùng loại để mở thêm ô thả sinh vật (Mốc: 3 ô -> 2 thú, 6 ô -> 4 thú, 10 ô -> 6 thú).";
+                    return false;
+                }
+            }
+            else
+            {
+                reason = "Cần đạt mốc 3 ô môi trường cùng loại để mở ô thả sinh vật đầu tiên.";
+                return false;
+            }
             reason = string.Empty;
             return true;
         }

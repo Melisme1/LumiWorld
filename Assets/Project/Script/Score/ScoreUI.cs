@@ -410,7 +410,14 @@ public class ScoreUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler
                 }
                 else
                 {
-                    HexPlacementController.Instance.StartPlacement();
+                    GameDialogUI.ShowConfirm(
+                        "Bạn có muốn sử dụng 1 lượt mở rộng để đắp thêm một mảnh đất trống mới không?",
+                        onConfirm: () =>
+                        {
+                            HexPlacementController.Instance.StartPlacement();
+                        },
+                        title: "MỞ RỘNG VÙNG ĐẤT"
+                    );
                 }
             }
         }
@@ -419,7 +426,7 @@ public class ScoreUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler
             TriggerPunch(1.08f, 0.18f);
 
             int remaining = Mathf.Max(0, activeThreshold - currentScore);
-            ShowTemporaryPrompt($"<size=10><color=#FCA5A5><b>+{remaining}đ</b></color></size>");
+            GameDialogUI.ShowNotice($"Bạn chưa đủ điểm mở rộng đất! Cần tích lũy thêm <b>{remaining} điểm</b> để mở khóa lượt đắp đất mới.", title: "CHƯA ĐỦ ĐIỂM");
         }
     }
 

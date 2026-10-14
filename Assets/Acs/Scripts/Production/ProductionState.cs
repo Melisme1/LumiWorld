@@ -23,6 +23,8 @@ namespace LumiWorld.Acs
         public double unitsPerMinute;
         public int bufferCap;
         public string reason;
+        // Actual eligible contributors; shared with work accounting so rules cannot diverge.
+        public List<string> contributingIndividualIds = new List<string>();
     }
 
     [Serializable]
@@ -34,7 +36,8 @@ namespace LumiWorld.Acs
         public List<string> memberIds = new List<string>();
         public bool isRecovery;
         public bool hasSettlementTime;
-        public double lastSettledUtc;
+        // Session gameplay clock, NOT UTC. World restore must rebase after offline settlement.
+        public double lastSettledSeconds;
         public List<ResourceProductionBuffer> buffers = new List<ResourceProductionBuffer>();
         public List<ProductionSlotRate> rates = new List<ProductionSlotRate>();
 

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 using UnityEngine;
+using LumiWorld.Acs.TimeSystem;
 
 /// <summary>
 /// Bảng Đơn Hàng: các ô đơn của khách NPC. Người chơi giao tài nguyên trong kho để nhận Coins.
@@ -11,23 +11,34 @@ using UnityEngine;
 ///   hoặc loại kho đã có đủ cho số lượng cao nhất của đơn. Nhờ vậy đơn cơ bản không bao giờ kẹt ở mức không giao được.
 /// - Giao đơn: trừ kho và cộng Coins cùng lúc (đủ hết mới trừ), rồi ô đó có ngay đơn mới.
 /// - Bỏ đơn: miễn phí, ô trống có đơn mới sau refillSeconds (mặc định 5 phút, tính cả lúc tắt game).
+/// - Pause thủ công giữ thời gian chờ; mất focus không dừng timer. Save vẫn dùng deadline ISO cũ.
 /// Đơn đang mở và giờ có đơn mới được lưu cùng ví và kho trong EconomySaveData.
 /// Mẫu đơn là các asset OrderTemplate trong thư mục Resources (Assets/Data/Resources/Orders).
 /// </summary>
 public class OrderBoardSystem : MonoBehaviour
 {
     private static OrderBoardSystem _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static OrderBoardSystem Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<OrderBoardSystem>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("OrderBoardSystem");
                     _instance = go.AddComponent<OrderBoardSystem>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -52,7 +63,10 @@ public class OrderBoardSystem : MonoBehaviour
     private readonly HashSet<int> slotsWaitingForResources = new HashSet<int>();
     private List<ActiveOrder> orders;
     private List<OrderSlotRefill> refills;
-    private float checkTimer;
+    private GameTimeRuntime timeRuntime;
+    private TimerService refillTimers;
+    private TimerService pollTimer;
+    private EconomySaveSystem saveSystem;
 
     public int SlotCount => slotCount;
 
@@ -60,6 +74,13 @@ public class OrderBoardSystem : MonoBehaviour
     /// Bắn ra mỗi khi bảng đổi: có đơn mới, vừa giao đơn hoặc vừa bỏ đơn.
     /// </summary>
     public event Action OnBoardChanged;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
 
     private void Awake()
     {
@@ -70,12 +91,22 @@ public class OrderBoardSystem : MonoBehaviour
         }
 
         _instance = this;
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
+        timeRuntime = GameTimeRuntime.Instance;
+        refillTimers = new TimerService(timeRuntime.Clock);
+        pollTimer = new TimerService(timeRuntime.Clock);
+        pollTimer.StartInterval("poll", 1);
         LoadTemplates();
 
         // Sửa thẳng danh sách trong bản lưu, giống cách ví và kho cập nhật EconomySaveData
-        orders = EconomySaveSystem.Instance.OpenOrders;
-        refills = EconomySaveSystem.Instance.OrderRefills;
+        saveSystem = EconomySaveSystem.Instance;
+        orders = saveSystem.OpenOrders;
+        refills = saveSystem.OrderRefills;
         DropInvalidSavedOrders();
+        RestoreRefillTimers();
+        saveSystem.PreparingSave += CaptureRefillDeadlines;
+        timeRuntime.PauseChanged += HandleGameplayPause;
     }
 
     private void Start()
@@ -86,15 +117,25 @@ public class OrderBoardSystem : MonoBehaviour
     private void Update()
     {
         // Mỗi giây xem lại các ô trống: hết giờ chờ, hoặc người chơi vừa làm ra loại tài nguyên mới
-        checkTimer -= Time.unscaledDeltaTime;
-        if (checkTimer > 0f) return;
+        if (timeRuntime.IsPaused) return;
+        if (pollTimer.TryConsumeSignals("poll", out _)) FillEmptySlots();
+    }
 
-        checkTimer = 1f;
-        FillEmptySlots();
+    private void OnApplicationQuit()
+    {
+        _isQuitting = true;
     }
 
     private void OnDestroy()
     {
+        // Preserve remaining wait when the scene is unloaded during a manual pause.
+        if (saveSystem != null)
+        {
+            CaptureRefillDeadlines();
+            saveSystem.MarkDirty();
+            saveSystem.PreparingSave -= CaptureRefillDeadlines;
+        }
+        if (timeRuntime != null) timeRuntime.PauseChanged -= HandleGameplayPause;
         if (_instance == this) _instance = null;
     }
 
@@ -150,8 +191,9 @@ public class OrderBoardSystem : MonoBehaviour
     /// </summary>
     public TimeSpan GetTimeUntilRefill(int slot)
     {
-        TimeSpan left = GetRefillTime(slot) - DateTime.UtcNow;
-        return left > TimeSpan.Zero ? left : TimeSpan.Zero;
+        string id = RefillId(slot);
+        return refillTimers != null && refillTimers.Contains(id)
+            ? TimeSpan.FromSeconds(refillTimers.Read(id).remainingSeconds) : TimeSpan.Zero;
     }
 
     /// <summary>
@@ -172,6 +214,7 @@ public class OrderBoardSystem : MonoBehaviour
     /// </summary>
     public bool TryFulfill(int slot)
     {
+        if (timeRuntime.IsPaused) return false;
         ActiveOrder order = GetOrder(slot);
         if (order == null) return false;
 
@@ -192,13 +235,14 @@ public class OrderBoardSystem : MonoBehaviour
     /// </summary>
     public bool Discard(int slot)
     {
+        if (timeRuntime.IsPaused) return false;
         if (slot == BaselineSlot) return false;
 
         ActiveOrder order = GetOrder(slot);
         if (order == null) return false;
 
         orders.Remove(order);
-        SetRefillTime(slot, DateTime.UtcNow.AddSeconds(refillSeconds));
+        SetRefillWait(slot);
         Debug.Log($"<color=#38BDF8>📋 [LumiWorld Đơn hàng] Đã bỏ đơn {Describe(order)} của {CustomerName(order)}. Ô {slot + 1} có đơn mới sau {refillSeconds:0} giây.</color>");
 
         NotifyChanged();
@@ -211,15 +255,13 @@ public class OrderBoardSystem : MonoBehaviour
 
     private void FillEmptySlots()
     {
-        if (orders == null) return;
+        if (orders == null || timeRuntime.IsPaused) return;
 
         HashSet<string> producing = null;
         bool changed = false;
-        DateTime now = DateTime.UtcNow;
-
         for (int slot = 0; slot < slotCount; slot++)
         {
-            if (GetOrder(slot) != null || GetRefillTime(slot) > now) continue;
+            if (GetOrder(slot) != null || GetTimeUntilRefill(slot) > TimeSpan.Zero) continue;
 
             if (producing == null) producing = GetProducingResourceIds();
             if (TryCreateOrder(slot, producing)) changed = true;
@@ -242,7 +284,7 @@ public class OrderBoardSystem : MonoBehaviour
             orderId = Guid.NewGuid().ToString("N"),
             templateId = template.templateId,
             slot = slot,
-            createdAtUtc = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)
+            createdAtUtc = UtcDeadline.Format(timeRuntime.Clock.Read().UtcSeconds)
         };
 
         // Chốt số lượng trong khoảng của mẫu; thưởng = tổng (số lượng × baseValue) × hệ số
@@ -261,6 +303,7 @@ public class OrderBoardSystem : MonoBehaviour
         order.rewardCoins = Mathf.Max(1, Mathf.FloorToInt(baseValueTotal * template.rewardMultiplier + 0.5f));
         orders.Add(order);
         refills.RemoveAll(refill => refill.slot == slot);
+        refillTimers.Cancel(RefillId(slot));
         slotsWaitingForResources.Remove(slot);
 
         Debug.Log($"<color=#38BDF8>📋 [LumiWorld Đơn hàng] Ô {slot + 1}: {CustomerName(order)} cần {Describe(order)}, thưởng {order.rewardCoins} Coins.</color>");
@@ -326,24 +369,62 @@ public class OrderBoardSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Loại tài nguyên người chơi đang làm ra: có cụm biome đang có thú sản xuất.
+    /// Loại tài nguyên người chơi đang làm ra: có cụm biome/habitat đang có thú sản xuất.
     /// </summary>
     private static HashSet<string> GetProducingResourceIds()
     {
         HashSet<string> ids = new HashSet<string>();
 
-        // Tìm chứ không gọi BiomeHarvestManager.Instance, để không tự tạo manager ở scene không có bản đồ
-        BiomeHarvestManager harvest = FindAnyObjectByType<BiomeHarvestManager>();
-        if (harvest != null)
+        // 1. Hệ thống sản xuất chuẩn GDD (ResourceProductionRuntime)
+        var production = UnityEngine.Object.FindAnyObjectByType<LumiWorld.Acs.ResourceProductionRuntime>();
+        if (production != null && production.States != null)
         {
-            foreach (BiomeHarvestCluster cluster in harvest.Clusters)
+            foreach (var state in production.States)
             {
-                if (cluster != null && cluster.ResourceData != null && cluster.Animals.Count > 0)
+                if (state?.rates == null) continue;
+                foreach (var rate in state.rates)
                 {
-                    ids.Add(cluster.ResourceData.resourceID);
+                    if (rate != null && !string.IsNullOrEmpty(rate.resourceId) && rate.unitsPerMinute > 0)
+                    {
+                        ids.Add(rate.resourceId);
+                    }
                 }
             }
         }
+
+        // 2. Dự phòng: Kiểm tra HabitatRuntimeManager trực tiếp nếu chưa settle rates
+        if (ids.Count == 0 && LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager) && habitatManager.Habitats != null)
+        {
+            foreach (var habitat in habitatManager.Habitats)
+            {
+                if (habitat == null || habitat.residents == null || habitat.residents.Count == 0) continue;
+                if (habitat.slots == null) continue;
+                foreach (var slot in habitat.slots)
+                {
+                    if (slot != null && !string.IsNullOrEmpty(slot.selectedResourceId))
+                    {
+                        ids.Add(slot.selectedResourceId);
+                    }
+                }
+            }
+        }
+
+        // 3. Dự phòng: Thú riêng lẻ trên ô đất
+        if (ids.Count == 0)
+        {
+            var animals = UnityEngine.Object.FindObjectsByType<AnimalIndividual>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            if (animals != null)
+            {
+                foreach (var animal in animals)
+                {
+                    if (animal != null && animal.ActiveResource != null && !string.IsNullOrEmpty(animal.ActiveResource.resourceID))
+                    {
+                        ids.Add(animal.ActiveResource.resourceID);
+                    }
+                }
+            }
+        }
+
         return ids;
     }
 
@@ -364,35 +445,45 @@ public class OrderBoardSystem : MonoBehaviour
     // GIỜ CÓ ĐƠN MỚI CỦA Ô TRỐNG
     // =========================================================
 
-    private DateTime GetRefillTime(int slot)
+    private static string RefillId(int slot) => "order.refill." + slot;
+
+    private void RestoreRefillTimers()
     {
+        double utc = timeRuntime.Clock.Read().UtcSeconds;
         foreach (OrderSlotRefill refill in refills)
         {
-            if (refill.slot != slot) continue;
-
-            if (!DateTime.TryParse(refill.refillAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime time))
-            {
-                return DateTime.MinValue;
-            }
-
-            // Đồng hồ máy bị chỉnh lùi sau khi bỏ đơn: không bắt chờ lâu hơn một lượt chờ đầy đủ
-            DateTime latest = DateTime.UtcNow.AddSeconds(refillSeconds);
-            time = time.ToUniversalTime();
-            if (time > latest)
-            {
-                time = latest;
-                refill.refillAtUtc = latest.ToString("o", CultureInfo.InvariantCulture);
-                EconomySaveSystem.Instance.MarkDirty();
-            }
-            return time;
+            double remaining = UtcDeadline.Remaining(refill.refillAtUtc, utc, Mathf.Max(0, refillSeconds));
+            refillTimers.StartCountdown(RefillId(refill.slot), remaining);
         }
-        return DateTime.MinValue;
     }
 
-    private void SetRefillTime(int slot, DateTime timeUtc)
+    private void SetRefillWait(int slot)
     {
+        string id = RefillId(slot);
+        refillTimers.Cancel(id);
+        refillTimers.StartCountdown(id, Mathf.Max(0, refillSeconds));
         refills.RemoveAll(refill => refill.slot == slot);
-        refills.Add(new OrderSlotRefill { slot = slot, refillAtUtc = timeUtc.ToString("o", CultureInfo.InvariantCulture) });
+        refills.Add(new OrderSlotRefill { slot = slot });
+        CaptureRefillDeadlines();
+    }
+
+    private void CaptureRefillDeadlines()
+    {
+        if (refillTimers == null || refills == null) return;
+        var snapshot = refillTimers.Capture();
+        foreach (var refill in refills)
+        {
+            var timer = snapshot.timers.Find(t => t.id == RefillId(refill.slot));
+            if (timer != null)
+                refill.refillAtUtc = UtcDeadline.Format(snapshot.savedAtUtcSeconds + timer.remainingSeconds);
+        }
+    }
+
+    private void HandleGameplayPause(bool paused)
+    {
+        CaptureRefillDeadlines();
+        saveSystem.MarkDirty();
+        OnBoardChanged?.Invoke();
     }
 
     // =========================================================
@@ -452,7 +543,9 @@ public class OrderBoardSystem : MonoBehaviour
             || order.requirements.Count == 0
             || order.requirements.Exists(stack => stack == null || ResourceCatalog.Find(stack.resourceId) == null)
             || !usedSlots.Add(order.slot));
-        removed += refills.RemoveAll(refill => refill == null || refill.slot < 0 || refill.slot >= slotCount);
+        var usedRefillSlots = new HashSet<int>();
+        removed += refills.RemoveAll(refill => refill == null || refill.slot < 0 || refill.slot >= slotCount ||
+            usedSlots.Contains(refill.slot) || !usedRefillSlots.Add(refill.slot));
 
         if (removed > 0)
         {
@@ -489,6 +582,7 @@ public class OrderBoardSystem : MonoBehaviour
     [ContextMenu("Test: có đơn mới ngay cho ô trống")]
     private void DevSkipRefillWait()
     {
+        refillTimers.Clear();
         refills.Clear();
         EconomySaveSystem.Instance.MarkDirty();
         FillEmptySlots();
@@ -497,6 +591,7 @@ public class OrderBoardSystem : MonoBehaviour
     [ContextMenu("Test: làm mới cả bảng")]
     private void DevRerollBoard()
     {
+        refillTimers.Clear();
         orders.Clear();
         refills.Clear();
         NotifyChanged();
