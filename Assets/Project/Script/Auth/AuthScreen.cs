@@ -18,8 +18,8 @@ using UnityEngine.UI;
 public class AuthScreen : MonoBehaviour
 {
     [Header("Flow")]
-    [Tooltip("Scene loaded after a successful login. Must be in Build Settings.")]
-    [SerializeField] private string gameSceneName = "MapBuilding";
+    [Tooltip("Scene loaded after a successful login: the main menu, which then starts the game. Must be in Build Settings.")]
+    [SerializeField] private string gameSceneName = "MainMenu";
 
     [Tooltip("Go straight to the game when a saved, unexpired session exists. " +
              "Off while testing, so the login screen always shows.")]

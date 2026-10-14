@@ -7,17 +7,19 @@ using UnityEngine.SceneManagement;
 /// <summary>
 /// Tools > LumiWorld > Set Up Login Scene
 ///
-/// Creates Assets/Scenes/Login.unity and puts it first in Build Settings, with
-/// MapBuilding right after it, so a built game opens on the login screen.
+/// Creates Assets/Scenes/Login.unity and puts it in Build Settings right after
+/// MainMenu. The game still starts at MainMenu; the menu opens the login screen
+/// when a player is not logged in, and the login screen returns to the menu.
 /// Safe to run more than once: an existing Login scene is left untouched.
 ///
 /// In the Editor you can still press Play directly in MapBuilding without
-/// logging in — only builds start at the login screen.
+/// logging in.
 /// </summary>
 public static class AuthSceneSetup
 {
     private const string LoginScenePath = "Assets/Scenes/Login.unity";
     private const string GameScenePath = "Assets/Scenes/MapBuilding.unity";
+    private const string MenuScenePath = "Assets/Scenes/MainMenu.unity";
 
     [MenuItem("Tools/LumiWorld/Set Up Login Scene")]
     public static void SetUpLoginScene()
@@ -34,11 +36,12 @@ public static class AuthSceneSetup
             Debug.Log("AuthSceneSetup: " + LoginScenePath + " already exists, leaving it untouched.");
         }
 
-        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(GameScenePath) == null)
+        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(GameScenePath) == null
+            || AssetDatabase.LoadAssetAtPath<SceneAsset>(MenuScenePath) == null)
         {
             Debug.LogError(
-                "AuthSceneSetup: " + GameScenePath + " not found. " +
-                "Update GameScenePath in AuthSceneSetup.cs and the Game Scene Name on the AuthScreen component."
+                "AuthSceneSetup: " + GameScenePath + " or " + MenuScenePath + " not found. " +
+                "Update the scene paths in AuthSceneSetup.cs and the Game Scene Name on the AuthScreen component."
             );
             return;
         }
@@ -46,7 +49,7 @@ public static class AuthSceneSetup
         PutScenesInBuildOrder();
         EditorSceneManager.OpenScene(LoginScenePath);
 
-        Debug.Log("AuthSceneSetup: done. Login is scene 0, MapBuilding is scene 1. Press Play to test.");
+        Debug.Log("AuthSceneSetup: done. MainMenu is scene 0, Login is scene 1, MapBuilding is scene 2. Press Play to test.");
     }
 
     private static void CreateLoginScene()
@@ -72,9 +75,11 @@ public static class AuthSceneSetup
     {
         var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
 
-        scenes.RemoveAll(s => s.path == LoginScenePath || s.path == GameScenePath);
-        scenes.Insert(0, new EditorBuildSettingsScene(LoginScenePath, true));
-        scenes.Insert(1, new EditorBuildSettingsScene(GameScenePath, true));
+        // Game mở ở MainMenu (scene 0), màn đăng nhập ngay sau đó, rồi MapBuilding
+        scenes.RemoveAll(s => s.path == LoginScenePath || s.path == GameScenePath || s.path == MenuScenePath);
+        scenes.Insert(0, new EditorBuildSettingsScene(MenuScenePath, true));
+        scenes.Insert(1, new EditorBuildSettingsScene(LoginScenePath, true));
+        scenes.Insert(2, new EditorBuildSettingsScene(GameScenePath, true));
 
         EditorBuildSettings.scenes = scenes.ToArray();
     }

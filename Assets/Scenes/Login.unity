@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd1a792d91244ba894c49b1f8de0217d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AuthScreen
-  gameSceneName: MapBuilding
+  gameSceneName: MainMenu
   skipIfLoggedIn: 0
   showServerField: 1
 --- !u!4 &15582821

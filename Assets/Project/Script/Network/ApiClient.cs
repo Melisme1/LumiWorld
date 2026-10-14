@@ -15,6 +15,17 @@ public static class ApiClient
     private const int TimeoutSeconds = 15;
 
     /// <summary>
+    /// Header chống làm lại thao tác khi gửi lại vì mất mạng. Server đọc đúng tên này.
+    /// </summary>
+    public const string IdempotencyHeader = "Idempotency-Key";
+
+    /// <summary>
+    /// Báo khi server từ chối token đang gửi (401). Màn menu nghe sự kiện này để mời đăng nhập lại.
+    /// Chỉ bắn khi request đã gửi kèm token, nên khách chưa đăng nhập không kích hoạt.
+    /// </summary>
+    public static event Action SessionExpired;
+
+    /// <summary>
     /// Server address, remembered between launches. Change it on the login screen
     /// when testing against a Cloudflare tunnel URL.
     /// </summary>
@@ -37,18 +48,21 @@ public static class ApiClient
         TRequest body,
         bool withToken,
         Action<TResponse> onSuccess,
-        Action<ApiError> onError)
+        Action<ApiError> onError,
+        string idempotencyKey = null)
     {
-        byte[] payload = Encoding.UTF8.GetBytes(JsonUtility.ToJson(body));
+        return SendJson(UnityWebRequest.kHttpVerbPOST, path, body, withToken, onSuccess, onError, idempotencyKey);
+    }
 
-        using (var request = new UnityWebRequest(BaseUrl + path, UnityWebRequest.kHttpVerbPOST))
-        {
-            request.uploadHandler = new UploadHandlerRaw(payload);
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
-
-            yield return Send(request, withToken, onSuccess, onError);
-        }
+    public static IEnumerator Put<TRequest, TResponse>(
+        string path,
+        TRequest body,
+        bool withToken,
+        Action<TResponse> onSuccess,
+        Action<ApiError> onError,
+        string idempotencyKey = null)
+    {
+        return SendJson(UnityWebRequest.kHttpVerbPUT, path, body, withToken, onSuccess, onError, idempotencyKey);
     }
 
     public static IEnumerator Get<TResponse>(
@@ -59,7 +73,45 @@ public static class ApiClient
     {
         using (var request = UnityWebRequest.Get(BaseUrl + path))
         {
-            yield return Send(request, withToken, onSuccess, onError);
+            yield return Send(request, withToken, onSuccess, onError, null);
+        }
+    }
+
+    /// <summary>
+    /// DELETE không có body. Server trả 204 nên onSuccess nhận null.
+    /// </summary>
+    public static IEnumerator Delete<TResponse>(
+        string path,
+        bool withToken,
+        Action<TResponse> onSuccess,
+        Action<ApiError> onError,
+        string idempotencyKey = null)
+    {
+        using (var request = new UnityWebRequest(BaseUrl + path, UnityWebRequest.kHttpVerbDELETE))
+        {
+            request.downloadHandler = new DownloadHandlerBuffer();
+            yield return Send(request, withToken, onSuccess, onError, idempotencyKey);
+        }
+    }
+
+    private static IEnumerator SendJson<TRequest, TResponse>(
+        string method,
+        string path,
+        TRequest body,
+        bool withToken,
+        Action<TResponse> onSuccess,
+        Action<ApiError> onError,
+        string idempotencyKey)
+    {
+        byte[] payload = Encoding.UTF8.GetBytes(JsonUtility.ToJson(body));
+
+        using (var request = new UnityWebRequest(BaseUrl + path, method))
+        {
+            request.uploadHandler = new UploadHandlerRaw(payload);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            yield return Send(request, withToken, onSuccess, onError, idempotencyKey);
         }
     }
 
@@ -67,13 +119,18 @@ public static class ApiClient
         UnityWebRequest request,
         bool withToken,
         Action<TResponse> onSuccess,
-        Action<ApiError> onError)
+        Action<ApiError> onError,
+        string idempotencyKey)
     {
         request.timeout = TimeoutSeconds;
         request.SetRequestHeader("Accept", "application/json");
 
-        if (withToken && AuthSession.IsLoggedIn)
+        bool sendingToken = withToken && AuthSession.IsLoggedIn;
+        if (sendingToken)
             request.SetRequestHeader("Authorization", "Bearer " + AuthSession.AccessToken);
+
+        if (!string.IsNullOrEmpty(idempotencyKey))
+            request.SetRequestHeader(IdempotencyHeader, idempotencyKey);
 
         // SendWebRequest throws synchronously for a malformed URL, or for plain
         // http:// when Player Settings block insecure connections. C# forbids
@@ -102,6 +159,9 @@ public static class ApiClient
 
         if (request.result == UnityWebRequest.Result.ProtocolError)
         {
+            if (sendingToken && request.responseCode == 401)
+                SessionExpired?.Invoke();
+
             onError?.Invoke(ApiError.FromResponse(request.responseCode, text));
             yield break;
         }
@@ -115,13 +175,17 @@ public static class ApiClient
         TResponse response = default;
         string parseFailure = null;
 
-        try
+        // 204 No Content (DELETE, và ack trả về rỗng) không có body để đọc
+        if (!string.IsNullOrEmpty(text))
         {
-            response = JsonUtility.FromJson<TResponse>(text);
-        }
-        catch (Exception ex)
-        {
-            parseFailure = ex.Message;
+            try
+            {
+                response = JsonUtility.FromJson<TResponse>(text);
+            }
+            catch (Exception ex)
+            {
+                parseFailure = ex.Message;
+            }
         }
 
         // Callbacks run outside the try so an exception in caller code is not

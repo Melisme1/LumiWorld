@@ -14,7 +14,10 @@ public enum CoinReason
     CardPurchase,
     PlacementFee,
     IslandUnlock,
-    DevCheat
+    DevCheat,
+    MarketPurchase,
+    MarketSale,
+    MarketRefund
 }
 
 /// <summary>
