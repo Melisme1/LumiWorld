@@ -155,6 +155,9 @@ public class WildPackIncidentManager : MonoBehaviour
 
     private void Update()
     {
+        // Đảo đang xem của người khác: không sinh đàn thú hoang
+        if (WorldLaunch.IsVisit) return;
+
         if (!enableIncidents || config == null) return;
 
         // 1. Không đếm giờ sinh thêm nếu trên bản đồ đã có đàn thú đang quậy phá (chờ thu phục)
