@@ -97,16 +97,23 @@ public class CurrencyWallet : MonoBehaviour
     public bool TrySpend(int amount, CoinReason reason)
     {
         if (amount <= 0) return true;
-        if (balance < amount) return false;
+        if (balance < amount || IsBlockedByVisit(reason)) return false;
 
         balance -= amount;
         NotifyChanged(-amount, reason);
         return true;
     }
 
+    // Đang xem đảo người khác thì chỉ giao dịch chợ được đổi Coins, còn lại (thu phí, mốc, thưởng) bị chặn
+    private static bool IsBlockedByVisit(CoinReason reason)
+    {
+        if (!WorldLaunch.IsVisit) return false;
+        return reason != CoinReason.MarketPurchase && reason != CoinReason.MarketSale && reason != CoinReason.MarketRefund;
+    }
+
     public void Add(int amount, CoinReason reason)
     {
-        if (amount <= 0) return;
+        if (amount <= 0 || IsBlockedByVisit(reason)) return;
 
         balance += amount;
         NotifyChanged(amount, reason);

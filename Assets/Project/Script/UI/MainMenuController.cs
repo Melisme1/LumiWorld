@@ -55,18 +55,24 @@ public class MainMenuController : MonoBehaviour
         BuildAccountBar();
         RefreshAccountBar();
 
-        // Check if save data exists
-        UpdateContinueButton();
+        // Một nút Play thay cho New Game và Continue: mỗi tài khoản chỉ có một save
+        if (continueButton != null) continueButton.gameObject.SetActive(false);
     }
 
 
     // ========================================
-    // NEW GAME
+    // PLAY
     // ========================================
 
-    public void OnNewGame()
+    private bool startingGame;
+
+    /// <summary>
+    /// Nút Play. Chưa đăng nhập thì mở màn đăng nhập, đăng nhập xong quay về đây.
+    /// Đã đăng nhập thì tải save mới nhất từ server (nếu lấy được), rồi vào MapBuilding:
+    /// có save thì dựng lại đảo cũ, chưa có thì sinh đảo mới (WorldSaveSystem).
+    /// </summary>
+    public void OnPlay()
     {
-        // Chơi cần tài khoản: chưa đăng nhập thì mở màn đăng nhập trước
         if (!AuthSession.IsLoggedIn)
         {
             Debug.Log("Chưa đăng nhập, mở màn đăng nhập.");
@@ -74,34 +80,17 @@ public class MainMenuController : MonoBehaviour
             return;
         }
 
-        Debug.Log("Starting New Game...");
-
-        SceneManager.LoadScene(gameSceneName);
+        if (startingGame) return;
+        startingGame = true;
+        // Rời đảo người khác bằng đường khác ngoài Back home (về menu) thì vẫn vào đảo của mình
+        if (VisitSession.Active) VisitSession.End();
+        StartCoroutine(SaveSync.PullBeforePlay(() => SceneManager.LoadScene(gameSceneName)));
     }
 
+    // Giữ tên cũ để nút đã gán trong scene vẫn chạy; cả hai đều vào OnPlay
+    public void OnNewGame() => OnPlay();
 
-    // ========================================
-    // CONTINUE
-    // ========================================
-
-    public void OnContinue()
-    {
-        if (!HasSaveData())
-        {
-            Debug.Log("No save data found.");
-            return;
-        }
-
-        if (!AuthSession.IsLoggedIn)
-        {
-            SceneManager.LoadScene(LoginSceneName);
-            return;
-        }
-
-        Debug.Log("Continuing Game...");
-
-        SceneManager.LoadScene(gameSceneName);
-    }
+    public void OnContinue() => OnPlay();
 
 
     // ========================================
@@ -237,35 +226,4 @@ public class MainMenuController : MonoBehaviour
     }
 
 
-    // ========================================
-    // SAVE CHECK
-    // ========================================
-
-    private bool HasSaveData()
-    {
-        return PlayerPrefs.HasKey("GameSave");
-    }
-
-
-    private void UpdateContinueButton()
-    {
-        if (continueButton == null)
-            return;
-
-        bool hasSave = HasSaveData();
-
-        continueButton.interactable = hasSave;
-
-        // Nếu nút đang bị hover lúc bị disable, đưa hiệu ứng về trạng thái nghỉ.
-        if (!hasSave)
-        {
-            MenuButtonEffect effect =
-                continueButton.GetComponent<MenuButtonEffect>();
-
-            if (effect != null)
-            {
-                effect.ResetVisual();
-            }
-        }
-    }
 }

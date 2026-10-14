@@ -170,9 +170,9 @@ public class EconomySaveSystem : MonoBehaviour
                     return false;
                 }
 
-                inventory.Add(resource, goods.amount);
+                inventory.AddFromAccount(resource, goods.amount);
                 var stack = new ResourceStack { resourceId = resource.resourceID, amount = goods.amount };
-                undo = () => inventory.TryRemoveAll(new List<ResourceStack> { stack });
+                undo = () => inventory.TryRemoveFromAccount(new List<ResourceStack> { stack });
                 break;
             }
 
@@ -310,12 +310,14 @@ public class EconomySaveSystem : MonoBehaviour
 
     private void SaveIfDirty()
     {
-        if (!isDirty || data == null) return;
+        // Đang tải lại bản server sau xung đột: bản trong bộ nhớ đã cũ, không ghi đè
+        if (!isDirty || data == null || SaveSync.SavesSuspended) return;
 
         data.savedAtUtc = DateTime.UtcNow.ToString("o");
         if (store.Save(data))
         {
             isDirty = false;
+            SaveSync.QueueUpload();
         }
         else
         {

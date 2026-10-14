@@ -78,6 +78,16 @@ public class ResourceInventory : MonoBehaviour
     /// </summary>
     public int Add(ResourceData resource, int amount)
     {
+        // Đảo đang xem của người khác: sản xuất và thu hoạch không được cộng hàng
+        if (WorldLaunch.IsVisit) return 0;
+        return AddFromAccount(resource, amount);
+    }
+
+    /// <summary>
+    /// Cất hàng từ giao dịch của chính tài khoản (chợ, hộp thư). Không bị chặn khi đang xem đảo người khác.
+    /// </summary>
+    public int AddFromAccount(ResourceData resource, int amount)
+    {
         if (resource == null || amount <= 0) return 0;
 
         if (string.IsNullOrEmpty(resource.resourceID))
@@ -109,6 +119,8 @@ public class ResourceInventory : MonoBehaviour
     internal bool TryAddAll(IReadOnlyList<Deposit> deposits, Action commitSource)
     {
         if (deposits == null || deposits.Count == 0 || commitSource == null) return false;
+        // Đang xem đảo người khác: sản lượng của đảo đó không vào kho của người xem
+        if (WorldLaunch.IsVisit) return false;
         var deltas = new Dictionary<string, int>(StringComparer.Ordinal);
         var limits = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var deposit in deposits)
@@ -164,6 +176,15 @@ public class ResourceInventory : MonoBehaviour
     /// Trừ đủ mọi dòng yêu cầu, hoặc không trừ gì nếu thiếu dù chỉ một loại. Trả về true khi đã trừ.
     /// </summary>
     public bool TryRemoveAll(IList<ResourceStack> requirements)
+    {
+        if (WorldLaunch.IsVisit) return false;
+        return TryRemoveFromAccount(requirements);
+    }
+
+    /// <summary>
+    /// Trừ hàng cho giao dịch của chính tài khoản (chợ). Không bị chặn khi đang xem đảo người khác.
+    /// </summary>
+    public bool TryRemoveFromAccount(IList<ResourceStack> requirements)
     {
         Dictionary<string, int> needs = SumByResource(requirements);
         foreach (KeyValuePair<string, int> need in needs)

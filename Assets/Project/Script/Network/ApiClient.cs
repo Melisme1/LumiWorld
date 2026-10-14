@@ -65,6 +65,37 @@ public static class ApiClient
         return SendJson(UnityWebRequest.kHttpVerbPUT, path, body, withToken, onSuccess, onError, idempotencyKey);
     }
 
+    /// <summary>PUT với body là chuỗi JSON có sẵn (lưu save gửi nguyên văn file, không qua JsonUtility).</summary>
+    public static IEnumerator PutRaw(
+        string path,
+        string jsonBody,
+        bool withToken,
+        Action<string> onSuccess,
+        Action<ApiError> onError)
+    {
+        byte[] payload = Encoding.UTF8.GetBytes(jsonBody);
+        using (var request = new UnityWebRequest(BaseUrl + path, UnityWebRequest.kHttpVerbPUT))
+        {
+            request.uploadHandler = new UploadHandlerRaw(payload);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+            yield return SendText(request, withToken, onSuccess, onError, null);
+        }
+    }
+
+    /// <summary>GET trả về nguyên văn body (JSON), để tự tách các phần object lớn.</summary>
+    public static IEnumerator GetText(
+        string path,
+        bool withToken,
+        Action<string> onSuccess,
+        Action<ApiError> onError)
+    {
+        using (var request = UnityWebRequest.Get(BaseUrl + path))
+        {
+            yield return SendText(request, withToken, onSuccess, onError, null);
+        }
+    }
+
     public static IEnumerator Get<TResponse>(
         string path,
         bool withToken,
@@ -122,6 +153,41 @@ public static class ApiClient
         Action<ApiError> onError,
         string idempotencyKey)
     {
+        // Thành công thì phân tích JSON rồi mới gọi onSuccess; lỗi phân tích báo như lỗi server
+        return SendText(request, withToken, text =>
+        {
+            TResponse response = default;
+            string parseFailure = null;
+
+            // 204 No Content (DELETE, và ack trả về rỗng) không có body để đọc
+            if (!string.IsNullOrEmpty(text))
+            {
+                try
+                {
+                    response = JsonUtility.FromJson<TResponse>(text);
+                }
+                catch (Exception ex)
+                {
+                    parseFailure = ex.Message;
+                }
+            }
+
+            // Callbacks run outside the try so an exception in caller code is not
+            // misreported as a bad server response.
+            if (parseFailure != null)
+                onError?.Invoke(ApiError.Transport("Unreadable response: " + parseFailure));
+            else
+                onSuccess?.Invoke(response);
+        }, onError, idempotencyKey);
+    }
+
+    private static IEnumerator SendText(
+        UnityWebRequest request,
+        bool withToken,
+        Action<string> onText,
+        Action<ApiError> onError,
+        string idempotencyKey)
+    {
         request.timeout = TimeoutSeconds;
         request.SetRequestHeader("Accept", "application/json");
 
@@ -172,28 +238,8 @@ public static class ApiClient
             yield break;
         }
 
-        TResponse response = default;
-        string parseFailure = null;
-
-        // 204 No Content (DELETE, và ack trả về rỗng) không có body để đọc
-        if (!string.IsNullOrEmpty(text))
-        {
-            try
-            {
-                response = JsonUtility.FromJson<TResponse>(text);
-            }
-            catch (Exception ex)
-            {
-                parseFailure = ex.Message;
-            }
-        }
-
-        // Callbacks run outside the try so an exception in caller code is not
-        // misreported as a bad server response.
-        if (parseFailure != null)
-            onError?.Invoke(ApiError.Transport("Unreadable response: " + parseFailure));
-        else
-            onSuccess?.Invoke(response);
+        // 204 No Content không có body; onText nhận chuỗi rỗng
+        onText?.Invoke(text);
     }
 }
 

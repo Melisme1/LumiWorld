@@ -1256,6 +1256,9 @@ public class FarmAnimalAI : MonoBehaviour
 
     void TriggerScoreReward(int points)
     {
+        // Đảo đang xem của người khác: không thưởng combo
+        if (WorldLaunch.IsVisit) return;
+
         if (ScoreManager.Instance != null)
         {
             ScoreManager.Instance.SetScore(ScoreManager.Instance.CurrentScore + points);

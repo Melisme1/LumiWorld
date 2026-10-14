@@ -90,7 +90,7 @@ public class MarketSync : MonoBehaviour
             config =>
             {
                 if (config == null) return;
-                if (config.marketFeePercent > 0) feePercent = config.marketFeePercent;
+                if (config.marketFeePercent >= 0) feePercent = config.marketFeePercent;
                 if (config.marketMaxActiveListings > 0) maxActiveListings = config.marketMaxActiveListings;
                 if (config.marketListingHours > 0) listingHours = config.marketListingHours;
                 if (config.marketMinPriceFactor > 0f) minPriceFactor = config.marketMinPriceFactor;
@@ -155,7 +155,7 @@ public class MarketSync : MonoBehaviour
 
         ResourceInventory inventory = ResourceInventory.Instance;
         var stock = new List<ResourceStack> { new ResourceStack { resourceId = resourceId, amount = amount } };
-        if (!inventory.TryRemoveAll(stock))
+        if (!inventory.TryRemoveFromAccount(stock))
         {
             done?.Invoke(false, "Not enough " + resource.resourceName + " in your inventory.");
             return;
@@ -169,7 +169,7 @@ public class MarketSync : MonoBehaviour
         // Không ghi được file thì trả hàng lại kho, không để hàng mất
         if (!EconomySaveSystem.Instance.AddPendingMarketOp(op))
         {
-            inventory.Add(resource, amount);
+            inventory.AddFromAccount(resource, amount);
             done?.Invoke(false, "Could not save. Nothing was listed.");
             return;
         }
@@ -319,7 +319,7 @@ public class MarketSync : MonoBehaviour
             case CreateKind:
             {
                 ResourceData resource = ResourceCatalog.Find(op.resourceId);
-                int returned = resource != null ? ResourceInventory.Instance.Add(resource, op.amount) : 0;
+                int returned = resource != null ? ResourceInventory.Instance.AddFromAccount(resource, op.amount) : 0;
                 if (returned < op.amount)
                     Debug.LogWarning($"[LumiWorld Chợ] Kho đầy khi trả hàng, chỉ trả lại {returned}/{op.amount} {op.resourceId}.");
                 break;

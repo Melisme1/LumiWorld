@@ -112,6 +112,9 @@ public class BiomeHarvestManager : MonoBehaviour
 
     private void HandleInputHarvest()
     {
+        // Đảo đang xem của người khác: không thu hoạch
+        if (WorldLaunch.IsVisit) return;
+
         // Kiểm tra click hoàn toàn bằng New Input System (Mouse / Touchscreen / Pointer)
         bool clickDown = false;
         Vector2 screenPos = Vector2.zero;
