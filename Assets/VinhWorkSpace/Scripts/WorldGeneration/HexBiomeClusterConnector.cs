@@ -326,6 +326,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
     {
         if (placedCard == null || placedCard.cardData == null) return;
 
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen != null && worldGen.MapTiles != null &&
+            worldGen.MapTiles.TryGetValue(placedCard.placedHex, out GameObject placedTile) && IsBurnedTile(placedTile))
+            return;
+
         // Chỉ xử lý nếu lá bài này là thẻ Habitat (có hệ sinh thái props) hoặc Terrain
         if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain) return;
 
@@ -348,6 +353,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         if (!worldGen.MapTiles.TryGetValue(centerHex, out GameObject centerTile) || centerTile == null)
             return;
+        if (IsBurnedTile(centerTile)) return;
 
         // Xác định thẻ Habitat trên ô trung tâm (duyệt qua toàn bộ PlacedCard trên ô, không bị che bởi thẻ Rain)
         PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
@@ -374,8 +380,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
             HexCoordinates hB = centerHex.GetNeighbor(dir);
             HexCoordinates hC = centerHex.GetNeighbor((dir + 1) % 6);
 
-            if (worldGen.MapTiles.TryGetValue(hB, out GameObject tileB) && tileB != null &&
-                worldGen.MapTiles.TryGetValue(hC, out GameObject tileC) && tileC != null)
+            if (worldGen.MapTiles.TryGetValue(hB, out GameObject tileB) && tileB != null && !IsBurnedTile(tileB) &&
+                worldGen.MapTiles.TryGetValue(hC, out GameObject tileC) && tileC != null && !IsBurnedTile(tileC))
             {
                 PlacedCard cardB = GetHabitatCardOnTile(tileB);
                 PlacedCard cardC = GetHabitatCardOnTile(tileC);
@@ -413,7 +419,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
         {
             HexCoordinates neighborHex = centerHex.GetNeighbor(dir);
 
-            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
+            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) &&
+                neighborTile != null && !IsBurnedTile(neighborTile))
             {
                 PlacedCard neighborCard = GetHabitatCardOnTile(neighborTile);
 
@@ -488,6 +495,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static bool IsBurnedTile(GameObject tileObj)
+    {
+        return LumiWorld.Acs.TileDisasterState.TryGet(tileObj, out var state) && state.isBurned;
     }
 
     /// <summary>
@@ -2366,6 +2378,80 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
             _connectionsContainer = null;
         }
+    }
+
+    /// <summary>
+    /// Xóa chính xác các mesh nối cạnh và nắp ngã ba có chạm vào hex bị phá hủy.
+    /// Props thực vật được dọn riêng theo footprint trong DisasterRuntimeManager.
+    /// </summary>
+    public void RemoveConnectionsForHex(HexCoordinates hex)
+    {
+        if (_connectionsContainer == null) return;
+
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+
+        for (int dir = 0; dir < 6; dir++)
+        {
+            HexCoordinates neighbor = hex.GetNeighbor(dir);
+            string edgeKey = GetEdgeKey(hex, neighbor);
+            _createdEdgeBridges.Remove(edgeKey);
+            DestroyConnectionObject($"SeamBridge_{edgeKey}");
+
+            HexCoordinates nextNeighbor = hex.GetNeighbor((dir + 1) % 6);
+            string cornerKey = GetCornerKey(hex, neighbor, nextNeighbor);
+            _createdCornerFillers.Remove(cornerKey);
+            DestroyConnectionObject($"CornerFiller_{cornerKey}");
+
+            // Flower/grass props are separate children of the shared container, so remove
+            // the complete vignette around this exact 3-hex junction as well.
+            if (worldGen != null && worldGen.MapTiles != null &&
+                worldGen.MapTiles.TryGetValue(hex, out GameObject tileA) && tileA != null &&
+                worldGen.MapTiles.TryGetValue(neighbor, out GameObject tileB) && tileB != null &&
+                worldGen.MapTiles.TryGetValue(nextNeighbor, out GameObject tileC) && tileC != null)
+            {
+                Vector3 junction = (tileA.transform.position + tileB.transform.position + tileC.transform.position) / 3f;
+                DestroyConnectionObjectsNear(junction, 0.68f);
+            }
+        }
+    }
+
+    private void DestroyConnectionObjectsNear(Vector3 center, float radius)
+    {
+        if (_connectionsContainer == null) return;
+        float radiusSqr = radius * radius;
+        for (int i = _connectionsContainer.childCount - 1; i >= 0; i--)
+        {
+            Transform child = _connectionsContainer.GetChild(i);
+            if (child == null) continue;
+            Vector3 delta = child.position - center;
+            if (delta.x * delta.x + delta.z * delta.z > radiusSqr) continue;
+            DestroyConnectionObject(child);
+        }
+    }
+
+    private void DestroyConnectionObject(string objectName)
+    {
+        if (_connectionsContainer == null) return;
+        Transform connection = _connectionsContainer.Find(objectName);
+        if (connection == null) return;
+
+        DestroyConnectionObject(connection);
+    }
+
+    private void DestroyConnectionObject(Transform connection)
+    {
+        if (connection == null) return;
+        MeshFilter meshFilter = connection.GetComponent<MeshFilter>();
+        if (meshFilter != null && meshFilter.sharedMesh != null)
+        {
+            Mesh mesh = meshFilter.sharedMesh;
+            meshFilter.sharedMesh = null;
+            if (Application.isPlaying) Destroy(mesh);
+            else DestroyImmediate(mesh);
+        }
+
+        if (Application.isPlaying) Destroy(connection.gameObject);
+        else DestroyImmediate(connection.gameObject);
     }
 
     // =========================================================================

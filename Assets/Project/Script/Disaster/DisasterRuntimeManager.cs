@@ -1072,6 +1072,10 @@ namespace LumiWorld.Acs
             var connector = HexBiomeClusterConnector.Instance;
             if (connector == null) return;
 
+            TileDisasterState tileState = tileObj.GetComponent<TileDisasterState>();
+            if (tileState != null)
+                connector.RemoveConnectionsForHex(tileState.coordinates);
+
             Transform container = connector.ConnectionsContainer;
             if (container == null) return;
 
