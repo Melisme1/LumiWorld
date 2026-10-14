@@ -112,12 +112,8 @@ namespace LumiWorld.Acs
                 foreach (var candidate in manager.Habitats)
                     if (candidate.members.Exists(m => m.placementId == selectedAnchor))
                     { selectedHabitatId = candidate.habitatId; habitat = candidate; break; }
-<<<<<<< HEAD
             view.BindHabitat(ResourceInventoryUIPresentation.Habitat(habitat, production.FindState(selectedHabitatId), manager.Catalog, production.Settings, production.GetCareState));
             foreach (var item in warehouseItems) item.stock = inventory.GetAmount(item.id);
-=======
-            view.BindHabitat(ResourceInventoryUIPresentation.Habitat(habitat, production.FindState(selectedHabitatId), manager.Catalog, production.Settings));
->>>>>>> origin/AnKhang_creature1
             var recovered = ResourceInventoryUIPresentation.Buffers(production.States, manager.Catalog, production.Settings, true);
             long recoveryCount = 0; foreach (var buffer in recovered) recoveryCount += buffer.amount;
             if (view.WarehouseWindow.gameObject.activeSelf)
@@ -156,14 +152,10 @@ namespace LumiWorld.Acs
         {
             if (habitat == null) return; selectedHabitatId = habitat.habitatId;
             selectedAnchor = habitat.members.Count > 0 ? habitat.members[0].placementId : null;
-<<<<<<< HEAD
-            view.HabitatPanel.gameObject.SetActive(true); dirty = true;
-            HabitatSelected?.Invoke(selectedHabitatId);
-=======
             dirty = true;
             HabitatDiamondBadgeManager.Instance?.SelectHabitat(habitat.habitatId);
             HabitatCreaturePanelUI.Instance?.OpenForHabitat(habitat);
->>>>>>> origin/AnKhang_creature1
+            HabitatSelected?.Invoke(selectedHabitatId);
         }
         private void Cycle(int direction)
         {

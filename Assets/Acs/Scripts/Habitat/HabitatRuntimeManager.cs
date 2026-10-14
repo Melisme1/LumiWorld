@@ -217,39 +217,15 @@ namespace LumiWorld.Acs
             if (mapping.GetRole(habitat.affinity) == AffinityRole.None)
             { reason = "Creature không có primary/secondary affinity phù hợp " + habitat.affinity + "."; return false; }
             if (HasCreatureAtHome(homeHex)) { reason = "Home hex đã có creature."; return false; }
-<<<<<<< HEAD
-
-            var habitatGroup = habitats.Find(h => h != null && h.ContainsHex(homeHex));
-            if (habitatGroup == null)
-            {
-                RefreshFromWorld(false);
-                habitatGroup = habitats.Find(h => h != null && h.ContainsHex(homeHex));
-            }
-
-            if (habitatGroup != null)
-            {
-                if (habitatGroup.HexCount < 3)
-                {
-                    reason = $"Cụm Biome chưa đủ điều kiện nuôi thú (cần tối thiểu 3 ô Nature, hiện có {habitatGroup.HexCount} ô).";
-                    return false;
-                }
-
-                if (habitatGroup.residents.Count >= habitatGroup.CreatureCapacity)
-                {
-                    reason = $"Cụm Biome đã đạt giới hạn thú ({habitatGroup.residents.Count}/{habitatGroup.CreatureCapacity}). Hãy mở rộng cụm (mốc 3/6/9 ô).";
-                    return false;
-                }
-            }
-
-=======
             var homeHabitat = FindHabitatByHex(homeHex);
+            if (homeHabitat == null) { RefreshFromWorld(false); homeHabitat = FindHabitatByHex(homeHex); }
             if (homeHabitat != null)
             {
                 int maxAllowed = homeHabitat.CreatureCapacity;
                 if (homeHabitat.residents.Count >= maxAllowed)
                 {
-                    int nextMilestone = homeHabitat.residents.Count < 2 ? 3 : (homeHabitat.residents.Count < 4 ? 6 : 10);
-                    reason = $"Cần đạt mốc {nextMilestone} ô môi trường cùng loại để mở thêm ô thả sinh vật (Mốc: 3 ô -> 2 thú, 6 ô -> 4 thú, 10 ô -> 6 thú).";
+                    int nextMilestone = homeHabitat.HexCount < 3 ? 3 : (homeHabitat.HexCount < 6 ? 6 : 10);
+                    reason = maxAllowed >= 6 ? "Biome đã đủ 6 sinh vật." : $"Cần đạt mốc {nextMilestone} ô môi trường cùng loại để mở thêm ô thả sinh vật (Mốc: 3 ô -> 2 thú, 6 ô -> 4 thú, 10 ô -> 6 thú).";
                     return false;
                 }
             }
@@ -258,7 +234,6 @@ namespace LumiWorld.Acs
                 reason = "Cần đạt mốc 3 ô môi trường cùng loại để mở ô thả sinh vật đầu tiên.";
                 return false;
             }
->>>>>>> origin/AnKhang_creature1
             reason = string.Empty;
             return true;
         }

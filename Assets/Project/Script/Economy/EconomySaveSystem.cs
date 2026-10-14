@@ -179,12 +179,8 @@ public class EconomySaveSystem : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-<<<<<<< HEAD
-        SaveIfDirty(true);
-=======
         _isQuitting = true;
-        SaveIfDirty();
->>>>>>> origin/AnKhang_creature1
+        SaveIfDirty(true);
     }
 
     private void OnDestroy()

@@ -49,19 +49,14 @@ namespace LumiWorld.Acs
         public List<HabitatResourceSlot> slots = new List<HabitatResourceSlot>();
 
         public int HexCount => members != null ? members.Count : 0;
-<<<<<<< HEAD
 
         public static int CalculateCreatureCapacity(int hexCount)
         {
             if (hexCount < 3) return 0;
-            return Math.Min(hexCount / 3, 3);
+            return hexCount < 6 ? 2 : hexCount < 10 ? 4 : 6;
         }
 
         public int CreatureCapacity => CalculateCreatureCapacity(HexCount);
-=======
-        // Quy luật mới: 3 -> 6 -> 10 hex tương ứng capacity 2 -> 4 -> 6 thú
-        public int CreatureCapacity => HexCount < 3 ? 0 : HexCount < 6 ? 2 : HexCount < 10 ? 4 : 6;
->>>>>>> origin/AnKhang_creature1
 
         public void EnsureSlots()
         {

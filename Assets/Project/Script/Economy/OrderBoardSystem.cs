@@ -91,15 +91,12 @@ public class OrderBoardSystem : MonoBehaviour
         }
 
         _instance = this;
-<<<<<<< HEAD
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
         timeRuntime = GameTimeRuntime.Instance;
         refillTimers = new TimerService(timeRuntime.Clock);
         pollTimer = new TimerService(timeRuntime.Clock);
         pollTimer.StartInterval("poll", 1);
-=======
-        _isQuitting = false;
-        DontDestroyOnLoad(gameObject);
->>>>>>> origin/AnKhang_creature1
         LoadTemplates();
 
         // Sửa thẳng danh sách trong bản lưu, giống cách ví và kho cập nhật EconomySaveData
