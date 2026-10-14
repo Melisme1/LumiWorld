@@ -91,6 +91,10 @@ public class AuthScreen : MonoBehaviour
 
         usernameField.text = AuthSession.Username;
         SetMode(Mode.Login);
+
+        // Bị đưa về đây vì server từ chối phiên cũ (xem SessionGuard)
+        string notice = SessionGuard.TakeMessage();
+        if (!string.IsNullOrEmpty(notice)) ShowMessage(notice, true);
     }
 
     private void Update()
