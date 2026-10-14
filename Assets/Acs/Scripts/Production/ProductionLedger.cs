@@ -145,7 +145,8 @@ namespace LumiWorld.Acs
                         throw new ArgumentException("Duplicate active resource production rate.");
                     result.Add(new ProductionSlotRate { tier = rate.tier, index = rate.index,
                         resourceId = rate.resourceId, unitsPerMinute = rate.unitsPerMinute,
-                        bufferCap = rate.bufferCap, reason = rate.reason });
+                        bufferCap = rate.bufferCap, reason = rate.reason,
+                        contributingIndividualIds = new List<string>(rate.contributingIndividualIds) });
                 }
             return result;
         }

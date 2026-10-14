@@ -25,7 +25,7 @@ namespace LumiWorld.Acs
         }
 
         public static HabitatEligibilityResult EvaluateResource(HabitatState habitat,
-            ResourceProductionDefinition definition, SpeciesMappingRegistry registry)
+            ResourceProductionDefinition definition, SpeciesMappingRegistry registry, Func<string, bool> canProduce = null)
         {
             if (habitat == null || registry == null) return Reject("Thiếu habitat hoặc Species Registry.");
             if (definition == null || definition.resource == null) return Reject("Chưa chọn tài nguyên hoặc thiếu definition.");
@@ -65,17 +65,18 @@ namespace LumiWorld.Acs
                     foreach (var resident in habitat.residents)
                         if (resident != null && resident.speciesId == entry.SpeciesId && resident.role == requirement.role &&
                             !string.IsNullOrEmpty(resident.individualId) && habitat.ContainsHex(resident.homeHex) &&
+                            (canProduce == null || canProduce(resident.individualId)) &&
                             individuals.Add(resident.individualId) && homes.Add(resident.homeHex)) count++;
                 if (count < requirement.minimumCount)
                     missing.Add((string.IsNullOrEmpty(entry.displayName) ? entry.gddKey : entry.displayName) +
                         " " + count + "/" + requirement.minimumCount);
             }
             return missing.Count == 0 ? new HabitatEligibilityResult(true, "Đủ điều kiện.") :
-                Reject("Thiếu trong cùng nhóm: " + string.Join(", ", missing) + ".");
+                Reject((canProduce == null ? "Thiếu trong cùng nhóm: " : "Thiếu cư dân có thể sản xuất (đói/đang hồi phục hoặc thiếu loài): ") + string.Join(", ", missing) + ".");
         }
 
         public static HabitatEligibilityResult EvaluateSelection(HabitatState habitat, ResourceTier tier, int index,
-            string resourceId, ResourceProductionCatalog catalog)
+            string resourceId, ResourceProductionCatalog catalog, Func<string, bool> canProduce = null)
         {
             if (!IsSlotUnlocked(habitat, tier, index)) return Reject("Slot đang khóa theo số hex.");
             if (string.IsNullOrEmpty(resourceId)) return Reject("Chưa chọn tài nguyên.");
@@ -84,7 +85,7 @@ namespace LumiWorld.Acs
             if (tier == ResourceTier.Tier1 && habitat.slots != null &&
                 habitat.slots.Exists(s => s != null && s.tier == tier && s.index != index && s.selectedResourceId == resourceId))
                 return Reject("Hai slot T1 không được chọn cùng tài nguyên.");
-            return EvaluateResource(habitat, definition, catalog != null ? catalog.speciesRegistry : null);
+            return EvaluateResource(habitat, definition, catalog != null ? catalog.speciesRegistry : null, canProduce);
         }
 
         public static bool TrySetSelection(HabitatState habitat, ResourceTier tier, int index, string resourceId,

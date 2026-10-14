@@ -24,7 +24,7 @@ namespace LumiWorld.Acs
         }
 
         public static ResourceUIHabitat Habitat(HabitatState habitat, HabitatProductionState state,
-            ResourceProductionCatalog catalog, ProductionRuntimeSettings settings)
+            ResourceProductionCatalog catalog, ProductionRuntimeSettings settings, Func<string, CreatureCareView> readCare = null)
         {
             if (habitat == null) return null;
             var model = new ResourceUIHabitat { id = habitat.habitatId, title = habitat.affinity.ToString(),
@@ -33,7 +33,10 @@ namespace LumiWorld.Acs
             foreach (var resident in habitat.residents)
             {
                 string name = catalog.speciesRegistry.TryGetActiveBySpeciesId(resident.speciesId, out var mapping) ? mapping.displayName : resident.speciesId;
-                names.Add(name + " · " + (resident.role == AffinityRole.Primary ? "Chính" : "Phụ") + " · " + resident.qualityRank.ToString().Replace("Rank", ""));
+                var care = readCare?.Invoke(resident.individualId);
+                string condition = care == null ? "" : care.Status == CreatureHungerStatus.Hungry ? " · Đói" :
+                    care.Status == CreatureHungerStatus.Eating ? care.WaitingForFood ? " · Chờ thức ăn" : " · Đang ăn" : " · Khỏe";
+                names.Add(name + " · " + (resident.role == AffinityRole.Primary ? "Chính" : "Phụ") + " · " + resident.qualityRank.ToString().Replace("Rank", "") + condition);
             }
             model.residents = names.Count == 0 ? "Chưa có cư dân." : string.Join("\n", names);
             model.hint = habitat.HexCount < 3 ? "Cần 3 hex để sản xuất. Hàng đã có vẫn thu được." : "T1: loài chính · T2: đủ combo cùng nhóm";

@@ -18,8 +18,8 @@ try {
             else { $lines.Add($line) }
         }
         $extraSources = if ($assembly -eq 'Assembly-CSharp') {
-            @(Get-ChildItem 'Assets/Acs/Scripts/Time' -Filter '*.cs' -Recurse) + @(Get-Item 'Assets/Acs/Scripts/Persistence/TimerSnapshotJson.cs', 'Assets/VinhWorkSpace/Scripts/Placement/HexCreatureTileGuide.cs')
-        } else { @(Get-Item 'Assets/Acs/Scripts/Editor/GameTimeRuntimeEditor.cs') }
+            @(Get-ChildItem 'Assets/Acs/Scripts' -Filter '*.cs' -Recurse | Where-Object { $_.FullName -notmatch '[\\/]Editor[\\/]' }) + @(Get-Item 'Assets/VinhWorkSpace/Scripts/Placement/HexCreatureTileGuide.cs')
+        } else { @(Get-ChildItem 'Assets/Acs/Scripts/Editor' -Filter '*.cs' -Recurse) }
         foreach ($file in $extraSources) {
             $relative = [IO.Path]::GetRelativePath($projectRoot,$file.FullName).Replace('\','/')
             if (!$lines.Contains('"' + $relative + '"')) { $lines.Add('"' + $relative + '"') }
