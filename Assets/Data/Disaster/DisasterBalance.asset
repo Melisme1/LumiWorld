@@ -36,19 +36,6 @@ MonoBehaviour:
     durationSeconds: 45
     rainToCure: 1
     harvestSpeedMultiplier: 0
-  - kind: 2
-    enabled: 1
-    rainCanCure: 1
-    spawnByTime: 1
-    weight: 1.2
-    restrictToBiomes: 1
-    affectedBiomes: 020000000100000003000000
-    spreadRadius: 0
-    spreadIntervalSeconds: 0
-    maxTiles: 1
-    durationSeconds: 60
-    rainToCure: 1
-    harvestSpeedMultiplier: 0
   - kind: 3
     enabled: 1
     rainCanCure: 0
@@ -61,7 +48,7 @@ MonoBehaviour:
     maxTiles: 7
     durationSeconds: 60
     rainToCure: 1
-    harvestSpeedMultiplier: 0
+    harvestSpeedMultiplier: 0.469
   cycloneRainThreshold: 4
   cycloneRainWindowSeconds: 10
   spawnCycloneOnRainOverdose: 1

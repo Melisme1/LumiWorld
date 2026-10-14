@@ -336,6 +336,12 @@ public class HexSinglePlacementController : MonoBehaviour
             if (isRainCard)
             {
                 var disasterState = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
+                if (disasterState != null && disasterState.Has(LumiWorld.Acs.DisasterKind.Cyclone))
+                {
+                    CancelPreview();
+                    return false;
+                }
+
                 bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
                 bool hasPendingFire = LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var activeDisasterManager) &&
                                       activeDisasterManager.IsTilePendingFire(targetTileObj);

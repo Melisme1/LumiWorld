@@ -58,6 +58,12 @@ public class HexPlacementValidator : MonoBehaviour
 
         if (isRainCard)
         {
+            if (disasterState != null && disasterState.Has(LumiWorld.Acs.DisasterKind.Cyclone))
+            {
+                lastValidationError = "Không thể dùng Rain trên ô đang bị Cyclone ảnh hưởng";
+                return false;
+            }
+
             // Nếu ô đang có thiên tai (cháy rừng, lốc xoáy, hạn hán...) hoặc đang bị cháy rụi (isBurned)
             // -> LUÔN CHO PHÉP thả thẻ Mưa để dập lửa / dọn tàn tích phục hồi đất!
             if (hasDisasterOrBurned || hasPendingFire)
