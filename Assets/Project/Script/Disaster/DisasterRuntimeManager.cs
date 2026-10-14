@@ -179,7 +179,9 @@ namespace LumiWorld.Acs
                 if (fx != null)
                 {
                     fx.Configure(balance != null ? balance.smokeParticlePrefab : null,
-                                 balance != null ? balance.fireParticlePrefab : null);
+                                 balance != null ? balance.fireParticlePrefab : null,
+                                 balance != null ? balance.cycloneParticlePrefab : null,
+                                 balance != null ? balance.cycloneRainParticlePrefab : null);
                     tileParticles[pair.Key] = fx;
                 }
             }
@@ -509,6 +511,16 @@ namespace LumiWorld.Acs
 
             if (instance.kind == DisasterKind.Obstacle) SpawnObstacleVisual(instance, tileObj);
 
+            if (instance.kind == DisasterKind.Cyclone && TryResolveTileHex(tileObj, out var cycloneHex))
+            {
+                var fx = GetTileParticles(tileObj, cycloneHex);
+                if (fx != null)
+                {
+                    fx.ShowCyclone();
+                    TrackParticleTile(instance.instanceId, cycloneHex);
+                }
+            }
+
             // Tô màu ô để nhìn thấy hiệu quả bằng mắt (an toàn với asset material).
             state.RefreshVisual();
         }
@@ -764,7 +776,9 @@ namespace LumiWorld.Acs
             if (fx != null)
             {
                 fx.Configure(balance != null ? balance.smokeParticlePrefab : null,
-                             balance != null ? balance.fireParticlePrefab : null);
+                             balance != null ? balance.fireParticlePrefab : null,
+                             balance != null ? balance.cycloneParticlePrefab : null,
+                             balance != null ? balance.cycloneRainParticlePrefab : null);
                 tileParticles[hex] = fx;
             }
             return fx;

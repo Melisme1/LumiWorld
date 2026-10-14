@@ -91,6 +91,10 @@ namespace LumiWorld.Acs
         [Tooltip("Prefab particle LỬA. Chỉ dùng khi ô đã bén lửa thật (đã cháy). " +
                  "Để trống thì bỏ qua hiệu ứng lửa.")]
         public GameObject fireParticlePrefab;
+        [Tooltip("Prefab particle Cyclone. Leave empty to use only the tile warning tint.")]
+        public GameObject cycloneParticlePrefab;
+        [Tooltip("Optional separate rain particle prefab emitted with Cyclone.")]
+        public GameObject cycloneRainParticlePrefab;
 
         [Header("Ràng buộc theo môi trường")]
         [Tooltip("Quy tắc riêng cho từng loại thiên tai. Loại không có mặt ở đây dùng mặc định an toàn.")]
