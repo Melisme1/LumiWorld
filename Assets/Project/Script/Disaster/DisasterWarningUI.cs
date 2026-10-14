@@ -725,7 +725,7 @@ namespace LumiWorld.Acs
             switch (kind)
             {
                 case DisasterKind.ForestFire: return "Dùng thẻ MƯA dập lửa để cứu ô trước khi nó lan rộng hơn";
-                case DisasterKind.Cyclone: return "Mưa lớn nhiều ô để dập bão";
+                case DisasterKind.Cyclone: return "";
                 case DisasterKind.Drought: return "Dùng mưa để chấm dứt hạn hán";
                 case DisasterKind.BarrenLand: return "Cần MƯA LỚN (mưa nhỏ không thấm)";
                 case DisasterKind.Obstacle: return "Vật cản: dọn hoặc dùng mưa";

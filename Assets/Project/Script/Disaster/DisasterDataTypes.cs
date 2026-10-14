@@ -81,7 +81,7 @@ namespace LumiWorld.Acs
             {
                 case DisasterKind.Obstacle: return "Vật cản";
                 case DisasterKind.ForestFire: return "Cháy rừng";
-                case DisasterKind.Cyclone: return "Lốc xoáy";
+                case DisasterKind.Cyclone: return "Bão";
                 case DisasterKind.Drought: return "Hạn hán";
                 case DisasterKind.BarrenLand: return "Khô cằn";
                 default: return "Thiên tai";
