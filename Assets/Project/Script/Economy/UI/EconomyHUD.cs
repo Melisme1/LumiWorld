@@ -58,6 +58,7 @@ public class EconomyHUD : MonoBehaviour
         // Bảng Đơn Hàng và Cửa hàng thẻ cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
         CreateOverlay<OrderBoardUI>("OrderBoardUI");
         CreateOverlay<CardShopUI>("CardShopUI");
+        CreateOverlay<LumiWorld.Economy.Crafting.CraftingUI>("CraftingUI");
 
         FitToCanvas();
     }
