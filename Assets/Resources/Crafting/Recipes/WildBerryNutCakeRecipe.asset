@@ -18,7 +18,7 @@ MonoBehaviour:
     3 sinh c\u1EA3nh: qu\u1EA3 s\u1ED3i ng\xE0o m\u1EADt, h\u1ED7n h\u1EE3p tr\xE1i
     c\xE2y s\u1EA5y v\xE0 b\u1ED9t m\xEC n\u01B0\u1EDBng v\xE0ng \u01B0\u01A1m."
   category: 0
-  recipeIcon: {fileID: 21300000, guid: 12513a96aa8ca4c45b736b7bfa9c3be7, type: 3}
+  recipeIcon: {fileID: 21300000, guid: 1207a72d0d55473dbb6c198873a9e60d, type: 3}
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010017, type: 2}
   outputAmount: 1
   inputs:

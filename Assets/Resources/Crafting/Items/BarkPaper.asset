@@ -17,7 +17,7 @@ MonoBehaviour:
   description: "Gi\u1EA5y th\xF4 m\u1ED9c l\xE0m t\u1EEB v\u1ECF c\xE2y r\u1EE5ng
     v\xE0 g\u1ED7 s\u1ED3i, d\xF9ng l\xE0m gi\u1EA5y vi\u1EBFt th\u01B0 t\xEDn v\xE0
     s\u1ED5 tay sinh c\u1EA3nh."
-  icon: {fileID: 21300000, guid: d86d63fa21fb7384a9197c88b64e525a, type: 3}
+  icon: {fileID: 21300000, guid: d89c1cca52994c059e4a066d50399016, type: 3}
   resourceColor: {r: 0.8, g: 0.72, b: 0.58, a: 1}
   hexColor: '#CCB894'
   baseValue: 35

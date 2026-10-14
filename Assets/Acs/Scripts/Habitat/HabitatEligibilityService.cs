@@ -48,6 +48,7 @@ namespace LumiWorld.Acs
 
             var requiredSpecies = new HashSet<string>(StringComparer.Ordinal);
             var missing = new List<string>();
+            var resting = new List<string>();
             foreach (var requirement in definition.requirements)
             {
                 if (requirement == null || requirement.minimumCount < 1 ||
@@ -59,20 +60,32 @@ namespace LumiWorld.Acs
                     (definition.tier == ResourceTier.Tier1 && requirement.role != AffinityRole.Primary))
                     return Reject("Species/primary/secondary không khớp biome.");
                 int count = 0;
+                int residentCount = 0;
                 var individuals = new HashSet<string>(StringComparer.Ordinal);
                 var homes = new HashSet<HexCoordinates>();
                 if (habitat.residents != null)
                     foreach (var resident in habitat.residents)
                         if (resident != null && resident.speciesId == entry.SpeciesId && resident.role == requirement.role &&
                             !string.IsNullOrEmpty(resident.individualId) && habitat.ContainsHex(resident.homeHex) &&
-                            (canProduce == null || canProduce(resident.individualId)) &&
-                            individuals.Add(resident.individualId) && homes.Add(resident.homeHex)) count++;
+                            individuals.Add(resident.individualId) && homes.Add(resident.homeHex))
+                        {
+                            residentCount++;
+                            if (canProduce == null || canProduce(resident.individualId)) count++;
+                        }
                 if (count < requirement.minimumCount)
-                    missing.Add((string.IsNullOrEmpty(entry.displayName) ? entry.gddKey : entry.displayName) +
-                        " " + count + "/" + requirement.minimumCount);
+                {
+                    string name = string.IsNullOrEmpty(entry.displayName) ? entry.gddKey : entry.displayName;
+                    if (canProduce != null && residentCount >= requirement.minimumCount)
+                        resting.Add(name + " " + count + "/" + requirement.minimumCount);
+                    else
+                        missing.Add(name + " " + residentCount + "/" + requirement.minimumCount);
+                }
             }
-            return missing.Count == 0 ? new HabitatEligibilityResult(true, "Đủ điều kiện.") :
-                Reject((canProduce == null ? "Thiếu trong cùng nhóm: " : "Thiếu cư dân có thể sản xuất (đói/đang hồi phục hoặc thiếu loài): ") + string.Join(", ", missing) + ".");
+            if (missing.Count == 0 && resting.Count == 0) return new HabitatEligibilityResult(true, "Đủ điều kiện.");
+            string reason = missing.Count > 0 ? "Thiếu cư dân cùng biome: " + string.Join(", ", missing) + "." : "";
+            if (resting.Count > 0)
+                reason += (reason.Length > 0 ? " " : "") + "Cư dân đang đói/ăn: " + string.Join(", ", resting) + ".";
+            return Reject(reason);
         }
 
         public static HabitatEligibilityResult EvaluateSelection(HabitatState habitat, ResourceTier tier, int index,

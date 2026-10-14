@@ -18,7 +18,7 @@ MonoBehaviour:
     nhuy\u1EC5n, c\xF3 m\xF9i th\u01A1m d\u1ECBu nh\u1EB9 gi\xFAp xoa d\u1ECBu tinh
     th\u1EA7n th\xFA hoang."
   category: 2
-  recipeIcon: {fileID: 21300000, guid: 36ff8a023c9657b4c8a2bdf675fbef58, type: 3}
+  recipeIcon: {fileID: 21300000, guid: 36cbc0e659964704bcd5a3ba21d67d76, type: 3}
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010010, type: 2}
   outputAmount: 1
   inputs:
