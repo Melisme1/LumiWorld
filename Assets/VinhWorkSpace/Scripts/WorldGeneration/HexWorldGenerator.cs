@@ -47,7 +47,12 @@ public class HexWorldGenerator : MonoBehaviour
 
     private void Start()
     {
+        // Đảo đã lưu thì dựng lại từ save (WorldSaveSystem chạy Start trước nhờ order -300).
+        // Chưa có save thì sinh đảo mới rồi đánh dấu để ghi ngay.
+        if (WorldSaveSystem.Instance != null && WorldSaveSystem.Instance.HasRestoredTiles) return;
+
         GenerateIsland();
+        WorldSaveSystem.MarkDirty();
     }
 
     [ContextMenu("Generate New Island")]
@@ -152,6 +157,59 @@ public class HexWorldGenerator : MonoBehaviour
 
             MapTiles.Add(coords, tileInstance);
         }
+    }
+
+    /// <summary>
+    /// Dựng lại ô đất từ save: đúng prefab, tên, góc xoay và cờ đã lưu. Trả về false nếu không dựng được ô nào.
+    /// </summary>
+    public bool RestoreTiles(List<TileRecord> records, TileCatalog catalog)
+    {
+        ClearCurrentMap();
+
+        int restored = 0;
+        foreach (TileRecord record in records)
+        {
+            GameObject prefab = catalog.Find(record.model);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[LumiWorld World] Không tìm thấy prefab '{record.model}' cho ô ({record.q}, {record.r}), bỏ qua ô này.", this);
+                continue;
+            }
+
+            HexCoordinates coords = new HexCoordinates(record.q, record.r);
+            if (MapTiles.ContainsKey(coords)) continue;
+
+            Vector3 worldPosition = HexMetrics.HexToWorldPosition(coords, spawnOffsetY);
+            Quaternion rotation = Quaternion.Euler(0f, record.rotationStep * 60f, 0f);
+            GameObject tileInstance = Instantiate(prefab, worldPosition, rotation, transform);
+            tileInstance.name = record.objectName;
+
+            if (tileInstance.GetComponent<Collider>() == null)
+            {
+                MeshFilter mf = tileInstance.GetComponentInChildren<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                {
+                    MeshCollider mc = tileInstance.AddComponent<MeshCollider>();
+                    mc.sharedMesh = mf.sharedMesh;
+                }
+            }
+
+            HexTileInfo tileInfo = tileInstance.GetComponent<HexTileInfo>();
+            if (tileInfo == null) tileInfo = tileInstance.AddComponent<HexTileInfo>();
+            tileInfo.sourcePrefab = prefab;
+            tileInfo.terrainTypeIndex = record.terrainTypeIndex;
+            tileInfo.coordinates = coords;
+            tileInfo.isOccupied = record.isOccupied;
+
+            // Ô đã tưới Rain (terrainTypeIndex -1) cần TileDisasterState như lúc biến đổi
+            if (record.terrainTypeIndex == -1) LumiWorld.Acs.TileDisasterState.Ensure(tileInstance);
+
+            MapTiles.Add(coords, tileInstance);
+            restored++;
+        }
+
+        Debug.Log($"[LumiWorld World] Đã dựng lại {restored}/{records.Count} ô đất.");
+        return restored > 0;
     }
 
     private void ClearCurrentMap()

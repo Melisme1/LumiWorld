@@ -305,6 +305,9 @@ public class HexSinglePlacementController : MonoBehaviour
     {
         placedHex = currentHoverHex;
 
+        // Đảo đang xem của người khác: không đặt thẻ, không thu phí
+        if (WorldLaunch.IsVisit) return false;
+
         var pointer = UnityEngine.InputSystem.Pointer.current;
         if (EconomyHUD.IsWindowOpen || (pointer != null && EconomyHUD.IsPointerOverInteractiveUI(pointer.position.ReadValue())))
         { CancelPreview(); return false; }
@@ -406,6 +409,7 @@ public class HexSinglePlacementController : MonoBehaviour
                         if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var rainHabitatManager))
                             rainHabitatManager.RefreshNow();
 
+                        WorldSaveSystem.MarkDirty();
                         CancelPreview();
                         return true; // Tiêu hao 1 thẻ Rain và DỪNG LẠI, KHÔNG TransformTile!
                     }
@@ -522,6 +526,7 @@ public class HexSinglePlacementController : MonoBehaviour
                 rainCardManager.RegisterRainCardUse();
         }
 
+        WorldSaveSystem.RegisterPlacement(placedCardInstance);
         CancelPreview();
         return true;
     }

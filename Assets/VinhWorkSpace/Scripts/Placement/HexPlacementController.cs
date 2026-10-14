@@ -167,6 +167,9 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     public void StartPlacement(HexClusterData clusterData)
     {
+        // Đảo đang xem của người khác: không cho đặt thẻ
+        if (WorldLaunch.IsVisit) return;
+
         // Nếu đang trong chế độ đặt, nhấn nút lần nữa sẽ hủy (toggle tiện lợi)
         if (isInPlacementMode)
         {
@@ -490,6 +493,7 @@ public class HexPlacementController : MonoBehaviour
             }
         }
 
+        WorldSaveSystem.MarkDirty();
         // Kết thúc lượt đặt hiện tại
         CancelPlacement();
     }

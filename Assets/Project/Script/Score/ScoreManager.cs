@@ -98,6 +98,9 @@ public class ScoreManager : MonoBehaviour
 
     public void SetScore(int newScore)
     {
+        // Đảo đang xem của người khác không được cộng điểm hay mốc
+        if (WorldLaunch.IsVisit) return;
+
         currentScore =
             Mathf.Max(0, newScore);
 
