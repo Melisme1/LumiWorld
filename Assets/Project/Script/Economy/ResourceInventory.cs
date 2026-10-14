@@ -11,17 +11,27 @@ using UnityEngine;
 public class ResourceInventory : MonoBehaviour
 {
     private static ResourceInventory _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static ResourceInventory Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<ResourceInventory>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("ResourceInventory");
                     _instance = go.AddComponent<ResourceInventory>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -35,6 +45,13 @@ public class ResourceInventory : MonoBehaviour
     /// </summary>
     public event Action<string, int, int> OnInventoryChanged;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -44,7 +61,14 @@ public class ResourceInventory : MonoBehaviour
         }
 
         _instance = this;
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
         EconomySaveSystem.Instance.Attach(this);
+    }
+
+    private void OnApplicationQuit()
+    {
+        _isQuitting = true;
     }
 
     private void OnDestroy()

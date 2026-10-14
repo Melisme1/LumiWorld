@@ -417,4 +417,13 @@ public class AnimalIndividual : MonoBehaviour
         AnimalRank.Legendary => "#FBBF24",
         _ => "#FFFFFF"
     };
+
+    private void OnMouseDown()
+    {
+        if (EconomyHUD.IsWindowOpen) return;
+        if (CreatureCareUI.Instance != null)
+        {
+            CreatureCareUI.Instance.OpenForCreature(this, GetComponent<LumiWorld.Acs.HabitatPlacementIdentity>());
+        }
+    }
 }

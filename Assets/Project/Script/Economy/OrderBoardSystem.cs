@@ -17,17 +17,27 @@ using UnityEngine;
 public class OrderBoardSystem : MonoBehaviour
 {
     private static OrderBoardSystem _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static OrderBoardSystem Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<OrderBoardSystem>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("OrderBoardSystem");
                     _instance = go.AddComponent<OrderBoardSystem>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -61,6 +71,13 @@ public class OrderBoardSystem : MonoBehaviour
     /// </summary>
     public event Action OnBoardChanged;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -70,6 +87,8 @@ public class OrderBoardSystem : MonoBehaviour
         }
 
         _instance = this;
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
         LoadTemplates();
 
         // Sửa thẳng danh sách trong bản lưu, giống cách ví và kho cập nhật EconomySaveData
@@ -91,6 +110,11 @@ public class OrderBoardSystem : MonoBehaviour
 
         checkTimer = 1f;
         FillEmptySlots();
+    }
+
+    private void OnApplicationQuit()
+    {
+        _isQuitting = true;
     }
 
     private void OnDestroy()

@@ -10,6 +10,7 @@ namespace LumiWorld.Acs
     public sealed class ResourceProductionRuntime : MonoBehaviour
     {
         private static ResourceProductionRuntime instance;
+        public static ResourceProductionRuntime Instance => instance != null ? instance : (instance = FindAnyObjectByType<ResourceProductionRuntime>());
         [SerializeField] private HabitatRuntimeManager habitatManager = null;
         [Tooltip("Balance chạy thực tế của map này. Chỉnh trên Hierarchy; component không ghi đè SO ProductionBalance.")]
         [SerializeField] private ProductionRuntimeSettings settings = new ProductionRuntimeSettings();

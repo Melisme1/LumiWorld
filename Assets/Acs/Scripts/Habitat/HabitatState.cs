@@ -20,6 +20,7 @@ namespace LumiWorld.Acs
     {
         public string individualId;
         public string speciesId;
+        public string customName;
         public HexCoordinates homeHex;
         public AffinityRole role;
         // GDD rank is independent of the legacy 1–5 stars/traits.
@@ -48,7 +49,8 @@ namespace LumiWorld.Acs
         public List<HabitatResourceSlot> slots = new List<HabitatResourceSlot>();
 
         public int HexCount => members != null ? members.Count : 0;
-        public int CreatureCapacity => HexCount;
+        // Quy luật mới: 3 -> 6 -> 10 hex tương ứng capacity 2 -> 4 -> 6 thú
+        public int CreatureCapacity => HexCount < 3 ? 0 : HexCount < 6 ? 2 : HexCount < 10 ? 4 : 6;
 
         public void EnsureSlots()
         {

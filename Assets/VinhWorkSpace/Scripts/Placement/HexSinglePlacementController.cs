@@ -221,6 +221,7 @@ public class HexSinglePlacementController : MonoBehaviour
         // Nếu chuột còn ở sát cạnh dưới màn hình (khu vực Hand/Deck)
         if (raycaster.IsOverHandArea(screenPosition))
         {
+            if (HexPlacementPreviewHUD.Instance != null) HexPlacementPreviewHUD.Instance.HidePreview();
             if (ghostVisual != null) ghostVisual.SetActive(false);
             currentActiveTileObj = null;
             isHoveringValidTile = false;
@@ -253,6 +254,23 @@ public class HexSinglePlacementController : MonoBehaviour
             // Cập nhật phản hồi ô đang rê chuột trong Creature Guide
             HexCreatureTileGuide.Instance.UpdateHover(targetHex);
 
+            // Cập nhật UI xem trước kết quả dự kiến (Preserve Placement Preview Box)
+            int prospectiveSize = (currentCardData != null && validator != null && currentCardData.cardType == CardType.Terrain)
+                ? validator.CalculateProspectiveClusterSize(targetHex, currentCardData, worldGenerator)
+                : 1;
+
+            if (HexPlacementPreviewHUD.Instance != null)
+            {
+                HexPlacementPreviewHUD.Instance.UpdatePlacementPreview(
+                    currentCardData,
+                    targetHex,
+                    isValid,
+                    validator != null ? validator.LastValidationError : string.Empty,
+                    prospectiveSize,
+                    placementFee,
+                    canAffordFee);
+            }
+
             if (ghostVisual != null)
             {
                 ghostVisual.SetActive(true);
@@ -272,6 +290,7 @@ public class HexSinglePlacementController : MonoBehaviour
         }
         else
         {
+            if (HexPlacementPreviewHUD.Instance != null) HexPlacementPreviewHUD.Instance.HidePreview();
             isHoveringValidTile = false;
             currentActiveTileObj = null;
             if (ghostVisual != null) ghostVisual.SetActive(false);
@@ -300,6 +319,7 @@ public class HexSinglePlacementController : MonoBehaviour
             if (!string.IsNullOrEmpty(validator.LastValidationError))
             {
                 Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
+                HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Đặt thất bại: {validator.LastValidationError}");
             }
             CancelPreview();
             return false;
@@ -310,6 +330,7 @@ public class HexSinglePlacementController : MonoBehaviour
         if (placementFee > 0 && !CurrencyWallet.Instance.CanAfford(placementFee))
         {
             Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] Không đủ Coins để đặt {cardData.cardName}: cần {placementFee}, đang có {CurrencyWallet.Instance.Balance}.</color>");
+            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Không đủ Coins: Cần {placementFee} Coins để đặt thẻ.");
             CancelPreview();
             return false;
         }
@@ -586,6 +607,11 @@ public class HexSinglePlacementController : MonoBehaviour
         isHoveringValidTile = false;
         hasValidPreviousHex = false;
         currentActiveTileObj = null;
+
+        if (HexPlacementPreviewHUD.Instance != null)
+        {
+            HexPlacementPreviewHUD.Instance.HidePreview();
+        }
 
         if (ghostVisual != null)
         {
