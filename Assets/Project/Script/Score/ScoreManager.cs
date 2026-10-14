@@ -59,6 +59,37 @@ public class ScoreManager : MonoBehaviour
 
         nextRewardScore =
             scorePerReward;
+
+        // Đảm bảo các mốc thưởng Milestone và Endless không bao giờ chứa hoặc cấp thẻ thú (Creature Cards)
+        FilterOutCreatureCards();
+    }
+
+    private void OnValidate()
+    {
+        FilterOutCreatureCards();
+    }
+
+    /// <summary>
+    /// Loại bỏ toàn bộ thẻ sinh vật (Creature Cards) khỏi các mốc thưởng Milestone và bể Endless.
+    /// Sinh vật chỉ có thể nhận được thông qua cơ chế thuần hóa Thú Hoang (Wild Incident) hoặc tương tác gameplay.
+    /// </summary>
+    public void FilterOutCreatureCards()
+    {
+        if (rewardMilestones != null)
+        {
+            foreach (var m in rewardMilestones)
+            {
+                if (m != null && m.rewardCards != null)
+                {
+                    m.rewardCards.RemoveAll(c => c == null || c.cardType == CardType.Creature);
+                }
+            }
+        }
+
+        if (endlessRewardPool != null)
+        {
+            endlessRewardPool.RemoveAll(c => c == null || c.cardType == CardType.Creature);
+        }
     }
 
     // =========================================
@@ -138,7 +169,10 @@ public class ScoreManager : MonoBehaviour
             {
                 foreach (CardData rewardCard in milestone.rewardCards)
                 {
-                    GiveCardReward(rewardCard, milestone.scoreThreshold);
+                    if (rewardCard != null && rewardCard.cardType != CardType.Creature)
+                    {
+                        GiveCardReward(rewardCard, milestone.scoreThreshold);
+                    }
                 }
             }
 
@@ -176,15 +210,19 @@ public class ScoreManager : MonoBehaviour
                 GiveCardReward(endlessRainCard, nextEndlessThreshold);
             }
 
-            // 2. Thưởng 2 thẻ ngẫu nhiên từ bể Endless
+            // 2. Thưởng 2 thẻ ngẫu nhiên từ bể Endless (loại bỏ toàn bộ thẻ thú)
             if (endlessRewardPool != null && endlessRewardPool.Count > 0)
             {
-                for (int i = 0; i < 2; i++)
+                List<CardData> validPool = endlessRewardPool.FindAll(c => c != null && c.cardType != CardType.Creature);
+                if (validPool.Count > 0)
                 {
-                    CardData randomCard = endlessRewardPool[UnityEngine.Random.Range(0, endlessRewardPool.Count)];
-                    if (randomCard != null)
+                    for (int i = 0; i < 2; i++)
                     {
-                        GiveCardReward(randomCard, nextEndlessThreshold);
+                        CardData randomCard = validPool[UnityEngine.Random.Range(0, validPool.Count)];
+                        if (randomCard != null)
+                        {
+                            GiveCardReward(randomCard, nextEndlessThreshold);
+                        }
                     }
                 }
             }
@@ -211,6 +249,12 @@ public class ScoreManager : MonoBehaviour
                 "ScoreManager: Reward CardData chưa được gán!"
             );
 
+            return;
+        }
+
+        // Tuyệt đối không thưởng thẻ sinh vật (Creature) từ các mốc Milestone/Điểm số
+        if (cardData.cardType == CardType.Creature)
+        {
             return;
         }
 
