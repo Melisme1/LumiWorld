@@ -209,7 +209,6 @@ namespace LumiWorld.WildIncident.Testing
             GUILayout.Label($"• Số đàn thú đang chiếm cứ: <b>{incidentCount} / {maxIncidents}</b>", statusStyle);
 
             // 2. TÌNH TRẠNG CỤM BIOME TRÊN MAP
-            var clusters = mgr.GetAllActiveClusters();
             int eligibleCount = 0;
             if (clusters != null)
             {
