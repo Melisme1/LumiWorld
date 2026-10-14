@@ -6,7 +6,11 @@ namespace LumiWorld.Acs
     // Pure topology: no model positions, production clocks, scene mutations or save writes.
     public static class HabitatTopologyService
     {
+<<<<<<< HEAD
         public const int MaximumHexCount = 9;
+=======
+        public const int MaximumHexCount = 12;
+>>>>>>> origin/AnKhang_creature1
 
         private sealed class Match
         {

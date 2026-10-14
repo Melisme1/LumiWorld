@@ -7,7 +7,7 @@ namespace LumiWorld.Acs
 {
     public static class ResourceInventoryUIPresentation
     {
-        public static List<ResourceUIItem> Warehouse(ResourceProductionCatalog catalog, Func<string, int> stock)
+        public static List<ResourceUIItem> Warehouse(ResourceProductionCatalog catalog, Func<string, int> stock, bool onlyCollected = true)
         {
             var items = new List<ResourceUIItem>(); var seen = new HashSet<string>(StringComparer.Ordinal);
             if (catalog?.resources != null)
@@ -15,10 +15,12 @@ namespace LumiWorld.Acs
                     if (definition != null && definition.isEnabled && definition.resource != null && seen.Add(definition.ResourceId))
                     {
                         var resource = definition.resource;
+                        int currentStock = stock != null ? stock(definition.ResourceId) : 0;
+                        if (onlyCollected && currentStock <= 0) continue;
                         items.Add(new ResourceUIItem { id = definition.ResourceId, name = resource.resourceName,
                             icon = resource.icon, description = resource.description, biome = definition.affinity.ToString(),
                             tier = definition.tier == ResourceTier.Tier1 ? "T1" : "T2", capacity = resource.maxStackSize,
-                            stock = stock != null ? stock(definition.ResourceId) : 0 });
+                            stock = currentStock, isUnlocked = currentStock > 0 });
                     }
 
             // Gộp thêm nguyên liệu thô ngoài sinh cảnh (Lúa mì, Vỏ cây rụng) và 15 thành phẩm chế tạo từ CraftingCatalog
@@ -72,6 +74,11 @@ namespace LumiWorld.Acs
             return items;
         }
 
+        public static List<ResourceUIItem> Collection(ResourceProductionCatalog catalog, Func<string, int> stock)
+        {
+            return Warehouse(catalog, stock, onlyCollected: false);
+        }
+
         public static ResourceUIHabitat Habitat(HabitatState habitat, HabitatProductionState state,
             ResourceProductionCatalog catalog, ProductionRuntimeSettings settings, Func<string, CreatureCareView> readCare = null)
         {
@@ -99,7 +106,7 @@ namespace LumiWorld.Acs
                     resourceId = slot.selectedResourceId, icon = definition?.resource?.icon,
                     name = definition?.resource?.resourceName ?? (string.IsNullOrEmpty(slot.selectedResourceId) ? "Chưa chọn" : slot.selectedResourceId),
                     rate = rate?.unitsPerMinute ?? 0,
-                    reason = !unlocked ? "Mở ở " + ResourceInventoryUILayout.UnlockHexCount(slot.tier, slot.index) + " hex" :
+                    reason = !unlocked ? "Mở ở " + ResourceInventoryUILayout.UnlockHexCount(slot.tier, slot.index) + " Ô Đất" :
                         rate?.reason ?? eligibility.Reason });
             }
             model.buffers = Buffers(state == null ? null : new[] { state }, catalog, settings);

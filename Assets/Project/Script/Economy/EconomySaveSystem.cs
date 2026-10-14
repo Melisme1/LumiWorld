@@ -13,17 +13,27 @@ using UnityEngine;
 public class EconomySaveSystem : MonoBehaviour
 {
     private static EconomySaveSystem _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static EconomySaveSystem Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<EconomySaveSystem>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("EconomySaveSystem");
                     _instance = go.AddComponent<EconomySaveSystem>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -62,6 +72,13 @@ public class EconomySaveSystem : MonoBehaviour
         }
     }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -71,6 +88,8 @@ public class EconomySaveSystem : MonoBehaviour
         }
 
         _instance = this;
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
         EnsureLoaded();
     }
 
@@ -160,7 +179,12 @@ public class EconomySaveSystem : MonoBehaviour
 
     private void OnApplicationQuit()
     {
+<<<<<<< HEAD
         SaveIfDirty(true);
+=======
+        _isQuitting = true;
+        SaveIfDirty();
+>>>>>>> origin/AnKhang_creature1
     }
 
     private void OnDestroy()

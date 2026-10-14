@@ -219,15 +219,28 @@ public class CardShopUI : MonoBehaviour
 
     private void Buy(TileView tile)
     {
-        if (!CardShop.TryBuy(tile.card)) return;
+        string cardName = CardShop.CardName(tile.card);
+        int price = CardShop.GetPrice(tile.card);
 
-        // Thẻ đã vào bài trên tay (kèm tiếng "ding" của bài thưởng); cập nhật số lá đang có
-        Refresh();
-        Punch(ref tile.punch, tile.rect, 1.05f);
+        GameDialogUI.ShowConfirm(
+            $"Bạn có muốn mua thẻ \"{cardName}\" với giá {price} xu không?",
+            () =>
+            {
+                if (!CardShop.TryBuy(tile.card))
+                {
+                    GameDialogUI.ShowNotice("Không đủ xu để mua thẻ này!");
+                    return;
+                }
 
-        float x = TileWidth * 0.5f - 12f - 56f;
-        StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, "+1 card", enoughColor, 22f,
-            new Vector2(x, 54f), new Vector2(x, 100f), 1f));
+                // Thẻ đã vào bài trên tay (kèm tiếng "ding" của bài thưởng); cập nhật số lá đang có
+                Refresh();
+                Punch(ref tile.punch, tile.rect, 1.05f);
+
+                float x = TileWidth * 0.5f - 12f - 56f;
+                StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, "+1 card", enoughColor, 22f,
+                    new Vector2(x, 54f), new Vector2(x, 100f), 1f));
+            }
+        );
     }
 
     private void Punch(ref Coroutine routine, Transform target, float peak)

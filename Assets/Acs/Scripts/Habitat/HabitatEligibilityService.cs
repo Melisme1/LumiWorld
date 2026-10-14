@@ -33,7 +33,11 @@ namespace LumiWorld.Acs
             if (definition.affinity != habitat.affinity || HabitatDataRules.GetIsland(definition.affinity) != habitat.island)
                 return Reject("Tài nguyên không thuộc biome/đảo của nhóm.");
             if (GetSlotCount(habitat.HexCount, definition.tier) == 0)
+<<<<<<< HEAD
                 return Reject(definition.tier == ResourceTier.Tier2 ? "T2 cần nhóm từ 6 hex trở lên." : "T1 cần nhóm từ 3 hex trở lên.");
+=======
+                return Reject(definition.tier == ResourceTier.Tier2 ? "T2 cần nhóm đủ 6 hex trở lên." : "T1 cần nhóm từ 3 đến 12 hex.");
+>>>>>>> origin/AnKhang_creature1
             if (definition.requirements == null || definition.requirements.Count == 0 ||
                 (definition.tier == ResourceTier.Tier1 && definition.requirements.Count != 1))
                 return Reject("Requirements không hợp lệ.");

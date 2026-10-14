@@ -31,6 +31,13 @@ namespace LumiWorld.Acs
         public string SelectedHabitatId => selectedHabitatId;
         public event Action<string> HabitatSelected;
 
+        public static ResourceInventoryUIController Instance { get; private set; }
+
+        private void Awake()
+        {
+            if (Instance == null) Instance = this;
+        }
+
         public void Initialize(ResourceProductionRuntime runtime, ResourceInventoryUISkin theme)
         { production = runtime; skin = theme; }
 
@@ -47,7 +54,7 @@ namespace LumiWorld.Acs
             EconomyHUD.RegisterWindow(view.WarehouseWindow.gameObject, CloseWarehouse);
             EconomyHUD.RegisterWindow(view.SelectorWindow.gameObject, CloseSelector);
             EconomyHUD.RegisterWindow(view.SummaryWindow.gameObject, CloseSummary);
-            warehouseItems = ResourceInventoryUIPresentation.Warehouse(manager.Catalog, inventory.GetAmount);
+            warehouseItems = ResourceInventoryUIPresentation.Warehouse(manager.Catalog, inventory.GetAmount, onlyCollected: true);
             view.BuildWarehouseItems(warehouseItems); Fit(); Subscribe();
             if (replaceLegacyResourceBar)
             {
@@ -105,11 +112,30 @@ namespace LumiWorld.Acs
                 foreach (var candidate in manager.Habitats)
                     if (candidate.members.Exists(m => m.placementId == selectedAnchor))
                     { selectedHabitatId = candidate.habitatId; habitat = candidate; break; }
+<<<<<<< HEAD
             view.BindHabitat(ResourceInventoryUIPresentation.Habitat(habitat, production.FindState(selectedHabitatId), manager.Catalog, production.Settings, production.GetCareState));
             foreach (var item in warehouseItems) item.stock = inventory.GetAmount(item.id);
+=======
+            view.BindHabitat(ResourceInventoryUIPresentation.Habitat(habitat, production.FindState(selectedHabitatId), manager.Catalog, production.Settings));
+>>>>>>> origin/AnKhang_creature1
             var recovered = ResourceInventoryUIPresentation.Buffers(production.States, manager.Catalog, production.Settings, true);
             long recoveryCount = 0; foreach (var buffer in recovered) recoveryCount += buffer.amount;
-            view.UpdateWarehouse(warehouseItems, recoveryCount);
+            if (view.WarehouseWindow.gameObject.activeSelf)
+            {
+                var currentStockItems = ResourceInventoryUIPresentation.Warehouse(manager.Catalog, inventory.GetAmount, onlyCollected: true);
+                bool countMatches = warehouseItems != null && warehouseItems.Count == currentStockItems.Count;
+                if (!countMatches)
+                {
+                    warehouseItems = currentStockItems;
+                    view.BuildWarehouseItems(warehouseItems);
+                }
+                else
+                {
+                    warehouseItems = currentStockItems;
+                    foreach (var item in warehouseItems) item.stock = inventory.GetAmount(item.id);
+                    view.UpdateWarehouse(warehouseItems, recoveryCount);
+                }
+            }
             if (view.SelectorWindow.gameObject.activeSelf)
             {
                 var source = FindHabitat(selectorHabitatId);
@@ -130,8 +156,14 @@ namespace LumiWorld.Acs
         {
             if (habitat == null) return; selectedHabitatId = habitat.habitatId;
             selectedAnchor = habitat.members.Count > 0 ? habitat.members[0].placementId : null;
+<<<<<<< HEAD
             view.HabitatPanel.gameObject.SetActive(true); dirty = true;
             HabitatSelected?.Invoke(selectedHabitatId);
+=======
+            dirty = true;
+            HabitatDiamondBadgeManager.Instance?.SelectHabitat(habitat.habitatId);
+            HabitatCreaturePanelUI.Instance?.OpenForHabitat(habitat);
+>>>>>>> origin/AnKhang_creature1
         }
         private void Cycle(int direction)
         {
@@ -146,9 +178,18 @@ namespace LumiWorld.Acs
 
         private void ToggleHabitat()
         {
-            if (view.HabitatPanel.gameObject.activeSelf) { view.HabitatPanel.gameObject.SetActive(false); return; }
+            if (HabitatCreaturePanelUI.Instance != null && HabitatCreaturePanelUI.Instance.IsOpen)
+            {
+                HabitatCreaturePanelUI.Instance.ClosePanels();
+                HabitatDiamondBadgeManager.Instance?.DeselectHabitat();
+                return;
+            }
             if (selectedHabitatId == null && manager.Habitats.Count > 0) Select(manager.Habitats[0]);
-            else view.HabitatPanel.gameObject.SetActive(true);
+            else
+            {
+                var hab = FindHabitat(selectedHabitatId);
+                if (hab != null) Select(hab);
+            }
             dirty = true;
         }
         private void HandleMapSelection()
@@ -180,8 +221,23 @@ namespace LumiWorld.Acs
         }
         private void ShowModal(RectTransform modal)
         { modal.gameObject.SetActive(true); modal.SetAsLastSibling(); EconomyHUD.BringWindowToFront(modal.gameObject); dirty = true; }
-        public void OpenWarehouse() { if (view != null) ShowModal(view.WarehouseWindow); }
+        public void OpenWarehouse()
+        {
+            if (view != null)
+            {
+                warehouseItems = ResourceInventoryUIPresentation.Warehouse(manager.Catalog, inventory.GetAmount, onlyCollected: true);
+                view.BuildWarehouseItems(warehouseItems);
+                ShowModal(view.WarehouseWindow);
+            }
+        }
         public void CloseWarehouse() { view?.WarehouseWindow.gameObject.SetActive(false); EconomyHUD.MarkWindowClosed(); }
+        public void OpenSelectorFor(string habitatId, ResourceTier tier, int index)
+        {
+            var habitat = FindHabitat(habitatId);
+            if (habitat == null) return;
+            selectedHabitatId = habitatId;
+            OpenSelector(tier, index);
+        }
         private void OpenSelector(ResourceTier tier, int index)
         {
             var habitat = FindHabitat(selectedHabitatId);
@@ -193,7 +249,11 @@ namespace LumiWorld.Acs
         public void CloseSelector() { view?.SelectorWindow.gameObject.SetActive(false); pendingResourceId = null; EconomyHUD.MarkWindowClosed(); }
         private void ApplySelection()
         {
-            if (manager.TrySelectResource(selectorHabitatId, selectorTier, selectorIndex, pendingResourceId, out string reason)) CloseSelector();
+            if (manager.TrySelectResource(selectorHabitatId, selectorTier, selectorIndex, pendingResourceId, out string reason))
+            {
+                CloseSelector();
+                HabitatCreaturePanelUI.Instance?.RefreshCurrentHabitat();
+            }
             else Notice(reason);
             dirty = true;
         }
@@ -246,6 +306,7 @@ namespace LumiWorld.Acs
         }
         private void OnDestroy()
         {
+            if (Instance == this) Instance = null;
             if (view == null) return;
             EconomyHUD.UnregisterWindow(view.WarehouseWindow.gameObject);
             EconomyHUD.UnregisterWindow(view.SelectorWindow.gameObject);

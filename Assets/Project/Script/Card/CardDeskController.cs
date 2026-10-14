@@ -112,8 +112,11 @@ public class CardDeskController : MonoBehaviour
             yield break;
         }
 
+        float cardScale =
+            CalculateCardScale(cardCount);
+
         float spacing =
-            CalculateSpacing(cardCount);
+            CalculateSpacing(cardCount, cardScale);
 
         float totalWidth =
             (cardCount - 1) * spacing;
@@ -179,6 +182,14 @@ public class CardDeskController : MonoBehaviour
                 );
             }
 
+            CardHover hover =
+                card.GetComponent<CardHover>();
+
+            if (hover != null)
+            {
+                hover.SetBaseScale(cardScale);
+            }
+
             // -------------------------
             // APPEAR
             // -------------------------
@@ -188,6 +199,7 @@ public class CardDeskController : MonoBehaviour
 
             if (appear != null)
             {
+                appear.SetBaseScale(cardScale);
                 appear.Play(
                     targetPosition,
                     i * appearDelay
@@ -200,6 +212,9 @@ public class CardDeskController : MonoBehaviour
 
                 rect.anchoredPosition =
                     targetPosition;
+
+                rect.localScale =
+                    Vector3.one * cardScale;
             }
 
             cards.Add(card);
@@ -369,8 +384,11 @@ public class CardDeskController : MonoBehaviour
             return;
         }
 
+        float cardScale =
+            CalculateCardScale(cardCount);
+
         float spacing =
-            CalculateSpacing(cardCount);
+            CalculateSpacing(cardCount, cardScale);
 
         float totalWidth =
             (cardCount - 1) * spacing;
@@ -395,6 +413,22 @@ public class CardDeskController : MonoBehaviour
                 );
             }
 
+            CardHover hover =
+                cards[i].GetComponent<CardHover>();
+
+            if (hover != null)
+            {
+                hover.SetBaseScale(cardScale);
+            }
+
+            CardAppear appear =
+                cards[i].GetComponent<CardAppear>();
+
+            if (appear != null)
+            {
+                appear.SetBaseScale(cardScale);
+            }
+
             // Move Card
             CardMoveToPosition mover =
                 cards[i].GetComponent<CardMoveToPosition>();
@@ -417,6 +451,9 @@ public class CardDeskController : MonoBehaviour
 
                 rect.anchoredPosition =
                     targetPosition;
+
+                rect.localScale =
+                    Vector3.one * cardScale;
             }
         }
     }
@@ -510,8 +547,11 @@ public void AddRewardCard(CardData cardData)
     // Tính lại vị trí cho toàn bộ hand
     int cardCount = cards.Count;
 
+    float cardScale =
+        CalculateCardScale(cardCount);
+
     float spacing =
-        CalculateSpacing(cardCount);
+        CalculateSpacing(cardCount, cardScale);
 
     float totalWidth =
         (cardCount - 1) * spacing;
@@ -537,6 +577,14 @@ public void AddRewardCard(CardData cardData)
         );
     }
 
+    CardHover hover =
+        card.GetComponent<CardHover>();
+
+    if (hover != null)
+    {
+        hover.SetBaseScale(cardScale);
+    }
+
     // Hủy mọi animation dời chỗ còn sót để không tranh chấp với appear.
     CardMoveToPosition newMover =
         card.GetComponent<CardMoveToPosition>();
@@ -551,6 +599,7 @@ public void AddRewardCard(CardData cardData)
 
     if (appear != null)
     {
+        appear.SetBaseScale(cardScale);
         appear.Play(
             targetPosition,
             0f
@@ -565,6 +614,9 @@ public void AddRewardCard(CardData cardData)
         {
             rect.anchoredPosition =
                 targetPosition;
+
+            rect.localScale =
+                Vector3.one * cardScale;
         }
     }
 
@@ -650,11 +702,31 @@ private void TryPlayRewardFeedback(
     }
 }
     // =========================================
-    // CALCULATE SPACING
+    // CALCULATE CARD SCALE & SPACING
     // =========================================
 
+    /// <summary>
+    /// Tính tỉ lệ diện tích lá bài:
+    /// Khi ít bài (<= 4 lá): giữ nguyên kích thước 1.0 (100%).
+    /// Khi có nhiều bài (5, 6, 7, 8+ lá): diện tích card nhỏ lại dần (1.0 -> 0.70)
+    /// kết hợp xếp chồng (cascade overlapping) để tiết kiệm diện tích và không bao giờ che khuất
+    /// vòng tròn huy hiệu Harmony / Milestone ở góc trái màn hình.
+    /// </summary>
+    public float CalculateCardScale(int cardCount)
+    {
+        if (cardCount <= 4)
+        {
+            return 1f;
+        }
+
+        // Giảm dần từ 1.0 xuống 0.70 tùy số lượng lá trên tay
+        float t = Mathf.Clamp01((cardCount - 4f) / 5f);
+        return Mathf.Lerp(1.0f, 0.70f, t);
+    }
+
     private float CalculateSpacing(
-        int cardCount
+        int cardCount,
+        float cardScale
     )
     {
         if (cardCount <= 1)
@@ -662,20 +734,23 @@ private void TryPlayRewardFeedback(
             return 0f;
         }
 
-        float spacing =
-            handWidth /
-            (cardCount - 1);
+        float scaledWidth = cardWidth * cardScale;
 
-        // Chặn dưới bằng bề rộng lá: nếu ép spacing nhỏ hơn cardWidth thì các lá
-        // sẽ chồng lên nhau (bug "2 card kế bên trồng lên lá giữa"). Thà hand tràn
-        // ra ngoài handWidth còn hơn để các lá đè nhau.
-        float effectiveMin = Mathf.Max(minSpacing, cardWidth);
+        // Giới hạn chiều rộng tối đa an toàn của toàn bộ hand để không tràn sang trái
+        // che mất huy hiệu Harmony / Milestone (tối đa ~640px)
+        float safeSpan = Mathf.Min(handWidth, 640f);
+        float targetSpacing = (safeSpan - scaledWidth) / (cardCount - 1);
 
-        return Mathf.Clamp(
-            spacing,
-            effectiveMin,
-            maxSpacing
-        );
+        if (cardCount <= 4)
+        {
+            // Bài ít: xếp thoáng đẹp không đè lên nhau
+            return Mathf.Clamp(targetSpacing, 135f, maxSpacing);
+        }
+
+        // Bài nhiều: cho phép xếp chồng các lá (spacing < scaledWidth).
+        // Càng nhiều lá thì spacing càng co lại (xếp chồng tăng dần) để gọn gàng,
+        // chặn dưới ở mức 50f để các lá vẫn để lộ viền và số nhận diện rõ ràng.
+        return Mathf.Clamp(targetSpacing, 50f, maxSpacing);
     }
 
     // =========================================

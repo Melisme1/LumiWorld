@@ -18,17 +18,27 @@ using LumiWorld.Acs.TimeSystem;
 public class OrderBoardSystem : MonoBehaviour
 {
     private static OrderBoardSystem _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static OrderBoardSystem Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<OrderBoardSystem>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("OrderBoardSystem");
                     _instance = go.AddComponent<OrderBoardSystem>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -65,6 +75,13 @@ public class OrderBoardSystem : MonoBehaviour
     /// </summary>
     public event Action OnBoardChanged;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -74,10 +91,15 @@ public class OrderBoardSystem : MonoBehaviour
         }
 
         _instance = this;
+<<<<<<< HEAD
         timeRuntime = GameTimeRuntime.Instance;
         refillTimers = new TimerService(timeRuntime.Clock);
         pollTimer = new TimerService(timeRuntime.Clock);
         pollTimer.StartInterval("poll", 1);
+=======
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
+>>>>>>> origin/AnKhang_creature1
         LoadTemplates();
 
         // Sửa thẳng danh sách trong bản lưu, giống cách ví và kho cập nhật EconomySaveData
@@ -100,6 +122,11 @@ public class OrderBoardSystem : MonoBehaviour
         // Mỗi giây xem lại các ô trống: hết giờ chờ, hoặc người chơi vừa làm ra loại tài nguyên mới
         if (timeRuntime.IsPaused) return;
         if (pollTimer.TryConsumeSignals("poll", out _)) FillEmptySlots();
+    }
+
+    private void OnApplicationQuit()
+    {
+        _isQuitting = true;
     }
 
     private void OnDestroy()
