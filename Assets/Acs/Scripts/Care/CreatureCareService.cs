@@ -57,6 +57,8 @@ namespace LumiWorld.Acs
     // Work and prepaid bite countdowns use Time Core; no UI, species diet or stock access here.
     public sealed class CreatureCareService
     {
+        // Accumulating 0.1-second bites may leave sub-nanosecond floating-point residue.
+        private const double BoundaryTolerance = 1e-9;
         private sealed class Timeline : ITimeSource
         {
             public double MonotonicSeconds { get; set; }
@@ -142,8 +144,9 @@ namespace LumiWorld.Acs
                 if (!CanProduce(id)) continue;
                 var state = individuals[id];
                 timers.CreditWork(WorkId(id), elapsed);
-                state.satiety = Math.Max(0, 100 * timers.Read(WorkId(id)).remainingSeconds / state.threshold);
-                if (timers.TryConsumeSignals(WorkId(id), out _))
+                double remainingWork = timers.Read(WorkId(id)).remainingSeconds;
+                state.satiety = Math.Max(0, 100 * remainingWork / state.threshold);
+                if (timers.TryConsumeSignals(WorkId(id), out _) || remainingWork <= BoundaryTolerance)
                 { state.satiety = 0; state.status = CreatureHungerStatus.Hungry; Revision++; }
             }
             timeline.MonotonicSeconds = gameSeconds;
@@ -153,7 +156,7 @@ namespace LumiWorld.Acs
                 if (!state.biting) continue;
                 double remaining = timers.Read(BiteId(state.id)).remainingSeconds;
                 state.satiety = Math.Min(100, state.biteStart + state.biteGain * (1 - remaining / state.biteDuration));
-                if (!timers.TryConsumeSignals(BiteId(state.id), out _)) continue;
+                if (!timers.TryConsumeSignals(BiteId(state.id), out _) && remaining > BoundaryTolerance) continue;
                 state.satiety = Math.Min(100, state.biteStart + state.biteGain);
                 state.biting = false; timers.Cancel(BiteId(state.id));
                 if (state.satiety >= 100 - 1e-8)

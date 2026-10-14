@@ -49,7 +49,7 @@ namespace LumiWorld.Acs
                     rankIIIHungerSeconds, autoFeedAtSatiety, foodUnitsPerSecond);
             }
             catch (ArgumentException exception) { reason = exception.Message; return false; }
-            reason = "Độ no giảm theo work; tự ăn từ máng biome. Chưa nối world save.";
+            reason = "Độ no giảm theo work; tự ăn từ ngăn riêng từng cá thể. Chưa nối world save.";
             return true;
         }
         public bool TryGetFoodRules(out CreatureFoodRules rules, out string reason)
@@ -60,13 +60,13 @@ namespace LumiWorld.Acs
                 if (seedFoodUnitsToFull < 1) throw new ArgumentException("Seed Food Units To Full phải >= 1.");
                 var foods = new List<CreatureFoodRule>
                 { new CreatureFoodRule(FoodResourceId, 100d / seedFoodUnitsToFull) };
-                foreach (var entry in additionalFoods)
+                foreach (var entry in additionalFoods ?? new List<CreatureFoodSettings>())
                 {
                     if (entry == null) throw new ArgumentException("Additional Foods có dòng trống.");
                     foods.Add(new CreatureFoodRule(entry.ResourceId, entry.satietyPerUnit));
                 }
                 var diets = new List<SpeciesDietRule>();
-                foreach (var entry in speciesDiets)
+                foreach (var entry in speciesDiets ?? new List<SpeciesDietSettings>())
                 {
                     if (entry == null) throw new ArgumentException("Species Diets có dòng trống.");
                     diets.Add(new SpeciesDietRule(entry.speciesId, entry.allowedFoodIds,

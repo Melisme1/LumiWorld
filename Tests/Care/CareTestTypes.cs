@@ -13,6 +13,7 @@ namespace UnityEngine
     public class GameObject { public GameObject(string name) { } public T AddComponent<T>() where T : new() => new T(); }
     public sealed class TooltipAttribute : Attribute { public TooltipAttribute(string text) { } }
     public sealed class MinAttribute : Attribute { public MinAttribute(float value) { } }
+    public sealed class RangeAttribute : Attribute { public RangeAttribute(float min, float max) { } }
     public sealed class CreateAssetMenuAttribute : Attribute { public string fileName, menuName; }
     public static class Mathf { public static int Max(int a, int b) => Math.Max(a,b); public static int Min(int a, int b) => Math.Min(a,b); }
     public static class Debug

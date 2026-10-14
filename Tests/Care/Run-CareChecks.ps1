@@ -10,6 +10,7 @@ $references = Get-ChildItem (Join-Path $referenceVersion.FullName 'ref/net8.0') 
 $sources = @(Get-ChildItem (Join-Path $projectRoot 'Assets/Acs/Scripts/Time/Core') -Filter '*.cs' | ForEach-Object FullName)
 @(
     'Care/CreatureCareService.cs', 'Care/CreatureFeedingService.cs', 'Care/CreatureCareSettings.cs',
+    'Care/CreatureFoodRules.cs', 'Care/CreatureFoodStore.cs', 'Care/CreatureFoodTransferService.cs',
     'Production/CareProductionSimulation.cs', 'Production/ProductionState.cs', 'Production/ProductionLedger.cs',
     'Production/ProductionRateCalculator.cs', 'Production/ProductionRuntimeSettings.cs', 'Production/ProductionBalanceConfig.cs',
     'Production/ResourceProductionDefinition.cs', 'Habitat/HabitatState.cs', 'Habitat/HabitatDataTypes.cs',

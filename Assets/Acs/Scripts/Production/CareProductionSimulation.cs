@@ -9,7 +9,7 @@ namespace LumiWorld.Acs
     {
         public ProductionLedger Ledger { get; }
         public CreatureCareService Care { get; }
-        public HabitatFoodStore Food { get; } = new HabitatFoodStore();
+        public CreatureFoodStore Food { get; } = new CreatureFoodStore();
         public CreatureFoodRules FoodRules { get; private set; }
         public bool AutoFeedingEnabled { get; set; } = true;
         private CreatureCareRules rules;
@@ -45,16 +45,18 @@ namespace LumiWorld.Acs
         public CreatureFeedPreview PreviewFeed(string habitatId, string individualId)
         {
             var resident = FindResident(habitatId, individualId);
-            var choice = resident == null ? null : ChooseFood(habitatId, resident.speciesId);
+            var choice = resident == null ? null : ChooseFood(resident);
             return CreatureFeedingService.Preview(resident == null ? null : Care.Read(individualId), choice,
-                choice == null ? 0 : Food.GetAmount(habitatId, choice.ResourceId), rules?.FoodUnitsPerSecond ?? 10);
+                choice == null ? 0 : Food.GetAmount(individualId, choice.ResourceId), rules?.FoodUnitsPerSecond ?? 10);
         }
         public bool TryFeed(string habitatId, string individualId, out string reason)
         {
             var preview = PreviewFeed(habitatId, individualId); reason = preview.Reason;
-            if (!producing || !AutoFeedingEnabled || !preview.CanFeed) return false;
+            if (!producing || !AutoFeedingEnabled)
+            { reason = "Hệ thống cho ăn đang dừng."; return false; }
+            if (!preview.CanFeed) return false;
             if (!Care.TryStartEating(individualId)) return false;
-            RefreshActivity(); reason = "Đã bắt đầu ăn từ máng biome."; return true;
+            RefreshActivity(); reason = "Đã bắt đầu ăn từ ngăn thức ăn riêng."; return true;
         }
         public void RefreshActivity()
         {
@@ -65,37 +67,30 @@ namespace LumiWorld.Acs
         }
         private HabitatResident FindResident(string habitatId, string id)
         { return habitats.Find(h => h.habitatId == habitatId)?.residents.Find(r => r.individualId == id); }
-        private CreatureFoodChoice ChooseFood(string habitatId, string speciesId)
-            => FoodRules?.Choose(speciesId, id => Food.GetAmount(habitatId, id));
+        private CreatureFoodChoice ChooseFood(HabitatResident resident)
+            => FoodRules?.Choose(resident.speciesId, id => Food.GetAmount(resident.individualId, id));
 
         private void PrepareEating()
         {
             if (!producing || !AutoFeedingEnabled || FoodRules == null) return;
             foreach (var habitat in habitats)
             {
-                var residents = new List<HabitatResident>(habitat.residents);
-                // Scarce food: lower satiety first; stable ID breaks ties, independent of frame order.
-                residents.Sort((a, b) =>
-                {
-                    int order = Care.Read(a.individualId).Satiety.CompareTo(Care.Read(b.individualId).Satiety);
-                    return order != 0 ? order : string.CompareOrdinal(a.individualId, b.individualId);
-                });
-                foreach (var resident in residents)
+                foreach (var resident in habitat.residents)
                 {
                     var state = Care.Read(resident.individualId);
                     if (state.IsTakingBite || state.Satiety >= 100) continue;
                     if (state.Status == CreatureHungerStatus.Healthy && state.Satiety > rules.AutoFeedAtSatiety + 1e-8) continue;
-                    var food = ChooseFood(habitat.habitatId, resident.speciesId);
+                    var food = ChooseFood(resident);
                     if (food == null) continue; // A healthy resident without food can work until empty.
                     if (state.Status != CreatureHungerStatus.Eating) Care.TryStartEating(resident.individualId);
-                    if (!Food.TryTake(habitat.habitatId, food.ResourceId, 1)) continue;
+                    if (!Food.TryTake(resident.individualId, food.ResourceId, 1)) continue;
                     try
                     {
                         if (!Care.TryBeginBite(resident.individualId, food.ResourceId,
                             food.SatietyPerUnit, 1 / rules.FoodUnitsPerSecond))
-                            Food.TryAdd(habitat.habitatId, food.ResourceId, 1);
+                            Food.TryAdd(resident.individualId, food.ResourceId, 1);
                     }
-                    catch { Food.TryAdd(habitat.habitatId, food.ResourceId, 1); throw; }
+                    catch { Food.TryAdd(resident.individualId, food.ResourceId, 1); throw; }
                 }
             }
         }
@@ -107,7 +102,7 @@ namespace LumiWorld.Acs
             foreach (var habitat in habitats)
                 foreach (var resident in habitat.residents)
                 {
-                    if (!workers.Contains(resident.individualId) || ChooseFood(habitat.habitatId, resident.speciesId) == null) continue;
+                    if (!workers.Contains(resident.individualId) || ChooseFood(resident) == null) continue;
                     var state = Care.Read(resident.individualId);
                     if (state.Status == CreatureHungerStatus.Healthy && state.Satiety > rules.AutoFeedAtSatiety)
                         result = Math.Min(result, (state.Satiety - rules.AutoFeedAtSatiety) * state.HungerThresholdSeconds / 100);

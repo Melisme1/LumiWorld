@@ -25,7 +25,7 @@ namespace LumiWorld.Acs
         public IReadOnlyList<CreatureResidentView> Residents { get; private set; } = Array.Empty<CreatureResidentView>();
         public CreatureResidentView SelectedCreature { get; private set; }
         public CreatureFeedPreview FeedPreview { get; private set; }
-        public IReadOnlyList<HabitatFoodStock> FoodStocks { get; private set; } = Array.Empty<HabitatFoodStock>();
+        public IReadOnlyList<CreatureFoodStock> FoodStocks { get; private set; } = Array.Empty<CreatureFoodStock>();
 
         private void OnEnable() { Connect(); Refresh(); }
         private void Update()
@@ -77,16 +77,16 @@ namespace LumiWorld.Acs
         public void SetPantryTransferAmount(int amount) => pantryTransferAmount = Math.Max(1, amount);
         public void DepositSelectedFood()
         {
-            string message = "Chọn biome trước.";
-            if (production != null && !string.IsNullOrEmpty(HabitatId))
-                production.DepositFood(HabitatId, pantryFoodId, pantryTransferAmount, out message);
+            string message = "Chọn một cư dân trước.";
+            if (production != null && !string.IsNullOrEmpty(IndividualId))
+                production.DepositCreatureFood(HabitatId, IndividualId, pantryFoodId, pantryTransferAmount, out message);
             PublishMessage(message); Refresh();
         }
         public void WithdrawSelectedFood()
         {
-            string message = "Chọn biome trước.";
-            if (production != null && !string.IsNullOrEmpty(HabitatId))
-                production.WithdrawFood(HabitatId, pantryFoodId, pantryTransferAmount, out message);
+            string message = "Chọn một cư dân trước.";
+            if (production != null && !string.IsNullOrEmpty(IndividualId))
+                production.WithdrawCreatureFood(IndividualId, pantryFoodId, pantryTransferAmount, out message);
             PublishMessage(message); Refresh();
         }
         private void PublishMessage(string message)
@@ -94,10 +94,10 @@ namespace LumiWorld.Acs
         public void Refresh()
         {
             Residents = production != null ? production.GetResidents(HabitatId) : Array.Empty<CreatureResidentView>();
-            FoodStocks = production != null && !string.IsNullOrEmpty(HabitatId) ? production.GetFoodStocks(HabitatId) : Array.Empty<HabitatFoodStock>();
             SelectedCreature = null;
             foreach (var resident in Residents) if (resident.IndividualId == IndividualId) { SelectedCreature = resident; break; }
             if (SelectedCreature == null) IndividualId = null;
+            FoodStocks = SelectedCreature != null ? production.GetCreatureFoodStocks(IndividualId) : Array.Empty<CreatureFoodStock>();
             FeedPreview = SelectedCreature != null ? production.PreviewFeed(HabitatId, IndividualId) : null;
             try { onViewChanged.Invoke(); } catch (Exception exception) { Debug.LogException(exception, this); }
         }
