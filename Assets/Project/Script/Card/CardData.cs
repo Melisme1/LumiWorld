@@ -42,6 +42,17 @@ public class CardData : ScriptableObject
     [Tooltip("Prefab to instantiate on the hex tile when played")]
     public GameObject prefabToPlace;
 
+    [Header("Card Use Effect")]
+    [Tooltip("Optional one-shot effect spawned in world space when this card is used successfully.")]
+    public GameObject useEffectPrefab;
+
+    [Tooltip("World-space offset from the card's target tile for the use effect.")]
+    public Vector3 useEffectOffset = new Vector3(0f, 0.1f, 0f);
+
+    [Tooltip("Scale multiplier applied to the one-shot use effect prefab.")]
+    [Min(0.01f)]
+    public float useEffectScale = 1f;
+
     [Tooltip("Local offset relative to tile surface")]
     public Vector3 placementOffset = Vector3.zero;
 

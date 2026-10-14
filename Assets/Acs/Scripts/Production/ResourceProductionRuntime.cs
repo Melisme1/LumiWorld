@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using UnityEngine;
 using LumiWorld.Acs.TimeSystem;
 
@@ -27,6 +29,8 @@ namespace LumiWorld.Acs
         private GameClock clock;
         private double ProductionSeconds => clock.Read().GameSeconds;
         private string settingsFingerprint;
+        private string disasterFingerprint;
+        private HexWorldGenerator worldGenerator;
         private string careFingerprint;
         private float nextDisplayRefresh;
         private bool subscribed;
@@ -78,6 +82,7 @@ namespace LumiWorld.Acs
             clock = timeRuntime.Clock;
             timeRuntime.PauseChanged += OnPauseChanged;
             if (habitatManager == null) habitatManager = GetComponent<HabitatRuntimeManager>();
+            worldGenerator = FindAnyObjectByType<HexWorldGenerator>();
             if (ledger == null) ledger = new ProductionLedger();
             if (simulation == null) simulation = new CareProductionSimulation(ledger, ProductionSeconds);
             simulation.AutoFeedingEnabled = !clock.IsPaused;
@@ -108,6 +113,17 @@ namespace LumiWorld.Acs
             if (SettingsChanged()) ApplySettingsChange();
             if (Time.unscaledTime < nextDisplayRefresh) return;
             nextDisplayRefresh = Time.unscaledTime + Mathf.Max(0.1f, displayRefreshSeconds);
+
+            string currentDisasterFingerprint = BuildDisasterFingerprint();
+            if (!string.Equals(currentDisasterFingerprint, disasterFingerprint, StringComparison.Ordinal))
+            {
+                // Settle elapsed time at the previous rates before applying new disaster penalties.
+                simulation.AdvanceTo(ProductionSeconds);
+                Synchronize();
+                disasterFingerprint = currentDisasterFingerprint;
+                return;
+            }
+
             SettleNow();
         }
 
@@ -157,10 +173,60 @@ namespace LumiWorld.Acs
             // Immutable copy protects settlement from live Inspector edits before their boundary.
             var rateSettings = settings == null ? null : JsonUtility.FromJson<ProductionRuntimeSettings>(JsonUtility.ToJson(settings));
             simulation.Synchronize(habitatManager.Habitats, careRules,
-                h => ProductionRateCalculator.Calculate(h, habitatManager.Catalog, rateSettings, simulation.Care.CanProduce), ProductionSeconds, foodRules);
+                h => ApplyDisasterProductivity(h,
+                    ProductionRateCalculator.Calculate(h, habitatManager.Catalog, rateSettings, simulation.Care.CanProduce)),
+                ProductionSeconds, foodRules);
             settingsFingerprint = JsonUtility.ToJson(settings);
             careFingerprint = JsonUtility.ToJson(creatureCare);
+            disasterFingerprint = BuildDisasterFingerprint();
             PublishState();
+        }
+
+        private List<ProductionSlotRate> ApplyDisasterProductivity(HabitatState habitat, List<ProductionSlotRate> rates)
+        {
+            if (rates == null || habitat == null || habitat.members == null || worldGenerator == null ||
+                !DisasterRuntimeManager.TryGetActive(out var disasterManager)) return rates;
+
+            float multiplier = 1f;
+            foreach (HabitatHexMember member in habitat.members)
+            {
+                if (member == null || !worldGenerator.MapTiles.TryGetValue(member.hex, out GameObject tile) || tile == null)
+                    continue;
+
+                multiplier = Mathf.Min(multiplier, disasterManager.GetHarvestMultiplier(tile));
+            }
+
+            if (multiplier >= 0.999f) return rates;
+            foreach (ProductionSlotRate rate in rates)
+            {
+                if (rate == null) continue;
+                rate.unitsPerMinute *= multiplier;
+                if (rate.unitsPerMinute > 0)
+                    rate.reason = "Cyclone làm giảm năng suất môi trường còn " +
+                        (multiplier * 100f).ToString("0.#", CultureInfo.InvariantCulture) + "%.";
+            }
+            return rates;
+        }
+
+        private string BuildDisasterFingerprint()
+        {
+            if (habitatManager == null || worldGenerator == null ||
+                !DisasterRuntimeManager.TryGetActive(out var disasterManager)) return string.Empty;
+
+            var fingerprint = new StringBuilder();
+            foreach (HabitatState habitat in habitatManager.Habitats)
+            {
+                if (habitat == null || habitat.members == null) continue;
+                fingerprint.Append(habitat.habitatId).Append(':');
+                foreach (HabitatHexMember member in habitat.members)
+                {
+                    if (member == null || !worldGenerator.MapTiles.TryGetValue(member.hex, out GameObject tile) || tile == null)
+                        continue;
+                    fingerprint.Append(member.hex.Q).Append(',').Append(member.hex.R).Append('=')
+                        .Append(Mathf.RoundToInt(disasterManager.GetHarvestMultiplier(tile) * 1000f)).Append(';');
+                }
+            }
+            return fingerprint.ToString();
         }
 
         [ContextMenu("Settle Production Now")]

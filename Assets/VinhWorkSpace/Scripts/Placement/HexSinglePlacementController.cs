@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using LumiWorld.Acs;
 
 /// <summary>
 /// Tổng tài điều phối quá trình đặt một ô lục giác (Single Placement Coordinator).
@@ -351,10 +352,74 @@ public class HexSinglePlacementController : MonoBehaviour
         // Sinh vật phẩm / hệ sinh thái Props hoặc biến đổi địa hình
         if (cardData != null)
         {
-            // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN)
+            // Kiểm tra xem có phải thẻ Mưa (Rain Card) hay không
+            bool isRainCard = cardData.cardID == "Rain" || string.Equals(cardData.cardName, "Rain", System.StringComparison.OrdinalIgnoreCase);
+            if (isRainCard)
+            {
+                var disasterState = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
+                if (disasterState != null && disasterState.Has(LumiWorld.Acs.DisasterKind.Cyclone))
+                {
+                    CancelPreview();
+                    return false;
+                }
+
+                bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
+                bool hasPendingFire = LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var activeDisasterManager) &&
+                                      activeDisasterManager.IsTilePendingFire(targetTileObj);
+
+                // ƯU TIÊN KIỂM TRA: Nếu ô có Disaster hoặc đang bị cháy rụi (isBurned) -> Dập lửa/chữa thiên tai bằng ApplyRain
+                if (hasDisasterOrBurned || hasPendingFire)
+                {
+                    bool applied = false;
+                    if (LumiWorld.Acs.DisasterRuntimeManager.Instance != null)
+                    {
+                        applied = LumiWorld.Acs.DisasterRuntimeManager.Instance.ApplyRain(targetTileObj, LumiWorld.Acs.DisasterRainStrength.Light);
+                    }
+                    else if (disasterState != null)
+                    {
+                        disasterState.isBurned = false;
+                        disasterState.ClearAll();
+                        disasterState.RefreshVisual();
+                        applied = true;
+                    }
+
+                    if (applied)
+                    {
+                        PlayCardUseEffect(cardData, spawnWorldPos);
+
+                        if (LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainManager))
+                            rainManager.RegisterRainCardUse();
+
+                        Debug.Log($"<color=#38BDF8>[LumiWorld Rain] Thẻ Mưa đã dập lửa / phục hồi ô {currentHoverHex} thành công!</color>");
+
+                        if (placementFee > 0)
+                        {
+                            CurrencyWallet.Instance.TrySpend(placementFee, CoinReason.PlacementFee);
+                        }
+
+                        if (ScoreCalculator.Instance != null)
+                        {
+                            ScoreCalculator.Instance.RecalculateScore();
+                        }
+
+                        LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
+                        if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var rainHabitatManager))
+                            rainHabitatManager.RefreshNow();
+
+                        CancelPreview();
+                        return true; // Tiêu hao 1 thẻ Rain và DỪNG LẠI, KHÔNG TransformTile!
+                    }
+                }
+            }
+
+            // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN TRÊN ĐẤT KHÔ ARID)
             if (cardData.IsTileTransformCard())
             {
                 placedCardInstance = TransformTile(targetTileObj, currentHoverHex, cardData);
+                if (placedCardInstance != null)
+                {
+                    PlayCardUseEffect(cardData, spawnWorldPos);
+                }
             }
             // TRƯỜNG HỢP 2: THẺ SINH THÁI TỔ HỢP PROPS (HABITAT PROPS NHƯ FOREST, MOUNTAIN...)
             else if (cardData.HasHabitatProps())
@@ -451,6 +516,10 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 CurrencyWallet.Instance.TrySpend(placementFee, CoinReason.PlacementFee);
             }
+
+            // Rain được tính khi dùng thành công trên đất, kể cả khi không có disaster để chữa.
+            if (isRainCard && LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainCardManager))
+                rainCardManager.RegisterRainCardUse();
         }
 
         CancelPreview();
@@ -510,6 +579,29 @@ public class HexSinglePlacementController : MonoBehaviour
         newTileInfo.coordinates = coords;
         newTileInfo.isOccupied = cardData.occupiesTile; // Rain: occupiesTile = false
 
+        // 5. TÁI TẠO TileDisasterState cho ô mới.
+        //
+        // BẮT BUỘC: ở bước 2 ta Destroy(oldTileObj) nên TileDisasterState (và lớp tô màu)
+        // gắn trên ô cũ cũng bị hủy theo. Trước đây chỉ có HexTileInfo được tạo lại, nên các ô
+        // đã biến đổi (tên có hậu tố _Transformed) KHÔNG có TileDisasterState.
+        //
+        // Hệ quả thực tế đã gặp: hệ thống thiên tai không nhận ra các ô Lush này là Lush
+        // (vì đọc IsLushTile qua component), nên:
+        //   - Cháy rừng không bao giờ được sinh trên ô Lush.
+        //   - Cháy không lan được vào ô Lush.
+        //   - Ô Lush không được tô màu khi bị thiên tai.
+        var newDisasterState = TileDisasterState.Ensure(newTileObj);
+        if (newDisasterState != null)
+        {
+            // Ô sau biến đổi là Lush (đất tươi tốt) — giữ biome cũ để cháy/hạn lan đúng vùng.
+            BiomeAffinity affinity = LumiWorld.Acs.DisasterRuntimeManager.ResolveAffinity(oldTileObj);
+            newDisasterState.affinity = affinity;
+
+            // Đồng bộ toạ độ: state là nơi các xử lý theo vị trí (mưa dập lửa tại ô)
+            // đọc để biết ô này nằm ở đâu.
+            newDisasterState.coordinates = coords;
+        }
+
         // 6. Cập nhật MapTiles trong HexWorldGenerator
         if (worldGenerator.MapTiles.ContainsKey(coords))
         {
@@ -531,6 +623,31 @@ public class HexSinglePlacementController : MonoBehaviour
         StartCoroutine(AnimatePopIn(newTileObj.transform));
 
         return placedCard;
+    }
+
+    /// <summary>Spawns a card's one-shot use effect independently of the tile lifetime.</summary>
+    private static void PlayCardUseEffect(CardData cardData, Vector3 targetPosition)
+    {
+        if (cardData == null || cardData.useEffectPrefab == null) return;
+
+        GameObject effect = Instantiate(
+            cardData.useEffectPrefab,
+            targetPosition + cardData.useEffectOffset,
+            Quaternion.identity);
+
+        // Keep the effect within roughly one hex footprint by default; CardData can tune this per card.
+        float effectScale = Mathf.Max(0.01f, cardData.useEffectScale);
+        effect.transform.localScale = Vector3.one * effectScale;
+
+        ParticleSystem[] particleSystems = effect.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (ParticleSystem particleSystem in particleSystems)
+        {
+            var main = particleSystem.main;
+            main.loop = false;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particleSystem.Play(true);
+        }
     }
 
     /// <summary>
