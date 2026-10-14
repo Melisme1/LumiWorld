@@ -358,6 +358,8 @@ public class HexSinglePlacementController : MonoBehaviour
 
                     if (applied)
                     {
+                        PlayCardUseEffect(cardData, spawnWorldPos);
+
                         if (LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainManager))
                             rainManager.RegisterRainCardUse();
 
@@ -387,6 +389,10 @@ public class HexSinglePlacementController : MonoBehaviour
             if (cardData.IsTileTransformCard())
             {
                 placedCardInstance = TransformTile(targetTileObj, currentHoverHex, cardData);
+                if (placedCardInstance != null)
+                {
+                    PlayCardUseEffect(cardData, spawnWorldPos);
+                }
             }
             // TRƯỜNG HỢP 2: THẺ SINH THÁI TỔ HỢP PROPS (HABITAT PROPS NHƯ FOREST, MOUNTAIN...)
             else if (cardData.HasHabitatProps())
@@ -595,6 +601,31 @@ public class HexSinglePlacementController : MonoBehaviour
         StartCoroutine(AnimatePopIn(newTileObj.transform));
 
         return placedCard;
+    }
+
+    /// <summary>Spawns a card's one-shot use effect independently of the tile lifetime.</summary>
+    private static void PlayCardUseEffect(CardData cardData, Vector3 targetPosition)
+    {
+        if (cardData == null || cardData.useEffectPrefab == null) return;
+
+        GameObject effect = Instantiate(
+            cardData.useEffectPrefab,
+            targetPosition + cardData.useEffectOffset,
+            Quaternion.identity);
+
+        // Keep the effect within roughly one hex footprint by default; CardData can tune this per card.
+        float effectScale = Mathf.Max(0.01f, cardData.useEffectScale);
+        effect.transform.localScale = Vector3.one * effectScale;
+
+        ParticleSystem[] particleSystems = effect.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (ParticleSystem particleSystem in particleSystems)
+        {
+            var main = particleSystem.main;
+            main.loop = false;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particleSystem.Play(true);
+        }
     }
 
     /// <summary>
