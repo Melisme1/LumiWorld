@@ -33,6 +33,8 @@ namespace LumiWorld.Acs
                     {
                         if (seen.Add(extra.id))
                         {
+                            int currentStock = stock != null ? stock(extra.id) : 0;
+                            if (onlyCollected && currentStock <= 0) continue;
                             items.Add(new ResourceUIItem
                             {
                                 id = extra.id,
@@ -42,7 +44,8 @@ namespace LumiWorld.Acs
                                 biome = extra.biome,
                                 tier = extra.tier,
                                 capacity = extra.capacity,
-                                stock = stock != null ? stock(extra.id) : 0
+                                stock = currentStock,
+                                isUnlocked = currentStock > 0
                             });
                         }
                     }

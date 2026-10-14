@@ -119,8 +119,11 @@ namespace LumiWorld.Acs
             if (view.WarehouseWindow.gameObject.activeSelf)
             {
                 var currentStockItems = ResourceInventoryUIPresentation.Warehouse(manager.Catalog, inventory.GetAmount, onlyCollected: true);
-                bool countMatches = warehouseItems != null && warehouseItems.Count == currentStockItems.Count;
-                if (!countMatches)
+                bool itemsMatch = warehouseItems != null && warehouseItems.Count == currentStockItems.Count;
+                if (itemsMatch)
+                    for (int i = 0; i < currentStockItems.Count; i++)
+                        if (warehouseItems[i].id != currentStockItems[i].id) { itemsMatch = false; break; }
+                if (!itemsMatch)
                 {
                     warehouseItems = currentStockItems;
                     view.BuildWarehouseItems(warehouseItems);
@@ -128,9 +131,8 @@ namespace LumiWorld.Acs
                 else
                 {
                     warehouseItems = currentStockItems;
-                    foreach (var item in warehouseItems) item.stock = inventory.GetAmount(item.id);
-                    view.UpdateWarehouse(warehouseItems, recoveryCount);
                 }
+                view.UpdateWarehouse(warehouseItems, recoveryCount);
             }
             if (view.SelectorWindow.gameObject.activeSelf)
             {

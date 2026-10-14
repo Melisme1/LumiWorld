@@ -253,20 +253,30 @@ namespace LumiWorld.Economy.Crafting
             }
 
             var inventory = ResourceInventory.Instance;
-            int totalAmount = job.TotalOutputAmount;
-            int stored = inventory.Add(recipe.outputResource, totalAmount);
-
-            if (stored < totalAmount)
+            if (inventory == null)
             {
-                failureReason = $"Kho không đủ chỗ để nhận toàn bộ thành phẩm (chỉ cất được {stored}/{totalAmount}). Hãy dọn kho!";
+                failureReason = "Kho tài nguyên chưa sẵn sàng.";
+                return false;
+            }
+            int totalAmount = job.TotalOutputAmount;
+            if (totalAmount <= 0 || !activeJobs.Contains(job))
+            {
+                failureReason = "Mẻ chế biến hoặc số lượng thành phẩm không hợp lệ.";
+                return false;
+            }
+            if (!inventory.TryAddAll(new[] { new ResourceInventory.Deposit(recipe.outputResource, totalAmount) }, () =>
+            {
+                job.isClaimed = true;
+                activeJobs.Remove(job);
+            }))
+            {
+                failureReason = "Kho không đủ chỗ để nhận toàn bộ thành phẩm. Hãy dọn kho!";
                 return false;
             }
 
-            job.isClaimed = true;
-            activeJobs.Remove(job);
-
             OnJobClaimed?.Invoke(job);
             OnQueueChanged?.Invoke();
+            Debug.Log($"[LumiWorld Chế Biến] Đã nhận {recipe.outputResource.resourceID} x{totalAmount}; kho hiện có {inventory.GetAmount(recipe.outputResource.resourceID)}.", this);
             return true;
         }
 

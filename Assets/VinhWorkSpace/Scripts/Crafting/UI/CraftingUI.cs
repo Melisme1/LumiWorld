@@ -97,6 +97,8 @@ namespace LumiWorld.Economy.Crafting
         private Button btnClaimAll;
         private TextMeshProUGUI btnClaimAllLabel;
         private TextMeshProUGUI queueSummaryText;
+        private ResourceInventory subscribedInventory;
+        private CraftingQueueSystem subscribedQueue;
 
         public bool IsOpen => window != null && window.activeSelf;
 
@@ -129,16 +131,16 @@ namespace LumiWorld.Economy.Crafting
             BuildOpenButton();
             BuildWindow();
 
-            var inventory = ResourceInventory.Instance;
-            if (inventory != null) inventory.OnInventoryChanged += HandleInventoryChanged;
+            subscribedInventory = ResourceInventory.Instance;
+            if (subscribedInventory != null) subscribedInventory.OnInventoryChanged += HandleInventoryChanged;
 
-            var queue = CraftingQueueSystem.Instance;
-            if (queue != null)
+            subscribedQueue = CraftingQueueSystem.Instance;
+            if (subscribedQueue != null)
             {
-                queue.OnJobStarted += HandleJobUpdated;
-                queue.OnJobCompleted += HandleJobUpdated;
-                queue.OnJobClaimed += HandleJobUpdated;
-                queue.OnQueueChanged += Refresh;
+                subscribedQueue.OnJobStarted += HandleJobUpdated;
+                subscribedQueue.OnJobCompleted += HandleJobUpdated;
+                subscribedQueue.OnJobClaimed += HandleJobUpdated;
+                subscribedQueue.OnQueueChanged += Refresh;
             }
 
             // Chọn công thức đầu tiên làm mặc định
@@ -161,17 +163,17 @@ namespace LumiWorld.Economy.Crafting
 
         private void OnDestroy()
         {
-            var inventory = ResourceInventory.Instance;
-            if (inventory != null) inventory.OnInventoryChanged -= HandleInventoryChanged;
+            if (subscribedInventory != null) subscribedInventory.OnInventoryChanged -= HandleInventoryChanged;
+            subscribedInventory = null;
 
-            var queue = CraftingQueueSystem.Instance;
-            if (queue != null)
+            if (subscribedQueue != null)
             {
-                queue.OnJobStarted -= HandleJobUpdated;
-                queue.OnJobCompleted -= HandleJobUpdated;
-                queue.OnJobClaimed -= HandleJobUpdated;
-                queue.OnQueueChanged -= Refresh;
+                subscribedQueue.OnJobStarted -= HandleJobUpdated;
+                subscribedQueue.OnJobCompleted -= HandleJobUpdated;
+                subscribedQueue.OnJobClaimed -= HandleJobUpdated;
+                subscribedQueue.OnQueueChanged -= Refresh;
             }
+            subscribedQueue = null;
         }
 
         // =========================================================
