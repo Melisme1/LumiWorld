@@ -25,8 +25,16 @@ namespace LumiWorld.Economy.Crafting
         public CraftingCategory category = CraftingCategory.Food;
 
         [Header("2. Thành phẩm đầu ra (Output)")]
+        [Tooltip("Icon đại diện công thức (nếu để trống sẽ tự lấy icon của thành phẩm đầu ra)")]
+        public Sprite recipeIcon;
+
         [Tooltip("Tài nguyên thành phẩm")]
         public ResourceData outputResource;
+
+        /// <summary>
+        /// Lấy Sprite icon của công thức (ưu tiên recipeIcon nếu được gán riêng, nếu không lấy từ outputResource).
+        /// </summary>
+        public Sprite GetIcon() => recipeIcon != null ? recipeIcon : (outputResource != null ? outputResource.icon : null);
 
         [Tooltip("Số lượng thành phẩm tạo ra mỗi mẻ")]
         [Min(1)]

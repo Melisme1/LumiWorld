@@ -39,14 +39,30 @@ public class BiomeSpeciesMapping
 public class WildIncidentConfig : ScriptableObject
 {
     [Header("1. Tiến trình & Kích hoạt (Progression Gatekeeper)")]
-    [Tooltip("Mốc Milestone tối thiểu trong ScoreManager để tính năng thú hoang bắt đầu hoạt động (0 = luôn mở, 1 = cần đạt mốc 1)")]
-    public int requiredUnlockMilestone = 1;
+    [Tooltip("Mốc Milestone tối thiểu để tính năng thú hoang bắt đầu hoạt động (0 = tự động kích hoạt khi có Cụm 3 ô)")]
+    public int requiredUnlockMilestone = 0;
 
-    [Tooltip("Khoảng thời gian chu kỳ (giây) giữa các đợt kích hoạt sự cố thú hoang (Mặc định: 300s = 5 phút)")]
-    public float incidentIntervalSeconds = 300f;
+    [Tooltip("Thời gian chờ tối thiểu (giây) giữa các đợt thú hoang (Mặc định: 180s = 3 phút)")]
+    public float minIncidentIntervalSeconds = 180f;
+
+    [Tooltip("Thời gian chờ tối đa (giây) giữa các đợt thú hoang (Mặc định: 300s = 5 phút)")]
+    public float maxIncidentIntervalSeconds = 300f;
+
+    [Tooltip("Chu kỳ danh nghĩa (dùng cho hiển thị hoặc fallback)")]
+    public float incidentIntervalSeconds = 240f;
 
     [Tooltip("Số lượng sự cố đàn thú tối đa có thể đồng thời hoạt động trên bản đồ")]
     public int maxConcurrentIncidents = 1;
+
+    /// <summary>
+    /// Lấy khoảng thời gian chu kỳ ngẫu nhiên cân bằng: không quá nhanh (>= 3 phút) cũng không quá lâu (<= 5 phút).
+    /// </summary>
+    public float GetRandomInterval()
+    {
+        float min = minIncidentIntervalSeconds > 0 ? minIncidentIntervalSeconds : 180f;
+        float max = maxIncidentIntervalSeconds >= min ? maxIncidentIntervalSeconds : min + 60f;
+        return UnityEngine.Random.Range(min, max);
+    }
 
     [Header("2. Quy tắc Cụm Biome 3 - 6 - 9 (Cluster Eligibility)")]
     [Tooltip("Kích thước cụm tối thiểu (số ô hex) để một cụm có thể trở thành Cụm Đầu Não (mặc định mốc 3 ô)")]

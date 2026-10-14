@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15ce1d5d2ee04151830710c13684b321, type: 3}
+  m_Name: ForestSyrupRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Economy.Crafting.CraftingRecipeData
+  recipeID: recipe.herbal.forest_syrup
+  recipeName: "Siro th\u1EA3o m\u1ED9c r\u1EEBng"
+  description: "Pha ch\u1EBF t\u1EEB tinh ch\u1EA5t m\u1EADt hoa, h\u01B0\u01A1ng
+    th\u1EA3o v\xE0 qu\u1EA3 b\xE1ch x\xF9, gi\xFAp t\u0103ng c\u01B0\u1EDDng sinh
+    l\u1EF1c."
+  category: 2
+  recipeIcon: {fileID: 21300000, guid: 9be36b2be141ea84b80e81c1c73ec23d, type: 3}
+  outputResource: {fileID: 11400000, guid: f0010001000100010001000100010014, type: 2}
+  outputAmount: 1
+  inputs:
+  - resourceId: resource.bloomfield.nectar_essence
+    amount: 1
+  - resourceId: resource.windheath.rosemary
+    amount: 2
+  - resourceId: resource.windheath.juniper_berries
+    amount: 2
+  isEdible: 0
+  craftDurationSeconds: 12
+  feedingExpBonus: 0

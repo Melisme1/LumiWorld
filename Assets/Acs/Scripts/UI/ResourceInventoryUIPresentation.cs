@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using LumiWorld.Economy.Crafting;
 
 namespace LumiWorld.Acs
 {
@@ -19,7 +20,55 @@ namespace LumiWorld.Acs
                             tier = definition.tier == ResourceTier.Tier1 ? "T1" : "T2", capacity = resource.maxStackSize,
                             stock = stock != null ? stock(definition.ResourceId) : 0 });
                     }
-            items.Sort((a,b) => { int biome = string.CompareOrdinal(a.biome, b.biome); return biome != 0 ? biome : string.CompareOrdinal(a.id,b.id); });
+
+            // Gộp thêm nguyên liệu thô ngoài sinh cảnh (Lúa mì, Vỏ cây rụng) và 15 thành phẩm chế tạo từ CraftingCatalog
+            try
+            {
+                var extraItems = CraftingCatalog.GetWarehouseExtraItems();
+                if (extraItems != null)
+                {
+                    foreach (var extra in extraItems)
+                    {
+                        if (seen.Add(extra.id))
+                        {
+                            items.Add(new ResourceUIItem
+                            {
+                                id = extra.id,
+                                name = extra.name,
+                                icon = extra.icon,
+                                description = extra.description,
+                                biome = extra.biome,
+                                tier = extra.tier,
+                                capacity = extra.capacity,
+                                stock = stock != null ? stock(extra.id) : 0
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogWarning("[LumiWorld Kho] Không thể nạp danh mục phụ chế tạo vào Kho: " + ex.Message);
+            }
+
+            int GetBiomeSortOrder(string biome)
+            {
+                if (string.Equals(biome, "Leafwood", StringComparison.OrdinalIgnoreCase)) return 1;
+                if (string.Equals(biome, "Bloomfield", StringComparison.OrdinalIgnoreCase)) return 2;
+                if (string.Equals(biome, "Windheath", StringComparison.OrdinalIgnoreCase)) return 3;
+                if (string.Equals(biome, "Đồng cỏ", StringComparison.OrdinalIgnoreCase) || string.Equals(biome, "Đồng bằng", StringComparison.OrdinalIgnoreCase)) return 4;
+                if (string.Equals(biome, "Chế biến", StringComparison.OrdinalIgnoreCase)) return 5;
+                return 6;
+            }
+
+            items.Sort((a, b) =>
+            {
+                int orderA = GetBiomeSortOrder(a.biome);
+                int orderB = GetBiomeSortOrder(b.biome);
+                if (orderA != orderB) return orderA.CompareTo(orderB);
+                int biomeComp = string.CompareOrdinal(a.biome, b.biome);
+                return biomeComp != 0 ? biomeComp : string.CompareOrdinal(a.id, b.id);
+            });
             return items;
         }
 

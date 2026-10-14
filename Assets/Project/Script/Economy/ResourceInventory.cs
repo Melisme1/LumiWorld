@@ -200,6 +200,24 @@ public class ResourceInventory : MonoBehaviour, LumiWorld.Acs.ICreatureFoodStore
         return true;
     }
 
+    /// <summary>
+    /// Xóa sạch toàn bộ tài nguyên trong kho (dành cho cheat / test / reset).
+    /// </summary>
+    public void Clear()
+    {
+        var keys = new List<string>(amounts.Keys);
+        foreach (string key in keys)
+        {
+            int old = amounts[key];
+            if (old > 0)
+            {
+                amounts[key] = 0;
+                OnInventoryChanged?.Invoke(key, 0, -old);
+            }
+        }
+        amounts.Clear();
+    }
+
     private static Dictionary<string, int> SumByResource(IList<ResourceStack> stacks)
     {
         Dictionary<string, int> totals = new Dictionary<string, int>();

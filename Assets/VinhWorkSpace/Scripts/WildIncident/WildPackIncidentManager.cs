@@ -2,16 +2,20 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using LumiWorld.Acs.TimeSystem;
 
 /// <summary>
 /// Quản lý Runtime của Hệ thống Thú Hoang Quậy Phá (Wild Pack Incident System):
 /// - Tự động nhận diện cụm Biome từ HabitatRuntimeManager (GDD Acs) hoặc PlacedCard.
-/// - Áp dụng quy tắc Cluster-First: Chọn Cụm Đầu Não (mốc 3-6-9) ➔ Chọn Loài tương thích ➔ Roll Rank theo Milestone.
+/// - Áp dụng quy tắc Cluster-First: Chọn Cụm Đầu Não (mốc 3-6-9) ➔ Chọn Loài tương thích ➔ Roll Rank theo Tiến trình (Milestone & Quy mô sinh thái).
 /// - Sinh mô hình Alpha Leader tại Cụm Đầu Não (khóa sản xuất) và Minions tại các Cụm Vệ Tinh (làm chậm).
+/// - Quản lý chu kỳ ngẫu nhiên bằng Time System lõi của dự án (LumiWorld.Acs.TimeSystem.GameTimeRuntime).
 /// - Xử lý khi người chơi click tương tác để thu phục con Alpha và dẹp yên toàn bộ đàn thú trên bản đồ.
 /// </summary>
 public class WildPackIncidentManager : MonoBehaviour
 {
+    public const string IncidentSpawnTimerId = "wild_incident_spawn_timer";
+
     private static WildPackIncidentManager _instance;
     public static WildPackIncidentManager Instance
     {
@@ -33,10 +37,43 @@ public class WildPackIncidentManager : MonoBehaviour
     [Header("1. Cấu hình trung tâm (Config)")]
     [SerializeField] private WildIncidentConfig config;
 
-    [Header("2. Giám sát trạng thái sự cố")]
+    [Header("2. Giám sát trạng thái sự cố (Time System)")]
     [SerializeField] private bool enableIncidents = true;
-    [SerializeField] private float currentTimer = 0f;
+    [SerializeField] private float currentIntervalDuration = 240f;
+    [SerializeField] private float internalTimer = 0f; // Fallback khi scene không có GameTimeRuntime
     [SerializeField] private int activeIncidentCount = 0;
+
+    public bool AutoSpawnEnabled { get => enableIncidents; set => enableIncidents = value; }
+    public float IntervalSeconds => currentIntervalDuration;
+
+    public float RemainingCooldown
+    {
+        get
+        {
+            if (GameTimeRuntime.Instance != null && GameTimeRuntime.Instance.Timers != null)
+            {
+                var timers = GameTimeRuntime.Instance.Timers;
+                if (timers.Contains(IncidentSpawnTimerId))
+                {
+                    return (float)timers.Read(IncidentSpawnTimerId).remainingSeconds;
+                }
+            }
+            return Mathf.Max(0f, currentIntervalDuration - internalTimer);
+        }
+    }
+
+    public float CurrentTimer => Mathf.Max(0f, currentIntervalDuration - RemainingCooldown);
+
+    public float CooldownProgress
+    {
+        get
+        {
+            if (currentIntervalDuration <= 0f) return 0f;
+            return Mathf.Clamp01(1f - (RemainingCooldown / currentIntervalDuration));
+        }
+    }
+
+    public WildIncidentConfig Config => config;
 
     private readonly List<WildPackIncident> activeIncidents = new List<WildPackIncident>();
     public IReadOnlyList<WildPackIncident> ActiveIncidents => activeIncidents;
@@ -70,29 +107,100 @@ public class WildPackIncidentManager : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        // Khởi động chu kỳ ngẫu nhiên đầu tiên khi bắt đầu màn chơi
+        StartNextSpawnCooldown();
+    }
+
+    /// <summary>
+    /// Khởi động chu kỳ đếm giờ ngẫu nhiên mới bằng Time System của dự án.
+    /// Thời gian ngẫu nhiên cân bằng: không quá nhanh (>= 3 phút) cũng không quá lâu (<= 5 phút).
+    /// </summary>
+    public void StartNextSpawnCooldown()
+    {
+        currentIntervalDuration = config != null ? config.GetRandomInterval() : 240f;
+        internalTimer = 0f;
+
+        if (GameTimeRuntime.Instance != null && GameTimeRuntime.Instance.Timers != null)
+        {
+            var timers = GameTimeRuntime.Instance.Timers;
+            if (timers.Contains(IncidentSpawnTimerId))
+            {
+                timers.Cancel(IncidentSpawnTimerId);
+            }
+            // Sử dụng OfflineTimerPolicy.Freeze để không bị trừ lẹm khi pause/đóng game
+            timers.StartCountdown(IncidentSpawnTimerId, currentIntervalDuration, OfflineTimerPolicy.Freeze);
+        }
+    }
+
+    /// <summary>
+    /// Đặt một chu kỳ chờ ngắn (retry) khi đồng hồ đã điểm nhưng bản đồ chưa đủ điều kiện (ví dụ chưa có cụm 3 ô).
+    /// </summary>
+    private void StartRetryCooldown(float retrySeconds)
+    {
+        currentIntervalDuration = retrySeconds;
+        internalTimer = 0f;
+
+        if (GameTimeRuntime.Instance != null && GameTimeRuntime.Instance.Timers != null)
+        {
+            var timers = GameTimeRuntime.Instance.Timers;
+            if (timers.Contains(IncidentSpawnTimerId))
+            {
+                timers.Cancel(IncidentSpawnTimerId);
+            }
+            timers.StartCountdown(IncidentSpawnTimerId, retrySeconds, OfflineTimerPolicy.Freeze);
+        }
+    }
+
     private void Update()
     {
         if (!enableIncidents || config == null) return;
 
-        // 1. Kiểm tra điều kiện mở khóa theo Milestone tiến trình người chơi
-        int currentMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
-        if (!WildIncidentEvaluator.IsFeatureUnlocked(currentMilestone, config.requiredUnlockMilestone))
-        {
-            return;
-        }
-
-        // 2. Không sinh thêm nếu đã chạm trần số đàn tối đa trên map
+        // 1. Không đếm giờ sinh thêm nếu trên bản đồ đã có đàn thú đang quậy phá (chờ thu phục)
         if (activeIncidents.Count >= config.maxConcurrentIncidents)
         {
             return;
         }
 
-        // 3. Đếm giờ chu kỳ sự cố
-        currentTimer += Time.deltaTime;
-        if (currentTimer >= config.incidentIntervalSeconds)
+        // 2. Kiểm tra tín hiệu thời gian từ Time System (hoặc Fallback)
+        bool timerExpired = false;
+
+        if (GameTimeRuntime.Instance != null && GameTimeRuntime.Instance.Timers != null)
         {
-            currentTimer = 0f;
-            TriggerNewIncident();
+            var timers = GameTimeRuntime.Instance.Timers;
+            if (!timers.Contains(IncidentSpawnTimerId))
+            {
+                StartNextSpawnCooldown();
+            }
+            else if (timers.TryConsumeSignals(IncidentSpawnTimerId, out _))
+            {
+                timerExpired = true;
+            }
+        }
+        else
+        {
+            internalTimer += Time.deltaTime;
+            if (internalTimer >= currentIntervalDuration)
+            {
+                internalTimer = 0f;
+                timerExpired = true;
+            }
+        }
+
+        // 3. Khi đồng hồ thời gian điểm -> Đánh giá điều kiện gameplay
+        if (timerExpired)
+        {
+            if (CanSpawnOrganicIncident(out _))
+            {
+                TryTriggerOrganicIncident(out _, out _);
+                // Lưu ý: Sau khi đàn thú xuất hiện, chu kỳ tiếp theo sẽ tự động được khởi tạo khi đàn thú này được giải quyết (OnIncidentResolved)
+            }
+            else
+            {
+                // Chưa đủ điều kiện (chưa mở khóa hoặc chưa có cụm 3 ô): Đợi 30 giây rồi thử lại
+                StartRetryCooldown(30f);
+            }
         }
 
         activeIncidentCount = activeIncidents.Count;
@@ -220,57 +328,174 @@ public class WildPackIncidentManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Kích hoạt một sự cố đàn thú hoang mới trên bản đồ
+    /// Kiểm tra xem thế giới game hiện tại có đủ điều kiện phát sinh sự cố tự nhiên theo Game Loop hay chưa.
     /// </summary>
-    [ContextMenu("Trigger Incident Now")]
-    public bool TriggerNewIncident()
+    public bool CanSpawnOrganicIncident(out string reason)
     {
+        if (!enableIncidents)
+        {
+            reason = "Cơ chế tự động sinh sự cố đang bị tắt (AutoSpawn = false).";
+            return false;
+        }
+
         if (config == null)
         {
             config = Resources.Load<WildIncidentConfig>("WildIncidentConfig");
             if (config == null)
             {
-                Debug.LogWarning("[WildPackIncidentManager] Không tìm thấy file cấu hình WildIncidentConfig!");
+                reason = "Không tìm thấy cấu hình WildIncidentConfig.";
                 return false;
             }
+        }
+
+        int currentMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
+        if (!WildIncidentEvaluator.IsFeatureUnlocked(currentMilestone, config.requiredUnlockMilestone))
+        {
+            reason = $"Chưa mở khóa tính năng (Yêu cầu Milestone {config.requiredUnlockMilestone}, hiện tại: {currentMilestone}).";
+            return false;
+        }
+
+        if (activeIncidents.Count >= config.maxConcurrentIncidents)
+        {
+            reason = $"Đã đạt số lượng đàn thú hoang tối đa trên bản đồ ({activeIncidents.Count}/{config.maxConcurrentIncidents}).";
+            return false;
         }
 
         var clusters = GetAllActiveClusters();
         if (clusters == null || clusters.Count == 0)
         {
-            Debug.LogWarning("[Wild Incident] Chưa tìm thấy Cụm Biome nào trên map! Hãy đặt ít nhất 3 ô Nature cùng loại (ví dụ 3 ô Leafwood hoặc Bloomfield).");
+            reason = "Chưa tìm thấy Cụm Biome nào trên map (Cần đặt ít nhất 3 ô cùng loại).";
             return false;
         }
 
-        // BƯỚC 1: LỰA CHỌN CỤM ĐẦU NÃO (Host Cluster) THEO QUY TẮC 3 - 6 - 9
-        var hostCluster = WildIncidentEvaluator.PickHostCluster(clusters, config.minClusterSizeToHost);
-        if (hostCluster == null)
+        var host = WildIncidentEvaluator.PickHostCluster(clusters, config.minClusterSizeToHost);
+        if (host == null)
         {
-            Debug.LogWarning($"[Wild Incident] Chưa có Cụm Biome nào đạt mốc tối thiểu {config.minClusterSizeToHost} ô! Hiện tại có {clusters.Count} cụm nhưng kích thước đều < {config.minClusterSizeToHost} ô.");
+            reason = $"Chưa có Cụm Biome nào đạt mốc tối thiểu {config.minClusterSizeToHost} ô.";
             return false;
         }
 
-        // BƯỚC 2: CHỌN LOÀI TƯƠNG THÍCH THEO BIOME CỦA CỤM
+        reason = "Đủ điều kiện xuất hiện sự cố thú hoang.";
+        return true;
+    }
+
+    /// <summary>
+    /// [GAMEPLAY GỐC] Kích hoạt sự cố thú hoang theo tiến trình gameplay tự nhiên.
+    /// Kiểm tra đầy đủ Milestone, giới hạn số lượng và quy tắc cụm đầu não.
+    /// </summary>
+    public bool TryTriggerOrganicIncident(out WildPackIncident incident, out string failureReason)
+    {
+        incident = null;
+        if (!CanSpawnOrganicIncident(out failureReason))
+        {
+            return false;
+        }
+
+        var clusters = GetAllActiveClusters();
+        var hostCluster = WildIncidentEvaluator.PickHostCluster(clusters, config.minClusterSizeToHost);
         CardData creatureCard = config.GetCompatibleCreature(hostCluster.TerrainCard, hostCluster.NatureKey);
 
-        // BƯỚC 3: ROLL RANK CỦA CON ALPHA HOÀN TOÀN DỰA THEO TIẾN TRÌNH
-        int currentMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
-        AnimalRank alphaRank = config.RollAlphaRank(currentMilestone);
+        int scoreMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
+        int progressionTier = WildIncidentEvaluator.EvaluateProgressionTier(scoreMilestone, clusters);
+        AnimalRank alphaRank = config.RollAlphaRank(progressionTier);
 
-        // BƯỚC 4: TÍNH SỐ LƯỢNG THÚ CON (MINIONS) VÀ CÁC CỤM VỆ TINH LÂN CẬN
-        int minionCount = config.CalculateMinionCount(hostCluster.HexCount);
-        var satelliteClusters = WildIncidentEvaluator.FindNearbySatelliteClusters(hostCluster, clusters, minionCount);
+        incident = ExecuteSpawn(hostCluster, creatureCard, alphaRank, clusters, isDebugForce: false);
+        failureReason = incident != null ? null : "Lỗi khi sinh mô hình sinh vật vào scene.";
+        return incident != null;
+    }
 
-        // BƯỚC 5: SINH MÔ HÌNH THÚ ĐẦU ĐÀN (ALPHA) TẠI TÂM CỤM ĐẦU NÃO
+    /// <summary>
+    /// [KIỂM THỬ / TEST TOOL] Ép sinh sự cố thú hoang ngay lập tức cho Tester / QA.
+    /// Cho phép chỉ định Cụm, Loài, hoặc Rank tùy chọn, bỏ qua giới hạn Milestone và Cooldown.
+    /// </summary>
+    public bool ForceSpawnIncident(IncidentClusterTarget targetCluster, CardData forceCreature, AnimalRank? forceRank, out WildPackIncident incident, out string failureReason)
+    {
+        incident = null;
+        if (config == null)
+        {
+            config = Resources.Load<WildIncidentConfig>("WildIncidentConfig");
+        }
+
+        var clusters = GetAllActiveClusters();
+        if (clusters == null || clusters.Count == 0)
+        {
+            failureReason = "Không có bất kỳ cụm đất hoặc ô Nature nào trên bản đồ để spawn.";
+            return false;
+        }
+
+        IncidentClusterTarget host = targetCluster;
+        if (host == null)
+        {
+            host = WildIncidentEvaluator.PickHostCluster(clusters, config != null ? config.minClusterSizeToHost : 3);
+            if (host == null)
+            {
+                // Nếu không có cụm nào đạt chuẩn 3 ô, test tool ưu tiên chọn cụm lớn nhất hiện có để tester có thể thử nghiệm
+                clusters.Sort((a, b) => b.HexCount.CompareTo(a.HexCount));
+                host = clusters[0];
+            }
+        }
+
+        CardData creature = forceCreature;
+        if (creature == null && config != null)
+        {
+            creature = config.GetCompatibleCreature(host.TerrainCard, host.NatureKey);
+        }
+
+        int scoreMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
+        int progressionTier = WildIncidentEvaluator.EvaluateProgressionTier(scoreMilestone, clusters);
+        AnimalRank rank = forceRank ?? (config != null ? config.RollAlphaRank(progressionTier) : AnimalRank.Rare);
+
+        incident = ExecuteSpawn(host, creature, rank, clusters, isDebugForce: true);
+        failureReason = incident != null ? null : "Lỗi khi sinh mô hình sinh vật.";
+        return incident != null;
+    }
+
+    /// <summary>
+    /// Wrapper tương thích ngược cho Editor và các lời gọi cũ.
+    /// </summary>
+    public bool TriggerNewIncident()
+    {
+        return TryTriggerOrganicIncident(out _, out _) || ForceSpawnIncident(null, null, null, out _, out _);
+    }
+
+    public void ResetCooldownTimer()
+    {
+        StartNextSpawnCooldown();
+    }
+
+    public void SetCooldownTimer(float seconds)
+    {
+        currentIntervalDuration = Mathf.Max(0f, seconds);
+        internalTimer = 0f;
+        if (GameTimeRuntime.Instance != null && GameTimeRuntime.Instance.Timers != null)
+        {
+            var timers = GameTimeRuntime.Instance.Timers;
+            if (timers.Contains(IncidentSpawnTimerId))
+            {
+                timers.Cancel(IncidentSpawnTimerId);
+            }
+            timers.StartCountdown(IncidentSpawnTimerId, currentIntervalDuration, OfflineTimerPolicy.Freeze);
+        }
+    }
+
+    /// <summary>
+    /// Thực hiện việc sinh mô hình Alpha + Minions, gắn tương tác và áp dụng phong tỏa.
+    /// </summary>
+    private WildPackIncident ExecuteSpawn(IncidentClusterTarget hostCluster, CardData creatureCard, AnimalRank alphaRank, List<IncidentClusterTarget> allClusters, bool isDebugForce)
+    {
+        if (hostCluster == null) return null;
+
+        int minionCount = config != null ? config.CalculateMinionCount(hostCluster.HexCount) : 1;
+        var satelliteClusters = WildIncidentEvaluator.FindNearbySatelliteClusters(hostCluster, allClusters, minionCount);
+
+        // 1. Sinh mô hình Thú Đầu Đàn (Alpha)
         GameObject alphaInstance = SpawnCreatureModel(creatureCard, hostCluster.CenterPosition, isAlpha: true, alphaRank);
-
-        // Zoom camera lướt êm vào con Thú Đầu Đàn (Alpha) khi xuất hiện để cảnh báo cho người chơi
         if (alphaInstance != null)
         {
             FocusCameraOnAlpha(alphaInstance.transform.position);
         }
 
-        // BƯỚC 6: SINH CÁC MÔ HÌNH THÚ CON (MINIONS) TẠI CÁC CỤM VỆ TINH
+        // 2. Sinh mô hình Thú Con (Minions) tại các Cụm Vệ Tinh
         var minionInstances = new List<GameObject>();
         foreach (var sat in satelliteClusters)
         {
@@ -284,8 +509,9 @@ public class WildPackIncidentManager : MonoBehaviour
             }
         }
 
-        // BƯỚC 7: TẠO INCIDENT VÀ ÁP DỤNG PHONG TỎA
+        // 3. Khởi tạo đối tượng sự cố và phong tỏa
         string incidentId = Guid.NewGuid().ToString().Substring(0, 6).ToUpper();
+        float debuff = config != null ? config.satelliteSpeedDebuff : 0.7f;
         var incident = new WildPackIncident(
             incidentId,
             hostCluster,
@@ -294,10 +520,9 @@ public class WildPackIncidentManager : MonoBehaviour
             alphaInstance,
             satelliteClusters,
             minionInstances,
-            config.satelliteSpeedDebuff
+            debuff
         );
 
-        // Gắn component tương tác vào con Alpha
         if (alphaInstance != null)
         {
             var interactable = alphaInstance.AddComponent<WildAlphaInteractable>();
@@ -307,8 +532,12 @@ public class WildPackIncidentManager : MonoBehaviour
         activeIncidents.Add(incident);
         OnIncidentSpawned?.Invoke(incident);
 
-        Debug.Log($"<color=#FFA500><b>[Wild Incident]</b></color> Đàn thú hoang [Alpha {alphaRank} - {creatureCard?.cardName ?? "Linh Thú"}] đã chiếm cứ cụm <b>{hostCluster.BiomeName}</b> ({hostCluster.HexCount} ô)! {satelliteClusters.Count} cụm vệ tinh bị quấy phá.");
-        return true;
+        string sourceTag = isDebugForce
+            ? "<color=#38bdf8><b>[Test Tool - Thú Hoang]</b></color>"
+            : "<color=#FFA500><b>[Gameplay - Thú Hoang]</b></color>";
+
+        Debug.Log($"{sourceTag} Đàn thú hoang [Alpha {alphaRank} - {creatureCard?.cardName ?? "Linh Thú"}] đã chiếm cứ cụm <b>{hostCluster.BiomeName}</b> ({hostCluster.HexCount} ô)! {satelliteClusters.Count} cụm vệ tinh bị quấy phá.");
+        return incident;
     }
 
     /// <summary>
@@ -394,7 +623,7 @@ public class WildPackIncidentManager : MonoBehaviour
 
         incident.Resolve();
         activeIncidents.Remove(incident);
-        currentTimer = 0f; // Reset timer để chờ đợt sau
+        StartNextSpawnCooldown(); // Khởi tạo chu kỳ đếm giờ ngẫu nhiên mới qua Time System (180s - 300s)
 
         OnIncidentResolved?.Invoke(incident, rewarded);
         Debug.Log($"<color=#50C878><b>[Hệ sinh thái an toàn!]</b></color> Đàn thú hoang đã được thuần hóa / rút lui trong hòa bình.");

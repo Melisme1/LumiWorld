@@ -46,10 +46,10 @@ public enum RhythmPhase
 /// </summary>
 public class RhythmMinigameEngine
 {
-    // Cấu hình thời gian & Vị trí đích (Tốc độ chạy giảm xuống, kéo dài 3.6s để giảm độ khó theo yêu cầu)
-    public const float OrbFlightDuration = 3.6f;
+    // Cấu hình thời gian & Vị trí đích (Tốc độ thanh trượt được tinh chỉnh nhanh và cuốn hút hơn ~2.6s)
+    public const float OrbFlightDuration = 2.6f;
     public const float TargetBeatNormalizedPos = 0.78f; // Hoa ngọc / ngọc trai ở vị trí 78% thanh
-    public float TargetBeatTime => OrbFlightDuration * TargetBeatNormalizedPos; // ~2.81s
+    public float TargetBeatTime => OrbFlightDuration * TargetBeatNormalizedPos; // ~2.03s
 
     // Ngưỡng sai số vị trí trực quan (Position-based tolerance)
     // So sánh khoảng cách vị trí người chơi dừng ngọc so với hoa ngọc (0.78f)

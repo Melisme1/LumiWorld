@@ -18,6 +18,40 @@ public static class WildIncidentEvaluator
     }
 
     /// <summary>
+    /// Đánh giá cấp độ tiến trình toàn diện của người chơi kết hợp giữa:
+    /// 1. Mốc phần thưởng / mở rộng đất (ScoreManager.GrantedMilestoneCount).
+    /// 2. Quy mô cụm sinh thái thực tế trên đảo (Cụm 3 - 6 - 9 ô).
+    /// 3. Số lượng các cụm đất đang có trên toàn bản đồ.
+    /// Giúp Rank thú hoang phản hồi chân thực theo sự trù phú của thế giới game.
+    /// </summary>
+    public static int EvaluateProgressionTier(int scoreMilestoneCount, IReadOnlyList<IncidentClusterTarget> clusters)
+    {
+        int tier = scoreMilestoneCount;
+
+        if (clusters != null && clusters.Count > 0)
+        {
+            int maxClusterSize = 0;
+            int validClusters = 0;
+            foreach (var c in clusters)
+            {
+                if (c == null) continue;
+                if (c.HexCount > maxClusterSize) maxClusterSize = c.HexCount;
+                if (c.HexCount >= 3) validClusters++;
+            }
+
+            // Nếu người chơi đã xây dựng Cụm 9+ ô (Kỳ quan sinh thái) -> Cấp độ tối thiểu Tier 3 (có thể xuất hiện Epic 4★)
+            if (maxClusterSize >= 9) tier = Math.Max(tier, 3);
+            // Nếu người chơi đã xây dựng Cụm 6+ ô (Cụm trưởng thành) -> Cấp độ tối thiểu Tier 2 (xuất hiện Rare 3★)
+            else if (maxClusterSize >= 6) tier = Math.Max(tier, 2);
+
+            // Nếu có từ 3 cụm đất riêng biệt trở lên -> Nâng thêm bậc trù phú
+            if (validClusters >= 3) tier = Math.Max(tier, 2);
+        }
+
+        return tier;
+    }
+
+    /// <summary>
     /// Thuật toán Cluster-First: Lựa chọn Cụm Đầu Não (Host Cluster) để Thú Đầu Đàn (Alpha) chiếm cứ.
     /// Ưu tiên các cụm có quy mô lớn (mốc 3-6-9) hoặc giá trị cao.
     /// </summary>

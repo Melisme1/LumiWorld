@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: WildIncidentConfig
   m_EditorClassIdentifier: Assembly-CSharp::WildIncidentConfig
   requiredUnlockMilestone: 0
+  minIncidentIntervalSeconds: 180
+  maxIncidentIntervalSeconds: 300
   incidentIntervalSeconds: 240
   maxConcurrentIncidents: 1
   minClusterSizeToHost: 3

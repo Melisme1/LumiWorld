@@ -48,7 +48,30 @@ namespace UnityEngine
         public Vector2(float x, float y) { this.x = x; this.y = y; }
     }
 
-    public class Sprite : Object { }
+    public struct Rect
+    {
+        public float x, y, width, height;
+        public Rect(float x, float y, float w, float h) { this.x = x; this.y = y; this.width = w; this.height = h; }
+    }
+
+    public enum TextureFormat { RGBA32 }
+
+    public class Texture2D : Object
+    {
+        public int width = 64, height = 64;
+        public Texture2D(int w, int h, TextureFormat fmt, bool mip) { }
+        public bool LoadImage(byte[] data) => true;
+    }
+
+    public class Sprite : Object
+    {
+        public static Sprite Create(Texture2D tex, Rect rect, Vector2 pivot, float pixelsPerUnit = 100f) => new Sprite();
+    }
+
+    public static class Application
+    {
+        public static string dataPath = "Assets";
+    }
 
     public static class Debug
     {

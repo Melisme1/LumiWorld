@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5841cf8ae74a4a8db7468bd91e5f4303, type: 3}
+  m_Name: CrispyTenderLeaves
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceData
+  resourceID: resource.leafwood.tender_leaves_crispy
+  resourceName: "L\xE1 non rang gi\xF2n"
+  description: "L\xE1 non rang gi\xF2n r\u1EE5m th\u01A1m l\u1EEBng, l\xE0 m\xF3n
+    \u0103n v\u1EB7t \u01B0a th\xEDch c\u1EE7a s\xF3c bay v\xE0 mu\xF4ng th\xFA."
+  icon: {fileID: 21300000, guid: b5443bc1d4f0456a9f6c543dcf5d1c68, type: 3}
+  resourceColor: {r: 0.35, g: 0.75, b: 0.3, a: 1}
+  hexColor: '#59BF4D'
+  baseValue: 15
+  maxStackSize: 999

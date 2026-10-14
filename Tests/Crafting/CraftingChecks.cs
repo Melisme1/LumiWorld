@@ -42,9 +42,32 @@ internal static class CraftingChecks
         Run("Tier 3 WildBerryNutCake 5-raw-material tree decomposition", TestMasterCakeDecomposition);
         Run("Herbal and Paper multi-tier decomposition", TestHerbalAndPaperDecomposition);
         Run("Raw breakdown string formatting", TestFormatRawBreakdown);
+        Run("Recipe and Resource icon resolution from Assets/Acs/Icons", TestRecipeAndResourceIcons);
+        Run("Warehouse extra items provide 17 entries with custom biomes", TestWarehouseExtraItems);
 
         Console.WriteLine($"\n[Crafting Checks] {checks} assertions; {failed} failed groups.");
         return failed == 0 ? 0 : 1;
+    }
+
+    private static void TestRecipeAndResourceIcons()
+    {
+        CraftingCatalog.ResetCache();
+        var all = CraftingCatalog.All;
+        Equal(15, all.Count, "Total recipes for icon check");
+
+        foreach (var recipe in all)
+        {
+            Assert(recipe.GetIcon() != null, $"Recipe '{recipe.recipeID}' must have a valid icon");
+            Assert(recipe.outputResource != null, $"Recipe '{recipe.recipeID}' must have an output resource");
+            Assert(recipe.outputResource.icon != null, $"Output resource '{recipe.outputResource.resourceID}' must have an icon");
+
+            foreach (var input in recipe.inputs)
+            {
+                var res = CraftingCatalog.GetResource(input.resourceId);
+                Assert(res != null, $"Ingredient resource '{input.resourceId}' must be resolvable");
+                Assert(res.icon != null, $"Ingredient resource '{input.resourceId}' must have an icon");
+            }
+        }
     }
 
     private static void TestCatalogRegistration()
@@ -93,76 +116,76 @@ internal static class CraftingChecks
 
         Equal(1, raw.Count, "Single raw ingredient");
         Assert(raw.ContainsKey("resource.leafwood.tender_leaves"), "Uses tender leaves");
-        Equal(1, raw["resource.leafwood.tender_leaves"], "Needs 1 tender leaves");
+        Equal(3, raw["resource.leafwood.tender_leaves"], "Needs 3 tender leaves");
 
         var flour = CraftingCatalog.Find("recipe.refined.wheat_flour");
         var flourRaw = CraftingCalculator.CalculateRawBreakdown(flour);
         Equal(1, flourRaw.Count, "Flour uses single raw ingredient");
         Assert(flourRaw.ContainsKey("resource.plain.wheat"), "Flour uses wheat");
-        Equal(1, flourRaw["resource.plain.wheat"], "Needs 1 wheat");
+        Equal(3, flourRaw["resource.plain.wheat"], "Needs 3 wheat");
     }
 
     private static void TestTier2Decomposition()
     {
         CraftingCatalog.ResetCache();
 
-        // 1. Dried wild fruit mix = dried raspberries + dried blueberries
+        // 1. Dried wild fruit mix = dried raspberries (2) + dried blueberries (2)
         var fruitMix = CraftingCatalog.Find("recipe.food.dried_wild_fruit_mix");
         var mixRaw = CraftingCalculator.CalculateRawBreakdown(fruitMix);
         Equal(2, mixRaw.Count, "Fruit mix decomposes into 2 raw ingredients");
         Assert(mixRaw.ContainsKey("resource.leafwood.raspberries"), "Needs raspberries");
-        Equal(1, mixRaw["resource.leafwood.raspberries"], "1 raspberries");
+        Equal(2, mixRaw["resource.leafwood.raspberries"], "2 raspberries");
         Assert(mixRaw.ContainsKey("resource.windheath.mountain_blueberries"), "Needs mountain blueberries");
-        Equal(1, mixRaw["resource.windheath.mountain_blueberries"], "1 blueberries");
+        Equal(2, mixRaw["resource.windheath.mountain_blueberries"], "2 blueberries");
 
-        // 2. Honey glazed acorns = acorns + nectar essence (from nectar)
+        // 2. Honey glazed acorns = 2 acorns + 1 nectar essence (from 2 nectar)
         var glazedAcorns = CraftingCatalog.Find("recipe.food.honey_glazed_acorns");
         var glazedRaw = CraftingCalculator.CalculateRawBreakdown(glazedAcorns);
         Equal(2, glazedRaw.Count, "Glazed acorns decomposes into 2 raw ingredients");
         Assert(glazedRaw.ContainsKey("resource.leafwood.acorns"), "Needs raw acorns");
-        Equal(1, glazedRaw["resource.leafwood.acorns"], "1 acorns");
+        Equal(2, glazedRaw["resource.leafwood.acorns"], "2 acorns");
         Assert(glazedRaw.ContainsKey("resource.bloomfield.nectar"), "Needs raw nectar from essence");
-        Equal(1, glazedRaw["resource.bloomfield.nectar"], "1 nectar");
+        Equal(2, glazedRaw["resource.bloomfield.nectar"], "2 nectar");
     }
 
     private static void TestMasterCakeDecomposition()
     {
         CraftingCatalog.ResetCache();
 
-        // Master Cake = HoneyGlazedAcorns (Acorn + Nectar)
-        //              + DriedWildFruitMix (Raspberries + MountainBlueberries)
-        //              + WheatFlour (Wheat)
-        // TOTAL = 5 distinct raw materials across 3 biomes + farm!
+        // Master Cake = HoneyGlazedAcorns (2 Acorn + 2 Nectar)
+        //              + DriedWildFruitMix (2 Raspberries + 2 MountainBlueberries)
+        //              + 2 WheatFlour (2 * 3 = 6 Wheat)
+        // TOTAL = 5 distinct raw materials across 3 biomes + farm, total 14 items!
         var cake = CraftingCatalog.Find("recipe.food.wild_berry_nut_cake");
         var cakeRaw = CraftingCalculator.CalculateRawBreakdown(cake);
 
         Equal(5, cakeRaw.Count, "Cake decomposes into exactly 5 raw ingredients");
-        Equal(1, cakeRaw["resource.leafwood.acorns"], "1 acorns");
-        Equal(1, cakeRaw["resource.bloomfield.nectar"], "1 nectar");
-        Equal(1, cakeRaw["resource.leafwood.raspberries"], "1 raspberries");
-        Equal(1, cakeRaw["resource.windheath.mountain_blueberries"], "1 blueberries");
-        Equal(1, cakeRaw["resource.plain.wheat"], "1 wheat");
+        Equal(2, cakeRaw["resource.leafwood.acorns"], "2 acorns");
+        Equal(2, cakeRaw["resource.bloomfield.nectar"], "2 nectar");
+        Equal(2, cakeRaw["resource.leafwood.raspberries"], "2 raspberries");
+        Equal(2, cakeRaw["resource.windheath.mountain_blueberries"], "2 blueberries");
+        Equal(6, cakeRaw["resource.plain.wheat"], "6 wheat");
     }
 
     private static void TestHerbalAndPaperDecomposition()
     {
         CraftingCatalog.ResetCache();
 
-        // Herbal syrup = nectar essence (nectar) + rosemary + juniper berries
+        // Herbal syrup = 1 nectar essence (2 nectar) + 2 rosemary + 2 juniper berries
         var syrup = CraftingCatalog.Find("recipe.herbal.forest_syrup");
         var syrupRaw = CraftingCalculator.CalculateRawBreakdown(syrup);
         Equal(3, syrupRaw.Count, "Syrup decomposes into 3 raw ingredients");
-        Equal(1, syrupRaw["resource.bloomfield.nectar"], "1 nectar");
-        Equal(1, syrupRaw["resource.windheath.rosemary"], "1 rosemary");
-        Equal(1, syrupRaw["resource.windheath.juniper_berries"], "1 juniper");
+        Equal(2, syrupRaw["resource.bloomfield.nectar"], "2 nectar");
+        Equal(2, syrupRaw["resource.windheath.rosemary"], "2 rosemary");
+        Equal(2, syrupRaw["resource.windheath.juniper_berries"], "2 juniper");
 
-        // Pressed flower paper = bark paper (fallen bark + oak wood) + wild daisies
+        // Pressed flower paper = 1 bark paper (2 fallen bark + 1 oak wood) + 2 wild daisies
         var pressedPaper = CraftingCatalog.Find("recipe.paper.pressed_flower_paper");
         var paperRaw = CraftingCalculator.CalculateRawBreakdown(pressedPaper);
         Equal(3, paperRaw.Count, "Pressed paper decomposes into 3 raw ingredients");
-        Equal(1, paperRaw["resource.leafwood.fallen_bark"], "1 fallen bark");
+        Equal(2, paperRaw["resource.leafwood.fallen_bark"], "2 fallen bark");
         Equal(1, paperRaw["resource.leafwood.oak_wood"], "1 oak wood");
-        Equal(1, paperRaw["resource.bloomfield.wild_daisies"], "1 wild daisies");
+        Equal(2, paperRaw["resource.bloomfield.wild_daisies"], "2 wild daisies");
     }
 
     private static void TestFormatRawBreakdown()
@@ -171,7 +194,8 @@ internal static class CraftingChecks
         var cake = CraftingCatalog.Find("recipe.food.wild_berry_nut_cake");
         string formatted = CraftingCalculator.FormatRawBreakdown(cake);
         Assert(!string.IsNullOrEmpty(formatted), "Formatted breakdown is not empty");
-        Assert(formatted.Contains("1"), "Contains quantities");
+        Assert(formatted.Contains("6"), "Contains 6 wheat");
+        Assert(formatted.Contains("2"), "Contains 2 acorns/nectar/berries");
 
         // Verify resource names fallback to Vietnamese
         Equal("Quả sồi ngào mật", CraftingCatalog.GetResourceName("resource.leafwood.honey_glazed_acorns"), "Honey glazed acorns name");
@@ -182,5 +206,37 @@ internal static class CraftingChecks
 
         // Raw breakdown contains Vietnamese 'Lúa mì' rather than technical id
         Assert(formatted.Contains("Lúa mì"), $"Formatted breakdown must contain 'Lúa mì', was: {formatted}");
+    }
+
+    private static void TestWarehouseExtraItems()
+    {
+        CraftingCatalog.ResetCache();
+        var items = CraftingCatalog.GetWarehouseExtraItems();
+        Equal(17, items.Count, "GetWarehouseExtraItems must have 17 items (2 raw + 15 products)");
+
+        var wheat = items.Find(i => i.id == "resource.plain.wheat");
+        Assert(wheat.id != null, "Contains wheat");
+        Equal("Lúa mì", wheat.name, "Wheat name");
+        Equal("Đồng cỏ", wheat.biome, "Wheat biome");
+        Equal("Thô", wheat.tier, "Wheat tier");
+
+        var bark = items.Find(i => i.id == "resource.leafwood.fallen_bark");
+        Assert(bark.id != null, "Contains fallen bark");
+        Equal("Vỏ cây rụng", bark.name, "Bark name");
+        Equal("Leafwood", bark.biome, "Bark biome");
+        Equal("Thô", bark.tier, "Bark tier");
+
+        int productCount = 0;
+        foreach (var item in items)
+        {
+            if (item.id != "resource.plain.wheat" && item.id != "resource.leafwood.fallen_bark")
+            {
+                Equal("Chế biến", item.biome, $"Product {item.id} biome must be 'Chế biến'");
+                Assert(!string.IsNullOrEmpty(item.name), $"Product {item.id} name not empty");
+                Assert(!string.IsNullOrEmpty(item.tier), $"Product {item.id} tier not empty");
+                productCount++;
+            }
+        }
+        Equal(15, productCount, "15 crafted products have biome 'Chế biến'");
     }
 }

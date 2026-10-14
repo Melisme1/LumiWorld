@@ -338,9 +338,10 @@ namespace LumiWorld.Economy.Crafting
             inspectorDesc.text = selectedRecipe.description;
 
             // Hiển thị Icon thành phẩm trong khung lớn
-            if (outRes != null && outRes.icon != null)
+            Sprite mainIcon = selectedRecipe.GetIcon();
+            if (mainIcon != null)
             {
-                inspectorIcon.sprite = outRes.icon;
+                inspectorIcon.sprite = mainIcon;
                 inspectorIcon.color = Color.white;
             }
             else
@@ -523,8 +524,9 @@ namespace LumiWorld.Economy.Crafting
             slot.sizeDelta = new Vector2(48f, 48f);
             EconomyHUD.CreatePanel(slot, slotColor);
 
-            Image icon = EconomyHUD.CreateIcon("Icon", slot, outRes != null && outRes.icon != null ? outRes.icon : EconomyHUD.CircleSprite, 40f, 4f);
-            if (outRes != null && outRes.icon == null) icon.color = outRes.resourceColor;
+            Sprite rowIcon = recipe != null ? recipe.GetIcon() : (outRes != null ? outRes.icon : null);
+            Image icon = EconomyHUD.CreateIcon("Icon", slot, rowIcon != null ? rowIcon : EconomyHUD.CircleSprite, 40f, 4f);
+            if (rowIcon == null && outRes != null) icon.color = outRes.resourceColor;
 
             // Info
             TextMeshProUGUI title = EconomyHUD.CreateText("Title", row, 17f, textColor, TextAlignmentOptions.Left);
@@ -732,6 +734,7 @@ namespace LumiWorld.Economy.Crafting
             subtitle.textWrappingMode = TextWrappingModes.NoWrap;
             subtitle.text = "Sơ chế thực phẩm dinh dưỡng cho thú, tinh luyện dược liệu & thủ công giấy";
 
+
             // Nút đóng (X)
             RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
             closeRect.anchorMin = new Vector2(1f, 1f);
@@ -884,8 +887,9 @@ namespace LumiWorld.Economy.Crafting
             EconomyHUD.CreatePanel(slot, slotColor);
 
             ResourceData outRes = recipe.outputResource;
-            Image icon = EconomyHUD.CreateIcon("Icon", slot, outRes != null && outRes.icon != null ? outRes.icon : EconomyHUD.CircleSprite, 42f, 4f);
-            if (outRes != null && outRes.icon == null) icon.color = outRes.resourceColor;
+            Sprite qIcon = recipe != null ? recipe.GetIcon() : (outRes != null ? outRes.icon : null);
+            Image icon = EconomyHUD.CreateIcon("Icon", slot, qIcon != null ? qIcon : EconomyHUD.CircleSprite, 42f, 4f);
+            if (qIcon == null && outRes != null) icon.color = outRes.resourceColor;
 
             // Tên thành phẩm: Neo mép trái row (0f, 0.5f), Auto-size chống tràn chữ và xuống dòng
             TextMeshProUGUI nameLbl = EconomyHUD.CreateText("Name", row, 15f, textColor, TextAlignmentOptions.Left);
