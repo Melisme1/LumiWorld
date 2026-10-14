@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9c4be7421668f4f8878200d5b2c96d, type: 3}
   m_Name: DisasterBalance
   m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.DisasterBalance
-  minSpawnIntervalMinutes: 0.1
-  maxSpawnIntervalMinutes: 0.5
+  minSpawnIntervalMinutes: 1
+  maxSpawnIntervalMinutes: 2
   enableAutoSpawn: 1
   maxConcurrentDisasters: 1
   obstacleWeight: 1
