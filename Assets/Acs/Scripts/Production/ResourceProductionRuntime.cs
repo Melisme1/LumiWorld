@@ -33,6 +33,8 @@ namespace LumiWorld.Acs
         private bool collecting;
         private bool feeding;
         private readonly ResourceCollectionService collectionService = new ResourceCollectionService();
+        // Keep a resolvable asset for withdrawing food after its diet/config entry is removed.
+        private readonly Dictionary<string, ResourceData> knownFoodResources = new Dictionary<string, ResourceData>(StringComparer.Ordinal);
         public HabitatRuntimeManager HabitatManager => habitatManager;
         public ProductionRuntimeSettings Settings => settings;
         public CreatureCareSettings CareSettings => creatureCare;
@@ -141,9 +143,16 @@ namespace LumiWorld.Acs
             { simulation.Stop(ProductionSeconds); Status = "Cấu hình thời gian đói không hợp lệ; sửa Creature Care trong Inspector."; return; }
             if (!creatureCare.TryGetFoodRules(out var foodRules, out var foodReason))
             { simulation.Stop(ProductionSeconds); Status = "Cấu hình thức ăn: " + foodReason; return; }
+            foreach (var diet in creatureCare.speciesDiets ?? new List<SpeciesDietSettings>())
+                if (!habitatManager.Catalog.speciesRegistry.TryGetActiveBySpeciesId(diet.speciesId, out _))
+                { simulation.Stop(ProductionSeconds); Status = "Species Diets dùng species ID chưa active: " + diet.speciesId; return; }
             foreach (var foodRule in foodRules.Foods)
-                if (ResolveResource(foodRule.ResourceId) == null)
+            {
+                var resource = ResolveResource(foodRule.ResourceId);
+                if (resource == null)
                 { simulation.Stop(ProductionSeconds); Status = "Thiếu ResourceData cho thức ăn " + foodRule.ResourceId; return; }
+                knownFoodResources[foodRule.ResourceId] = resource;
+            }
             // Immutable copy protects settlement from live Inspector edits before their boundary.
             var rateSettings = settings == null ? null : JsonUtility.FromJson<ProductionRuntimeSettings>(JsonUtility.ToJson(settings));
             simulation.Synchronize(habitatManager.Habitats, careRules,
@@ -222,11 +231,13 @@ namespace LumiWorld.Acs
             if (creatureCare != null)
             {
                 if (creatureCare.food != null && creatureCare.food.resourceID == id) return creatureCare.food;
-                foreach (var food in creatureCare.additionalFoods)
+                foreach (var food in creatureCare.additionalFoods ?? new List<CreatureFoodSettings>())
                     if (food?.resource != null && food.ResourceId == id) return food.resource;
             }
             var definition = HabitatEligibilityService.FindDefinition(habitatManager != null ? habitatManager.Catalog : null, id);
-            return definition != null && definition.resource != null ? definition.resource : ResourceCatalog.Find(id);
+            var resource = definition != null && definition.resource != null ? definition.resource : ResourceCatalog.Find(id);
+            if (resource == null && id != null) knownFoodResources.TryGetValue(id, out resource);
+            return resource;
         }
 
         private void PublishState() { PublishSafely(ProductionChanged); PublishSafely(ResidentsChanged); }
@@ -259,6 +270,7 @@ namespace LumiWorld.Acs
             { preview.CanFeed = false; preview.Reason = "Cần ResourceProductionRuntime đang hoạt động."; }
             else if (habitatManager == null || !habitatManager.isActiveAndEnabled || !habitatManager.IsConfigured)
             { preview.CanFeed = false; preview.Reason = "Habitat Manager đang tắt hoặc chưa cấu hình."; }
+            else if (!simulation.IsRunning) { preview.CanFeed = false; preview.Reason = Status; }
             else if (creatureCare == null || !creatureCare.TryGetRules(out _, out _) || !creatureCare.TryGetFoodRules(out _, out _))
             { preview.CanFeed = false; preview.Reason = "Cấu hình độ no/thức ăn không hợp lệ."; }
             else if (clock.IsPaused) { preview.CanFeed = false; preview.Reason = "Game đang pause."; }
@@ -291,13 +303,18 @@ namespace LumiWorld.Acs
             finally { feeding = false; }
         }
 
-        public IReadOnlyList<HabitatFoodStock> GetFoodStocks(string habitatId = null)
-            => simulation?.Food.Read(habitatId) ?? Array.Empty<HabitatFoodStock>();
-        public long GetFoodAmount(string habitatId, string resourceId) => simulation?.Food.GetAmount(habitatId, resourceId) ?? 0;
+        // Explicit creature names avoid silently accepting old habitat IDs as pantry owners.
+        public IReadOnlyList<CreatureFoodStock> GetCreatureFoodStocks(string individualId)
+            => string.IsNullOrWhiteSpace(individualId) ? Array.Empty<CreatureFoodStock>() :
+                simulation?.Food.Read(individualId) ?? Array.Empty<CreatureFoodStock>();
+        public IReadOnlyList<CreatureFoodStock> GetAllCreatureFoodStocks()
+            => simulation?.Food.Read() ?? Array.Empty<CreatureFoodStock>();
+        public long GetCreatureFoodAmount(string individualId, string resourceId)
+            => simulation?.Food.GetAmount(individualId, resourceId) ?? 0;
         public IReadOnlyList<CreatureFoodRule> FoodTypes => simulation?.FoodRules?.Foods ?? Array.Empty<CreatureFoodRule>();
 
         // Deposit is all-or-nothing; withdrawal returns as much as Warehouse can accept.
-        public bool DepositFood(string habitatId, string resourceId, int amount, out string reason)
+        public bool DepositCreatureFood(string habitatId, string individualId, string resourceId, int amount, out string reason)
         {
             if (!PrepareFoodCommand(out reason)) return false;
             feeding = true;
@@ -307,22 +324,23 @@ namespace LumiWorld.Acs
                 if (!simulation.IsRunning || creatureCare == null || !creatureCare.TryGetFoodRules(out _, out _) ||
                     !habitatManager.isActiveAndEnabled || habitatManager.FindHabitat(habitatId) == null)
                 { reason = "Cấu hình thức ăn hoặc biome không hợp lệ."; return false; }
-                bool done = HabitatFoodTransferService.Deposit(Inventory, simulation.Food, simulation.FoodRules,
-                    habitatId, resourceId, amount, out reason);
+                bool done = CreatureFoodTransferService.Deposit(Inventory, simulation.Food, simulation.FoodRules,
+                    habitatId, individualId, resourceId, amount, out reason);
                 if (done) { simulation.RefreshActivity(); PublishState(); }
                 return done;
             }
             finally { feeding = false; }
         }
-        public int WithdrawFood(string habitatId, string resourceId, int amount, out string reason)
+        // Ownership is enough to withdraw, including stock whose creature has left the map.
+        public int WithdrawCreatureFood(string individualId, string resourceId, int amount, out string reason)
         {
             if (!PrepareFoodCommand(out reason)) return 0;
             feeding = true;
             try
             {
                 SettleFoodCommand();
-                int transferred = HabitatFoodTransferService.Withdraw(Inventory, simulation.Food,
-                    ResolveResource(resourceId), habitatId, amount, out reason);
+                int transferred = CreatureFoodTransferService.Withdraw(Inventory, simulation.Food,
+                    ResolveResource(resourceId), individualId, amount, out reason);
                 if (transferred > 0) PublishState();
                 return transferred;
             }
