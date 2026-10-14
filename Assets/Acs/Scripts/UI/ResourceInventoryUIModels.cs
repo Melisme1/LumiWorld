@@ -10,6 +10,7 @@ namespace LumiWorld.Acs
         public string id, name, biome, tier, description;
         public Sprite icon;
         public int stock, capacity;
+        public bool isUnlocked = true;
     }
     public sealed class ResourceUISlot
     {

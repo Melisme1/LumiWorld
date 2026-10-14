@@ -12,65 +12,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9c4be7421668f4f8878200d5b2c96d, type: 3}
   m_Name: DisasterBalance
   m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.DisasterBalance
-  minSpawnIntervalMinutes: 5
-  maxSpawnIntervalMinutes: 10
+  minSpawnIntervalMinutes: 1
+  maxSpawnIntervalMinutes: 2
   enableAutoSpawn: 1
-  maxConcurrentDisasters: 3
-  obstacleWeight: 3
+  maxConcurrentDisasters: 1
+  obstacleWeight: 1
   obstaclePrefab: {fileID: 0}
   smokeParticlePrefab: {fileID: 2053766892246738088, guid: 0e0b98309af35264db70a63113917190, type: 3}
-  fireParticlePrefab: {fileID: 3111162532563435348, guid: 9d69dcc9d5319b24f88d7ad46f5e5fe3, type: 3}
+  fireParticlePrefab: {fileID: 8793510976239746625, guid: 8fa5143051527e949b0ae174c8430414, type: 3}
+  cycloneParticlePrefab: {fileID: 7717026611607847688, guid: b4b0ebf951d475247a1d1297833927f9, type: 3}
+  cycloneRainParticlePrefab: {fileID: 1094332213853521836, guid: 335a6ca0c00dd9e41a21dea05c691507, type: 3}
   rules:
-  - kind: 0
-    weight: 0
-    restrictToBiomes: 0
-    affectedBiomes: 00000000
-    spreadRadius: 0
-    spreadIntervalSeconds: 0
-    maxTiles: 1
-    durationSeconds: 120
-    rainToCure: 1
-    harvestSpeedMultiplier: 0
-  - kind: 1
-    weight: 1
-    restrictToBiomes: 0
-    affectedBiomes: 
-    spreadRadius: 0
-    spreadIntervalSeconds: 0
-    maxTiles: 1
-    durationSeconds: 90
-    rainToCure: 1
-    harvestSpeedMultiplier: 0.5
-  - kind: 2
-    weight: 1.2
-    restrictToBiomes: 1
-    affectedBiomes: 020000000100000003000000
-    spreadRadius: 0
-    spreadIntervalSeconds: 0
-    maxTiles: 1
-    durationSeconds: 60
-    rainToCure: 1
-    harvestSpeedMultiplier: 0
-  - kind: 3
-    weight: 0
-    restrictToBiomes: 0
-    affectedBiomes: 
-    spreadRadius: 2
-    spreadIntervalSeconds: 5
-    maxTiles: 7
-    durationSeconds: 40
-    rainToCure: 2
-    harvestSpeedMultiplier: 0.22
   - kind: 4
+    enabled: 1
+    rainCanCure: 1
+    spawnByTime: 1
     weight: 1
     restrictToBiomes: 1
     affectedBiomes: 0200000001000000
     spreadRadius: 1
-    spreadIntervalSeconds: 4
+    spreadIntervalSeconds: 7
     maxTiles: 7
     durationSeconds: 45
     rainToCure: 1
     harvestSpeedMultiplier: 0
+  - kind: 3
+    enabled: 1
+    rainCanCure: 0
+    spawnByTime: 1
+    weight: 1.2
+    restrictToBiomes: 1
+    affectedBiomes: 020000000100000003000000
+    spreadRadius: 2
+    spreadIntervalSeconds: 1
+    maxTiles: 7
+    durationSeconds: 60
+    rainToCure: 1
+    harvestSpeedMultiplier: 0.469
   cycloneRainThreshold: 4
   cycloneRainWindowSeconds: 10
   spawnCycloneOnRainOverdose: 1

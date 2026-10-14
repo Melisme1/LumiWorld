@@ -12,6 +12,12 @@ namespace LumiWorld.Acs
     public sealed class DisasterRule
     {
         public DisasterKind kind = DisasterKind.Obstacle;
+        [Tooltip("Bỏ chọn để tắt loại disaster này khỏi spawn tự động. Bật lại được mà không cần tạo lại rule.")]
+        public bool enabled = true;
+        [Tooltip("Tắt tùy chọn này để Rain không chữa/xóa disaster; disaster sẽ kết thúc theo Duration Seconds.")]
+        public bool rainCanCure = true;
+        [Tooltip("Cho phép loại disaster này được chọn trong lịch spawn tự động theo thời gian.")]
+        public bool spawnByTime = true;
         [Min(0f)] public float weight = 1f;
 
         [Tooltip("Bật: chỉ được spawn trên ô có affinity nằm trong affectedBiomes. Tắt: mọi môi trường.")]
@@ -57,8 +63,6 @@ namespace LumiWorld.Acs
     [CreateAssetMenu(fileName = "DisasterBalance", menuName = "LumiWorld/Disaster/Disaster Balance")]
     public sealed class DisasterBalance : ScriptableObject
     {
-        private const int ExpectedRuleCount = 5; // 5 loại trong DisasterKind
-
         [Header("Nhịp xuất hiện (phút)")]
         [Tooltip("Khoảng nghỉ ngẫu nhiên tối thiểu giữa 2 lần sinh vật cản/thiên tai.")]
         [Min(0f)] public float minSpawnIntervalMinutes = 5f;
@@ -87,6 +91,10 @@ namespace LumiWorld.Acs
         [Tooltip("Prefab particle LỬA. Chỉ dùng khi ô đã bén lửa thật (đã cháy). " +
                  "Để trống thì bỏ qua hiệu ứng lửa.")]
         public GameObject fireParticlePrefab;
+        [Tooltip("Prefab particle Cyclone. Leave empty to use only the tile warning tint.")]
+        public GameObject cycloneParticlePrefab;
+        [Tooltip("Optional separate rain particle prefab emitted with Cyclone.")]
+        public GameObject cycloneRainParticlePrefab;
 
         [Header("Ràng buộc theo môi trường")]
         [Tooltip("Quy tắc riêng cho từng loại thiên tai. Loại không có mặt ở đây dùng mặc định an toàn.")]
@@ -137,6 +145,12 @@ namespace LumiWorld.Acs
             return rule != null ? Mathf.Max(1, rule.rainToCure) : defaultRainToCure;
         }
 
+        public bool CanBeCuredByRain(DisasterKind kind)
+        {
+            var rule = GetRule(kind);
+            return rule == null || rule.rainCanCure;
+        }
+
         public float ResolveHarvestMultiplier(DisasterKind kind)
         {
             if (!DisasterCatalog.BlocksHarvest(kind)) return 1f;
@@ -157,8 +171,9 @@ namespace LumiWorld.Acs
         }
 
         /// <summary>Chọn ngẫu nhiên một loại thiên tai có thể xuất hiện trên môi trường cho trước.</summary>
-        public DisasterKind PickRandomKind(BiomeAffinity affinity, System.Random rng)
+        public bool TryPickRandomKind(BiomeAffinity affinity, System.Random rng, out DisasterKind selectedKind)
         {
+            selectedKind = default;
             if (rng == null) rng = new System.Random();
 
             var pool = new List<DisasterKind>();
@@ -169,31 +184,38 @@ namespace LumiWorld.Acs
             {
                 if (weight <= 0f) return;
                 var rule = GetRule(kind);
-                if (rule != null && rule.restrictToBiomes && !rule.AffectsBiome(affinity)) return;
+                if (rule == null || !rule.enabled || !rule.spawnByTime) return;
+                if (affinity != BiomeAffinity.None && rule.restrictToBiomes && !rule.AffectsBiome(affinity)) return;
                 pool.Add(kind);
                 weights.Add(weight);
                 total += weight;
             };
 
             consider(DisasterKind.Obstacle, obstacleWeight);
-            foreach (var rule in rules)
+            if (rules != null)
             {
-                if (rule == null) continue;
-                if (rule.kind == DisasterKind.Obstacle) continue;
-                if (rule.kind == DisasterKind.Cyclone) continue; // bão kích hoạt bằng mưa, không random
-                consider(rule.kind, rule.weight);
+                foreach (var rule in rules)
+                {
+                    if (rule == null) continue;
+                    if (rule.kind == DisasterKind.Obstacle) continue;
+                    consider(rule.kind, rule.weight);
+                }
             }
 
-            // Không cấu hình gì thì vẫn luôn có vật cản làm mặc định.
-            if (pool.Count == 0) return DisasterKind.Obstacle;
+            if (pool.Count == 0) return false;
 
             double roll = rng.NextDouble() * total;
             for (int i = 0; i < pool.Count; i++)
             {
                 roll -= weights[i];
-                if (roll <= 0) return pool[i];
+                if (roll <= 0)
+                {
+                    selectedKind = pool[i];
+                    return true;
+                }
             }
-            return pool[pool.Count - 1];
+            selectedKind = pool[pool.Count - 1];
+            return true;
         }
 
         /// <summary>
@@ -202,19 +224,20 @@ namespace LumiWorld.Acs
         /// </summary>
         public bool IsValid(out string error)
         {
-            if (rules == null || rules.Count < ExpectedRuleCount)
+            if (rules == null)
             {
-                error = $"Thiếu rule: có {rules?.Count ?? 0}/{ExpectedRuleCount} loại. " +
-                        "Bấm nút 'Fill Missing Rules' bên dưới hoặc chạy Tools > LumiWorld > Disaster > Repair Balance Asset.";
+                error = "Danh sách rules chưa được khởi tạo.";
                 return false;
             }
 
-            for (int kind = 0; kind < ExpectedRuleCount; kind++)
+            var seenKinds = new HashSet<DisasterKind>();
+            for (int i = 0; i < rules.Count; i++)
             {
-                var wanted = (DisasterKind)kind;
-                if (GetRule(wanted) == null)
+                var rule = rules[i];
+                if (rule == null) continue;
+                if (!seenKinds.Add(rule.kind))
                 {
-                    error = $"Thiếu rule cho {DisasterCatalog.DisplayName(wanted)} (kind {kind}).";
+                    error = $"Rule cho {DisasterCatalog.DisplayName(rule.kind)} bị trùng.";
                     return false;
                 }
             }
@@ -235,9 +258,8 @@ namespace LumiWorld.Acs
         {
             if (rules == null) rules = new List<DisasterRule>();
 
-            for (int kind = 0; kind < ExpectedRuleCount; kind++)
+            foreach (DisasterKind wanted in Enum.GetValues(typeof(DisasterKind)))
             {
-                var wanted = (DisasterKind)kind;
                 if (GetRule(wanted) != null) continue;
                 rules.Add(CreateDefaultRule(wanted));
             }
@@ -263,6 +285,7 @@ namespace LumiWorld.Acs
 
                 case DisasterKind.Cyclone:
                     rule.weight = 0f; // chỉ sinh khi mưa vượt ngưỡng
+                    rule.spawnByTime = false;
                     rule.spreadRadius = 2;
                     rule.spreadIntervalSeconds = 5f;
                     rule.maxTiles = 7;

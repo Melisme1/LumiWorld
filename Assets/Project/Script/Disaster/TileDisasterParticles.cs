@@ -26,6 +26,18 @@ namespace LumiWorld.Acs
         [Tooltip("Hệ số nhân kích thước particle so với bề rộng ô (1 = khớp bán kính nội tiếp hex).")]
         [SerializeField] private float sizeMultiplier = 1f;
 
+        [Tooltip("Additional scale for the Cyclone particle, relative to the tile fit scale.")]
+        [SerializeField, Min(0.01f)] private float cycloneSizeMultiplier = 0.1f;
+
+        [Tooltip("Height above the measured hex surface for the Cyclone cloud effect.")]
+        [SerializeField, Min(0f)] private float cycloneHeightOffset = 1.8f;
+
+        [Tooltip("Height above the measured hex surface for the separate Cyclone rain effect.")]
+        [SerializeField, Min(0f)] private float cycloneRainHeightOffset = 2.1f;
+
+        [Tooltip("Scale multiplier for the separate Cyclone rain effect.")]
+        [SerializeField, Min(0.01f)] private float cycloneRainSizeMultiplier = 0.1f;
+
         [Tooltip("Khoảng nâng tâm particle tính từ MẶT TRÊN thật của khối hex (mét). " +
                  "Mặt trên mỗi tầng địa hình cao khác nhau (Thấp 0.50 / Trung 1.30 / Cao 2.10 " +
                  "ở world Y), nên offset này phải cộng lên độ cao đo được của ô, KHÔNG phải " +
@@ -40,10 +52,14 @@ namespace LumiWorld.Acs
 
         private ParticleSystem smokeSystem;
         private ParticleSystem fireSystem;
+        private ParticleSystem cycloneSystem;
+        private ParticleSystem cycloneRainSystem;
 
         // Prefab truyền vào từ DisasterRuntimeManager (lấy từ DisasterBalance).
         private GameObject smokePrefab;
         private GameObject firePrefab;
+        private GameObject cyclonePrefab;
+        private GameObject cycloneRainPrefab;
 
         public bool HasSmoke => smokeSystem != null && smokeSystem.gameObject.activeSelf;
         public bool HasFire => fireSystem != null && fireSystem.gameObject.activeSelf;
@@ -63,10 +79,57 @@ namespace LumiWorld.Acs
         /// Ghi nhớ prefab nguồn để dùng cho các lần bật sau (đổi khói <-> lửa).
         /// Gọi ngay sau Ensure, trước khi gọi bất kỳ API bật hiệu ứng nào.
         /// </summary>
-        public void Configure(GameObject smoke, GameObject fire)
+        public void Configure(GameObject smoke, GameObject fire, GameObject cyclone = null, GameObject cycloneRain = null)
         {
             smokePrefab = smoke;
             firePrefab = fire;
+            cyclonePrefab = cyclone;
+            cycloneRainPrefab = cycloneRain;
+        }
+
+        /// <summary>Displays the cyclone effect on this affected tile.</summary>
+        public void ShowCyclone()
+        {
+            bool created = cycloneSystem == null;
+            if (cycloneSystem == null)
+                cycloneSystem = SpawnPrefab(cyclonePrefab, "DisasterCyclone", cycloneHeightOffset);
+
+            if (cycloneSystem != null)
+            {
+                if (created)
+                {
+                    // Cyclone effects should remain upright in world space even when the tile is tilted.
+                    cycloneSystem.transform.rotation = Quaternion.identity;
+                    cycloneSystem.transform.localScale *= Mathf.Max(0.01f, cycloneSizeMultiplier);
+                }
+                var main = cycloneSystem.main;
+                main.loop = true;
+                if (created)
+                {
+                    cycloneSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    cycloneSystem.Play(true);
+                }
+                else if (!cycloneSystem.isPlaying) cycloneSystem.Play(true);
+            }
+
+            if (cycloneRainSystem == null)
+            {
+                cycloneRainSystem = SpawnPrefab(cycloneRainPrefab, "DisasterCycloneRain", cycloneRainHeightOffset);
+                if (cycloneRainSystem != null)
+                {
+                    cycloneRainSystem.transform.rotation = Quaternion.identity;
+                    cycloneRainSystem.transform.localScale *= Mathf.Max(0.01f, cycloneRainSizeMultiplier);
+                    var rainMain = cycloneRainSystem.main;
+                    rainMain.loop = true;
+                    cycloneRainSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    cycloneRainSystem.Play(true);
+                }
+            }
+
+            if (cycloneRainSystem != null)
+            {
+                if (!cycloneRainSystem.isPlaying) cycloneRainSystem.Play(true);
+            }
         }
 
         /// <summary>
@@ -108,6 +171,8 @@ namespace LumiWorld.Acs
         public void ClearAll()
         {
             StopFire();
+            StopCyclone();
+            StopCycloneRain();
             if (smokeSystem != null)
             {
                 smokeSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -123,6 +188,26 @@ namespace LumiWorld.Acs
                 fireSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                 Destroy(fireSystem.gameObject);
                 fireSystem = null;
+            }
+        }
+
+        private void StopCyclone()
+        {
+            if (cycloneSystem != null)
+            {
+                cycloneSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                Destroy(cycloneSystem.gameObject);
+                cycloneSystem = null;
+            }
+        }
+
+        private void StopCycloneRain()
+        {
+            if (cycloneRainSystem != null)
+            {
+                cycloneRainSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                Destroy(cycloneRainSystem.gameObject);
+                cycloneRainSystem = null;
             }
         }
 
@@ -160,8 +245,10 @@ namespace LumiWorld.Acs
             // Mỗi tầng địa hình có mặt trên cao khác nhau (Thấp 1.00 / Trung 1.80 / Cao 2.60
             // tính từ gốc khối), nên phải hỏi độ cao thật của ô thay vì dùng hằng số.
             // Particle được sinh dưới transform của ô nên localPosition là hệ toạ độ ô.
-            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset + extraHeight, 0f);
-            go.transform.position = transform.TransformPoint(localAnchor);
+            Vector3 worldAnchor = transform.position;
+            var (surfaceY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(gameObject);
+            worldAnchor.y = surfaceY + heightOffset + extraHeight;
+            go.transform.position = worldAnchor;
 
             // Trục Y của particle phải thẳng đứng THEO THẾ GIỚI, không được kế thừa độ nghiêng
             // của ô hex cha. Ô hex do HexBiomeClusterConnector sinh ra có nghiêng ngẫu nhiên
@@ -171,7 +258,7 @@ namespace LumiWorld.Acs
             go.transform.rotation = Quaternion.identity;
             go.transform.SetParent(transform, true);
 
-            if (autoFitOnEnable) ApplyFitScale(go.transform);
+            if (autoFitOnEnable) ApplyFitScale(go.transform, extraHeight);
 
             // Tắt collider (nếu prefab lỡ kèm) để không chặn raycast đặt thẻ.
             var collider = go.GetComponent<Collider>();
@@ -211,7 +298,7 @@ namespace LumiWorld.Acs
         /// tỉ lệ riêng. Nhân với bán kính nội tiếp giúp hiệu ứng phủ vừa vặn một ô,
         /// không tràn sang ô kề (2 tâm ô cách nhau 2.0f).
         /// </summary>
-        private void ApplyFitScale(Transform particleTransform)
+        private void ApplyFitScale(Transform particleTransform, float extraHeight = 0f)
         {
             if (particleTransform == null) return;
 
@@ -219,11 +306,10 @@ namespace LumiWorld.Acs
             particleTransform.localScale = new Vector3(fit, fit, fit);
 
             // Giữ vị trí neo đúng trên mặt khối hex mỗi lần căn lại.
-            float extraHeight = fireSystem != null && particleTransform == fireSystem.transform
-                ? fireHeightOffset
-                : 0f;
-            Vector3 localAnchor = new Vector3(0f, ResolveLocalSurfaceY() + heightOffset + extraHeight, 0f);
-            particleTransform.position = transform.TransformPoint(localAnchor);
+            Vector3 worldAnchor = transform.position;
+            var (surfaceY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(gameObject);
+            worldAnchor.y = surfaceY + heightOffset + extraHeight;
+            particleTransform.position = worldAnchor;
 
             // Ép thẳng đứng theo thế giới (bù rotation nghiêng của ô hex cha) sau mỗi lần căn lại.
             particleTransform.rotation = Quaternion.Euler(-90f, 0f, 0f);
@@ -234,7 +320,19 @@ namespace LumiWorld.Acs
             if (autoFitOnEnable)
             {
                 if (smokeSystem != null) ApplyFitScale(smokeSystem.transform);
-                if (fireSystem != null) ApplyFitScale(fireSystem.transform);
+                if (fireSystem != null) ApplyFitScale(fireSystem.transform, fireHeightOffset);
+                if (cycloneSystem != null)
+                {
+                    ApplyFitScale(cycloneSystem.transform, cycloneHeightOffset);
+                    cycloneSystem.transform.localScale *= Mathf.Max(0.01f, cycloneSizeMultiplier);
+                    cycloneSystem.transform.rotation = Quaternion.identity;
+                }
+                if (cycloneRainSystem != null)
+                {
+                    ApplyFitScale(cycloneRainSystem.transform, cycloneRainHeightOffset);
+                    cycloneRainSystem.transform.localScale *= Mathf.Max(0.01f, cycloneRainSizeMultiplier);
+                    cycloneRainSystem.transform.rotation = Quaternion.identity;
+                }
             }
         }
     }

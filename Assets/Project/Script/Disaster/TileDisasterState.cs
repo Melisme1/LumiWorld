@@ -223,7 +223,13 @@ namespace LumiWorld.Acs
             // (Tham số balance giữ nguyên trong chữ ký cho tương thích API đã ship.)
             foreach (var kind in activeDisasters.Keys)
             {
-                if (DisasterCatalog.BlocksHarvest(kind)) return true;
+                if (!DisasterCatalog.BlocksHarvest(kind)) continue;
+
+                // A non-zero disaster productivity multiplier slows harvesting instead of blocking it.
+                float multiplier = balance != null
+                    ? balance.ResolveHarvestMultiplier(kind)
+                    : (kind == DisasterKind.Cyclone ? 0.5f : 0f);
+                if (multiplier <= 0f) return true;
             }
             return false;
         }

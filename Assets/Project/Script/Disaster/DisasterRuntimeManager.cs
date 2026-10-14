@@ -90,6 +90,7 @@ namespace LumiWorld.Acs
 
         // Cửa sổ đếm mưa để kích hoạt bão.
         private readonly List<double> rainTimestamps = new List<double>();
+        private bool rainTriggeredCyclonePending;
 
         private System.Random rng;
         private double nextSpawnAt;
@@ -135,7 +136,8 @@ namespace LumiWorld.Acs
                 }
             }
 #endif
-            if (balance != null && !balance.IsValid(out _)) balance.FillMissingRules();
+            if (balance != null && !balance.IsValid(out string balanceError))
+                Debug.LogWarning($"[LumiWorld Disaster] DisasterBalance chưa hợp lệ: {balanceError}", balance);
 
             if (balance == null)
             {
@@ -177,7 +179,9 @@ namespace LumiWorld.Acs
                 if (fx != null)
                 {
                     fx.Configure(balance != null ? balance.smokeParticlePrefab : null,
-                                 balance != null ? balance.fireParticlePrefab : null);
+                                 balance != null ? balance.fireParticlePrefab : null,
+                                 balance != null ? balance.cycloneParticlePrefab : null,
+                                 balance != null ? balance.cycloneRainParticlePrefab : null);
                     tileParticles[pair.Key] = fx;
                 }
             }
@@ -218,7 +222,11 @@ namespace LumiWorld.Acs
             if (!balance.enableAutoSpawn) return;
             if (now < nextSpawnAt) return;
 
-            DisasterKind kind = balance.PickRandomKind(BiomeAffinity.None, rng);
+            if (!balance.TryPickRandomKind(BiomeAffinity.None, rng, out DisasterKind kind))
+            {
+                ScheduleNextSpawn();
+                return;
+            }
 
             ScheduleNextSpawn();
 
@@ -239,7 +247,8 @@ namespace LumiWorld.Acs
                 }
                 else
                 {
-                    SpawnDisaster(balance.PickRandomKind(affinity, rng), origin);
+                    if (balance.TryPickRandomKind(affinity, rng, out DisasterKind fallbackKind))
+                        SpawnDisaster(fallbackKind, origin);
                 }
             }
         }
@@ -502,6 +511,16 @@ namespace LumiWorld.Acs
 
             if (instance.kind == DisasterKind.Obstacle) SpawnObstacleVisual(instance, tileObj);
 
+            if (instance.kind == DisasterKind.Cyclone && TryResolveTileHex(tileObj, out var cycloneHex))
+            {
+                var fx = GetTileParticles(tileObj, cycloneHex);
+                if (fx != null)
+                {
+                    fx.ShowCyclone();
+                    TrackParticleTile(instance.instanceId, cycloneHex);
+                }
+            }
+
             // Tô màu ô để nhìn thấy hiệu quả bằng mắt (an toàn với asset material).
             state.RefreshVisual();
         }
@@ -757,7 +776,9 @@ namespace LumiWorld.Acs
             if (fx != null)
             {
                 fx.Configure(balance != null ? balance.smokeParticlePrefab : null,
-                             balance != null ? balance.fireParticlePrefab : null);
+                             balance != null ? balance.fireParticlePrefab : null,
+                             balance != null ? balance.cycloneParticlePrefab : null,
+                             balance != null ? balance.cycloneRainParticlePrefab : null);
                 tileParticles[hex] = fx;
             }
             return fx;
@@ -1149,6 +1170,7 @@ namespace LumiWorld.Acs
                     if (!pair.Value.ContainsKey(targetHex) ||
                         !disasters.TryGetValue(pair.Key, out var fireInstance) ||
                         !IsForestFire(fireInstance) ||
+                        !balance.CanBeCuredByRain(DisasterKind.ForestFire) ||
                         !KindAcceptsRain(DisasterKind.ForestFire, strength))
                     {
                         continue;
@@ -1166,8 +1188,16 @@ namespace LumiWorld.Acs
                 }
             }
 
-            // 0. Nếu ô đang bị cháy tro tàn (isBurned), mưa sẽ dập nguội tàn tro, dọn tàn tích và phục hồi đất
-            if (state.isBurned)
+            bool activeFireCannotBeCured = false;
+            if (state.ActiveDisasters.TryGetValue(DisasterKind.ForestFire, out var activeFireId) &&
+                disasters.TryGetValue(activeFireId, out var activeFire) &&
+                !balance.CanBeCuredByRain(DisasterKind.ForestFire))
+            {
+                activeFireCannotBeCured = true;
+            }
+
+            // Rain có thể phục hồi tro tàn sau khi đám cháy đã kết thúc, dù rule không cho dập lửa khi đang chạy.
+            if (state.isBurned && !activeFireCannotBeCured)
             {
                 state.isBurned = false;
                 state.aridity = 0f;
@@ -1199,7 +1229,7 @@ namespace LumiWorld.Acs
             }
 
             // 1. Khô cằn: BẮT BUỘC mưa lớn mới thấm.
-            if (state.IsArid)
+            if (state.IsArid && balance.CanBeCuredByRain(DisasterKind.BarrenLand))
             {
                 if (strength == DisasterRainStrength.Heavy)
                 {
@@ -1239,6 +1269,7 @@ namespace LumiWorld.Acs
             {
                 if (!state.ActiveDisasters.TryGetValue(kind, out var instanceId)) continue;
                 if (!disasters.TryGetValue(instanceId, out var instance)) continue;
+                if (!balance.CanBeCuredByRain(kind)) continue;
                 if (!KindAcceptsRain(kind, strength)) continue;
 
                 instance.rainApplied++;
@@ -1277,7 +1308,6 @@ namespace LumiWorld.Acs
             }
 
             state.RefreshVisual();
-            if (anyAccepted) RecordRainForCyclone();
             return anyAccepted;
         }
 
@@ -1310,6 +1340,12 @@ namespace LumiWorld.Acs
             rainTimestamps.Add(clock.NowSeconds);
         }
 
+        /// <summary>Đếm một thẻ Rain đã được dùng thành công, dù thẻ chữa disaster hay cải tạo ô đất.</summary>
+        public void RegisterRainCardUse()
+        {
+            RecordRainForCyclone();
+        }
+
         private void TickRainWindow(double now)
         {
             if (balance == null) return;
@@ -1317,15 +1353,25 @@ namespace LumiWorld.Acs
             rainTimestamps.RemoveAll(t => now - t > window);
 
             if (!balance.spawnCycloneOnRainOverdose) return;
-            if (rainTimestamps.Count < balance.cycloneRainThreshold) return;
+            var cycloneRule = balance.GetRule(DisasterKind.Cyclone);
+            if (cycloneRule == null || !cycloneRule.enabled) return;
+            if (!rainTriggeredCyclonePending && rainTimestamps.Count >= balance.cycloneRainThreshold)
+            {
+                rainTimestamps.Clear();
+                rainTriggeredCyclonePending = true;
+            }
+            if (!rainTriggeredCyclonePending) return;
             if (disasters.Count >= Mathf.Max(0, balance.maxConcurrentDisasters)) return;
 
-            // Vượt ngưỡng: dùng hết mốc rồi sinh một cơn bão ở ô đất liền ngẫu nhiên.
-            rainTimestamps.Clear();
+            // Giữ yêu cầu đã kích hoạt cho tới khi còn slot và tìm được ô hợp lệ.
             if (TryPickSpawnTile(out HexCoordinates origin, out _))
             {
-                Debug.Log("<color=#5AB8FF>[LumiWorld Disaster] Mật độ mưa vượt ngưỡng — sinh Lốc xoáy!</color>");
-                SpawnDisaster(DisasterKind.Cyclone, origin);
+                DisasterInstance cyclone = SpawnDisaster(DisasterKind.Cyclone, origin);
+                if (cyclone != null)
+                {
+                    rainTriggeredCyclonePending = false;
+                    Debug.Log("<color=#5AB8FF>[LumiWorld Disaster] Mật độ mưa vượt ngưỡng — sinh Lốc xoáy!</color>");
+                }
             }
         }
 

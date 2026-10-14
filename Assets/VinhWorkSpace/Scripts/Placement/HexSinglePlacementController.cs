@@ -53,8 +53,8 @@ public class HexSinglePlacementController : MonoBehaviour
     [Tooltip("Bật/Tắt giới hạn số ô lục giác tối đa cho mỗi Cụm Biome")]
     [SerializeField] private bool enableBiomeSizeLimit = true;
 
-    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 6). Nếu người chơi ghép thêm ô vượt quá số này sẽ bị chặn.")]
-    [SerializeField] private int maxTilesPerBiome = 6;
+    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 9). Nếu người chơi ghép thêm ô vượt quá số này sẽ bị chặn.")]
+    [SerializeField] private int maxTilesPerBiome = 9;
 
     [Header("Modular Components")]
     [SerializeField] private HexPointerRaycaster raycaster;
@@ -222,6 +222,7 @@ public class HexSinglePlacementController : MonoBehaviour
         // Nếu chuột còn ở sát cạnh dưới màn hình (khu vực Hand/Deck)
         if (raycaster.IsOverHandArea(screenPosition))
         {
+            if (HexPlacementPreviewHUD.Instance != null) HexPlacementPreviewHUD.Instance.HidePreview();
             if (ghostVisual != null) ghostVisual.SetActive(false);
             currentActiveTileObj = null;
             isHoveringValidTile = false;
@@ -254,6 +255,23 @@ public class HexSinglePlacementController : MonoBehaviour
             // Cập nhật phản hồi ô đang rê chuột trong Creature Guide
             HexCreatureTileGuide.Instance.UpdateHover(targetHex);
 
+            // Cập nhật UI xem trước kết quả dự kiến (Preserve Placement Preview Box)
+            int prospectiveSize = (currentCardData != null && validator != null && currentCardData.cardType == CardType.Terrain)
+                ? validator.CalculateProspectiveClusterSize(targetHex, currentCardData, worldGenerator)
+                : 1;
+
+            if (HexPlacementPreviewHUD.Instance != null)
+            {
+                HexPlacementPreviewHUD.Instance.UpdatePlacementPreview(
+                    currentCardData,
+                    targetHex,
+                    isValid,
+                    validator != null ? validator.LastValidationError : string.Empty,
+                    prospectiveSize,
+                    placementFee,
+                    canAffordFee);
+            }
+
             if (ghostVisual != null)
             {
                 ghostVisual.SetActive(true);
@@ -273,6 +291,7 @@ public class HexSinglePlacementController : MonoBehaviour
         }
         else
         {
+            if (HexPlacementPreviewHUD.Instance != null) HexPlacementPreviewHUD.Instance.HidePreview();
             isHoveringValidTile = false;
             currentActiveTileObj = null;
             if (ghostVisual != null) ghostVisual.SetActive(false);
@@ -304,6 +323,7 @@ public class HexSinglePlacementController : MonoBehaviour
             if (!string.IsNullOrEmpty(validator.LastValidationError))
             {
                 Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
+                HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Đặt thất bại: {validator.LastValidationError}");
             }
             CancelPreview();
             return false;
@@ -314,6 +334,7 @@ public class HexSinglePlacementController : MonoBehaviour
         if (placementFee > 0 && !CurrencyWallet.Instance.CanAfford(placementFee))
         {
             Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] Không đủ Coins để đặt {cardData.cardName}: cần {placementFee}, đang có {CurrencyWallet.Instance.Balance}.</color>");
+            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Không đủ Coins: Cần {placementFee} Coins để đặt thẻ.");
             CancelPreview();
             return false;
         }
@@ -339,6 +360,12 @@ public class HexSinglePlacementController : MonoBehaviour
             if (isRainCard)
             {
                 var disasterState = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
+                if (disasterState != null && disasterState.Has(LumiWorld.Acs.DisasterKind.Cyclone))
+                {
+                    CancelPreview();
+                    return false;
+                }
+
                 bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
                 bool hasPendingFire = LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var activeDisasterManager) &&
                                       activeDisasterManager.IsTilePendingFire(targetTileObj);
@@ -361,6 +388,11 @@ public class HexSinglePlacementController : MonoBehaviour
 
                     if (applied)
                     {
+                        PlayCardUseEffect(cardData, spawnWorldPos);
+
+                        if (LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainManager))
+                            rainManager.RegisterRainCardUse();
+
                         Debug.Log($"<color=#38BDF8>[LumiWorld Rain] Thẻ Mưa đã dập lửa / phục hồi ô {currentHoverHex} thành công!</color>");
 
                         if (placementFee > 0)
@@ -388,6 +420,10 @@ public class HexSinglePlacementController : MonoBehaviour
             if (cardData.IsTileTransformCard())
             {
                 placedCardInstance = TransformTile(targetTileObj, currentHoverHex, cardData);
+                if (placedCardInstance != null)
+                {
+                    PlayCardUseEffect(cardData, spawnWorldPos);
+                }
             }
             // TRƯỜNG HỢP 2: THẺ SINH THÁI TỔ HỢP PROPS (HABITAT PROPS NHƯ FOREST, MOUNTAIN...)
             else if (cardData.HasHabitatProps())
@@ -475,12 +511,7 @@ public class HexSinglePlacementController : MonoBehaviour
             // 3. Hiệu ứng cộng điểm "+X" (Preserve style)
             ShowPlacementScorePopup(placedCardInstance);
 
-            // 4. Cập nhật hệ thống cụm thu hoạch tài nguyên Biome
-            if (!LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld && BiomeHarvestManager.Instance != null)
-            {
-                BiomeHarvestManager.Instance.OnWorldChanged();
-            }
-
+            // 4. Cập nhật hệ thống Habitat theo dõi sản xuất
             LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
             if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var currentHabitatManager)) currentHabitatManager.RefreshNow();
 
@@ -489,6 +520,10 @@ public class HexSinglePlacementController : MonoBehaviour
             {
                 CurrencyWallet.Instance.TrySpend(placementFee, CoinReason.PlacementFee);
             }
+
+            // Rain được tính khi dùng thành công trên đất, kể cả khi không có disaster để chữa.
+            if (isRainCard && LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainCardManager))
+                rainCardManager.RegisterRainCardUse();
         }
 
         WorldSaveSystem.RegisterPlacement(placedCardInstance);
@@ -595,6 +630,31 @@ public class HexSinglePlacementController : MonoBehaviour
         return placedCard;
     }
 
+    /// <summary>Spawns a card's one-shot use effect independently of the tile lifetime.</summary>
+    private static void PlayCardUseEffect(CardData cardData, Vector3 targetPosition)
+    {
+        if (cardData == null || cardData.useEffectPrefab == null) return;
+
+        GameObject effect = Instantiate(
+            cardData.useEffectPrefab,
+            targetPosition + cardData.useEffectOffset,
+            Quaternion.identity);
+
+        // Keep the effect within roughly one hex footprint by default; CardData can tune this per card.
+        float effectScale = Mathf.Max(0.01f, cardData.useEffectScale);
+        effect.transform.localScale = Vector3.one * effectScale;
+
+        ParticleSystem[] particleSystems = effect.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (ParticleSystem particleSystem in particleSystems)
+        {
+            var main = particleSystem.main;
+            main.loop = false;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particleSystem.Play(true);
+        }
+    }
+
     /// <summary>
     /// Hiển thị hiệu ứng "+X" cho phần điểm TĂNG THÊM của từng khối trong nhóm
     /// </summary>
@@ -664,6 +724,11 @@ public class HexSinglePlacementController : MonoBehaviour
         isHoveringValidTile = false;
         hasValidPreviousHex = false;
         currentActiveTileObj = null;
+
+        if (HexPlacementPreviewHUD.Instance != null)
+        {
+            HexPlacementPreviewHUD.Instance.HidePreview();
+        }
 
         if (ghostVisual != null)
         {

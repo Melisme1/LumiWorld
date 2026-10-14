@@ -133,6 +133,13 @@ public class CardDrag : MonoBehaviour,
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        // 0. Kiểm tra trạng thái khóa (Escrow, Breeding, Account-bound)
+        if (cardUI != null && cardUI.IsLocked)
+        {
+            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Thẻ đang bị khóa: {cardUI.CurrentLockReason}");
+            return;
+        }
+
         IsDragging = true;
         IsReturningToHand = false;
         targetTilt = 0f;
@@ -150,6 +157,11 @@ public class CardDrag : MonoBehaviour,
         if (cameraController != null)
         {
             cameraController.SetCardDragging(true);
+        }
+
+        if (cardUI != null && cardUI.CardData != null && cardUI.CardData.cardType == CardType.Creature)
+        {
+            HabitatDiamondBadgeManager.Instance?.OnStartDraggingCreature(cardUI.CardData);
         }
 
         if (deskController == null)
@@ -257,11 +269,16 @@ public class CardDrag : MonoBehaviour,
             cameraController.SetCardDragging(false);
         }
 
+        HabitatDiamondBadgeManager.Instance?.OnStopDraggingCreature();
+
         bool placedSuccessfully = false;
+        CardData draggedCard = cardUI != null ? cardUI.CardData : null;
+        bool isPreviewing = singlePlacementController != null && singlePlacementController.IsPreviewing;
+        bool lacksCoins = draggedCard != null && draggedCard.placementFee > 0 && !CurrencyWallet.Instance.CanAfford(draggedCard.placementFee);
 
         if (singlePlacementController != null && cardUI != null)
         {
-            placedSuccessfully = singlePlacementController.TryConfirmPlacement(cardUI.CardData, out _);
+            placedSuccessfully = singlePlacementController.TryConfirmPlacement(draggedCard, out _);
         }
 
         // Keep the dragged card out of the UI raycast until placement checks the drop target.
@@ -286,6 +303,29 @@ public class CardDrag : MonoBehaviour,
         else
         {
             ReturnToHand();
+
+            // Nếu người chơi thả thẻ lúc đang rê trên bản đồ nhưng không đặt được:
+            // Hiển thị Panel Thông Báo chuẩn của game (kèm nút OK) giải thích rõ lý do.
+            if (isPreviewing && draggedCard != null)
+            {
+                if (lacksCoins)
+                {
+                    GameDialogUI.ShowNotice(
+                        $"Không đủ Coins để trả phí đặt thẻ!\nCần {draggedCard.placementFee} Coins để đặt thẻ \"{draggedCard.cardName}\".",
+                        title: "THÔNG BÁO");
+                }
+                else
+                {
+                    HexPlacementValidator val = singlePlacementController.GetComponent<HexPlacementValidator>();
+                    string reason = val != null ? val.LastValidationError : string.Empty;
+                    if (!string.IsNullOrEmpty(reason))
+                    {
+                        GameDialogUI.ShowNotice(
+                            $"Vị trí đặt thẻ không hợp lệ!\n{reason}",
+                            title: "THÔNG BÁO");
+                    }
+                }
+            }
         }
     }
 
@@ -296,7 +336,8 @@ public class CardDrag : MonoBehaviour,
     /// </summary>
     private void RestoreVisualAfterPlacement()
     {
-        transform.localScale = Vector3.one;
+        float bScale = GetComponent<CardHover>() != null ? GetComponent<CardHover>().BaseScale : 1f;
+        transform.localScale = Vector3.one * bScale;
         transform.localRotation = Quaternion.identity;
 
         if (canvasGroup != null)
@@ -325,6 +366,8 @@ public class CardDrag : MonoBehaviour,
         Vector2 startPosition = rectTransform.anchoredPosition;
         Vector3 startScale = transform.localScale;
         Quaternion startRotation = transform.localRotation;
+        float bScale = GetComponent<CardHover>() != null ? GetComponent<CardHover>().BaseScale : 1f;
+        Vector3 endScale = Vector3.one * bScale;
 
         // Alpha được hồi từ mức mờ lúc kéo -> 1.0. CardDrag là nguồn duy nhất ghi
         // canvasGroup.alpha trong giai đoạn này (CardAppear tự nhường quyền qua
@@ -340,7 +383,7 @@ public class CardDrag : MonoBehaviour,
             t = Mathf.SmoothStep(0f, 1f, t);
 
             rectTransform.anchoredPosition = Vector2.Lerp(startPosition, targetPosition, t);
-            transform.localScale = Vector3.Lerp(startScale, Vector3.one, t);
+            transform.localScale = Vector3.Lerp(startScale, endScale, t);
             transform.localRotation = Quaternion.Lerp(startRotation, Quaternion.identity, t);
 
             if (canvasGroup != null)

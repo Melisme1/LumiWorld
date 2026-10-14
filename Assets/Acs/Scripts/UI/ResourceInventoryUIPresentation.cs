@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using LumiWorld.Economy.Crafting;
 
 namespace LumiWorld.Acs
 {
     public static class ResourceInventoryUIPresentation
     {
-        public static List<ResourceUIItem> Warehouse(ResourceProductionCatalog catalog, Func<string, int> stock)
+        public static List<ResourceUIItem> Warehouse(ResourceProductionCatalog catalog, Func<string, int> stock, bool onlyCollected = true)
         {
             var items = new List<ResourceUIItem>(); var seen = new HashSet<string>(StringComparer.Ordinal);
             if (catalog?.resources != null)
@@ -14,17 +15,72 @@ namespace LumiWorld.Acs
                     if (definition != null && definition.isEnabled && definition.resource != null && seen.Add(definition.ResourceId))
                     {
                         var resource = definition.resource;
+                        int currentStock = stock != null ? stock(definition.ResourceId) : 0;
+                        if (onlyCollected && currentStock <= 0) continue;
                         items.Add(new ResourceUIItem { id = definition.ResourceId, name = resource.resourceName,
                             icon = resource.icon, description = resource.description, biome = definition.affinity.ToString(),
                             tier = definition.tier == ResourceTier.Tier1 ? "T1" : "T2", capacity = resource.maxStackSize,
-                            stock = stock != null ? stock(definition.ResourceId) : 0 });
+                            stock = currentStock, isUnlocked = currentStock > 0 });
                     }
-            items.Sort((a,b) => { int biome = string.CompareOrdinal(a.biome, b.biome); return biome != 0 ? biome : string.CompareOrdinal(a.id,b.id); });
+
+            // Gộp thêm nguyên liệu thô ngoài sinh cảnh (Lúa mì, Vỏ cây rụng) và 15 thành phẩm chế tạo từ CraftingCatalog
+            try
+            {
+                var extraItems = CraftingCatalog.GetWarehouseExtraItems();
+                if (extraItems != null)
+                {
+                    foreach (var extra in extraItems)
+                    {
+                        if (seen.Add(extra.id))
+                        {
+                            items.Add(new ResourceUIItem
+                            {
+                                id = extra.id,
+                                name = extra.name,
+                                icon = extra.icon,
+                                description = extra.description,
+                                biome = extra.biome,
+                                tier = extra.tier,
+                                capacity = extra.capacity,
+                                stock = stock != null ? stock(extra.id) : 0
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogWarning("[LumiWorld Kho] Không thể nạp danh mục phụ chế tạo vào Kho: " + ex.Message);
+            }
+
+            int GetBiomeSortOrder(string biome)
+            {
+                if (string.Equals(biome, "Leafwood", StringComparison.OrdinalIgnoreCase)) return 1;
+                if (string.Equals(biome, "Bloomfield", StringComparison.OrdinalIgnoreCase)) return 2;
+                if (string.Equals(biome, "Windheath", StringComparison.OrdinalIgnoreCase)) return 3;
+                if (string.Equals(biome, "Đồng cỏ", StringComparison.OrdinalIgnoreCase) || string.Equals(biome, "Đồng bằng", StringComparison.OrdinalIgnoreCase)) return 4;
+                if (string.Equals(biome, "Chế biến", StringComparison.OrdinalIgnoreCase)) return 5;
+                return 6;
+            }
+
+            items.Sort((a, b) =>
+            {
+                int orderA = GetBiomeSortOrder(a.biome);
+                int orderB = GetBiomeSortOrder(b.biome);
+                if (orderA != orderB) return orderA.CompareTo(orderB);
+                int biomeComp = string.CompareOrdinal(a.biome, b.biome);
+                return biomeComp != 0 ? biomeComp : string.CompareOrdinal(a.id, b.id);
+            });
             return items;
         }
 
+        public static List<ResourceUIItem> Collection(ResourceProductionCatalog catalog, Func<string, int> stock)
+        {
+            return Warehouse(catalog, stock, onlyCollected: false);
+        }
+
         public static ResourceUIHabitat Habitat(HabitatState habitat, HabitatProductionState state,
-            ResourceProductionCatalog catalog, ProductionRuntimeSettings settings)
+            ResourceProductionCatalog catalog, ProductionRuntimeSettings settings, Func<string, CreatureCareView> readCare = null)
         {
             if (habitat == null) return null;
             var model = new ResourceUIHabitat { id = habitat.habitatId, title = habitat.affinity.ToString(),
@@ -33,7 +89,10 @@ namespace LumiWorld.Acs
             foreach (var resident in habitat.residents)
             {
                 string name = catalog.speciesRegistry.TryGetActiveBySpeciesId(resident.speciesId, out var mapping) ? mapping.displayName : resident.speciesId;
-                names.Add(name + " · " + (resident.role == AffinityRole.Primary ? "Chính" : "Phụ") + " · " + resident.qualityRank.ToString().Replace("Rank", ""));
+                var care = readCare?.Invoke(resident.individualId);
+                string condition = care == null ? "" : care.Status == CreatureHungerStatus.Hungry ? " · Đói" :
+                    care.Status == CreatureHungerStatus.Eating ? care.WaitingForFood ? " · Chờ thức ăn" : " · Đang ăn" : " · Khỏe";
+                names.Add(name + " · " + (resident.role == AffinityRole.Primary ? "Chính" : "Phụ") + " · " + resident.qualityRank.ToString().Replace("Rank", "") + condition);
             }
             model.residents = names.Count == 0 ? "Chưa có cư dân." : string.Join("\n", names);
             model.hint = habitat.HexCount < 3 ? "Cần 3 hex để sản xuất. Hàng đã có vẫn thu được." : "T1: loài chính · T2: đủ combo cùng nhóm";
@@ -47,7 +106,7 @@ namespace LumiWorld.Acs
                     resourceId = slot.selectedResourceId, icon = definition?.resource?.icon,
                     name = definition?.resource?.resourceName ?? (string.IsNullOrEmpty(slot.selectedResourceId) ? "Chưa chọn" : slot.selectedResourceId),
                     rate = rate?.unitsPerMinute ?? 0,
-                    reason = !unlocked ? "Mở ở " + ResourceInventoryUILayout.UnlockHexCount(slot.tier, slot.index) + " hex" :
+                    reason = !unlocked ? "Mở ở " + ResourceInventoryUILayout.UnlockHexCount(slot.tier, slot.index) + " Ô Đất" :
                         rate?.reason ?? eligibility.Reason });
             }
             model.buffers = Buffers(state == null ? null : new[] { state }, catalog, settings);

@@ -87,8 +87,8 @@ namespace LumiWorld.Acs
                     result.errors.Add(label + "Nature Card ID trống/thừa khoảng trắng/trùng.");
                 if (habitat.natureCard == null || habitat.natureCard.cardType != CardType.Terrain)
                     result.errors.Add(label + "Nature Card phải tham chiếu CardData Terrain.");
-                if (habitat.natureCard != null && habitat.natureCard.maxBiomeTilesOverride > 6)
-                    result.errors.Add(label + "Nature Card override vượt giới hạn 6 hex.");
+                if (habitat.natureCard != null && habitat.natureCard.maxBiomeTilesOverride > HabitatTopologyService.MaximumHexCount)
+                    result.errors.Add(label + "Nature Card override vượt giới hạn " + HabitatTopologyService.MaximumHexCount + " hex.");
                 if (habitat.island == HabitatIsland.None || HabitatDataRules.GetIsland(habitat.affinity) != habitat.island)
                     result.errors.Add(label + "Affinity/Island không khớp GDD.");
             }

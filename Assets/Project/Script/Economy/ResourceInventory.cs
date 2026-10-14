@@ -11,17 +11,27 @@ using UnityEngine;
 public class ResourceInventory : MonoBehaviour
 {
     private static ResourceInventory _instance;
+    private static bool _isQuitting = false;
+
+    public static bool HasInstance => _instance != null && !_isQuitting;
+
     public static ResourceInventory Instance
     {
         get
         {
+            if (_isQuitting) return null;
+
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<ResourceInventory>();
                 if (_instance == null)
                 {
+                    if (!Application.isPlaying || _isQuitting)
+                        return null;
+
                     GameObject go = new GameObject("ResourceInventory");
                     _instance = go.AddComponent<ResourceInventory>();
+                    DontDestroyOnLoad(go);
                 }
             }
             return _instance;
@@ -35,6 +45,13 @@ public class ResourceInventory : MonoBehaviour
     /// </summary>
     public event Action<string, int, int> OnInventoryChanged;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        _instance = null;
+        _isQuitting = false;
+    }
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -44,7 +61,14 @@ public class ResourceInventory : MonoBehaviour
         }
 
         _instance = this;
+        _isQuitting = false;
+        DontDestroyOnLoad(gameObject);
         EconomySaveSystem.Instance.Attach(this);
+    }
+
+    private void OnApplicationQuit()
+    {
+        _isQuitting = true;
     }
 
     private void OnDestroy()
@@ -56,6 +80,26 @@ public class ResourceInventory : MonoBehaviour
     {
         if (string.IsNullOrEmpty(resourceId)) return 0;
         return amounts.TryGetValue(resourceId, out int amount) ? amount : 0;
+    }
+
+    // Debit stock and commit the destination before notifying inventory/save observers.
+    public bool TryConsume(string resourceId, int amount, Func<bool> commitOwner)
+    {
+        if (string.IsNullOrWhiteSpace(resourceId) || amount <= 0 || commitOwner == null) return false;
+        int previous = GetAmount(resourceId);
+        if (previous < amount) return false;
+        amounts[resourceId] = previous - amount;
+        try
+        {
+            if (!commitOwner()) { amounts[resourceId] = previous; return false; }
+        }
+        catch { amounts[resourceId] = previous; throw; }
+        var listeners = OnInventoryChanged;
+        if (listeners != null)
+            foreach (Action<string, int, int> listener in listeners.GetInvocationList())
+                try { listener(resourceId, previous - amount, -amount); }
+                catch (Exception exception) { Debug.LogException(exception, this); }
+        return true;
     }
 
     public int GetAmount(ResourceData resource)
@@ -199,6 +243,24 @@ public class ResourceInventory : MonoBehaviour
             OnInventoryChanged?.Invoke(need.Key, newAmount, -need.Value);
         }
         return true;
+    }
+
+    /// <summary>
+    /// Xóa sạch toàn bộ tài nguyên trong kho (dành cho cheat / test / reset).
+    /// </summary>
+    public void Clear()
+    {
+        var keys = new List<string>(amounts.Keys);
+        foreach (string key in keys)
+        {
+            int old = amounts[key];
+            if (old > 0)
+            {
+                amounts[key] = 0;
+                OnInventoryChanged?.Invoke(key, 0, -old);
+            }
+        }
+        amounts.Clear();
     }
 
     private static Dictionary<string, int> SumByResource(IList<ResourceStack> stacks)

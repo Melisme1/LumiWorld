@@ -41,14 +41,17 @@ namespace LumiWorld.Acs
         private readonly Dictionary<string, Button> summaryButtons = new Dictionary<string, Button>();
         private string habitatKey, summaryKey, selectedWarehouseId;
         private List<ResourceUIItem> warehouseItems;
-        private sealed class OptionRow { public Image border; public TextMeshProUGUI requirements, reason; }
+        private sealed class OptionRow { public Image cardBackground; public Image border; public TextMeshProUGUI name, requirements, reason; }
 
         public ResourceInventoryUIView(RectTransform root, ResourceInventoryUISkin skin, ResourceInventoryUIActions actions)
         {
             this.root = root; this.skin = skin; this.actions = actions;
-            G.Round(root, "WarehouseButton", skin.iconWarehouse, skin, 20, 18, 52, () => actions.openWarehouse?.Invoke());
-            G.Button(root, "HabitatButton", "Habitat", skin, 82, 22, 110, 44, () => actions.toggleHabitat?.Invoke());
-            G.Text(root, "WarehouseCaption", "Kho tài nguyên", skin, 20, 70, 155, 22, 14);
+            G.Round(root, "WarehouseButton", skin.iconWarehouse, skin, 38, 18, 52, () => actions.openWarehouse?.Invoke());
+            // HabitatButton removed per user request: all habitat interaction is unified in Living Creatures Panel 1
+            var whCap = G.Text(root, "WarehouseCaption", "Kho tài nguyên", skin, 4, 74, 120, 22, 13f, new Color(0.06f, 0.12f, 0.20f, 1f), bold: true);
+            whCap.alignment = TextAlignmentOptions.Center;
+            whCap.overflowMode = TextOverflowModes.Overflow;
+            whCap.textWrappingMode = TextWrappingModes.NoWrap;
             BuildHabitat(); BuildWarehouse(); BuildSelector(); BuildSummary();
             Receipt = G.Rect("HarvestReceipt", root); G.Place(Receipt, 240, 20, 470, 100);
             G.Image(Receipt, skin.surfaceInset, true, skin.insetPPU, true); Receipt.gameObject.SetActive(false);
@@ -99,7 +102,9 @@ namespace LumiWorld.Acs
                 return;
             }
             habitatTitle.text = model.title;
-            habitatSubtitle.text = model.hexCount + " hex · Cư dân " + model.residentCount + "/" + model.capacity;
+            int unlockedSlotsCount = 0;
+            if (model.slots != null) { foreach (var s in model.slots) if (s != null && s.unlocked) unlockedSlotsCount++; }
+            habitatSubtitle.text = $"{model.hexCount} hex · Cư dân: {model.residentCount}/{model.capacity} · Slot: {unlockedSlotsCount}/{(model.slots != null ? model.slots.Count : 3)}";
             if (habitatKey != model.structureKey)
             {
                 habitatKey = model.structureKey; G.Clear(habitatContent); bufferCounts.Clear(); bufferButtons.Clear();
@@ -149,99 +154,431 @@ namespace LumiWorld.Acs
 
         private void BuildWarehouse()
         {
-            WarehouseWindow = Modal("WarehouseWindow", 910, 560, "Kho tài nguyên", "Đã thu trong kho · Buffer chờ thu nằm ở habitat", actions.closeWarehouse, out var panel);
-            warehouseContent = G.Scroll(panel, "ResourceGrid", 28, 98, 598, 390);
-            var detail = G.Rect("ResourceDetails", panel); G.Place(detail, 650, 98, 230, 390);
-            G.Image(detail, skin.surfaceInset, true, skin.insetPPU);
-            detailIcon = G.Icon(detail, "Icon", null, 71, 22, 88);
-            detailName = G.Text(detail, "Name", "Chọn tài nguyên", skin, 20, 120, 190, 54, 21, bold: true);
-            detailMeta = G.Text(detail, "Source", "", skin, 20, 184, 190, 28, 15);
-            detailStock = G.Text(detail, "Stock", "", skin, 20, 220, 190, 42, 17, bold: true);
-            detailDescription = G.Text(detail, "Description", "", skin, 20, 272, 190, 97, 14);
-            recovery = G.Button(panel, "Recovery", "Hàng bảo toàn", skin, 30, 502, 270, 34, () => actions.openRecovery?.Invoke());
-            G.Text(panel, "CapacityHint", "Sức chứa tính riêng theo từng loại tài nguyên", skin, 336, 500, 520, 36, 14, skin.muted);
+            var modal = G.Rect("WarehouseWindow", root); G.Stretch(modal);
+            var dimmer = G.Rect("Dimmer", modal); G.Stretch(dimmer);
+            var dim = dimmer.gameObject.AddComponent<Image>();
+            dim.color = new Color(0.04f, 0.08f, 0.14f, 0.65f);
+            dim.raycastTarget = true;
+            dimmer.gameObject.AddComponent<ResourceUIInputBlocker>();
+
+            var panel = G.Rect("Panel", modal);
+            panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
+            panel.sizeDelta = new Vector2(910, 560);
+            var panelImg = panel.gameObject.AddComponent<Image>();
+            panelImg.sprite = GetSelectorPanelSprite();
+            panelImg.type = Image.Type.Sliced;
+            panelImg.color = Color.white;
+            panelImg.raycastTarget = true;
+            panel.gameObject.AddComponent<ResourceUIInputBlocker>();
+
+            G.Text(panel, "Title", "KHO TÀI NGUYÊN", skin, 32, 24, 750, 32, 22, new Color(0.04f, 0.12f, 0.22f, 1f), bold: true);
+            G.Text(panel, "Subtitle", "Túi đồ cá nhân · Chỉ hiển thị tài nguyên đã khai thác vào kho", skin, 32, 58, 750, 24, 13, new Color(0.28f, 0.38f, 0.48f, 1f));
+
+            G.Round(panel, "Close", skin.iconClose, skin, 910 - 64, 20, 36, () => actions.closeWarehouse?.Invoke());
+
+            warehouseContent = G.Scroll(panel, "ResourceGrid", 28, 92, 598, 386);
+
+            // Right detail pane (Clean Modern Tech Card Box)
+            var detail = G.Rect("ResourceDetails", panel);
+            G.Place(detail, 646, 92, 236, 386);
+            var detailBg = detail.gameObject.AddComponent<Image>();
+            detailBg.sprite = GetSelectorOptionCardSprite();
+            detailBg.type = Image.Type.Sliced;
+            detailBg.color = Color.white;
+
+            var art = G.Rect("DetailIconBox", detail);
+            G.Place(art, 78, 20, 80, 80);
+            var artImg = art.gameObject.AddComponent<Image>();
+            artImg.sprite = GetSelectorIconBoxSprite();
+            artImg.type = Image.Type.Sliced;
+            artImg.color = Color.white;
+
+            detailIcon = G.Icon(art, "Icon", null, 14, 14, 52);
+
+            detailName = G.Text(detail, "Name", "Chọn tài nguyên", skin, 16, 114, 204, 38, 18, new Color(0.04f, 0.12f, 0.22f, 1f), bold: true);
+            detailName.alignment = TextAlignmentOptions.Center;
+
+            detailMeta = G.Text(detail, "Source", "", skin, 16, 154, 204, 24, 13, new Color(0.28f, 0.38f, 0.48f, 1f));
+            detailMeta.alignment = TextAlignmentOptions.Center;
+
+            detailStock = G.Text(detail, "Stock", "", skin, 16, 188, 204, 34, 16, new Color(0.02f, 0.52f, 0.78f, 1f), bold: true);
+            detailStock.alignment = TextAlignmentOptions.Center;
+
+            detailDescription = G.Text(detail, "Description", "", skin, 20, 232, 196, 136, 13, new Color(0.20f, 0.28f, 0.38f, 1f));
+            detailDescription.alignment = TextAlignmentOptions.TopLeft;
+
+            recovery = TechPillButton(panel, "Recovery", "Hàng bảo toàn", GetSelectorButtonSecondarySprite(), new Color(0.12f, 0.22f, 0.35f, 1f), 30, 494, 220, 40, () => actions.openRecovery?.Invoke());
+            G.Text(panel, "CapacityHint", "Sức chứa tính riêng theo từng loại tài nguyên trong kho", skin, 270, 502, 590, 28, 13.5f, new Color(0.40f, 0.50f, 0.60f, 1f));
+
+            modal.gameObject.SetActive(false);
+            WarehouseWindow = modal;
         }
 
         public void BuildWarehouseItems(List<ResourceUIItem> items)
         {
-            warehouseItems = items; G.Clear(warehouseContent); warehouseCounts.Clear(); warehouseBorders.Clear();
+            warehouseItems = items;
+            G.Clear(warehouseContent);
+            warehouseCounts.Clear();
+            warehouseBorders.Clear();
+
+            if (items == null || items.Count == 0)
+            {
+                var emptyRect = G.Rect("EmptyNotice", warehouseContent);
+                G.Place(emptyRect, 0, 80, 580, 100);
+                var emptyTxt = emptyRect.gameObject.AddComponent<TextMeshProUGUI>();
+                emptyTxt.font = skin.font;
+                emptyTxt.fontSize = 15f;
+                emptyTxt.alignment = TextAlignmentOptions.Center;
+                emptyTxt.color = new Color(0.40f, 0.50f, 0.60f, 1f);
+                emptyTxt.text = "Túi đồ hiện đang trống.\nHãy khai thác và thu hoạch tài nguyên từ các Môi trường (Habitat)!";
+
+                detailIcon.sprite = null;
+                detailName.text = "Túi đồ trống";
+                detailMeta.text = "";
+                detailStock.text = "0 tài nguyên";
+                detailDescription.text = "Chưa có tài nguyên nào được thu thập vào túi đồ.";
+                return;
+            }
+
             for (int i = 0; i < items.Count; i++)
             {
-                var item = items[i]; float x = i % 5 * 116, y = i / 5 * 130;
-                var rect = G.Rect("Item_" + item.id, warehouseContent); G.Place(rect, x, y, 108, 124);
-                var hit = rect.gameObject.AddComponent<Image>(); hit.color = Color.clear;
-                var button = rect.gameObject.AddComponent<Button>(); button.targetGraphic = hit; button.navigation = new Navigation { mode = Navigation.Mode.None };
+                var item = items[i];
+                float x = (i % 5) * 118f;
+                float y = (i / 5) * 132f;
+
+                var rect = G.Rect("Item_" + item.id, warehouseContent);
+                G.Place(rect, x, y, 110, 122);
+
+                var bgImg = rect.gameObject.AddComponent<Image>();
+                bgImg.sprite = GetSelectorOptionCardSprite();
+                bgImg.type = Image.Type.Sliced;
+                bgImg.color = Color.white;
+                bgImg.raycastTarget = true;
+                rect.gameObject.AddComponent<ResourceUIInputBlocker>();
+
+                var button = rect.gameObject.AddComponent<Button>();
+                button.targetGraphic = bgImg;
+                button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.onClick.AddListener(() => SelectWarehouse(item.id));
-                var art = G.Rect("Slot", rect); G.Place(art, 14, 0, 80, 80); G.Image(art, skin.slotResource);
-                G.Icon(art, "ResourceIcon", item.icon, 15, 12, 50);
-                var selected = G.Rect("Selected", art); G.Stretch(selected); warehouseBorders[item.id] = G.Image(selected, skin.slotSelected);
-                warehouseCounts[item.id] = G.Text(art, "Stock", "", skin, 0, 55, 73, 23, 17, bold: true);
-                warehouseCounts[item.id].alignment = TextAlignmentOptions.MidlineRight;
-                G.Text(rect, "Name", item.name, skin, 0, 83, 108, 40, 15).alignment = TextAlignmentOptions.Top;
+
+                // Selected Neon Cyan Glow Frame
+                var selRect = G.Rect("Selected", rect);
+                G.Stretch(selRect);
+                var selImg = selRect.gameObject.AddComponent<Image>();
+                selImg.sprite = GetSelectorOptionSelectedSprite();
+                selImg.type = Image.Type.Sliced;
+                selImg.color = Color.white;
+                selImg.raycastTarget = false;
+                selRect.gameObject.SetActive(false);
+                warehouseBorders[item.id] = selImg;
+
+                // Center Icon Box
+                var art = G.Rect("Slot", rect);
+                G.Place(art, 24, 10, 62, 62);
+                var artImg = art.gameObject.AddComponent<Image>();
+                artImg.sprite = GetSelectorIconBoxSprite();
+                artImg.type = Image.Type.Sliced;
+                artImg.color = Color.white;
+                artImg.raycastTarget = false;
+
+                if (item.icon != null)
+                {
+                    var ic = G.Icon(art, "ResourceIcon", item.icon, 10, 10, 42);
+                    ic.raycastTarget = false;
+                }
+
+                // Số lượng ở góc dưới phải của Icon Box
+                var countRect = G.Rect("CountBox", art);
+                G.Place(countRect, 4, 38, 54, 20);
+                var countTxt = countRect.gameObject.AddComponent<TextMeshProUGUI>();
+                countTxt.font = skin.font;
+                countTxt.fontSize = 13.5f;
+                countTxt.fontStyle = FontStyles.Bold;
+                countTxt.alignment = TextAlignmentOptions.BottomRight;
+                countTxt.color = new Color(0.02f, 0.48f, 0.72f, 1f);
+                countTxt.text = item.stock.ToString();
+                countTxt.raycastTarget = false;
+                warehouseCounts[item.id] = countTxt;
+
+                // Tên tài nguyên bên dưới
+                var nameRect = G.Rect("Name", rect);
+                G.Place(nameRect, 4, 76, 102, 38);
+                var nameTxt = nameRect.gameObject.AddComponent<TextMeshProUGUI>();
+                nameTxt.font = skin.font;
+                nameTxt.fontSize = 12f;
+                nameTxt.fontStyle = FontStyles.Bold;
+                nameTxt.alignment = TextAlignmentOptions.Top;
+                nameTxt.overflowMode = TextOverflowModes.Ellipsis;
+                nameTxt.color = new Color(0.08f, 0.16f, 0.28f, 1f);
+                nameTxt.text = item.name;
+                nameTxt.raycastTarget = false;
             }
-            warehouseContent.sizeDelta = new Vector2(588, Mathf.CeilToInt(items.Count / 5f) * 130);
+
+            warehouseContent.sizeDelta = new Vector2(588, Mathf.Max(380, Mathf.CeilToInt(items.Count / 5f) * 132));
             if (items.Count > 0) SelectWarehouse(items[0].id);
             UpdateWarehouse(items, 0);
         }
+
         public void UpdateWarehouse(List<ResourceUIItem> items, long recoveryAmount)
         {
             warehouseItems = items;
             foreach (var item in items)
+            {
                 if (warehouseCounts.TryGetValue(item.id, out var label))
-                { label.text = item.stock.ToString(); label.color = item.stock >= item.capacity ? skin.gold : skin.forest; }
-            recovery.interactable = recoveryAmount > 0;
-            recovery.GetComponentInChildren<TextMeshProUGUI>().text = "Hàng bảo toàn · " + recoveryAmount;
-            SelectWarehouse(selectedWarehouseId);
+                {
+                    label.text = item.stock.ToString();
+                    label.color = item.stock >= item.capacity ? new Color(0.85f, 0.45f, 0.1f, 1f) : new Color(0.02f, 0.48f, 0.72f, 1f);
+                }
+            }
+            if (recovery != null)
+            {
+                recovery.interactable = recoveryAmount > 0;
+                var recTxt = recovery.GetComponentInChildren<TextMeshProUGUI>();
+                if (recTxt != null) recTxt.text = "Hàng bảo toàn · " + recoveryAmount;
+            }
+            if (!string.IsNullOrEmpty(selectedWarehouseId))
+            {
+                SelectWarehouse(selectedWarehouseId);
+            }
         }
+
         private void SelectWarehouse(string id)
         {
             selectedWarehouseId = id;
             foreach (var pair in warehouseBorders) pair.Value.gameObject.SetActive(pair.Key == id);
-            var item = warehouseItems?.Find(i => i.id == id); if (item == null) return;
-            detailIcon.sprite = item.icon; detailName.text = item.name; detailMeta.text = item.biome + " · " + item.tier;
+            var item = warehouseItems?.Find(i => i.id == id);
+            if (item == null) return;
+            detailIcon.sprite = item.icon;
+            detailName.text = item.name;
+            detailMeta.text = item.biome + " · " + item.tier;
             detailStock.text = "Đã thu: " + item.stock + " / " + item.capacity;
             detailDescription.text = item.description;
         }
 
+        private static Sprite selectorPanelSprite;
+        private static Sprite selectorOptionCardSprite;
+        private static Sprite selectorOptionSelectedSprite;
+        private static Sprite selectorButtonPrimarySprite;
+        private static Sprite selectorButtonSecondarySprite;
+        private static Sprite selectorIconBoxSprite;
+
+        private static Sprite CreateTechBox(int w, int h, int r, Color fillColor, Color borderColor)
+        {
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+
+            Color[] px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
+                    float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
+                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                    if (dist > r)
+                    {
+                        px[y * w + x] = Color.clear;
+                    }
+                    else if (dist >= r - 1.5f || x == 0 || x == w - 1 || y == 0 || y == h - 1)
+                    {
+                        px[y * w + x] = borderColor;
+                    }
+                    else
+                    {
+                        px[y * w + x] = fillColor;
+                    }
+                }
+            }
+
+            tex.SetPixels(px);
+            tex.Apply();
+            Vector4 border = new Vector4(r + 2, r + 2, r + 2, r + 2);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
+        }
+
+        private static Sprite GetSelectorPanelSprite()
+        {
+            if (selectorPanelSprite == null)
+                selectorPanelSprite = CreateTechBox(64, 64, 12, new Color(0.965f, 0.985f, 1f, 0.98f), new Color(0f, 0.70f, 0.88f, 1f));
+            return selectorPanelSprite;
+        }
+
+        private static Sprite GetSelectorOptionCardSprite()
+        {
+            if (selectorOptionCardSprite == null)
+                selectorOptionCardSprite = CreateTechBox(64, 64, 8, Color.white, new Color(0.82f, 0.88f, 0.94f, 1f));
+            return selectorOptionCardSprite;
+        }
+
+        private static Sprite GetSelectorOptionSelectedSprite()
+        {
+            if (selectorOptionSelectedSprite == null)
+                selectorOptionSelectedSprite = CreateTechBox(64, 64, 8, Color.clear, new Color(0f, 0.71f, 0.85f, 1f));
+            return selectorOptionSelectedSprite;
+        }
+
+        private static Sprite GetSelectorIconBoxSprite()
+        {
+            if (selectorIconBoxSprite == null)
+                selectorIconBoxSprite = CreateTechBox(48, 48, 6, new Color(0.92f, 0.96f, 1f, 1f), new Color(0.60f, 0.80f, 0.92f, 1f));
+            return selectorIconBoxSprite;
+        }
+
+        private static Sprite GetSelectorButtonPrimarySprite()
+        {
+            if (selectorButtonPrimarySprite == null)
+                selectorButtonPrimarySprite = CreateTechBox(64, 36, 6, new Color(0f, 0.68f, 0.86f, 1f), new Color(0.35f, 0.85f, 1f, 1f));
+            return selectorButtonPrimarySprite;
+        }
+
+        private static Sprite GetSelectorButtonSecondarySprite()
+        {
+            if (selectorButtonSecondarySprite == null)
+                selectorButtonSecondarySprite = CreateTechBox(64, 36, 6, Color.white, new Color(0.70f, 0.82f, 0.90f, 1f));
+            return selectorButtonSecondarySprite;
+        }
+
+        private Button TechPillButton(Transform parent, string name, string label, Sprite bgSprite, Color textColor, float x, float y, float w, float h, UnityEngine.Events.UnityAction action)
+        {
+            var rect = G.Rect(name, parent); G.Place(rect, x, y, w, h);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = bgSprite;
+            image.type = Image.Type.Sliced;
+            image.color = Color.white;
+            image.raycastTarget = true;
+            rect.gameObject.AddComponent<ResourceUIInputBlocker>();
+
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+            var colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.1f, 1.1f, 1.1f, 1f);
+            colors.pressedColor = new Color(0.85f, 0.92f, 0.98f, 1f);
+            colors.disabledColor = new Color(0.75f, 0.80f, 0.85f, 0.6f);
+            button.colors = colors;
+            button.onClick.AddListener(action);
+
+            var text = G.Text(rect, "Label", label, skin, 0, 0, w, h, 14.5f, textColor, true);
+            text.alignment = TextAlignmentOptions.Center;
+            return button;
+        }
+
         private void BuildSelector()
         {
-            SelectorWindow = Modal("ResourceSelectorDialog", 800, 550, "Chọn tài nguyên", "Cùng biome và tier · Combo cần đủ loài trong cùng habitat", actions.closeSelector, out var panel);
-            selectorContent = G.Scroll(panel, "Choices", 28, 98, 744, 340);
-            selectorStatus = G.Text(panel, "Eligibility", "", skin, 30, 446, 738, 42, 14);
-            G.Button(panel, "Clear", "Bỏ lựa chọn", skin, 30, 496, 152, 34, () => actions.clearSelection?.Invoke());
-            G.Button(panel, "Cancel", "Hủy", skin, 474, 496, 130, 34, () => actions.closeSelector?.Invoke());
-            apply = G.Button(panel, "Apply", "Áp dụng", skin, 616, 492, 154, 42, () => actions.applySelection?.Invoke(), true);
+            var modal = G.Rect("ResourceSelectorDialog", root); G.Stretch(modal);
+            var dimmer = G.Rect("Dimmer", modal); G.Stretch(dimmer);
+            var dim = dimmer.gameObject.AddComponent<Image>(); dim.color = new Color(0.04f, 0.08f, 0.14f, 0.65f); dim.raycastTarget = true;
+            dimmer.gameObject.AddComponent<ResourceUIInputBlocker>();
+
+            var panel = G.Rect("Panel", modal); panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
+            panel.sizeDelta = new Vector2(800, 550);
+            var panelImg = panel.gameObject.AddComponent<Image>();
+            panelImg.sprite = GetSelectorPanelSprite();
+            panelImg.type = Image.Type.Sliced;
+            panelImg.color = Color.white;
+            panelImg.raycastTarget = true;
+            panel.gameObject.AddComponent<ResourceUIInputBlocker>();
+
+            G.Text(panel, "Title", "CHỌN TÀI NGUYÊN KHAI THÁC", skin, 32, 24, 680, 32, 22, new Color(0.04f, 0.12f, 0.22f, 1f), bold: true);
+            G.Text(panel, "Subtitle", "Cùng biome & tier · Combo cần đủ loài sinh vật trong cùng môi trường", skin, 32, 58, 680, 24, 13, new Color(0.28f, 0.38f, 0.48f, 1f));
+
+            G.Round(panel, "Close", skin.iconClose, skin, 800 - 64, 20, 36, () => actions.closeSelector?.Invoke());
+
+            selectorContent = G.Scroll(panel, "Choices", 28, 92, 744, 344);
+            selectorStatus = G.Text(panel, "Eligibility", "", skin, 30, 448, 738, 36, 13.5f, new Color(0.15f, 0.25f, 0.38f, 1f));
+
+            TechPillButton(panel, "Clear", "Bỏ lựa chọn", GetSelectorButtonSecondarySprite(), new Color(0.12f, 0.22f, 0.35f, 1f), 30, 492, 152, 40, () => actions.clearSelection?.Invoke());
+            TechPillButton(panel, "Cancel", "Hủy", GetSelectorButtonSecondarySprite(), new Color(0.12f, 0.22f, 0.35f, 1f), 474, 492, 130, 40, () => actions.closeSelector?.Invoke());
+            apply = TechPillButton(panel, "Apply", "Áp dụng", GetSelectorButtonPrimarySprite(), Color.white, 616, 490, 154, 42, () => actions.applySelection?.Invoke());
+
+            modal.gameObject.SetActive(false);
+            SelectorWindow = modal;
         }
+
         public void BuildOptions(List<ResourceUIOption> options)
         {
             G.Clear(selectorContent); optionRows.Clear(); float y = 0;
             foreach (var option in options)
             {
-                var rect = G.Rect("Option_" + option.id, selectorContent); G.Place(rect, 0, y, 730, 104);
-                var image = G.Image(rect, skin.surfaceInset, true, skin.insetPPU, true);
-                var button = rect.gameObject.AddComponent<Button>(); button.targetGraphic = image;
+                var rect = G.Rect("Option_" + option.id, selectorContent); G.Place(rect, 0, y, 730, 102);
+                var bgImg = rect.gameObject.AddComponent<Image>();
+                bgImg.sprite = GetSelectorOptionCardSprite();
+                bgImg.type = Image.Type.Sliced;
+                bgImg.color = Color.white;
+                bgImg.raycastTarget = true;
+                rect.gameObject.AddComponent<ResourceUIInputBlocker>();
+
+                var button = rect.gameObject.AddComponent<Button>();
+                button.targetGraphic = bgImg;
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.onClick.AddListener(() => actions.chooseResource?.Invoke(option.id));
-                var art = G.Rect("Slot", rect); G.Place(art, 10, 12, 76, 76); G.Image(art, skin.slotResource);
-                G.Icon(art, "ResourceIcon", option.icon, 14, 14, 48);
-                var border = G.Rect("Selected", art); G.Stretch(border);
-                var row = new OptionRow { border = G.Image(border, skin.slotSelected) };
-                G.Text(rect, "Name", option.name, skin, 100, 8, 614, 25, 19, bold: true);
-                row.requirements = G.Text(rect, "Species", "", skin, 100, 34, 614, 37, 14);
-                row.reason = G.Text(rect, "Reason", "", skin, 100, 72, 614, 26, 13);
-                optionRows[option.id] = row; y += 112;
+
+                // Left Icon Box
+                var art = G.Rect("Slot", rect); G.Place(art, 12, 12, 76, 76);
+                var artImg = art.gameObject.AddComponent<Image>();
+                artImg.sprite = GetSelectorIconBoxSprite();
+                artImg.type = Image.Type.Sliced;
+                artImg.color = Color.white;
+                artImg.raycastTarget = false;
+
+                if (option.icon != null)
+                {
+                    var iconImg = G.Icon(art, "ResourceIcon", option.icon, 12, 12, 52);
+                    iconImg.raycastTarget = false;
+                }
+
+                // Selected Neon Cyan Border
+                var borderRect = G.Rect("Selected", rect); G.Stretch(borderRect);
+                var borderImg = borderRect.gameObject.AddComponent<Image>();
+                borderImg.sprite = GetSelectorOptionSelectedSprite();
+                borderImg.type = Image.Type.Sliced;
+                borderImg.color = Color.white;
+                borderImg.raycastTarget = false;
+                borderRect.gameObject.SetActive(false);
+
+                // Option Row Texts: Crisp Navy, Slate, Mint
+                var nameText = G.Text(rect, "Name", option.name, skin, 104, 10, 610, 26, 17.5f, new Color(0.05f, 0.12f, 0.22f, 1f), bold: true);
+                var reqText = G.Text(rect, "Species", "", skin, 104, 38, 610, 32, 13.5f, new Color(0.22f, 0.32f, 0.44f, 1f));
+                var reasonText = G.Text(rect, "Reason", "", skin, 104, 70, 610, 24, 13f, bold: true);
+
+                optionRows[option.id] = new OptionRow
+                {
+                    cardBackground = bgImg,
+                    border = borderImg,
+                    name = nameText,
+                    requirements = reqText,
+                    reason = reasonText
+                };
+                y += 110;
             }
-            selectorContent.sizeDelta = new Vector2(734, Mathf.Max(340, y));
+            selectorContent.sizeDelta = new Vector2(734, Mathf.Max(344, y));
         }
+
         public void UpdateOptions(List<ResourceUIOption> options, string pending, bool canApply, string reason)
         {
             foreach (var option in options)
+            {
                 if (optionRows.TryGetValue(option.id, out var row))
                 {
-                    row.border.gameObject.SetActive(option.id == pending); row.requirements.text = option.requirements;
-                    row.reason.text = option.reason; row.reason.color = option.eligible ? skin.forest : skin.muted;
+                    bool isSelected = (option.id == pending);
+                    if (row.border != null) row.border.gameObject.SetActive(isSelected);
+                    if (row.cardBackground != null)
+                    {
+                        row.cardBackground.color = isSelected ? new Color(0.92f, 0.97f, 1f, 1f) : Color.white;
+                    }
+                    if (row.requirements != null) row.requirements.text = option.requirements;
+                    if (row.reason != null)
+                    {
+                        row.reason.text = option.eligible ? "✓ " + option.reason : option.reason;
+                        row.reason.color = option.eligible ? new Color(0.02f, 0.58f, 0.38f, 1f) : new Color(0.85f, 0.15f, 0.25f, 1f);
+                    }
                 }
-            selectorStatus.text = reason; apply.interactable = canApply;
+            }
+            if (selectorStatus != null) selectorStatus.text = reason;
+            if (apply != null) apply.interactable = canApply;
         }
 
         private void BuildSummary()

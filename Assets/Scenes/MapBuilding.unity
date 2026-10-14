@@ -454,6 +454,17 @@ MonoBehaviour:
     comboPolicy: 1
     tier1BufferCap: 100
     tier2BufferCap: 50
+  creatureCare:
+    rankIHungerSeconds: 60
+    rankIIHungerSeconds: 90
+    rankIIIHungerSeconds: 120
+    autoFeedAtSatiety: 50
+    foodUnitsPerSecond: 10
+    food: {fileID: 0}
+    fallbackFoodResourceId: resource.leafwood.raspberries
+    seedFoodUnitsToFull: 50
+    additionalFoods: []
+    speciesDiets: []
   displayRefreshSeconds: 0.5
   inventory: {fileID: 0}
 --- !u!114 &88682140
@@ -745,6 +756,56 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 281286586}
   m_CullTransparentMesh: 1
+--- !u!1 &305089947
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 305089949}
+  - component: {fileID: 305089948}
+  m_Layer: 0
+  m_Name: Disaster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &305089948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 305089947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24521dfef09167d48ad29ed6d3f405b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.DisasterRuntimeManager
+  worldGenerator: {fileID: 832299767}
+  balance: {fileID: 11400000, guid: 1d0dfdd07073dd7499fd95c49a7dea56, type: 2}
+  clockSource: {fileID: 0}
+  enableTestHotkeys: 1
+  debugObstacleColor: {r: 0.35, g: 0.36, b: 0.4, a: 1}
+  debugSpawnDiagnostics: 1
+--- !u!4 &305089949
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 305089947}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 401.25644, y: 260.3619, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &455622687
 GameObject:
   m_ObjectHideFlags: 0
@@ -1180,6 +1241,55 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &770000011
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 770000012}
+  - component: {fileID: 770000013}
+  m_Layer: 0
+  m_Name: WildPackIncidentManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &770000012
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 770000011}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &770000013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 770000011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fa929a2dfcd334fb18552a37039268, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WildPackIncidentManager
+  config: {fileID: 11400000, guid: 3f8a912b4e5c6d7e8f90123456789abc, type: 2}
+  enableIncidents: 1
+  currentIntervalDuration: 240
+  internalTimer: 0
+  activeIncidentCount: 0
 --- !u!1 &832299766
 GameObject:
   m_ObjectHideFlags: 0
@@ -1645,7 +1755,7 @@ MonoBehaviour:
   lookSensitivity: 0.2
   zoomSensitivity: 0.05
   scrollZoomSpeed: 3
-  minHeight: 5
+  minHeight: 2
   maxHeight: 20
   smoothTime: 18
   autoSetupStartingView: 1
@@ -2382,56 +2492,48 @@ MonoBehaviour:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
     grantLandExpansion: 1
   - scoreThreshold: 10
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 15
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 21
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 28
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000008, type: 2}
     grantLandExpansion: 1
   - scoreThreshold: 36
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000010, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 45
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 55
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000005, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 66
     rewardCards:
@@ -2439,28 +2541,24 @@ MonoBehaviour:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000016, type: 2}
     grantLandExpansion: 1
   - scoreThreshold: 78
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 91
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 105
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 120
     rewardCards:
@@ -2468,21 +2566,18 @@ MonoBehaviour:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
     grantLandExpansion: 1
   - scoreThreshold: 136
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 153
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 171
     rewardCards:
@@ -2498,16 +2593,12 @@ MonoBehaviour:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
     grantLandExpansion: 1
   - scoreThreshold: 210
     rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
     grantLandExpansion: 0
   - scoreThreshold: 235
     rewardCards:
@@ -2515,9 +2606,6 @@ MonoBehaviour:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
-    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
     grantLandExpansion: 1
   endlessInterval: 30
   endlessRainCard: {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
@@ -2525,13 +2613,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000008, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
 --- !u!1 &1648801192
 GameObject:
   m_ObjectHideFlags: 0
@@ -3160,3 +3241,5 @@ SceneRoots:
   - {fileID: 1136503281}
   - {fileID: 88682141}
   - {fileID: 953997785}
+  - {fileID: 770000012}
+  - {fileID: 305089949}

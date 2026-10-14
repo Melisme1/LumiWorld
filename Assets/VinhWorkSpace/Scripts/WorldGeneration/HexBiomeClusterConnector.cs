@@ -110,8 +110,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
         set => enableBiomeSizeLimit = value;
     }
 
-    [Tooltip("Số ô lục giác tối đa của một Cụm Biome (Mặc định: 6). Khi cụm đã đủ 6 ô, các ô đặt thêm sau đó sẽ tách thành cụm độc lập, không tạo viền nối.")]
-    [SerializeField] private int maxTilesPerCluster = 6;
+    [Tooltip("Số ô lục giác tối đa của một Cụm Biome (Mặc định: 9). Khi cụm đã đủ 9 ô, các ô đặt thêm sau đó sẽ tách thành cụm độc lập, không tạo viền nối.")]
+    [SerializeField] private int maxTilesPerCluster = 9;
     public int MaxTilesPerCluster
     {
         get => maxTilesPerCluster;
@@ -175,9 +175,9 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
     /// <summary>
     /// Gán hoặc sáp nhập Cụm Biome cho một lá bài PlacedCard vừa đặt xuống.
-    /// Đảm bảo một cụm không bao giờ vượt quá maxTilesPerCluster (mặc định 6 ô).
-    /// Nếu đặt thêm ô thứ 7, ô đó sẽ được tách thành một cụm độc lập (clusterId mới),
-    /// không tạo bất kỳ viền nối nào với cụm 6 ô trước đó.
+    /// Đảm bảo một cụm không bao giờ vượt quá maxTilesPerCluster (mặc định 9 ô).
+    /// Nếu đặt thêm ô thứ 10, ô đó sẽ được tách thành một cụm độc lập (clusterId mới),
+    /// không tạo bất kỳ viền nối nào với cụm 9 ô trước đó.
     /// </summary>
     public int AssignCluster(PlacedCard placedCard)
     {
