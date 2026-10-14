@@ -23,6 +23,8 @@ namespace LumiWorld.Acs
         public double unitsPerMinute;
         public int bufferCap;
         public string reason;
+        // Actual eligible contributors; shared with work accounting so rules cannot diverge.
+        public List<string> contributingIndividualIds = new List<string>();
     }
 
     [Serializable]

@@ -28,6 +28,8 @@ namespace LumiWorld.Acs
         private Vector2 pressPosition;
         private bool mapPress;
         private List<ResourceUIItem> warehouseItems;
+        public string SelectedHabitatId => selectedHabitatId;
+        public event Action<string> HabitatSelected;
 
         public void Initialize(ResourceProductionRuntime runtime, ResourceInventoryUISkin theme)
         { production = runtime; skin = theme; }
@@ -103,7 +105,7 @@ namespace LumiWorld.Acs
                 foreach (var candidate in manager.Habitats)
                     if (candidate.members.Exists(m => m.placementId == selectedAnchor))
                     { selectedHabitatId = candidate.habitatId; habitat = candidate; break; }
-            view.BindHabitat(ResourceInventoryUIPresentation.Habitat(habitat, production.FindState(selectedHabitatId), manager.Catalog, production.Settings));
+            view.BindHabitat(ResourceInventoryUIPresentation.Habitat(habitat, production.FindState(selectedHabitatId), manager.Catalog, production.Settings, production.GetCareState));
             foreach (var item in warehouseItems) item.stock = inventory.GetAmount(item.id);
             var recovered = ResourceInventoryUIPresentation.Buffers(production.States, manager.Catalog, production.Settings, true);
             long recoveryCount = 0; foreach (var buffer in recovered) recoveryCount += buffer.amount;
@@ -129,6 +131,7 @@ namespace LumiWorld.Acs
             if (habitat == null) return; selectedHabitatId = habitat.habitatId;
             selectedAnchor = habitat.members.Count > 0 ? habitat.members[0].placementId : null;
             view.HabitatPanel.gameObject.SetActive(true); dirty = true;
+            HabitatSelected?.Invoke(selectedHabitatId);
         }
         private void Cycle(int direction)
         {

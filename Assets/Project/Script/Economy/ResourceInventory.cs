@@ -8,7 +8,7 @@ using UnityEngine;
 /// để nơi gọi tự giữ lại (ví dụ bong bóng thu hoạch giữ phần dư).
 /// Số lượng được EconomySaveSystem nạp khi vào game và tự lưu sau mỗi thay đổi.
 /// </summary>
-public class ResourceInventory : MonoBehaviour
+public class ResourceInventory : MonoBehaviour, LumiWorld.Acs.ICreatureFoodStore
 {
     private static ResourceInventory _instance;
     public static ResourceInventory Instance
@@ -56,6 +56,26 @@ public class ResourceInventory : MonoBehaviour
     {
         if (string.IsNullOrEmpty(resourceId)) return 0;
         return amounts.TryGetValue(resourceId, out int amount) ? amount : 0;
+    }
+
+    // Food + care form one main-thread command; observers only see its final state.
+    public bool TryConsume(string resourceId, int amount, Func<bool> commitCare)
+    {
+        if (string.IsNullOrWhiteSpace(resourceId) || amount <= 0 || commitCare == null) return false;
+        int previous = GetAmount(resourceId);
+        if (previous < amount) return false;
+        amounts[resourceId] = previous - amount;
+        try
+        {
+            if (!commitCare()) { amounts[resourceId] = previous; return false; }
+        }
+        catch { amounts[resourceId] = previous; throw; }
+        var listeners = OnInventoryChanged;
+        if (listeners != null)
+            foreach (Action<string, int, int> listener in listeners.GetInvocationList())
+                try { listener(resourceId, previous - amount, -amount); }
+                catch (Exception exception) { Debug.LogException(exception, this); }
+        return true;
     }
 
     public int GetAmount(ResourceData resource)
