@@ -28,7 +28,7 @@ namespace LumiWorld.Economy.Crafting
         private const float Spacing = 16f;
 
         [Header("Nút mở trên HUD")]
-        [SerializeField] private Vector2 buttonCorner = new Vector2(-20f, -180f);
+        [SerializeField] private Vector2 buttonCorner = new Vector2(-20f, -232f); // Dưới nút Market (-180), cách đều 52 như Orders, Shop, Market
         [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
         [Header("Màu sắc giao diện (Look & Feel)")]
