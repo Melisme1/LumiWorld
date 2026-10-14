@@ -2366,10 +2366,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
-  maxSpacing: 165
-  minSpacing: 150
-  handWidth: 900
-  cardWidth: 150
+  maxSpacing: 220
+  minSpacing: 60
+  handWidth: 800
+  cardWidth: 20
   appearDelay: 0.1
   rearrangeDuration: 0.25
   showRewardToast: 0
