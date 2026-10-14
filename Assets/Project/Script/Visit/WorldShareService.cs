@@ -109,6 +109,13 @@ public static class WorldShareService
     /// <summary>Tải snapshot của đảo người khác rồi chuyển sang scene VisitWorld.</summary>
     public static IEnumerator Visit(string playerId, Action<string> fail)
     {
+        // Thiếu scene VisitWorld trong Build Settings thì báo ngay, không bắt đầu chuyến thăm dở dang
+        if (!Application.CanStreamedLevelBeLoaded(VisitSession.VisitScene))
+        {
+            fail?.Invoke("The visit scene is missing. Run Tools > LumiWorld > Tạo scene VisitWorld (copy MapBuilding).");
+            yield break;
+        }
+
         WorldVisitResponse visit = null;
         ApiError failure = null;
         yield return ApiClient.Get<WorldVisitResponse>("/api/v1/worlds/" + playerId, true, r => visit = r, err => failure = err);
@@ -138,6 +145,19 @@ public static class WorldShareService
         else fail?.Invoke(MarketSync.Describe(failure));
     }
 
+    /// <summary>Điểm đảo của mình ghi lần cuối khi còn ở màn chơi; -1 nếu chưa có.</summary>
+    public static int LastKnownScore => PlayerPrefs.GetInt(ScoreKey(), -1);
+
+    /// <summary>Ghi lại điểm hiện tại (gọi trước khi rời màn chơi) để Share từ WorldMap gửi đúng điểm.</summary>
+    public static void RememberScore()
+    {
+        if (ScoreManager.Instance == null || !SaveSlot.IsAccount) return;
+        PlayerPrefs.SetInt(ScoreKey(), ScoreManager.Instance.CurrentScore);
+        PlayerPrefs.Save();
+    }
+
+    private static string ScoreKey() => "lumi.world.lastScore." + SaveSlot.PlayerId;
+
     // Đọc file save của mình rồi cắt còn snapshot. Trả về null và lý do nếu không làm được.
     private static string BuildSnapshotJson(out string error)
     {
@@ -150,9 +170,26 @@ public static class WorldShareService
             return null;
         }
 
+        // Ngoài màn chơi (scene WorldMap) không có ScoreManager: dùng điểm nhớ lần cuối, chưa có thì không gửi điểm 0
+        int score;
+        if (ScoreManager.Instance != null)
+        {
+            score = ScoreManager.Instance.CurrentScore;
+            RememberScore();
+        }
+        else
+        {
+            score = LastKnownScore;
+            if (score < 0)
+            {
+                error = "Open your island once before sharing it.";
+                return null;
+            }
+        }
+
         var snapshot = new WorldSnapshot
         {
-            score = ScoreManager.Instance != null ? ScoreManager.Instance.CurrentScore : 0,
+            score = score,
             tiles = world.tiles ?? new List<TileRecord>(),
             placements = world.placements ?? new List<PlacementRecord>(),
         };

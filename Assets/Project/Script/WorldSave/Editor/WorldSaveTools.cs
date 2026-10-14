@@ -40,7 +40,7 @@ public static class WorldSaveTools
         }
         foreach (CardData card in cards)
         {
-            foreach (TileTransformPair pair in card.transformRules)
+            foreach (var pair in card.transformRules)
             {
                 AddTile(tiles, pair.aridTilePrefab);
                 AddTile(tiles, pair.lushTilePrefab);

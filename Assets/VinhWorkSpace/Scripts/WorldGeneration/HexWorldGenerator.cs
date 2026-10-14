@@ -202,7 +202,7 @@ public class HexWorldGenerator : MonoBehaviour
             tileInfo.isOccupied = record.isOccupied;
 
             // Ô đã tưới Rain (terrainTypeIndex -1) cần TileDisasterState như lúc biến đổi
-            if (record.terrainTypeIndex == -1) TileDisasterState.Ensure(tileInstance);
+            if (record.terrainTypeIndex == -1) LumiWorld.Acs.TileDisasterState.Ensure(tileInstance);
 
             MapTiles.Add(coords, tileInstance);
             restored++;

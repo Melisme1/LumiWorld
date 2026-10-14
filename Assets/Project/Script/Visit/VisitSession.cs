@@ -3,7 +3,8 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Đảo người khác đang xem (giai đoạn 3). Snapshot tải từ server, giữ cho scene VisitWorld dựng lại.
-/// Không ghi gì xuống máy. Rời đảo thì quay về đảo của mình, save của mình không bị ghi lại.
+/// Không ghi gì xuống máy. Rời đảo thì quay về WorldMap (nếu đi từ đó) hoặc đảo của mình,
+/// save của mình không bị ghi lại.
 /// </summary>
 public static class VisitSession
 {
@@ -19,8 +20,12 @@ public static class VisitSession
 
     public static bool Active => Snapshot != null;
 
+    /// <summary>Chuyến thăm bắt đầu từ scene WorldMap: nút Back quay về đó, đúng đảo vừa thăm.</summary>
+    public static bool FromWorldMap { get; private set; }
+
     public static void Begin(WorldVisitResponse visit)
     {
+        FromWorldMap = SceneManager.GetActiveScene().name == WorldMapController.SceneName;
         Snapshot = visit.snapshot;
         OwnerId = visit.playerId ?? "";
         OwnerName = visit.displayName ?? "";
@@ -39,7 +44,30 @@ public static class VisitSession
         OwnerScore = 0;
         OwnerX = 0;
         OwnerY = 0;
+        FromWorldMap = false;
         WorldLaunch.OpenOwn(SaveSlot.PlayerId);
+    }
+
+    /// <summary>
+    /// Nút Back khi đang thăm: về WorldMap đúng đảo vừa thăm (đảo đó được chọn sẵn), hoặc về đảo của mình
+    /// nếu chuyến thăm không bắt đầu từ WorldMap hay WorldMap chưa có trong Build Settings.
+    /// </summary>
+    public static void Leave()
+    {
+        bool toMap = FromWorldMap && UnityEngine.Application.CanStreamedLevelBeLoaded(WorldMapController.SceneName);
+        var focus = new UnityEngine.Vector2Int(OwnerX, OwnerY);
+
+        // Kết thúc chuyến thăm trước khi đổi scene để save của mình chạy lại bình thường
+        End();
+        if (toMap)
+        {
+            WorldMapController.FocusOnOpen = focus;
+            SceneManager.LoadScene(WorldMapController.SceneName);
+        }
+        else
+        {
+            SceneManager.LoadScene(OwnScene);
+        }
     }
 
     /// <summary>Snapshot dưới dạng WorldSaveData để WorldSaveSystem dựng lại như một đảo đã lưu.</summary>
