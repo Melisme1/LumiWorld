@@ -33,7 +33,7 @@ namespace LumiWorld.Acs
         [SerializeField, Min(0f)] private float cycloneHeightOffset = 1.8f;
 
         [Tooltip("Height above the measured hex surface for the separate Cyclone rain effect.")]
-        [SerializeField, Min(0f)] private float cycloneRainHeightOffset = 2.4f;
+        [SerializeField, Min(0f)] private float cycloneRainHeightOffset = 2.1f;
 
         [Tooltip("Scale multiplier for the separate Cyclone rain effect.")]
         [SerializeField, Min(0.01f)] private float cycloneRainSizeMultiplier = 0.1f;
