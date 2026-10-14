@@ -65,9 +65,9 @@ MonoBehaviour:
     weight: 0
     restrictToBiomes: 0
     affectedBiomes: 
-    spreadRadius: 2
-    spreadIntervalSeconds: 5
-    maxTiles: 7
+    spreadRadius: 0
+    spreadIntervalSeconds: 0
+    maxTiles: 1
     durationSeconds: 40
     rainToCure: 2
     harvestSpeedMultiplier: 0
