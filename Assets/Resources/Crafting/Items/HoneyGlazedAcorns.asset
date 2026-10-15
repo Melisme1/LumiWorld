@@ -16,7 +16,7 @@ MonoBehaviour:
   resourceName: "Qu\u1EA3 s\u1ED3i ng\xE0o m\u1EADt"
   description: "Qu\u1EA3 s\u1ED3i b\xF9i b\xE9o ph\u1EE7 l\u1EDBp tinh ch\u1EA5t
     m\u1EADt hoa \xF3ng \xE1nh, gi\xF2n ng\u1ECDt kh\xF3 c\u01B0\u1EE1ng."
-  icon: {fileID: 21300000, guid: 97fdf4615a9e338428d09f7a372fbe72, type: 3}
+  icon: {fileID: 21300000, guid: 97530d36fe8d4137af6a1e6e3fcfdd21, type: 3}
   resourceColor: {r: 0.85, g: 0.55, b: 0.15, a: 1}
   hexColor: '#D98C26'
   baseValue: 55

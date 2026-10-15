@@ -18,7 +18,7 @@ MonoBehaviour:
     th\u1EA3o v\xE0 qu\u1EA3 b\xE1ch x\xF9, gi\xFAp t\u0103ng c\u01B0\u1EDDng sinh
     l\u1EF1c."
   category: 2
-  recipeIcon: {fileID: 21300000, guid: 9be36b2be141ea84b80e81c1c73ec23d, type: 3}
+  recipeIcon: {fileID: 21300000, guid: 9b979e6bc82b442cb60581db1c038412, type: 3}
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010014, type: 2}
   outputAmount: 1
   inputs:

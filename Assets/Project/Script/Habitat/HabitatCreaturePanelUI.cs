@@ -1186,6 +1186,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     #region Data Refresh
 
     private float nextResourceRefresh;
+    private string lastPanelStructureKey;
 
     private void Update()
     {
@@ -1194,6 +1195,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         {
             nextResourceRefresh = Time.unscaledTime + 1f;
             RefreshResourceProductionSlots();
+            if (panelDetailRect != null && panelDetailRect.gameObject.activeSelf)
+                RefreshPanel2(false);
         }
     }
 
@@ -1206,6 +1209,12 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         {
             var prodState = runtime.FindState(currentHabitat.habitatId);
             habModel = ResourceInventoryUIPresentation.Habitat(currentHabitat, prodState, runtime.HabitatManager.Catalog, runtime.Settings);
+        }
+
+        if (habModel != null && habModel.structureKey != lastPanelStructureKey)
+        {
+            RefreshPanel1();
+            return;
         }
 
         long totalPending = 0;
@@ -1320,6 +1329,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             var prodState = runtime.FindState(currentHabitat.habitatId);
             habModel = ResourceInventoryUIPresentation.Habitat(currentHabitat, prodState, runtime.HabitatManager.Catalog, runtime.Settings);
         }
+        lastPanelStructureKey = habModel?.structureKey;
 
         var slotConfigs = new (ResourceTier tier, int subIndex)[]
         {
@@ -1682,7 +1692,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RefreshPanel1();
     }
 
-    private void RefreshPanel2()
+    private void RefreshPanel2(bool resetScroll = true)
     {
         if (currentSelectedResident == null || currentHabitat == null) return;
 
@@ -1703,40 +1713,44 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             creatureNameText.text = GetCreatureName(currentSelectedResident, defaultName);
         }
 
-        // 2. Tải trực tiếp 3D Model sinh vật lên sân khấu xoay
-        bool modelLoaded = false;
-        GameObject targetPrefabOrInstance = resData.modelPrefab;
+        // Không tạo lại model 3D khi chỉ làm mới độ no theo thời gian.
+        if (resetScroll)
+        {
+            // 2. Tải trực tiếp 3D Model sinh vật lên sân khấu xoay
+            bool modelLoaded = false;
+            GameObject targetPrefabOrInstance = resData.modelPrefab;
 
         // Ưu tiên dùng trực tiếp Prefab, nếu chưa có thì dùng GameObject đang đứng trong bản đồ
-        if (targetPrefabOrInstance == null && currentSelectedAnimal != null)
-        {
-            targetPrefabOrInstance = currentSelectedAnimal.gameObject;
-        }
-
-        if (CreatureModelPreviewer.Instance != null && targetPrefabOrInstance != null)
-        {
-            modelLoaded = CreatureModelPreviewer.Instance.ShowModel(targetPrefabOrInstance);
-        }
-
-        if (modelLoaded)
-        {
-            creatureModelRawImg.enabled = true;
-            creatureModelRawImg.color = Color.white;
-            creatureArtFallbackImg.enabled = false;
-        }
-        else
-        {
-            // Dự phòng 2D art nếu model 3D chưa nạp
-            creatureModelRawImg.enabled = false;
-            Sprite fullArt = HabitatCreaturePanelStyle.GetCreatureAvatar(currentSelectedResident.speciesId, currentSelectedResident.qualityRank);
-            if (fullArt != null)
+            if (targetPrefabOrInstance == null && currentSelectedAnimal != null)
             {
-                creatureArtFallbackImg.sprite = fullArt;
-                creatureArtFallbackImg.enabled = true;
+                targetPrefabOrInstance = currentSelectedAnimal.gameObject;
+            }
+
+            if (CreatureModelPreviewer.Instance != null && targetPrefabOrInstance != null)
+            {
+                modelLoaded = CreatureModelPreviewer.Instance.ShowModel(targetPrefabOrInstance);
+            }
+
+            if (modelLoaded)
+            {
+                creatureModelRawImg.enabled = true;
+                creatureModelRawImg.color = Color.white;
+                creatureArtFallbackImg.enabled = false;
             }
             else
             {
-                creatureArtFallbackImg.enabled = false;
+                // Dự phòng 2D art nếu model 3D chưa nạp
+                creatureModelRawImg.enabled = false;
+                Sprite fullArt = HabitatCreaturePanelStyle.GetCreatureAvatar(currentSelectedResident.speciesId, currentSelectedResident.qualityRank);
+                if (fullArt != null)
+                {
+                    creatureArtFallbackImg.sprite = fullArt;
+                    creatureArtFallbackImg.enabled = true;
+                }
+                else
+                {
+                    creatureArtFallbackImg.enabled = false;
+                }
             }
         }
 
@@ -1747,25 +1761,37 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
         creatureBadgeText.text = $"<color=#1B5E20>[{affName.ToUpper()}]</color>  <color=#E65100>[{currentSelectedResident.qualityRank}]</color>";
 
-        // 4. Lấy điểm Chăm sóc / No
+        // Care Progress dùng cho nâng rank; độ no và trạng thái sản xuất thuộc production runtime.
         string indId = currentSelectedResident.individualId;
         int care = CreatureCareManager.Instance != null ? CreatureCareManager.Instance.GetCareProgress(indId) : 100;
+        var hunger = ResourceProductionRuntime.Instance != null ? ResourceProductionRuntime.Instance.GetCareState(indId) : null;
+        int satiety = hunger != null ? Mathf.Clamp(Mathf.RoundToInt((float)hunger.Satiety), 0, 100) : 0;
 
         // 5. Tình trạng hiện tại (Đặt lên đầu)
-        if (care >= 100)
+        if (hunger != null && hunger.Status == CreatureHungerStatus.Hungry)
+        {
+            statusBannerTitle.text = "Đói Bụng · Dừng Sản Xuất";
+            statusBannerTitle.color = new Color(0.90f, 0.45f, 0.15f, 1f);
+        }
+        else if (hunger != null && hunger.Status == CreatureHungerStatus.Eating)
+        {
+            statusBannerTitle.text = hunger.WaitingForFood ? "Chờ Thức Ăn · Dừng Sản Xuất" : "Đang Ăn · Dừng Sản Xuất";
+            statusBannerTitle.color = new Color(0.85f, 0.55f, 0.05f, 1f);
+        }
+        else if (hunger != null && care >= 100)
         {
             statusBannerTitle.text = "Sẵn Sàng Nâng Rank";
             statusBannerTitle.color = new Color(0.85f, 0.55f, 0.05f, 1f);
         }
-        else if (care >= 50)
+        else if (hunger != null)
         {
             statusBannerTitle.text = "Khỏe Mạnh";
             statusBannerTitle.color = new Color(0.12f, 0.65f, 0.28f, 1f);
         }
         else
         {
-            statusBannerTitle.text = "Đói Bụng";
-            statusBannerTitle.color = new Color(0.90f, 0.45f, 0.15f, 1f);
+            statusBannerTitle.text = "Chưa có dữ liệu trạng thái";
+            statusBannerTitle.color = new Color(0.5f, 0.5f, 0.5f, 1f);
         }
 
         // 6. Cập nhật 4 Stat Chips (Ảnh 1: thay ô ký tự sao thành tên môi trường thú đang sống)
@@ -1776,8 +1802,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         chipTraitText.text = traitStr;
 
         // 7. Thanh chỉ số No & Chăm sóc
-        hungerSlider.value = care;
-        hungerProgressLabel.text = $"{care}/100 ({care}%)";
+        hungerSlider.value = satiety;
+        hungerProgressLabel.text = hunger != null ? $"{satiety}/100 ({satiety}%)" : "Chưa có dữ liệu";
 
         // 8. Món ăn ưa thích (sạch sẽ, không biểu tượng ô vuông lỗi)
         favoriteFoodText.text = HabitatCreaturePanelStyle.GetFavoriteFoodInfo(currentHabitat.affinity);
@@ -1785,8 +1811,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         // 9. Nút hành động (Xóa (-1), (-2), chữ in đậm to rõ, nổi bật)
         if (feedButton != null)
         {
-            feedButton.interactable = care < 100;
-            feedButtonText.text = care < 100 ? "Cho Ăn" : "Đã No";
+            // Có thể nạp thức ăn sớm vào ngăn riêng ngay cả khi creature đang no.
+            feedButton.interactable = hunger != null;
+            feedButtonText.text = "Nạp Thức Ăn";
         }
 
         if (medicineButton != null)
@@ -1809,7 +1836,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
 
         // Reset scroll position về trên cùng
-        if (infoScrollRect != null)
+        if (resetScroll && infoScrollRect != null)
         {
             infoScrollRect.normalizedPosition = new Vector2(0f, 1f);
         }
@@ -1821,9 +1848,18 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private void OnFeedClicked()
     {
-        if (currentSelectedResident == null || CreatureCareManager.Instance == null) return;
-
-        if (CreatureCareManager.Instance.FeedCreature(currentSelectedResident.individualId, out string feedback))
+        if (currentSelectedResident == null || currentHabitat == null) return;
+        var production = ResourceProductionRuntime.Instance;
+        if (production == null || production.CareSettings == null) return;
+        string foodId = production.CareSettings.FoodResourceId;
+        int available = production.Inventory != null ? production.Inventory.GetAmount(foodId) : 0;
+        int amount = Mathf.Min(available, production.CareSettings.seedFoodUnitsToFull);
+        string reason = string.Empty;
+        bool deposited = amount > 0 && production.DepositCreatureFood(currentHabitat.habitatId,
+            currentSelectedResident.individualId, foodId, amount, out reason);
+        string feedback = deposited ? $"Đã nạp {amount} thức ăn; creature sẽ tự ăn khi cần." :
+            available == 0 ? "Kho chưa có thức ăn phù hợp." : reason;
+        if (deposited)
         {
             ShowFeedback(feedback, new Color(0.2f, 0.85f, 0.4f, 1f));
         }

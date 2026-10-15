@@ -16,7 +16,7 @@ MonoBehaviour:
   resourceName: "L\xFAa m\xEC"
   description: "B\xF4ng l\xFAa m\xEC v\xE0ng \xF3ng thu ho\u1EA1ch t\u1EEB c\xE1c
     \u0111\u1ED3ng c\u1ECF, h\u1EA1t m\u1EA9y gi\xE0u tinh b\u1ED9t."
-  icon: {fileID: 21300000, guid: 5b6ceef8c40212e4f8dcf6f140d346ff, type: 3}
+  icon: {fileID: 21300000, guid: 5b0c803a1648478409303b8ec768836e, type: 3}
   resourceColor: {r: 0.92, g: 0.78, b: 0.3, a: 1}
   hexColor: '#EBC74D'
   baseValue: 10

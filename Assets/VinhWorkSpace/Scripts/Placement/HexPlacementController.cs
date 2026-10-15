@@ -459,8 +459,17 @@ public class HexPlacementController : MonoBehaviour
                 MeshFilter mf = tileInstance.GetComponentInChildren<MeshFilter>();
                 if (mf != null && mf.sharedMesh != null)
                 {
-                    MeshCollider mc = tileInstance.AddComponent<MeshCollider>();
-                    mc.sharedMesh = mf.sharedMesh;
+                    if (mf.sharedMesh.isReadable)
+                    {
+                        MeshCollider mc = tileInstance.AddComponent<MeshCollider>();
+                        mc.sharedMesh = mf.sharedMesh;
+                    }
+                    else
+                    {
+                        BoxCollider box = mf.gameObject.AddComponent<BoxCollider>();
+                        box.center = mf.sharedMesh.bounds.center;
+                        box.size = mf.sharedMesh.bounds.size;
+                    }
                 }
             }
 

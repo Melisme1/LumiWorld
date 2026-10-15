@@ -17,7 +17,7 @@ MonoBehaviour:
   description: "M\xE2m x\xF4i ng\u1ECDt chua thanh m\xE1t \u0111\u01B0\u1EE3c c\xF4
     \u0111\u1EB7c dinh d\u01B0\u1EE1ng qua l\xF2 s\u1EA5y gi\xF3."
   category: 0
-  recipeIcon: {fileID: 21300000, guid: ba60c2aa80eb4c24388b0f85ee45b95c, type: 3}
+  recipeIcon: {fileID: 21300000, guid: babae9675daf4be88a6438e065153418, type: 3}
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010005, type: 2}
   outputAmount: 1
   inputs:

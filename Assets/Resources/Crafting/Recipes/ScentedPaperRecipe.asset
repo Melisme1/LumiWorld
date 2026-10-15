@@ -18,7 +18,7 @@ MonoBehaviour:
     h\u01B0\u01A1ng thanh khi\u1EBFt, l\u01B0u gi\u1EEF h\u01B0\u01A1ng th\u01A1m
     b\u1EC1n l\xE2u."
   category: 3
-  recipeIcon: {fileID: 21300000, guid: 605ee5dca8cb0714eb6c0d0246c05872, type: 3}
+  recipeIcon: {fileID: 21300000, guid: 6047c832ba0c4182b1ad365350222b07, type: 3}
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010016, type: 2}
   outputAmount: 1
   inputs:

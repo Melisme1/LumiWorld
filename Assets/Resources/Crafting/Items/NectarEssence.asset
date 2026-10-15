@@ -16,7 +16,7 @@ MonoBehaviour:
   resourceName: "Tinh ch\u1EA5t m\u1EADt hoa"
   description: "M\u1EADt hoa Bloomfield \u0111\u01B0\u1EE3c ch\u01B0ng c\u1EA5t th\xE0nh
     gi\u1ECDt tinh ch\u1EA5t \u0111\u1EADm \u0111\u1EB7c v\xE0 \xF3ng \u1EA3."
-  icon: {fileID: 21300000, guid: 21e1e93ae1494914197c36aeb9346747, type: 3}
+  icon: {fileID: 21300000, guid: 210ca3a4e0ff4355b48227f9e5982a34, type: 3}
   resourceColor: {r: 1, g: 0.7, b: 0.1, a: 1}
   hexColor: '#FFB31A'
   baseValue: 25

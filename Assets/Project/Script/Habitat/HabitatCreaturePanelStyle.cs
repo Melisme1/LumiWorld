@@ -510,14 +510,19 @@ public static class HabitatCreaturePanelStyle
             return cached;
         }
 
+        Texture2D rawTex = Resources.Load<Texture2D>("CreatureAvatars/" + canonicalName);
         string filePath = Path.Combine(Application.dataPath, "AVT_ANM", canonicalName + ".png");
-        if (File.Exists(filePath))
+        if (rawTex != null || File.Exists(filePath))
         {
             try
             {
-                byte[] bytes = File.ReadAllBytes(filePath);
-                Texture2D rawTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                if (rawTex.LoadImage(bytes))
+                if (rawTex == null)
+                {
+                    byte[] bytes = File.ReadAllBytes(filePath);
+                    rawTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                    if (!rawTex.LoadImage(bytes)) rawTex = null;
+                }
+                if (rawTex != null)
                 {
                     Texture2D slicedTex = SliceAndCutoutFrame(rawTex, rank, canonicalName);
                     if (slicedTex != null)
@@ -766,6 +771,9 @@ public static class HabitatCreaturePanelStyle
 
     private static Sprite LoadSpriteFromDisk(string relativePath)
     {
+        string resourcePath = "HabitatPanel/" + relativePath.Replace("Assets/", "").Replace(".png", "");
+        Sprite bundled = Resources.Load<Sprite>(resourcePath);
+        if (bundled != null) return bundled;
         string fullPath = Path.Combine(Application.dataPath, relativePath.Replace("Assets/", ""));
         if (!File.Exists(fullPath)) fullPath = Path.Combine(Application.dataPath, relativePath);
 
@@ -792,6 +800,11 @@ public static class HabitatCreaturePanelStyle
 
     private static Sprite LoadSpriteWithBorders(string relativePath, Vector4 border, float ppu = 100f)
     {
+        string resourcePath = "HabitatPanel/" + relativePath.Replace("Assets/", "").Replace(".png", "");
+        Sprite bundled = Resources.Load<Sprite>(resourcePath);
+        if (bundled != null)
+            return Sprite.Create(bundled.texture, bundled.rect, new Vector2(0.5f, 0.5f), ppu, 0,
+                SpriteMeshType.FullRect, border);
         string fullPath = Path.Combine(Application.dataPath, relativePath.Replace("Assets/", ""));
         if (!File.Exists(fullPath)) fullPath = Path.Combine(Application.dataPath, relativePath);
 
