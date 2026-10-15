@@ -20,6 +20,13 @@ public class EconomySaveData
     public List<ActiveOrder> openOrders = new List<ActiveOrder>();
     public List<OrderSlotRefill> orderRefills = new List<OrderSlotRefill>();
 
+    // Id các mục hộp thư của server đã áp vào bản lưu này. Mục được áp và ghi file
+    // trước khi ack, nên một mục không bao giờ được cộng hai lần.
+    public List<string> appliedInboxIds = new List<string>();
+
+    // Thao tác chợ đang chờ server xác nhận (đăng bán, mua, hủy). Xem PendingMarketOp.
+    public List<PendingMarketOp> pendingMarketOps = new List<PendingMarketOp>();
+
     // ISO 8601 (UTC), chỉ để dễ đọc file khi debug.
     public string savedAtUtc;
 }

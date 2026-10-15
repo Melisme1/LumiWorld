@@ -757,6 +757,56 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 281286586}
   m_CullTransparentMesh: 1
+--- !u!1 &305089947
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 305089949}
+  - component: {fileID: 305089948}
+  m_Layer: 0
+  m_Name: Disaster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &305089948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 305089947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24521dfef09167d48ad29ed6d3f405b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.DisasterRuntimeManager
+  worldGenerator: {fileID: 832299767}
+  balance: {fileID: 11400000, guid: 1d0dfdd07073dd7499fd95c49a7dea56, type: 2}
+  clockSource: {fileID: 0}
+  enableTestHotkeys: 1
+  debugObstacleColor: {r: 0.35, g: 0.36, b: 0.4, a: 1}
+  debugSpawnDiagnostics: 1
+--- !u!4 &305089949
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 305089947}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 401.25644, y: 260.3619, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &455622687
 GameObject:
   m_ObjectHideFlags: 0
@@ -1387,6 +1437,52 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 932777151}
   m_CullTransparentMesh: 1
+--- !u!1 &953997783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 953997785}
+  - component: {fileID: 953997784}
+  m_Layer: 0
+  m_Name: WorldSaveSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &953997784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953997783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bff1bf1f54e94f66a1391330ce5566ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WorldSaveSystem
+  tileCatalog: {fileID: 11400000, guid: 92746a155416be14dbfa279f98a50044, type: 2}
+  devVisitWorldId: 
+--- !u!4 &953997785
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953997783}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1003825507
 GameObject:
   m_ObjectHideFlags: 0
@@ -2271,10 +2367,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
-  maxSpacing: 165
-  minSpacing: 150
-  handWidth: 900
-  cardWidth: 150
+  maxSpacing: 220
+  minSpacing: 60
+  handWidth: 800
+  cardWidth: 20
   appearDelay: 0.1
   rearrangeDuration: 0.25
   showRewardToast: 0
@@ -3144,4 +3240,6 @@ SceneRoots:
   - {fileID: 1574008526}
   - {fileID: 1491331005}
   - {fileID: 88682141}
+  - {fileID: 953997785}
   - {fileID: 770000012}
+  - {fileID: 305089949}

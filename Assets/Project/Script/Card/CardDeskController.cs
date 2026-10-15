@@ -736,9 +736,13 @@ private void TryPlayRewardFeedback(
 
         float scaledWidth = cardWidth * cardScale;
 
-        // Giới hạn chiều rộng tối đa an toàn của toàn bộ hand để không tràn sang trái
-        // che mất huy hiệu Harmony / Milestone (tối đa ~640px)
-        float safeSpan = Mathf.Min(handWidth, 640f);
+        // Dùng vùng thật của khay bài. Giới hạn 640px trước đây khiến card bị dồn
+        // chồng lên nhau dù CardContainer và handWidth còn nhiều khoảng trống.
+        float containerWidth = cardContainer is RectTransform containerRect
+            ? containerRect.rect.width
+            : handWidth;
+        float safeSpan = Mathf.Min(handWidth, containerWidth);
+        if (safeSpan <= 0f) safeSpan = handWidth;
         float targetSpacing = (safeSpan - scaledWidth) / (cardCount - 1);
 
         if (cardCount <= 4)

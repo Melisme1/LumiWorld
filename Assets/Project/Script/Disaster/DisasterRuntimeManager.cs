@@ -1072,6 +1072,10 @@ namespace LumiWorld.Acs
             var connector = HexBiomeClusterConnector.Instance;
             if (connector == null) return;
 
+            TileDisasterState tileState = tileObj.GetComponent<TileDisasterState>();
+            if (tileState != null)
+                connector.RemoveConnectionsForHex(tileState.coordinates);
+
             Transform container = connector.ConnectionsContainer;
             if (container == null) return;
 
@@ -1578,7 +1582,8 @@ namespace LumiWorld.Acs
 
         private void Update()
         {
-            if (balance == null) return;
+            // Đảo đang xem của người khác: thiên tai đứng yên, không sinh mới
+            if (balance == null || WorldLaunch.IsVisit) return;
             double now = clock.NowSeconds;
 
             TickSpawn(now);

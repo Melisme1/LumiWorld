@@ -58,6 +58,9 @@ public class WildAlphaInteractable : MonoBehaviour
 
     private void HandleMouseClickDetection()
     {
+        // Đảo đang xem của người khác: không thu phục hay tương tác với thú
+        if (WorldLaunch.IsVisit) return;
+
         // Chống click xuyên trong 1.2s đầu sau khi spawn
         if (Time.time < spawnTimestamp + SpawnProtectionDuration) return;
 

@@ -285,6 +285,9 @@ public class BiomeHarvestIndicator : MonoBehaviour, IPointerClickHandler
 
     public bool TryCollect()
     {
+        // Đảo đang xem của người khác: không thu hoạch
+        if (WorldLaunch.IsVisit) return false;
+
         if (!isReady || cluster == null) return false;
 
         if (popCoroutine != null) StopCoroutine(popCoroutine);

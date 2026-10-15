@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -59,6 +59,7 @@ public class EconomyHUD : MonoBehaviour
         CreateOverlay<OrderBoardUI>("OrderBoardUI");
         CreateOverlay<CardShopUI>("CardShopUI");
         CreateOverlay<LumiWorld.Economy.Crafting.CraftingUI>("CraftingUI");
+        CreateOverlay<MarketUI>("MarketUI");
 
         CreateOverlay<AchievementUI>("AchievementUI");
         CreateOverlay<CreatureCareUI>("CreatureCareUI");
