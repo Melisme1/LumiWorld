@@ -24,6 +24,7 @@ public class SaveSync : MonoBehaviour
 
     private bool pending;
     private bool uploading;
+    private bool resetting;
     private float lastChangeTime;
     private float nextRetryTime;
 
@@ -109,9 +110,123 @@ public class SaveSync : MonoBehaviour
         done?.Invoke();
     }
 
+    /// <summary>
+    /// Replace the account's single save with a fresh world/economy pair. An empty world is
+    /// intentional: HexWorldGenerator creates the first island when MapBuilding opens.
+    /// Do not enter the game if the server cannot accept the replacement, or the next pull
+    /// would silently bring the previous world back.
+    /// </summary>
+    public static IEnumerator StartNewGame(Action<bool, string> done)
+    {
+        if (instance == null || !SaveSlot.IsAccount)
+        {
+            done?.Invoke(false, "Cần đăng nhập trước khi tạo world mới.");
+            yield break;
+        }
+
+        if (instance.resetting)
+        {
+            done?.Invoke(false, "New Game đang được xử lý.");
+            yield break;
+        }
+        instance.resetting = true;
+        // A previous save must finish before we read the revision to replace.
+        while (instance.uploading) yield return null;
+        string id = SaveSlot.PlayerId;
+        string current = null;
+        ApiError readError = null;
+        yield return ApiClient.GetText(SavesPath, true, text => current = text, error => readError = error);
+        if (current == null && (readError == null || readError.StatusCode != 404))
+        {
+            instance.resetting = false;
+            done?.Invoke(false, "Không kiểm tra được save trên server. World cũ vẫn được giữ nguyên.");
+            yield break;
+        }
+
+        long revision = 0;
+        if (current != null)
+        {
+            try { revision = JsonUtility.FromJson<SaveHeader>(current).revision; }
+            catch (Exception exception)
+            {
+                Debug.LogError("[LumiWorld Save] Không đọc được revision trước New Game: " + exception.Message);
+                instance.resetting = false;
+                done?.Invoke(false, "Không đọc được save trên server. World cũ vẫn được giữ nguyên.");
+                yield break;
+            }
+        }
+
+        string world = JsonUtility.ToJson(new WorldSaveData { playerId = id, initializeNewWorld = true });
+        string economy = JsonUtility.ToJson(new EconomySaveData());
+        string request = "{\"baseRevision\":" + revision.ToString(CultureInfo.InvariantCulture) +
+            ",\"world\":" + world + ",\"economy\":" + economy + "}";
+        string ack = null;
+        ApiError writeError = null;
+        yield return ApiClient.PutRaw(SavesPath, request, true, text => ack = text, error => writeError = error);
+        if (ack == null)
+        {
+            Debug.LogWarning("[LumiWorld Save] New Game bị server từ chối: " + writeError);
+            instance.resetting = false;
+            done?.Invoke(false, "Không tạo được world mới trên server. World cũ vẫn được giữ nguyên.");
+            yield break;
+        }
+
+        long newRevision;
+        try { newRevision = JsonUtility.FromJson<SaveHeader>(ack).revision; }
+        catch (Exception exception)
+        {
+            Debug.LogError("[LumiWorld Save] New Game không đọc được xác nhận: " + exception.Message);
+            instance.resetting = false;
+            done?.Invoke(false, "Server đã nhận yêu cầu nhưng chưa xác nhận revision. Hãy mở lại game để đồng bộ.");
+            yield break;
+        }
+
+        SavesSuspended = true;
+        instance.pending = false;
+        instance.nextRetryTime = 0f;
+        try
+        {
+            // Retain a recoverable copy before replacing either local file.
+            string suffix = ".pre-newgame-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            foreach (string prefix in new[] { "world_", "economy_" })
+            {
+                string path = FilePath(prefix, id);
+                if (File.Exists(path)) File.Copy(path, path + suffix, true);
+            }
+            WriteAtomic(FilePath("world_", id), world);
+            WriteAtomic(FilePath("economy_", id), economy);
+            SetLocalRevision(id, newRevision);
+            ClearPending(id);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError("[LumiWorld Save] Server đã reset nhưng không ghi được save mới trên máy: " + exception);
+            SavesSuspended = false;
+            instance.resetting = false;
+            done?.Invoke(false, "Server đã tạo world mới nhưng máy chưa ghi được. Hãy mở lại game để đồng bộ.");
+            yield break;
+        }
+
+        // These services survive scene changes and otherwise retain the old economy in memory.
+        DestroyRuntimeStateForNewGame();
+        instance.resetting = false;
+        done?.Invoke(true, null);
+    }
+
+    private static void DestroyRuntimeStateForNewGame()
+    {
+        if (OrderBoardSystem.HasInstance) Destroy(OrderBoardSystem.Instance.gameObject);
+        if (ResourceInventory.HasInstance) Destroy(ResourceInventory.Instance.gameObject);
+        if (CurrencyWallet.HasInstance) Destroy(CurrencyWallet.Instance.gameObject);
+        if (EconomySaveSystem.HasInstance) Destroy(EconomySaveSystem.Instance.gameObject);
+        if (AchievementManager.HasInstance) Destroy(AchievementManager.Instance.gameObject);
+        if (CardLockManager.HasInstance) Destroy(CardLockManager.Instance.gameObject);
+        if (CreatureCareManager.HasInstance) Destroy(CreatureCareManager.Instance.gameObject);
+    }
+
     private void Update()
     {
-        if (!pending || uploading) return;
+        if (!pending || uploading || resetting) return;
         if (Time.unscaledTime - lastChangeTime < DebounceSeconds) return;
         if (Time.unscaledTime < nextRetryTime) return;
         if (!AuthSession.IsLoggedIn) return;

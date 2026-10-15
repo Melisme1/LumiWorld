@@ -15,6 +15,10 @@ public class WorldSaveData
     public string playerId;
     public string savedAtUtc;   // ISO 8601, giờ UTC
 
+    // Only the New Game reset writes this marker with an empty tile list. An
+    // unexpectedly empty legacy save must still be treated as a restore error.
+    public bool initializeNewWorld;
+
     // Mọi ô đất, gồm cả mảnh mở rộng và ô đã tưới Rain
     public List<TileRecord> tiles = new List<TileRecord>();
 
@@ -41,4 +45,10 @@ public class PlacementRecord
     public int q, r;
     public int clusterId = -1;
     public int displayedScore;
+    public string placementId;  // stable habitat/resident identity across reloads
+    public int qualityRank;      // 0 in older saves means Rank I
+    public string animalId;
+    public string animalName;
+    public int animalStar;       // 0 in older saves means roll once on restore
+    public int animalTrait;
 }

@@ -84,9 +84,9 @@ public class CreatureCareManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Cho sinh vật ăn để tăng thanh tiến trình Care (tiêu 2 Coins hoặc thức ăn)
+    /// Chăm sóc tăng Care Progress bằng Coins; không tác động đến độ no hay kho thức ăn.
     /// </summary>
-    public bool FeedCreature(string individualId, out string feedback)
+    public bool CareCreature(string individualId, out string feedback)
     {
         feedback = string.Empty;
         if (string.IsNullOrEmpty(individualId))
@@ -98,7 +98,7 @@ public class CreatureCareManager : MonoBehaviour
         const int feedCostCoins = 2;
         if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.CanAfford(feedCostCoins))
         {
-            feedback = $"Không đủ Coins để cho ăn! Cần {feedCostCoins} Coins.";
+            feedback = $"Không đủ Coins để chăm sóc! Cần {feedCostCoins} Coins.";
             return false;
         }
 
@@ -119,7 +119,7 @@ public class CreatureCareManager : MonoBehaviour
         creatureCareProgress[individualId] = newCare;
         OnCareProgressChanged?.Invoke(individualId, newCare);
 
-        feedback = $"Đã cho ăn! Care: {newCare}/100 (+25)";
+        feedback = $"Đã chăm sóc! Care: {newCare}/100 (+25)";
         return true;
     }
 

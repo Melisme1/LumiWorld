@@ -119,6 +119,13 @@ public class HexBiomeClusterConnector : MonoBehaviour
     }
 
     private int _nextClusterId = 1;
+    public int NextClusterId => _nextClusterId;
+
+    public void ReserveClusterIdsThrough(int lastUsedId)
+    {
+        if (lastUsedId > 0 && lastUsedId < int.MaxValue)
+            _nextClusterId = Mathf.Max(_nextClusterId, lastUsedId + 1);
+    }
 
     // Quản lý các cầu nối và nắp góc đã tạo để không tạo trùng lặp
     private readonly HashSet<string> _createdEdgeBridges = new HashSet<string>();

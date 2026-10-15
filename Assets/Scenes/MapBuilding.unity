@@ -1267,12 +1267,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 770000011}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 953997785}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &770000013
 MonoBehaviour:
@@ -1467,6 +1467,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldSaveSystem
   tileCatalog: {fileID: 11400000, guid: 92746a155416be14dbfa279f98a50044, type: 2}
+  cardCatalog: {fileID: 11400000, guid: cf26c41eaf01e6741a9c3235fb09c2b8, type: 2}
   devVisitWorldId: 
 --- !u!4 &953997785
 Transform:
@@ -1480,7 +1481,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 770000012}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1003825507
@@ -3241,5 +3243,4 @@ SceneRoots:
   - {fileID: 1491331005}
   - {fileID: 88682141}
   - {fileID: 953997785}
-  - {fileID: 770000012}
   - {fileID: 305089949}

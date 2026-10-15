@@ -139,6 +139,14 @@ public class AnimalIndividual : MonoBehaviour
                   productionLabel + $" | Tốc độ: {actualWalkSpeed:F2}m/s");
     }
 
+    public void RestoreSavedState(AnimalSpeciesData data, GameObject tileObj, string savedId,
+        string savedName, int savedStar, AnimalTrait? savedTrait)
+    {
+        if (!string.IsNullOrEmpty(savedId)) uniqueID = savedId;
+        Initialize(data, tileObj, savedStar, savedTrait);
+        if (!string.IsNullOrEmpty(savedName)) individualName = savedName;
+    }
+
     /// <summary>
     /// Gán hoặc cập nhật vùng đất cư trú cho con thú (Leafwood, Bloomfield, v.v.)
     /// và xác định loại tài nguyên mà vùng đất đó cung cấp để bắt đầu chu kỳ sản xuất.
