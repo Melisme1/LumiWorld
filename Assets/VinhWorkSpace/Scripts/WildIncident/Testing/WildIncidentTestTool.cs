@@ -49,35 +49,9 @@ namespace LumiWorld.WildIncident.Testing
             _instance = this;
         }
 
+        // Phím tắt và giao diện test đã được hợp nhất vào LumiWorldTestDashboard (Phím F1 hoặc ~)
         private void Update()
         {
-            var kb = Keyboard.current;
-            if (kb == null) return;
-
-            // F9: Bật / Tắt Bảng Test HUD
-            if (kb.f9Key.wasPressedThisFrame)
-            {
-                showGui = !showGui;
-            }
-
-            // F10: Kích hoạt Spawn Thú Hoang
-            if (kb.f10Key.wasPressedThisFrame)
-            {
-                if (kb.shiftKey.isPressed)
-                {
-                    ToggleAutoSpawn();
-                }
-                else
-                {
-                    ForceSpawnImmediate();
-                }
-            }
-
-            // F11: Giải phóng / Dẹp toàn bộ thú hoang
-            if (kb.f11Key.wasPressedThisFrame)
-            {
-                ResolveAllImmediate();
-            }
         }
 
         /// <summary>
