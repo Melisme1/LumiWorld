@@ -264,6 +264,21 @@ namespace LumiWorld.Acs
             var collider = go.GetComponent<Collider>();
             if (collider != null) Destroy(collider);
 
+            // Đảm bảo particle luôn render đè lên mặt biển (mặt biển Queue 2900 / sortingOrder 0)
+            // và không bị occlusion culling hay frustum culling cắt mất khi đổi góc camera.
+            foreach (var r in go.GetComponentsInChildren<ParticleSystemRenderer>(true))
+            {
+                r.allowOcclusionWhenDynamic = false;
+                r.sortingOrder = 10;
+                r.minParticleSize = 0.012f;
+            }
+
+            foreach (var childPs in go.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = childPs.main;
+                main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
+            }
+
             var ps = go.GetComponent<ParticleSystem>();
             if (ps != null)
             {

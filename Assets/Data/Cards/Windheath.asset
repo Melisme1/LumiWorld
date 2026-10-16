@@ -21,6 +21,9 @@ MonoBehaviour:
   shopPrice: 20
   placementFee: 5
   prefabToPlace: {fileID: 0}
+  useEffectPrefab: {fileID: 0}
+  useEffectOffset: {x: 0, y: 0.1, z: 0}
+  useEffectScale: 1
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
   clearPropsOnTransform: 1
@@ -29,6 +32,7 @@ MonoBehaviour:
   producedResource: {fileID: 11400000, guid: e0fca13f9eec4df2880f62a38ab11d27, type: 2}
   landResourceBonus: 0
   biomeCycleDuration: 50
+  maxBiomeTilesOverride: 0
   transformRules: []
   habitatSpawnMargin: 0.9
   habitatProps:
@@ -82,4 +86,4 @@ MonoBehaviour:
     customGroundEmbed: 0.2
     placeAtCenter: 0
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: 0795a2526526372479924cb9c799dcb2, type: 3}
+  - {fileID: 1548687027083203766, guid: c10000068a144b6289b7996f34397106, type: 3}

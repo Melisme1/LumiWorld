@@ -1210,9 +1210,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HexWorldGenerator
   terrainPrefabs:
-  - {fileID: 919132149155446097, guid: f8f024c9b7996f343972519e43d1d744, type: 3}
-  - {fileID: 919132149155446097, guid: 14ad575f68c1fda459ec7760244185c0, type: 3}
-  - {fileID: 919132149155446097, guid: aac447f900fc3a4419ef72182622c5f3, type: 3}
+  - {fileID: 1000000000000001, guid: c10000018a144b6289b7996f34397101, type: 3}
+  - {fileID: 1000000000000001, guid: c10000038a144b6289b7996f34397103, type: 3}
+  - {fileID: 1000000000000001, guid: c10000058a144b6289b7996f34397105, type: 3}
   minRadius: 2
   maxRadius: 2
   stepHeight: 0
@@ -1452,9 +1452,9 @@ MonoBehaviour:
   worldGenerator: {fileID: 832299767}
   mainCamera: {fileID: 1110052839}
   terrainPrefabs:
-  - {fileID: 919132149155446097, guid: f8f024c9b7996f343972519e43d1d744, type: 3}
-  - {fileID: 919132149155446097, guid: 14ad575f68c1fda459ec7760244185c0, type: 3}
-  - {fileID: 919132149155446097, guid: aac447f900fc3a4419ef72182622c5f3, type: 3}
+  - {fileID: 1000000000000001, guid: c10000018a144b6289b7996f34397101, type: 3}
+  - {fileID: 1000000000000001, guid: c10000038a144b6289b7996f34397103, type: 3}
+  - {fileID: 1000000000000001, guid: c10000058a144b6289b7996f34397105, type: 3}
   ghostMaterial: {fileID: 2100000, guid: d5a00ea70787c3048a1f1fc2ee8a39ee, type: 2}
   mapLayerMask:
     serializedVersion: 2
