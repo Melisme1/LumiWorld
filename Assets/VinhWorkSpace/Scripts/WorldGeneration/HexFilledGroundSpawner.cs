@@ -57,7 +57,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
 
     [Header("Clearance & Spacing")]
     [Tooltip("Khoảng cách tối thiểu giữa 2 bụi GrassClump để tạo sự đan xen mềm mại")]
-    [SerializeField] private float minClumpDistance = 0.16f;
+    [SerializeField] private float minClumpDistance = 0.13f;
 
     [Tooltip("Khoảng cách tối thiểu từ cỏ tới tâm các thân cây lớn / tim đá lớn để tránh mọc xuyên lõi")]
     [SerializeField] private float heavyPropCoreClearance = 0.12f;
@@ -70,11 +70,11 @@ public class HexFilledGroundSpawner : MonoBehaviour
     [SerializeField] private float microTuftGroundEmbed = 0.005f;
 
     [Header("Transform Variations")]
-    [Tooltip("Kích thước bụi cỏ chính GrassClump (1.6 - 2.4 tương đương đường kính 16 - 24cm tạo thảm cỏ xòe bồng bềnh)")]
-    [SerializeField] private Vector2 clumpScaleRange = new Vector2(1.60f, 2.40f);
+    [Tooltip("Kích thước bụi cỏ chính GrassClump (0.85 - 1.20 tương đương đường kính ~8.5 - 12cm tạo thảm cỏ nền thanh thoát, không che khuất bước chân thú)")]
+    [SerializeField] private Vector2 clumpScaleRange = new Vector2(0.85f, 1.20f);
 
-    [Tooltip("Kích thước mầm cỏ nhỏ MicroGrassTuft (1.1 - 1.8 giúp mầm cỏ nhú rõ nét xen kẽ chân các bụi to)")]
-    [SerializeField] private Vector2 tuftScaleRange = new Vector2(1.10f, 1.80f);
+    [Tooltip("Kích thước mầm cỏ nhỏ MicroGrassTuft (0.90 - 1.40 giúp mầm cỏ nhú rõ nét xen kẽ chân các bụi to)")]
+    [SerializeField] private Vector2 tuftScaleRange = new Vector2(0.90f, 1.40f);
 
     [Tooltip("Góc nghiêng ngẫu nhiên nhẹ để bụi cỏ nhấp nhô tự nhiên")]
     [SerializeField] private float maxTiltAngle = 4.0f;

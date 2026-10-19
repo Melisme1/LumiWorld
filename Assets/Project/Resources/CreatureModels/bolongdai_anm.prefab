@@ -498,21 +498,21 @@ MonoBehaviour:
   bankSpeed: 6
   landChance: 0.35
   altitudeSmoothSpeed: 2.8
-  rotationSpeed: 200
+  rotationSpeed: 150
   turnBeforeWalking: 1
-  turnThresholdAngle: 30
+  turnThresholdAngle: 60
   yOffset: 0
   autoDetectYOffset: 0
   stayInCurrentHexChance: 0.65
   maxWanderRadius: 0.4
   safeHexRadius: 0.7
-  minIdleTime: 3
-  maxIdleTime: 6
+  minIdleTime: 1.4
+  maxIdleTime: 3
   idleTurnChance: 0.4
   preferCameraFacingGlade: 1
-  personalRadius: 0.44
+  personalRadius: 0.22
   avoidanceWeight: 1.4
-  separationSpeed: 5
+  separationSpeed: 1.8
 --- !u!114 &9100000000000000002
 MonoBehaviour:
   m_ObjectHideFlags: 0

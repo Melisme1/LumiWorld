@@ -65,13 +65,13 @@ public class AnimalMovementAI : MonoBehaviour
 
     [Header("Rotation Settings")]
     [Tooltip("Tốc độ xoay hướng (độ/giây). Càng lớn quay càng nhanh.")]
-    [SerializeField] private float rotationSpeed = 220f;
+    [SerializeField] private float rotationSpeed = 160f;
 
     [Tooltip("Nếu bật: Con thú sẽ quay đầu về hướng đi trước khi bắt đầu bước chân (trông rất tự nhiên)")]
     [SerializeField] private bool turnBeforeWalking = true;
 
     [Tooltip("Góc lệch tối đa (độ) cho phép thú bắt đầu bước đi khi đang quay")]
-    [SerializeField] private float turnThresholdAngle = 30f;
+    [SerializeField] private float turnThresholdAngle = 60f;
 
     [Header("Elevation & Offset")]
     [Tooltip("Độ cao nâng Y để chân chạm mặt cỏ (Bù trừ pivot nằm giữa bụng của model 3D)")]
@@ -81,9 +81,9 @@ public class AnimalMovementAI : MonoBehaviour
     [SerializeField] private bool autoDetectYOffset = false;
 
     [Header("Wander Settings")]
-    [Tooltip("Tỉ lệ % thú chọn đi lại trong CHÍNH Ô HIỆN TẠI thay vì bước sang ô láng giềng (0.6 = 60%)")]
+    [Tooltip("Tỉ lệ % thú chọn đi lại trong CHÍNH Ô HIỆN TẠI thay vì bước sang ô láng giềng (0.5 = 50%)")]
     [Range(0f, 1f)]
-    [SerializeField] private float stayInCurrentHexChance = 0.60f;
+    [SerializeField] private float stayInCurrentHexChance = 0.50f;
 
     [Tooltip("Bán kính tối đa thú có thể đi quanh tâm ô lục giác (mét). Nên để 0.40m - 0.50m để cách xa mép ô an toàn.")]
     [Range(0.2f, 0.65f)]
@@ -93,30 +93,52 @@ public class AnimalMovementAI : MonoBehaviour
     [SerializeField] private float safeHexRadius = 0.78f;
 
     [Tooltip("Thời gian nghỉ tối thiểu giữa các hành động (giây)")]
-    [SerializeField] private float minIdleTime = 2.5f;
+    [SerializeField] private float minIdleTime = 1.4f;
 
     [Tooltip("Thời gian nghỉ tối đa giữa các hành động (giây)")]
-    [SerializeField] private float maxIdleTime = 5.5f;
+    [SerializeField] private float maxIdleTime = 3.0f;
 
     [Tooltip("Tỉ lệ % thú thỉnh thoảng xoay đầu ngẫu nhiên ngắm cảnh khi đang đứng yên")]
     [Range(0f, 1f)]
-    [SerializeField] private float idleTurnChance = 0.40f;
+    [SerializeField] private float idleTurnChance = 0.30f;
 
     [Tooltip("Nếu bật: Thú ưu tiên dạo chơi ở nửa trước của ô (hướng về phía Camera) để tránh bị tán cây che khuất")]
     [SerializeField] private bool preferCameraFacingGlade = true;
 
     [Header("Collision & Overlap Avoidance (Không dùng Collider)")]
     [Tooltip("Bán kính vùng đệm cá nhân của con thú (mét). Khi 2 con chạm vào vùng này sẽ tự động đẩy nhau ra.")]
-    [SerializeField] private float personalRadius = 0.38f;
+    [SerializeField] private float personalRadius = 0.22f;
 
     [Tooltip("Lực né dạt sang bên khi có con thú khác chắn đường")]
     [SerializeField] private float avoidanceWeight = 1.4f;
 
     [Tooltip("Tốc độ đẩy tách nhau khi bị đè lấn")]
-    [SerializeField] private float separationSpeed = 5.0f;
+    [SerializeField] private float separationSpeed = 2.2f;
+
+    // Bán kính tiếp xúc vật lý của cơ thể con thú đối với chướng ngại vật tĩnh (thân cây, gốc cây, tảng đá)
+    // Giữ ở mức 0.08m để thú có thể luồn lách qua các khe hở tự nhiên mà không bị kẹt hay giật hình
+    private const float PropObstacleBodyRadius = 0.08f;
 
     // Danh sách tĩnh quản lý tất cả các con thú đang hoạt động trong Scene (siêu nhẹ, không tốn CPU)
     private static readonly List<AnimalMovementAI> ActiveAnimals = new List<AnimalMovementAI>();
+
+    /// <summary>
+    /// Cấu trúc lưu trữ thông số chướng ngại vật thực tế trên ô (thân cây, gốc cây nhỏ, tảng đá, khúc gỗ...)
+    /// </summary>
+    public struct TileObstacle
+    {
+        public Vector3 worldPos;     // Tọa độ gốc trên mặt phẳng thế giới (X, Z)
+        public float radius;         // Bán kính cản va chạm (mét)
+        public string name;          // Tên prop phục vụ debug / Gizmos
+        public Transform transform;  // Tham chiếu để kiểm tra đối tượng còn tồn tại
+    }
+
+    // Cache chướng ngại vật tĩnh theo từng ô lục giác (tối ưu hóa 100%, không duyệt renderers mỗi frame)
+    private static readonly Dictionary<HexCoordinates, List<TileObstacle>> TileObstaclesCache = new Dictionary<HexCoordinates, List<TileObstacle>>();
+    private static readonly Dictionary<HexCoordinates, int> TileObstaclesChildCount = new Dictionary<HexCoordinates, int>();
+
+    // Danh sách tái sử dụng nội bộ để tránh cấp phát bộ nhớ (Zero GC Alloc)
+    private readonly List<TileObstacle> tempNearbyObstacles = new List<TileObstacle>();
 
     // Component nội bộ
     private Animation anim;
@@ -124,6 +146,269 @@ public class AnimalMovementAI : MonoBehaviour
     private HexCoordinates currentHex;
     private bool isMoving = false;
     private FarmAnimalAI farmAI;
+    private Vector3 lastTargetDestination = Vector3.zero;
+
+    /// <summary>
+    /// Xóa cache khi có ô lục giác bị thay đổi hoặc biến đổi địa hình
+    /// </summary>
+    public static void InvalidateObstacleCache(HexCoordinates hex)
+    {
+        TileObstaclesCache.Remove(hex);
+        TileObstaclesChildCount.Remove(hex);
+    }
+
+    /// <summary>
+    /// Xóa toàn bộ cache chướng ngại vật (ví dụ khi sinh đảo mới)
+    /// </summary>
+    public static void ClearAllObstacleCaches()
+    {
+        TileObstaclesCache.Clear();
+        TileObstaclesChildCount.Clear();
+    }
+
+    /// <summary>
+    /// Lấy danh sách chướng ngại vật trong phạm vi xung quanh tọa độ kiểm tra (từ ô hiện tại và các ô láng giềng)
+    /// </summary>
+    private void GetNearbyObstacles(Vector3 center, float searchRadius, List<TileObstacle> results)
+    {
+        results.Clear();
+        if (worldGen == null || worldGen.MapTiles == null) return;
+
+        HexCoordinates centerHex = HexMetrics.WorldToHex(center);
+        AddTileObstaclesIfValid(centerHex, center, searchRadius, results);
+
+        for (int d = 0; d < 6; d++)
+        {
+            HexCoordinates nHex = centerHex.GetNeighbor(d);
+            AddTileObstaclesIfValid(nHex, center, searchRadius, results);
+        }
+    }
+
+    private void AddTileObstaclesIfValid(HexCoordinates hex, Vector3 center, float searchRadius, List<TileObstacle> results)
+    {
+        List<TileObstacle> tileObs = GetOrUpdateTileObstacles(hex);
+        if (tileObs == null || tileObs.Count == 0) return;
+
+        for (int i = 0; i < tileObs.Count; i++)
+        {
+            TileObstacle obs = tileObs[i];
+            if (obs.transform == null) continue;
+
+            float dx = obs.worldPos.x - center.x;
+            float dz = obs.worldPos.z - center.z;
+            float maxAllowedDist = searchRadius + obs.radius;
+            if (dx * dx + dz * dz <= maxAllowedDist * maxAllowedDist)
+            {
+                results.Add(obs);
+            }
+        }
+    }
+
+    private List<TileObstacle> GetOrUpdateTileObstacles(HexCoordinates hex)
+    {
+        if (worldGen == null || worldGen.MapTiles == null) return null;
+        if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null)
+        {
+            TileObstaclesCache.Remove(hex);
+            TileObstaclesChildCount.Remove(hex);
+            return null;
+        }
+
+        int currentChildCount = tileObj.transform.childCount;
+        for (int i = 0; i < tileObj.transform.childCount; i++)
+        {
+            Transform c = tileObj.transform.GetChild(i);
+            if (c != null && c.name.StartsWith("Habitat_"))
+            {
+                currentChildCount += c.childCount;
+            }
+        }
+
+        if (TileObstaclesCache.TryGetValue(hex, out List<TileObstacle> cachedList) &&
+            TileObstaclesChildCount.TryGetValue(hex, out int cachedCount))
+        {
+            if (cachedCount == currentChildCount)
+            {
+                bool allAlive = true;
+                for (int i = 0; i < cachedList.Count; i++)
+                {
+                    if (cachedList[i].transform == null)
+                    {
+                        allAlive = false;
+                        break;
+                    }
+                }
+                if (allAlive) return cachedList;
+            }
+        }
+
+        List<TileObstacle> newList = TileObstaclesCache.TryGetValue(hex, out var existing) ? existing : new List<TileObstacle>();
+        newList.Clear();
+
+        ScanTransformForObstacles(tileObj.transform, newList);
+
+        TileObstaclesCache[hex] = newList;
+        TileObstaclesChildCount[hex] = currentChildCount;
+        return newList;
+    }
+
+    private static void ScanTransformForObstacles(Transform root, List<TileObstacle> results)
+    {
+        if (root == null) return;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child == null) continue;
+
+            if (child.name.StartsWith("Habitat_"))
+            {
+                for (int p = 0; p < child.childCount; p++)
+                {
+                    Transform prop = child.GetChild(p);
+                    if (prop != null)
+                    {
+                        EvaluateAndAddObstacle(prop, results);
+                    }
+                }
+                continue;
+            }
+
+            if (child.GetComponent<AnimalMovementAI>() != null || child.GetComponent<PlacedCard>() != null)
+            {
+                continue;
+            }
+
+            EvaluateAndAddObstacle(child, results);
+        }
+    }
+
+    private static void EvaluateAndAddObstacle(Transform prop, List<TileObstacle> results)
+    {
+        if (prop == null) return;
+        string name = prop.name;
+
+        // 1. Kiểm tra cấu hình tường minh trên HexPropConfig nếu có
+        HexPropConfig config = prop.GetComponent<HexPropConfig>();
+        if (config == null) config = prop.GetComponentInChildren<HexPropConfig>();
+
+        if (config != null)
+        {
+            if (config.ObstacleMode == PropObstacleMode.Passable)
+            {
+                return;
+            }
+            if (config.ObstacleMode == PropObstacleMode.SolidObstacle)
+            {
+                float r = config.CustomObstacleRadius > 0.01f ? config.CustomObstacleRadius : ComputeDefaultRadius(prop);
+                results.Add(new TileObstacle
+                {
+                    worldPos = prop.position,
+                    radius = Mathf.Clamp(r, 0.15f, 0.50f),
+                    name = prop.name,
+                    transform = prop
+                });
+                return;
+            }
+        }
+
+        // 2. Chế độ AutoDetect: Bỏ qua các loại cỏ nền, mầm cỏ, hoa mềm, thảm rêu
+        if (IsPassableFlora(name))
+        {
+            return;
+        }
+
+        // 3. Phân loại theo tên mô hình và kích thước thực tế (Chỉ các vật thể cứng thực sự: Thân cây, Gốc cây, Tảng đá, Khúc gỗ)
+        float obstacleRadius = -1f;
+
+        // Gốc cây (Stump) - vd: MossySproutStump
+        if (name.IndexOf("Stump", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            obstacleRadius = Mathf.Clamp(0.10f * (prop.localScale.x / 0.35f), 0.08f, 0.15f);
+        }
+        // Tảng đá / Khối đá (Boulder, Rock, Slab) - vd: MossyForestBoulders, HighlandBoulderSlabs
+        else if (name.IndexOf("Boulder", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Rock", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Slab", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            obstacleRadius = Mathf.Clamp(0.14f * (prop.localScale.x / 0.35f), 0.10f, 0.20f);
+        }
+        // Khúc gỗ mục / Thân cây nằm (Log) - vd: HollowMossyLog
+        else if (name.IndexOf("Log", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            obstacleRadius = Mathf.Clamp(0.12f * (prop.localScale.x / 0.35f), 0.09f, 0.18f);
+        }
+        // Thân đại thụ & Cây lớn - vd: HeroOak, Beech, Pine, Sentinel, Hero
+        else if (name.IndexOf("Oak", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("GreatOak", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Sentinel", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Beech", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Pine", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            obstacleRadius = Mathf.Clamp(0.18f * (prop.localScale.x / 1.0f), 0.14f, 0.26f);
+        }
+        // Cây thân vừa / nhỏ - vd: Birch, Willow, DwarfBirch, Tree
+        else if (name.IndexOf("Birch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Willow", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Tree", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            obstacleRadius = Mathf.Clamp(0.12f * (prop.localScale.x / 1.0f), 0.09f, 0.16f);
+        }
+
+        if (obstacleRadius > 0.05f)
+        {
+            results.Add(new TileObstacle
+            {
+                worldPos = prop.position,
+                radius = obstacleRadius,
+                name = prop.name,
+                transform = prop
+            });
+        }
+    }
+
+    private static float ComputeDefaultRadius(Transform prop)
+    {
+        Renderer rend = prop.GetComponentInChildren<Renderer>();
+        if (rend != null)
+        {
+            Bounds b = rend.bounds;
+            return Mathf.Clamp(Mathf.Min(b.extents.x, b.extents.z) * 0.40f, 0.14f, 0.35f);
+        }
+        return 0.20f;
+    }
+
+    private static bool IsPassableFlora(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return true;
+
+        return name.IndexOf("Grass", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Tuft", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("FilledGround", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Clover", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Daisy", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Lavender", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("BellFlower", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Wildflower", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Flower", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Flora", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Pebble", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Toadstool", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Mushroom", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Bluebell", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("PrairieFlower", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Patch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Carpet", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Tussock", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Scatter", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Fern", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Undergrowth", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Heather", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Shrub", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Bush", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               (name.IndexOf("Sprout", StringComparison.OrdinalIgnoreCase) >= 0 && name.IndexOf("Stump", StringComparison.OrdinalIgnoreCase) < 0);
+    }
 
     // Trạng thái bay lượn & độ cao
     private bool isAirborne = false;
@@ -252,6 +537,18 @@ public class AnimalMovementAI : MonoBehaviour
         // Khi FarmAnimalAI có mặt, AnimalMovementAI đảm nhận toàn bộ việc di chuyển/lượn cánh/né tránh tự do,
         // và nhường quyền điều khiển cho FarmAnimalAI khi diễn kịch bản kết nối nhóm (MeetUp, CircleDance, Buff).
         farmAI = GetComponent<FarmAnimalAI>();
+
+        // - personalRadius tối đa 0.22m để các con thú không bị giật đẩy nhau trên ô hex bán kính 1m
+        // - separationSpeed tối đa 2.0m/s để lực tách thú êm ái, không bị trượt giật patin
+        // - rotationSpeed tự nhiên 130 - 180 độ/s và turnThresholdAngle 60 độ để vừa đi vừa cua lái mượt mà
+        // - minIdleTime / maxIdleTime duy trì nhịp độ sinh động (1.4s - 3.0s), không để thú bị đứng chết dí lâu
+        personalRadius = Mathf.Clamp(personalRadius, 0.15f, 0.22f);
+        separationSpeed = Mathf.Clamp(separationSpeed, 1.2f, 2.0f);
+        rotationSpeed = Mathf.Clamp(rotationSpeed, 130f, 180f);
+        turnThresholdAngle = Mathf.Max(turnThresholdAngle, 55f);
+        minIdleTime = Mathf.Clamp(minIdleTime, 1.2f, 2.0f);
+        maxIdleTime = Mathf.Clamp(maxIdleTime, 2.2f, 3.5f);
+        if (minIdleTime > maxIdleTime) minIdleTime = maxIdleTime * 0.6f;
     }
 
     private void Start()
@@ -373,10 +670,7 @@ public class AnimalMovementAI : MonoBehaviour
             string hoverClip = GetFlightClip(preferHover: true);
             if (!string.IsNullOrEmpty(hoverClip) && anim.GetClip(hoverClip) != null)
             {
-                if (!anim.IsPlaying(hoverClip))
-                {
-                    anim.CrossFade(hoverClip, 0.2f);
-                }
+                anim.CrossFade(hoverClip, 0.30f);
             }
         }
         else
@@ -384,10 +678,7 @@ public class AnimalMovementAI : MonoBehaviour
             string idleClip = GetGroundIdleClip();
             if (!string.IsNullOrEmpty(idleClip) && anim.GetClip(idleClip) != null)
             {
-                if (!anim.IsPlaying(idleClip))
-                {
-                    anim.CrossFade(idleClip, 0.25f);
-                }
+                anim.CrossFade(idleClip, 0.35f);
             }
         }
     }
@@ -436,57 +727,90 @@ public class AnimalMovementAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Kiểm tra loài này có clip đi lại dưới mặt cỏ không (Walk, Trot, Hop)
+    /// Kiểm tra loài này có clip đi lại dưới mặt cỏ không (Walk, Trot, Hop, Fetch, Bite)
     /// </summary>
     private bool HasGroundWalk()
     {
         return moveClips.Exists(c =>
             c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0 ||
             c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0);
+            c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     /// <summary>
-    /// Lấy clip nghỉ ngơi hợp lệ dưới đất
+    /// Lấy clip nghỉ ngơi hợp lệ dưới đất:
+    /// - 88%: Dáng đứng cảnh giác thở nhẹ nhàng (Base Idle / Rest)
+    /// - 8%: Thỉnh thoảng mới cúi đầu ăn cỏ hoặc ngồi nghỉ (Eating / Graze / Sit)
+    /// - 4%: Cử chỉ hiếm (Rear, Jump, Bark...)
     /// </summary>
     private string GetGroundIdleClip()
     {
-        if (idleClips.Count > 0)
+        if (idleClips.Count == 0) return GetFlightClip(preferHover: true);
+
+        string baseIdle = idleClips.Find(c =>
+            c.Equals("Idle", StringComparison.OrdinalIgnoreCase) ||
+            c.IndexOf("Idle", StringComparison.OrdinalIgnoreCase) >= 0);
+
+        string eatOrSit = idleClips.Find(c =>
+            c.IndexOf("Eat", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Graze", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Sit", StringComparison.OrdinalIgnoreCase) >= 0);
+
+        float roll = Random.value;
+        if (roll < 0.88f && !string.IsNullOrEmpty(baseIdle))
         {
-            return idleClips[Random.Range(0, idleClips.Count)];
+            return baseIdle;
         }
-        return GetFlightClip(preferHover: true);
+        if (roll < 0.96f && !string.IsNullOrEmpty(eatOrSit))
+        {
+            return eatOrSit;
+        }
+
+        return idleClips[Random.Range(0, idleClips.Count)];
     }
 
     /// <summary>
-    /// Lấy clip đi lại dưới mặt đất
+    /// Lấy clip đi lại dưới mặt đất:
+    /// - Đi cự ly ngắn trong ô: Đi bộ thong thả (Walk / Trot / Fetch / Hop / Bite)
+    /// - Đi cự ly dài xuyên ô: 50% chạy nhanh (Run) hoặc lượn cánh (Fall/Glide), 50% dạo bước
     /// </summary>
-    private string GetGroundMoveClip()
+    private string GetGroundMoveClip(bool isLongDistance = false)
     {
-        List<string> groundClips = moveClips.FindAll(c =>
-            c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Fall", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0);
+        string walkClip = moveClips.Find(c => c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0);
+        string trotClip = moveClips.Find(c => c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0);
+        string runClip = moveClips.Find(c => c.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0);
+        string hopClip = moveClips.Find(c => c.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                             c.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0);
+        string glideClip = moveClips.Find(c => c.IndexOf("Fall", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                              c.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                              c.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0);
 
-        if (groundClips.Count > 0)
+        if (!isLongDistance)
         {
-            return groundClips[Random.Range(0, groundClips.Count)];
+            if (!string.IsNullOrEmpty(walkClip)) return walkClip;
+            if (!string.IsNullOrEmpty(trotClip)) return trotClip;
+            if (!string.IsNullOrEmpty(hopClip)) return hopClip;
+        }
+        else
+        {
+            if (Random.value < 0.50f && !string.IsNullOrEmpty(runClip))
+            {
+                return runClip;
+            }
+            if (Random.value < 0.50f && !string.IsNullOrEmpty(glideClip))
+            {
+                return glideClip;
+            }
+            if (!string.IsNullOrEmpty(walkClip)) return walkClip;
+            if (!string.IsNullOrEmpty(trotClip)) return trotClip;
+            if (!string.IsNullOrEmpty(hopClip)) return hopClip;
         }
 
-        if (moveClips.Count > 0)
-        {
-            return moveClips[0];
-        }
-
-        if (idleClips.Count > 0)
-        {
-            return idleClips[0];
-        }
-
+        if (moveClips.Count > 0) return moveClips[0];
+        if (idleClips.Count > 0) return idleClips[0];
         return GetFlightClip(false);
     }
 
@@ -495,6 +819,7 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     private void SeparateInitialPosition()
     {
+        // 1. Tách khỏi các con thú khác nếu bị trùng tọa độ khi spawn
         for (int i = 0; i < ActiveAnimals.Count; i++)
         {
             AnimalMovementAI other = ActiveAnimals[i];
@@ -519,6 +844,38 @@ public class AnimalMovementAI : MonoBehaviour
                 currentWorldY = surfaceY + currentAltitudeOffset;
                 transform.position = new Vector3(scatteredPos.x, currentWorldY, scatteredPos.z);
                 break;
+            }
+        }
+
+        // 2. Tách khỏi gốc cây, tảng đá nếu spawn đè lên prop
+        if (locomotionType != AnimalLocomotionType.Flying || !isAirborne)
+        {
+            Vector3 center = HexMetrics.HexToWorldPosition(currentHex, transform.position.y);
+            for (int pass = 0; pass < 3; pass++)
+            {
+                GetNearbyObstacles(transform.position, 1.0f, tempNearbyObstacles);
+                bool adjusted = false;
+                for (int o = 0; o < tempNearbyObstacles.Count; o++)
+                {
+                    TileObstacle obs = tempNearbyObstacles[o];
+                    Vector3 diff = transform.position - obs.worldPos;
+                    diff.y = 0f;
+                    float dist = diff.magnitude;
+                    float minSafe = obs.radius + PropObstacleBodyRadius;
+                    if (dist < minSafe)
+                    {
+                        Vector3 pushNorm = (dist > 0.001f) ? (diff / dist) : (transform.position - center).normalized;
+                        if (pushNorm.sqrMagnitude < 0.001f) pushNorm = Vector3.forward;
+                        Vector3 safePos = obs.worldPos + pushNorm * (minSafe + 0.04f);
+                        Vector3 clamped = ClampToValidHabitat(safePos, transform.position);
+                        float surfaceY = GetSurfaceYAt(clamped);
+                        currentWorldY = surfaceY + currentAltitudeOffset;
+                        transform.position = new Vector3(clamped.x, currentWorldY, clamped.z);
+                        adjusted = true;
+                        break;
+                    }
+                }
+                if (!adjusted) break;
             }
         }
     }
@@ -579,10 +936,17 @@ public class AnimalMovementAI : MonoBehaviour
 
                 // Độ nông sâu bị đè lấn (Penetration)
                 float overlap = minAllowedDist - dist;
-                totalPush += pushDir * overlap;
-                overlapCount++;
+                if (overlap > 0.015f) // Ngưỡng đệm triệt tiêu hoàn toàn vi rung giật micro-jitter
+                {
+                    totalPush += pushDir * overlap;
+                    overlapCount++;
+                }
             }
         }
+
+        // LƯU Ý QUAN TRỌNG: KHÔNG BAO GIỜ đẩy dạt vật cản tĩnh (cây, đá, gốc cây) ở LateUpdate!
+        // Chướng ngại vật tĩnh không chuyển động. Việc đẩy liên tục ở LateUpdate đối đầu với ClampToValidHabitat
+        // hoặc các chướng ngại vật đối diện chính là nguyên nhân sinh ra hiện tượng thú bị giật rung lắc liên tục.
 
         if (overlapCount > 0)
         {
@@ -644,9 +1008,36 @@ public class AnimalMovementAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Chọn animation di chuyển phù hợp với trạng thái hiện tại (Bay trên không vs Đậu dưới đất)
+    /// Dừng hoàn toàn các animation di chuyển (triệt tiêu triệt để hiện tượng chạy tại chỗ treadmill)
+    /// và chuyển êm dịu sang animation đứng yên (Stationary / Idle).
     /// </summary>
-    private string PickMoveClip()
+    private void StopMoveAnimation(string activeMoveClip = null)
+    {
+        if (anim == null) return;
+
+        if (!string.IsNullOrEmpty(activeMoveClip) && anim[activeMoveClip] != null)
+        {
+            anim[activeMoveClip].weight = 0f;
+        }
+
+        for (int i = 0; i < moveClips.Count; i++)
+        {
+            string c = moveClips[i];
+            if (!string.IsNullOrEmpty(c) && anim[c] != null)
+            {
+                anim[c].weight = 0f;
+            }
+        }
+
+        PlayStationaryAnimation();
+    }
+
+    /// <summary>
+    /// Chọn animation di chuyển phù hợp với trạng thái hiện tại (Bay trên không vs Đậu dưới đất)
+    /// - isLongDistance = false: Đi cự ly ngắn trong ô -> Chỉ chọn Walk/Trot, không bao giờ chạy giật
+    /// - isLongDistance = true: Chạy vượt ô / cự ly xa -> Cho phép 50% chạy nhanh (Run)
+    /// </summary>
+    private string PickMoveClip(bool isLongDistance = false)
     {
         if (moveClips.Count == 0) return "";
 
@@ -658,11 +1049,11 @@ public class AnimalMovementAI : MonoBehaviour
             }
             else
             {
-                return GetGroundMoveClip();
+                return GetGroundMoveClip(isLongDistance);
             }
         }
 
-        return moveClips[Random.Range(0, moveClips.Count)];
+        return GetGroundMoveClip(isLongDistance);
     }
 
     /// <summary>
@@ -817,9 +1208,10 @@ public class AnimalMovementAI : MonoBehaviour
             else if (rand < 0.85f && moveClips.Count > 0)
             {
                 // Bay tịnh tiến sang vị trí mới trên không
+                Vector3 targetWorldPos = PickDestination();
                 string flyClip = GetFlightClip(preferHover: false);
                 float speed = flySpeed;
-                yield return StartCoroutine(MoveToTargetRoutine(speed, flyClip));
+                yield return StartCoroutine(MoveToTargetRoutine(targetWorldPos, speed, flyClip));
             }
             else
             {
@@ -845,13 +1237,14 @@ public class AnimalMovementAI : MonoBehaviour
             if (rand < 0.40f && HasGroundWalk())
             {
                 // Đi bộ dạo chơi trên mặt cỏ (Chim Công sải bước)
-                string walkClip = GetGroundMoveClip();
-                yield return StartCoroutine(MoveToTargetRoutine(walkSpeed, walkClip));
+                Vector3 targetWorldPos = PickDestination();
+                string walkClip = GetGroundMoveClip(isLongDistance: false);
+                yield return StartCoroutine(MoveToTargetRoutine(targetWorldPos, walkSpeed, walkClip));
             }
             else if (rand < 0.65f)
             {
                 // Đứng ngắm cảnh trên cỏ
-                PlayStationaryAnimation();
+                StopMoveAnimation();
                 if (Random.value < idleTurnChance)
                 {
                     yield return StartCoroutine(IdleLookAroundRoutine());
@@ -880,19 +1273,48 @@ public class AnimalMovementAI : MonoBehaviour
     /// </summary>
     private IEnumerator GroundBehaviorRoutine()
     {
-        bool willMove = (moveClips.Count > 0) && (Random.value > 0.35f);
+        // 85% tỉ lệ bước đi dạo chơi, nhịp sống sinh động không bị đóng băng
+        bool willMove = (moveClips.Count > 0) && (Random.value > 0.15f);
 
         if (willMove)
         {
-            string moveClip = PickMoveClip();
-            float speed = GetSpeedForClip(moveClip);
-            yield return StartCoroutine(MoveToTargetRoutine(speed, moveClip));
+            Vector3 targetWorldPos = PickDestination();
+            float moveDistance = Vector3.Distance(transform.position, targetWorldPos);
+
+            if (moveDistance >= 0.08f)
+            {
+                bool isLongDistance = moveDistance > 0.85f;
+                string moveClip = PickMoveClip(isLongDistance);
+                float speed = GetSpeedForClip(moveClip);
+
+                yield return StartCoroutine(MoveToTargetRoutine(targetWorldPos, speed, moveClip));
+            }
+
+            // Sau khi bước đi, dừng nghỉ tự nhiên 1.4s - 3.0s
+            StopMoveAnimation();
+
+            float waitTime = Random.Range(minIdleTime, maxIdleTime);
+
+            if (Random.value < idleTurnChance)
+            {
+                yield return StartCoroutine(IdleLookAroundRoutine());
+            }
+
+            float idleElapsed = 0f;
+            while (idleElapsed < waitTime && !isMoving)
+            {
+                if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom) yield break;
+                idleElapsed += Time.deltaTime;
+                UpdateElevationAndBanking(transform.position, Vector3.zero);
+                yield return null;
+            }
         }
         else
         {
-            PlayStationaryAnimation();
+            StopMoveAnimation();
 
-            float waitTime = Random.Range(minIdleTime, maxIdleTime);
+            // Nghỉ ngắn rồi nhanh chóng chọn bước đi tiếp theo, không đứng chết dí
+            float waitTime = Random.Range(1.0f, 1.8f);
 
             if (Random.value < idleTurnChance)
             {
@@ -911,18 +1333,26 @@ public class AnimalMovementAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Quá trình di chuyển: Xoay hướng mượt mà, tịnh tiến, né tránh thông minh và bám mặt cỏ / độ cao bay
-    /// Đồng bộ hoàn hảo với Animation (không chạy tại chỗ)
+    /// Wrapper tương thích ngược
     /// </summary>
     private IEnumerator MoveToTargetRoutine(float speed, string moveClip)
     {
-        isMoving = true;
         Vector3 targetWorldPos = PickDestination();
+        return MoveToTargetRoutine(targetWorldPos, speed, moveClip);
+    }
+
+    /// <summary>
+    /// Quá trình di chuyển: Xoay hướng mượt mà, tịnh tiến, né tránh thông minh và bám mặt cỏ / độ cao bay
+    /// Đồng bộ hoàn hảo với Animation (không bao giờ chạy tại chỗ treadmill)
+    /// </summary>
+    private IEnumerator MoveToTargetRoutine(Vector3 targetWorldPos, float speed, string moveClip)
+    {
+        isMoving = true;
 
         // Nếu điểm đến quá gần vị trí hiện tại (< 8cm) thì bỏ qua, không đi
         if (Vector3.Distance(transform.position, targetWorldPos) < 0.08f)
         {
-            PlayIdleAnimation();
+            StopMoveAnimation(moveClip);
             isMoving = false;
             yield break;
         }
@@ -930,8 +1360,10 @@ public class AnimalMovementAI : MonoBehaviour
         float maxDuration = 5.0f; // Tránh kẹt vô tận
         float elapsed = 0f;
         float blockedTimer = 0f;
-        float realStuckTimer = 0f;
-        Vector3 lastObservedPos = transform.position;
+        float stuckCheckTimer = 0f;
+        int consecutiveStuckCount = 0;
+        Vector3 windowStartPos = transform.position;
+        Vector3 smoothedAvoidance = Vector3.zero;
 
         // BƯỚC 1: Xoay đầu về hướng đích trước (chỉ khi đi bộ trên mặt đất)
         // Sinh vật đang bay lượn trên không sẽ xoay tự nhiên kết hợp nghiêng cánh khi bay
@@ -950,6 +1382,7 @@ public class AnimalMovementAI : MonoBehaviour
                 {
                     if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom)
                     {
+                        StopMoveAnimation(moveClip);
                         isMoving = false;
                         yield break;
                     }
@@ -969,6 +1402,7 @@ public class AnimalMovementAI : MonoBehaviour
         {
             if (farmAI != null && farmAI.currentState != AnimalState.WanderRandom)
             {
+                StopMoveAnimation(moveClip);
                 isMoving = false;
                 yield break;
             }
@@ -984,18 +1418,18 @@ public class AnimalMovementAI : MonoBehaviour
                 break;
             }
 
-            // Tính toán vector né tránh dạt ngang (Tangential Steering) + kiểm tra bị chắn trực diện
+            // Tính toán vector né tránh dạt ngang (Tangential Steering) + kiểm tra bị chắn trực diện bởi thú khác hoặc vật cản
             Vector3 avoidance = ComputeAvoidanceVector(currentPos, flatDir.normalized, out bool isBlockedDirectly);
 
-            // NẾU BỊ CHẮN ĐƯỜNG TRỰC DIỆN (bởi thú khác hoặc gốc cây):
+            // NẾU BỊ CHẮN ĐƯỜNG TRỰC DIỆN (bởi con thú khác đối đầu hoặc gốc cây / tảng đá):
             if (isBlockedDirectly)
             {
-                // DỪNG LẠI VÀ CHUYỂN SANG IDLE NGAY LẬP TỨC (Không bao giờ tạo dáng chạy tại chỗ)
-                PlayIdleAnimation();
+                // DỪNG LẠI VÀ TRIỆT TIÊU MOVE ANIMATION NGAY LẬP TỨC (Không bao giờ tạo dáng chạy tại chỗ hoặc rung giật)
+                StopMoveAnimation(moveClip);
 
                 blockedTimer += Time.deltaTime;
-                // Nếu bị kẹt quá 0.4s mà vật cản chưa thoáng -> hủy hành trình để đổi hướng mới
-                if (blockedTimer > 0.4f)
+                // Nếu bị kẹt quá 0.30s -> hủy hành trình để đổi hướng mới
+                if (blockedTimer > 0.30f)
                 {
                     break;
                 }
@@ -1010,11 +1444,13 @@ public class AnimalMovementAI : MonoBehaviour
                 PlayMoveAnimation(moveClip);
             }
 
-            // Hướng di chuyển: Kết hợp hướng đích và hướng dạt ngang né tránh
+            // Hướng di chuyển: Lọc mượt avoidance để chuyển hướng êm dịu, không giật góc quay
+            smoothedAvoidance = Vector3.MoveTowards(smoothedAvoidance, avoidance, 6.0f * Time.deltaTime);
+
             Vector3 moveDir = flatDir.normalized;
-            if (avoidance.sqrMagnitude > 0.001f)
+            if (smoothedAvoidance.sqrMagnitude > 0.001f)
             {
-                moveDir = (flatDir.normalized + avoidance * avoidanceWeight).normalized;
+                moveDir = (flatDir.normalized + smoothedAvoidance * avoidanceWeight).normalized;
             }
 
             // Xoay hướng mượt mà về hướng di chuyển thực tế (kết hợp nghiêng cánh Banking)
@@ -1038,25 +1474,90 @@ public class AnimalMovementAI : MonoBehaviour
                 step = flatDir;
             }
 
-            // Kiểm tra vị trí mới: Phải nằm an toàn trong khu vực Habitat hợp lệ
+            // Vị trí ứng viên mới
             Vector3 candidatePos = currentPos + step;
+
+            // CHỐNG XUYÊN THẤU VÀ TRƯỢT THEO BỀ MẶT VẬT CẢN (Hard Collision & Surface Slide)
+            if (locomotionType != AnimalLocomotionType.Flying || !isAirborne)
+            {
+                GetNearbyObstacles(candidatePos, 0.7f, tempNearbyObstacles);
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    bool hadCollision = false;
+                    for (int o = 0; o < tempNearbyObstacles.Count; o++)
+                    {
+                        TileObstacle obs = tempNearbyObstacles[o];
+                        Vector3 obsDiff = candidatePos - obs.worldPos;
+                        obsDiff.y = 0f;
+                        float dist = obsDiff.magnitude;
+                        float minSafeDist = obs.radius + PropObstacleBodyRadius;
+
+                        if (dist < minSafeDist)
+                        {
+                            hadCollision = true;
+                            Vector3 pushNorm;
+                            if (dist < 0.001f)
+                            {
+                                Vector3 fromOld = currentPos - obs.worldPos;
+                                fromOld.y = 0f;
+                                pushNorm = fromOld.sqrMagnitude > 0.001f ? fromOld.normalized : -moveDir;
+                            }
+                            else
+                            {
+                                pushNorm = obsDiff / dist;
+                            }
+
+                            // 1. Ép vị trí nằm trên chu vi an toàn của vật cản
+                            candidatePos = new Vector3(obs.worldPos.x + pushNorm.x * minSafeDist, candidatePos.y, obs.worldPos.z + pushNorm.z * minSafeDist);
+
+                            // 2. Loại bỏ thành phần bước chân đâm xuyên vào lòng vật cản (Surface Slide)
+                            float intoNormal = Vector3.Dot(step, -pushNorm);
+                            if (intoNormal > 0f)
+                            {
+                                step += pushNorm * intoNormal;
+                            }
+                        }
+                    }
+                    if (!hadCollision) break;
+                }
+            }
+
+            // Kiểm tra vị trí mới: Phải nằm an toàn trong khu vực Habitat hợp lệ
             Vector3 nextPos = ClampToValidHabitat(candidatePos, currentPos);
 
-            // Nếu vị trí bị chặn đứng bởi mép ô (nextPos == currentPos) -> Thử trượt dọc viền ô (Tangent Slide)
-            if ((nextPos - currentPos).sqrMagnitude < 0.00001f)
+            // Nếu vị trí bị chặn đứng (không thể bước tiếp do chạm mép ô hoặc bị kẹt góc)
+            float stepDistSqr = (nextPos - currentPos).sqrMagnitude;
+            if (stepDistSqr < 0.000025f)
             {
+                // Thử trượt dọc viền ô (Tangent Slide) nếu bị chặn bởi mép ô
                 Vector3 hexCenter = HexMetrics.HexToWorldPosition(currentHex, currentPos.y);
                 Vector3 radial = currentPos - hexCenter;
                 radial.y = 0f;
+                bool borderSlid = false;
                 if (radial.sqrMagnitude > 0.01f)
                 {
                     Vector3 tangent = Vector3.Cross(Vector3.up, radial).normalized;
                     Vector3 tangentStep = Vector3.Project(step, tangent);
                     Vector3 slidePos = ClampToValidHabitat(currentPos + tangentStep, currentPos);
-                    if ((slidePos - currentPos).sqrMagnitude > 0.00001f)
+                    if ((slidePos - currentPos).sqrMagnitude > 0.000025f)
                     {
                         nextPos = slidePos;
+                        borderSlid = true;
                     }
+                }
+
+                if (!borderSlid)
+                {
+                    // Hoàn toàn không thể bước tiếp -> Chuyển sang Idle ngay lập tức và hủy bước sau 0.20s
+                    StopMoveAnimation(moveClip);
+                    blockedTimer += Time.deltaTime;
+                    if (blockedTimer > 0.20f)
+                    {
+                        break;
+                    }
+                    UpdateElevationAndBanking(currentPos, Vector3.zero);
+                    yield return null;
+                    continue;
                 }
             }
 
@@ -1065,32 +1566,35 @@ public class AnimalMovementAI : MonoBehaviour
             UpdateCurrentHex();
 
             // KIỂM TRA ĐỘ DỊCH CHUYỂN THỰC TẾ TRONG KHÔNG GIAN THẾ GIỚI
-            // (Khắc phục hoàn toàn lỗi 2 con chạm nhau hoặc kẹt mép khiến animation chạy vẫn kích hoạt nhưng vị trí đứng yên)
-            float realMovedDist = Vector3.Distance(transform.position, lastObservedPos);
-            if (realMovedDist < 0.012f)
+            // (Windowed Progress Check: Đo độ tiến triển thực sau mỗi cửa sổ 0.25s, không bị lừa bởi rung lắc qua lại)
+            stuckCheckTimer += Time.deltaTime;
+            if (stuckCheckTimer >= 0.25f)
             {
-                realStuckTimer += Time.deltaTime;
-                if (realStuckTimer > 0.30f)
+                float netMoved = Vector3.Distance(transform.position, windowStartPos);
+                if (netMoved < 0.03f)
                 {
-                    // Đã bị kẹt đứng yên quá 0.30s -> Lập tức thoát để chuyển về Idle
-                    break;
+                    consecutiveStuckCount++;
+                    if (consecutiveStuckCount >= 2)
+                    {
+                        // Đã bị kẹt đứng yên hoặc rung giật quá 0.5s -> Thoát để chuyển về Idle và chọn hướng mới
+                        break;
+                    }
                 }
-            }
-            else
-            {
-                realStuckTimer = 0f;
-                lastObservedPos = transform.position;
+                else
+                {
+                    consecutiveStuckCount = 0;
+                }
+
+                stuckCheckTimer = 0f;
+                windowStartPos = transform.position;
             }
 
             yield return null;
         }
 
         // KHI KẾT THÚC BƯỚC ĐI (Đến đích, bị chặn, hoặc chạm viền):
-        // LUÔN LUÔN chuyển về Animation Idle ngay lập tức (nếu không bị FarmAnimalAI can thiệp)!
-        if (farmAI == null || farmAI.currentState == AnimalState.WanderRandom)
-        {
-            PlayIdleAnimation();
-        }
+        // LUÔN LUÔN dập tắt move clip weight và chuyển về Idle ngay lập tức (nếu không bị FarmAnimalAI can thiệp)!
+        StopMoveAnimation(moveClip);
         UpdateCurrentHex();
         isMoving = false;
     }
@@ -1115,7 +1619,7 @@ public class AnimalMovementAI : MonoBehaviour
             if (fromCenter.magnitude > safeHexRadius)
             {
                 // Kiểm tra xem vị trí xa hơn có bước sang ô khác hợp lệ không
-                HexCoordinates furtherHex = HexMetrics.WorldToHex(hexCenter + fromCenter.normalized * 1.05f);
+                HexCoordinates furtherHex = HexMetrics.WorldToHex(hexCenter + fromCenter.normalized * 1.45f);
                 if (!CanMoveToHex(furtherHex))
                 {
                     // Ô bên ngoài không hợp lệ -> chặn lại ở bán kính an toàn safeHexRadius
@@ -1247,8 +1751,8 @@ public class AnimalMovementAI : MonoBehaviour
                     float steerUrgency = Mathf.Clamp01((detectionRange - dist) / detectionRange);
                     avoidance += steerSide * (steerUrgency * 1.8f);
 
-                    // Bị chắn trực diện khi chạm sát nhau phía trước mũi (< combinedRadius * 1.05f và forwardDot > 0.20f)
-                    if (dist < combinedRadius * 1.05f && forwardDot > 0.20f)
+                    // Bị chắn trực diện khi chạm sát nhau phía trước mũi (< combinedRadius * 1.02f và forwardDot > 0.60f)
+                    if (dist < combinedRadius * 1.02f && forwardDot > 0.60f)
                     {
                         isBlockedDirectly = true;
                     }
@@ -1262,45 +1766,57 @@ public class AnimalMovementAI : MonoBehaviour
             }
         }
 
-        // 2. NÉ TRÁNH GỐC CÂY LỚN TRÊN Ô (Tree Trunk Obstacle Steering)
-        // Chỉ áp dụng cho thú đi bộ hoặc sinh vật bay khi đang đậu dưới đất
+        // 2. NÉ TRÁNH CHƯỚNG NGẠI VẬT TRÊN Ô (Thân cây, gốc cây nhỏ, tảng đá, khúc gỗ...)
         if (locomotionType != AnimalLocomotionType.Flying || !isAirborne)
         {
-            if (worldGen != null && worldGen.MapTiles != null)
+            GetNearbyObstacles(currentPos, 1.0f, tempNearbyObstacles);
+            for (int o = 0; o < tempNearbyObstacles.Count; o++)
             {
-                if (worldGen.MapTiles.TryGetValue(currentHex, out GameObject curTileObj) && curTileObj != null)
+                TileObstacle obs = tempNearbyObstacles[o];
+                Vector3 toObs = obs.worldPos - currentPos;
+                toObs.y = 0f;
+                float dist = toObs.magnitude;
+                float minSafe = obs.radius + PropObstacleBodyRadius;
+                float detectionDist = minSafe + 0.35f;
+
+                if (dist < detectionDist && dist > 0.001f)
                 {
-                    Renderer[] tileRends = curTileObj.GetComponentsInChildren<Renderer>(false);
-                    for (int r = 0; r < tileRends.Length; r++)
+                    Vector3 toObsNorm = toObs / dist;
+                    float forwardDot = Vector3.Dot(forwardDir, toObsNorm);
+
+                    // Vật cản nằm ở bán cầu phía trước -> Lực bẻ lái ngang êm ái
+                    if (forwardDot > 0.05f)
                     {
-                        Renderer tr = tileRends[r];
-                        if (tr == null || tr.transform.IsChildOf(transform)) continue;
-                        Bounds b = tr.bounds;
-                        // Chỉ xét các cây thân to (chiều cao > 0.8m)
-                        if (b.size.y < 0.8f) continue;
+                        Vector3 sideDir = Vector3.Cross(Vector3.up, forwardDir).normalized;
+                        float sideDot = Vector3.Dot(toObs, sideDir);
 
-                        Vector3 trunkPos = new Vector3(b.center.x, currentPos.y, b.center.z);
-                        Vector3 toTrunk = trunkPos - currentPos;
-                        float trunkDist = toTrunk.magnitude;
-
-                        if (trunkDist < 0.70f && trunkDist > 0.02f)
+                        // Tránh lật hướng né liên tục khi đối đầu trực diện (Hysteresis)
+                        Vector3 steerSide;
+                        if (Mathf.Abs(sideDot) < 0.03f)
                         {
-                            Vector3 trunkDir = toTrunk / trunkDist;
-                            float dot = Vector3.Dot(forwardDir, trunkDir);
-                            if (dot > 0.15f)
-                            {
-                                Vector3 sideDir = Vector3.Cross(Vector3.up, forwardDir).normalized;
-                                float sideDot = Vector3.Dot(toTrunk, sideDir);
-                                Vector3 steerSide = (sideDot >= 0f) ? -sideDir : sideDir;
-                                avoidance += steerSide * 2.2f;
-
-                                // Chặn lại nếu tiến quá sát vào thân cây
-                                if (trunkDist < 0.38f && dot > 0.40f)
-                                {
-                                    isBlockedDirectly = true;
-                                }
-                            }
+                            steerSide = (GetHashCode() % 2 == 0) ? -sideDir : sideDir;
                         }
+                        else
+                        {
+                            steerSide = (sideDot >= 0f) ? -sideDir : sideDir;
+                        }
+
+                        float urgency = Mathf.Clamp01((detectionDist - dist) / (detectionDist - minSafe));
+                        avoidance += steerSide * (urgency * 1.2f);
+
+                        // BỊ CHẶN TRỰC DIỆN:
+                        // Chỉ tính là bị chặn trực diện khi đã áp sát (< minSafe + 0.02m) và hướng đi đâm thẳng vào tâm (forwardDot > 0.65f)
+                        // Nếu góc chéo, thuật toán né tránh tiếp tuyến sẽ tự động trượt mượt mà lách qua vật cản mà không khựng lại
+                        if (dist < minSafe + 0.02f && forwardDot > 0.65f)
+                        {
+                            isBlockedDirectly = true;
+                        }
+                    }
+                    else
+                    {
+                        // Ở bên hông hoặc sau lưng: đẩy dạt nhẹ
+                        float rep = Mathf.Clamp01((minSafe - dist) / minSafe);
+                        avoidance += (-toObsNorm) * (rep * 0.8f);
                     }
                 }
             }
@@ -1369,79 +1885,234 @@ public class AnimalMovementAI : MonoBehaviour
 
         Vector3 hexCenter = HexMetrics.HexToWorldPosition(targetHex, targetSurfaceY);
 
-        // 5. Chọn điểm đến phân tán trong bán kính an toàn maxWanderRadius
-        Vector3 bestCandidate = hexCenter;
-        float bestMinDistSqr = -1f;
-
-        for (int attempt = 0; attempt < 8; attempt++)
+        // Sinh vật bay đang lượn trên trời: Tự do chọn điểm trên không trong bán kính ô
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
         {
             Vector2 randomOffset = Random.insideUnitCircle * maxWanderRadius;
-
-            // Ưu tiên dạo bước ở nửa trước của ô (hướng Nam/Tây Nam ngập nắng đối diện Camera)
-            if (preferCameraFacingGlade && Random.value > 0.35f)
+            Vector3 airCandidate = new Vector3(hexCenter.x + randomOffset.x, hexCenter.y, hexCenter.z + randomOffset.y);
+            HexCoordinates candHex = HexMetrics.WorldToHex(airCandidate);
+            if (CanMoveToHex(candHex))
             {
-                randomOffset.y -= maxWanderRadius * 0.25f;
-                if (randomOffset.magnitude > maxWanderRadius)
-                {
-                    randomOffset = randomOffset.normalized * maxWanderRadius;
-                }
+                lastTargetDestination = airCandidate;
+                return airCandidate;
             }
-
-            Vector3 candidatePos = new Vector3(hexCenter.x + randomOffset.x, hexCenter.y, hexCenter.z + randomOffset.y);
-
-            // Điểm đến bắt buộc phải nằm trong ô hợp lệ
-            HexCoordinates candHex = HexMetrics.WorldToHex(candidatePos);
-            if (!CanMoveToHex(candHex)) continue;
-
-            float closestDistSqr = float.MaxValue;
-            for (int i = 0; i < ActiveAnimals.Count; i++)
-            {
-                AnimalMovementAI other = ActiveAnimals[i];
-                if (other == null || other == this) continue;
-
-                // Nếu con thú khác ở độ cao khác > 0.65m (ví dụ một con trên trời một con dưới đất) -> không tính là va chạm
-                float heightDiff = Mathf.Abs(candidatePos.y - other.transform.position.y);
-                if (heightDiff > 0.65f) continue;
-
-                Vector3 otherPos = other.transform.position;
-                float dx = candidatePos.x - otherPos.x;
-                float dz = candidatePos.z - otherPos.z;
-                float dSqr = dx * dx + dz * dz;
-                if (dSqr < closestDistSqr)
-                {
-                    closestDistSqr = dSqr;
-                }
-            }
-
-            // Nếu tìm thấy điểm cách xa tất cả các con thú khác > (2 * personalRadius) thì chọn luôn
-            float safeSep = (personalRadius * 2f);
-            if (closestDistSqr >= safeSep * safeSep)
-            {
-                return candidatePos;
-            }
-
-            if (closestDistSqr > bestMinDistSqr)
-            {
-                bestMinDistSqr = closestDistSqr;
-                bestCandidate = candidatePos;
-            }
+            lastTargetDestination = hexCenter;
+            return hexCenter;
         }
 
-        return bestCandidate;
+        // Động vật trên cạn / chim đậu đất: Dùng hệ thống quét 360 độ (Sector Scan) & Thoát góc kẹp (Backtrack / Escape)
+        lastTargetDestination = PickGroundDestination(targetHex, hexCenter);
+        return lastTargetDestination;
     }
 
     /// <summary>
-    /// Xoay người nhẹ nhàng nhìn quanh khi đang đứng yên
+    /// Tìm điểm đến tự nhiên trên mặt đất bằng phương pháp quét 360 độ (16 Sector Scan):
+    /// - Đo khoảng cách thông thoáng thực tế theo từng hướng (né tránh cây, đá, gốc cây, mép ô và thú khác).
+    /// - Nhận biết các khe hở / hành lang di chuyển thoáng đãng (Clear Corridors).
+    /// - Tự động phát hiện góc kẹt (khi phía trước và 2 bên bị vây kín) và kích hoạt cơ chế Backtrack / Escape:
+    ///   chủ động quay đầu đi ngược ra bãi cỏ mở phía sau để tự giải thoát, không bao giờ bị đứng yên chết dí.
+    /// </summary>
+    private Vector3 PickGroundDestination(HexCoordinates targetHex, Vector3 hexCenter)
+    {
+        Vector3 currentPos = transform.position;
+        const int numSectors = 16;
+        float maxSearchRange = (targetHex != currentHex) ? 1.75f : maxWanderRadius;
+
+        // Lấy danh sách vật cản trong bán kính lân cận
+        GetNearbyObstacles(currentPos, 1.8f, tempNearbyObstacles);
+
+        // Hướng mong muốn chính (Primary Bias Direction)
+        Vector3 biasDir;
+        if (targetHex != currentHex)
+        {
+            biasDir = hexCenter - currentPos;
+            biasDir.y = 0f;
+            biasDir = biasDir.sqrMagnitude > 0.001f ? biasDir.normalized : transform.forward;
+        }
+        else
+        {
+            biasDir = preferCameraFacingGlade ? (new Vector3(0f, 0f, -1f) + transform.forward * 0.4f).normalized : transform.forward;
+        }
+
+        float bestClearDist = -1f;
+        int bestClearIdx = -1;
+
+        Vector3[] sectorDirs = new Vector3[numSectors];
+        float[] clearDists = new float[numSectors];
+
+        for (int i = 0; i < numSectors; i++)
+        {
+            float angleDeg = i * (360f / numSectors);
+            float rad = angleDeg * Mathf.Deg2Rad;
+            Vector3 dir = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad));
+            sectorDirs[i] = dir;
+
+            float clearDist = maxSearchRange;
+
+            // 1. Kiểm tra va chạm với vật cản tĩnh (Thân cây, gốc cây, tảng đá, khúc gỗ)
+            for (int o = 0; o < tempNearbyObstacles.Count; o++)
+            {
+                TileObstacle obs = tempNearbyObstacles[o];
+                Vector3 toObs = obs.worldPos - currentPos;
+                toObs.y = 0f;
+
+                float proj = Vector3.Dot(toObs, dir);
+                if (proj > 0f) // Vật cản nằm ở bán cầu phía trước tia quét
+                {
+                    float perpSqr = toObs.sqrMagnitude - proj * proj;
+                    float safeClearance = obs.radius + PropObstacleBodyRadius + 0.02f;
+
+                    if (perpSqr < safeClearance * safeClearance)
+                    {
+                        // Tia quét cắt qua vành bảo vệ của vật thể
+                        float halfChord = Mathf.Sqrt(Mathf.Max(0f, safeClearance * safeClearance - perpSqr));
+                        float hitDist = Mathf.Max(0f, proj - halfChord);
+                        if (hitDist < clearDist)
+                        {
+                            clearDist = hitDist;
+                        }
+                    }
+                }
+            }
+
+            // 2. Kiểm tra biên giới Habitat hợp lệ và mép an toàn ô
+            float stepSize = 0.12f;
+            for (float d = stepSize; d <= clearDist; d += stepSize)
+            {
+                Vector3 samplePos = currentPos + dir * d;
+                HexCoordinates sampleHex = HexMetrics.WorldToHex(samplePos);
+                if (!CanMoveToHex(sampleHex))
+                {
+                    clearDist = Mathf.Max(0f, d - stepSize);
+                    break;
+                }
+
+                // Không vượt quá mép an toàn safeHexRadius của ô đích TRỪ KHI hướng đó dẫn sang ô láng giềng hợp lệ
+                Vector3 hCenter = HexMetrics.HexToWorldPosition(sampleHex, samplePos.y);
+                Vector3 fromHCenter = samplePos - hCenter;
+                fromHCenter.y = 0f;
+                if (fromHCenter.magnitude > safeHexRadius)
+                {
+                    HexCoordinates furtherHex = HexMetrics.WorldToHex(hCenter + fromHCenter.normalized * 1.45f);
+                    if (!CanMoveToHex(furtherHex))
+                    {
+                        clearDist = Mathf.Max(0f, d - stepSize);
+                        break;
+                    }
+                }
+            }
+
+            // 3. Kiểm tra các con thú khác (tránh chọn hướng đi đâm vào đồng loại)
+            for (int a = 0; a < ActiveAnimals.Count; a++)
+            {
+                AnimalMovementAI other = ActiveAnimals[a];
+                if (other == null || other == this) continue;
+                if (Mathf.Abs(currentPos.y - other.transform.position.y) > 0.65f) continue;
+
+                Vector3 toOther = other.transform.position - currentPos;
+                toOther.y = 0f;
+                float proj = Vector3.Dot(toOther, dir);
+                if (proj > 0f)
+                {
+                    float perpSqr = toOther.sqrMagnitude - proj * proj;
+                    float safeSep = personalRadius + other.personalRadius + 0.05f;
+                    if (perpSqr < safeSep * safeSep)
+                    {
+                        float halfChord = Mathf.Sqrt(Mathf.Max(0f, safeSep * safeSep - perpSqr));
+                        float hitDist = Mathf.Max(0f, proj - halfChord);
+                        if (hitDist < clearDist)
+                        {
+                            clearDist = hitDist;
+                        }
+                    }
+                }
+            }
+
+            clearDists[i] = clearDist;
+
+            if (clearDist > bestClearDist)
+            {
+                bestClearDist = clearDist;
+                bestClearIdx = i;
+            }
+        }
+
+        // KIỂM TRA TÌNH TRẠNG KẸT VÀ LỰA CHỌN HÀNH LANG DI CHUYỂN:
+        // Hướng được xem là "thoáng" khi có thể bước đi tối thiểu 20cm
+        const float openThreshold = 0.20f;
+        List<int> openSectors = new List<int>();
+        for (int i = 0; i < numSectors; i++)
+        {
+            if (clearDists[i] >= openThreshold)
+            {
+                openSectors.Add(i);
+            }
+        }
+
+        // TRƯỜNG HỢP 1: BỊ KẸT TRONG GÓC CỤT (Phía trước và hai bên đều bị vướng cây/đá/mép ô)
+        // -> KÍCH HOẠT CƠ CHẾ UNSTUCK / BACKTRACK:
+        // Tự động chọn hướng có khoảng cách thông thoáng lớn nhất (thường là lối mở phía sau lưng nơi thú vừa đi vào)
+        // để quay đầu bước ra bãi cỏ mở, không bao giờ đứng yên chịu trận!
+        if (openSectors.Count == 0 || bestClearDist < openThreshold)
+        {
+            int escapeIdx = (bestClearIdx >= 0) ? bestClearIdx : 0;
+            Vector3 escapeDir = sectorDirs[escapeIdx];
+            float escapeDist = Mathf.Clamp(clearDists[escapeIdx] * 0.85f, 0.15f, 0.35f);
+            return currentPos + escapeDir * escapeDist;
+        }
+
+        // TRƯỜNG HỢP 2: CÓ CÁC HÀNH LANG THOÁNG ĐÃNG (Clear Corridors)
+        // Đánh giá điểm số cho từng hành lang thoáng để chọn hướng đi tự nhiên nhất
+        int chosenIdx = openSectors[0];
+        float bestScore = -float.MaxValue;
+
+        for (int s = 0; s < openSectors.Count; s++)
+        {
+            int idx = openSectors[s];
+            Vector3 dir = sectorDirs[idx];
+            float dist = clearDists[idx];
+
+            float biasDot = Vector3.Dot(dir, biasDir);
+            float fwdDot = Vector3.Dot(dir, transform.forward);
+
+            // Điểm số: Ưu tiên đường càng thoáng + hợp hướng mong muốn (bãi cỏ / ô láng giềng) + mượt mà với hướng nhìn hiện tại
+            float score = (dist / maxSearchRange) * 2.0f
+                        + (biasDot + 1f) * 1.2f
+                        + (fwdDot + 1f) * 0.6f
+                        + Random.Range(0f, 0.5f); // Một chút ngẫu nhiên để bước đi sống động
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                chosenIdx = idx;
+            }
+        }
+
+        Vector3 chosenDir = sectorDirs[chosenIdx];
+        float chosenClearDist = clearDists[chosenIdx];
+
+        // Sải bước:
+        // - Khi bước sang ô láng giềng (targetHex != currentHex): Đi dứt khoát 70% - 95% khoảng cách hành lang thoáng đãng để vượt sang ô mới
+        // - Khi dạo chơi trong cùng ô: Đi nhẹ nhàng 45% - 75%
+        float minRatio = (targetHex != currentHex) ? 0.70f : 0.45f;
+        float maxRatio = (targetHex != currentHex) ? 0.95f : 0.75f;
+        float minCap = (targetHex != currentHex) ? 0.80f : 0.20f;
+        float stepLength = Random.Range(Mathf.Min(minCap, chosenClearDist * minRatio), chosenClearDist * maxRatio);
+        return currentPos + chosenDir * stepLength;
+    }
+
+    /// <summary>
+    /// Xoay người nhẹ nhàng nhìn quanh khi đang đứng yên (tốc độ chậm rãi, thư thái tự nhiên)
     /// </summary>
     private IEnumerator IdleLookAroundRoutine()
     {
         // Khi đang trên không, không xoay đầu kiểu thú đứng đất
         if (isAirborne) yield break;
 
-        float turnAngle = Random.Range(-40f, 40f);
+        float turnAngle = Random.Range(-20f, 20f);
         Quaternion targetRot = transform.rotation * Quaternion.Euler(0f, turnAngle, 0f);
 
-        float duration = 1.0f;
+        float duration = 1.6f;
         float elapsed = 0f;
         Quaternion startRot = transform.rotation;
 
@@ -1482,6 +2153,9 @@ public class AnimalMovementAI : MonoBehaviour
         if (clipName.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0 ||
             clipName.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
             clipName.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0) return flySpeed;
+        if (clipName.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            clipName.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            clipName.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0) return walkSpeed * 1.15f;
 
         if (locomotionType == AnimalLocomotionType.Flying && isAirborne) return flySpeed;
 
@@ -1634,10 +2308,31 @@ public class AnimalMovementAI : MonoBehaviour
         Gizmos.color = new Color(1f, 0.6f, 0.1f, 0.8f);
         Gizmos.DrawWireSphere(transform.position, personalRadius);
 
+        // Vòng màu đỏ cam: Các chướng ngại vật props xung quanh được AI nhận diện
+        Gizmos.color = new Color(1f, 0.25f, 0.15f, 0.85f);
+        List<TileObstacle> debugObs = new List<TileObstacle>();
+        GetNearbyObstacles(transform.position, 1.8f, debugObs);
+        for (int i = 0; i < debugObs.Count; i++)
+        {
+            TileObstacle obs = debugObs[i];
+            Vector3 obsCenter = obs.worldPos;
+            obsCenter.y = transform.position.y;
+            Gizmos.DrawWireSphere(obsCenter, obs.radius);
+            Gizmos.DrawWireSphere(obsCenter, obs.radius + PropObstacleBodyRadius);
+        }
+
         if (locomotionType == AnimalLocomotionType.Flying)
         {
             Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.4f);
             Gizmos.DrawWireCube(new Vector3(center.x, center.y + flightAltitude, center.z), new Vector3(maxWanderRadius * 2f, 0.15f, maxWanderRadius * 2f));
+        }
+
+        // Tia màu tím / hồng: Hướng và điểm đích được Sector Scan lựa chọn
+        if (lastTargetDestination != Vector3.zero)
+        {
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawLine(transform.position, lastTargetDestination);
+            Gizmos.DrawWireSphere(lastTargetDestination, 0.08f);
         }
     }
 }
