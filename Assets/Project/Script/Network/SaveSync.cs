@@ -49,6 +49,31 @@ public class SaveSync : MonoBehaviour
         DontDestroyOnLoad(go);
         instance = go.AddComponent<SaveSync>();
         SceneManager.sceneLoaded += (scene, mode) => SavesSuspended = false;
+        AuthSession.AccountChanging -= HandleAccountChanging;
+        AuthSession.AccountChanging += HandleAccountChanging;
+    }
+
+    /// <summary>
+    /// Sắp đổi tài khoản (đăng nhập người khác hoặc Log out), SaveSlot.PlayerId vẫn là tài khoản cũ:
+    /// ghi nốt save đang chờ vào file của chính tài khoản đó, bỏ hàng đợi gửi của nó (cờ "chưa gửi"
+    /// vẫn nằm trong PlayerPrefs theo id cũ nên lần sau tài khoản đó đăng nhập sẽ gửi tiếp),
+    /// rồi hủy mọi dịch vụ giữ dữ liệu theo tài khoản để lần vào đảo kế tiếp nạp đúng tài khoản mới.
+    /// </summary>
+    private static void HandleAccountChanging()
+    {
+        if (EconomySaveSystem.HasInstance) EconomySaveSystem.Instance.SaveNow();
+        if (WorldSaveSystem.Instance != null) WorldSaveSystem.Instance.SaveNow();
+        if (VisitSession.Active) VisitSession.End();
+
+        if (instance != null)
+        {
+            instance.pending = false;
+            instance.nextRetryTime = 0f;
+        }
+        SavesSuspended = false;
+
+        Debug.Log("[LumiWorld Save] Đổi tài khoản: đã ghi save của tài khoản cũ và bỏ dữ liệu đang chạy.");
+        DestroyAccountRuntimeState();
     }
 
     /// <summary>Đánh dấu save đã đổi. Gọi được từ bất kỳ đâu; chỉ có tác dụng khi đăng nhập bằng tài khoản.</summary>
@@ -88,8 +113,15 @@ public class SaveSync : MonoBehaviour
 
         if (body != null)
         {
-            // Server ghi đè thì các thay đổi chưa gửi trên máy bị bỏ, đúng quy tắc server thắng
-            if (ApplySafely(id, body, false)) ClearPending(id);
+            // Server ghi đè thì các thay đổi chưa gửi trên máy bị bỏ, đúng quy tắc server thắng.
+            // Chặn ghi trước khi ghi file: kinh tế cũ trong bộ nhớ không được ghi đè lên bản vừa tải.
+            SavesSuspended = true;
+            if (ApplySafely(id, body, false))
+            {
+                ClearPending(id);
+                yield return DropStaleRuntimeState();
+            }
+            SavesSuspended = false;
         }
         else if (error != null && error.StatusCode == 404)
         {
@@ -208,12 +240,13 @@ public class SaveSync : MonoBehaviour
         }
 
         // These services survive scene changes and otherwise retain the old economy in memory.
-        DestroyRuntimeStateForNewGame();
+        DestroyAccountRuntimeState();
         instance.resetting = false;
         done?.Invoke(true, null);
     }
 
-    private static void DestroyRuntimeStateForNewGame()
+    // Các dịch vụ sống xuyên scene giữ dữ liệu theo tài khoản; dùng cho New Game và khi đổi tài khoản
+    private static void DestroyAccountRuntimeState()
     {
         if (OrderBoardSystem.HasInstance) Destroy(OrderBoardSystem.Instance.gameObject);
         if (ResourceInventory.HasInstance) Destroy(ResourceInventory.Instance.gameObject);
@@ -222,6 +255,7 @@ public class SaveSync : MonoBehaviour
         if (AchievementManager.HasInstance) Destroy(AchievementManager.Instance.gameObject);
         if (CardLockManager.HasInstance) Destroy(CardLockManager.Instance.gameObject);
         if (CreatureCareManager.HasInstance) Destroy(CreatureCareManager.Instance.gameObject);
+        LumiWorld.Economy.Crafting.CraftingQueueSystem.DestroyIfExists();
     }
 
     private void Update()
@@ -333,7 +367,21 @@ public class SaveSync : MonoBehaviour
 
         ClearPending(id);
         pending = false;
+        // SavesSuspended vẫn bật tới khi scene tải lại xong (sceneLoaded), vì object của scene này còn giữ đảo cũ
+        yield return DropStaleRuntimeState();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    /// <summary>
+    /// Sau khi ghi bản server xuống máy: hủy các dịch vụ sống xuyên scene (ví, kho, đơn hàng, kinh tế,
+    /// thành tựu, chăm thú, chế biến) để chúng nạp lại từ file mới, thay vì giữ số cũ trong bộ nhớ rồi ghi đè lên.
+    /// Gọi khi SavesSuspended đang bật: OnDestroy của EconomySaveSystem không ghi gì. Đợi một frame để Destroy chạy xong.
+    /// </summary>
+    private static IEnumerator DropStaleRuntimeState()
+    {
+        DestroyAccountRuntimeState();
+        yield return null;
+        Debug.Log("[LumiWorld Save] Đã bỏ dữ liệu kinh tế cũ trong bộ nhớ; lần dùng tới sẽ nạp lại từ bản server.");
     }
 
     // Ghi file từ server; lỗi định dạng chỉ ghi log để game vẫn chạy bằng bản trên máy.

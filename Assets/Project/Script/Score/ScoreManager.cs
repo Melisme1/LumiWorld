@@ -47,6 +47,9 @@ public class ScoreManager : MonoBehaviour
     private int nextEndlessThreshold = -1;
     private readonly HashSet<int> grantedMilestoneIndices = new();
 
+    // Điểm không đến từ thẻ đã đặt (combo thú). Tổng điểm = điểm thẻ + bonusScore; lưu trong world_<id>.json
+    private int bonusScore;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -106,9 +109,70 @@ public class ScoreManager : MonoBehaviour
 
         UpdateUI();
 
+        int grantedBefore = grantedMilestoneIndices.Count;
+        int endlessBefore = nextEndlessThreshold;
+        int rewardBefore = nextRewardScore;
+
         CheckCardReward();
 
+        // Vừa trao thưởng mốc: ghi đảo để mốc đó không được trao lại sau khi mở lại game
+        if (grantedMilestoneIndices.Count != grantedBefore || nextEndlessThreshold != endlessBefore || nextRewardScore != rewardBefore)
+            WorldSaveSystem.MarkDirty();
+
         OnScoreChanged?.Invoke(currentScore);
+    }
+
+    /// <summary>Đặt điểm theo tổng điểm thẻ đang có trên đảo, giữ nguyên điểm combo.</summary>
+    public void SetCardScore(int cardScore)
+    {
+        SetScore(cardScore + bonusScore);
+    }
+
+    /// <summary>Cộng điểm ngoài thẻ (combo thú). Được giữ lại khi tính lại điểm thẻ và khi mở lại game.</summary>
+    public void AddBonusScore(int points)
+    {
+        if (WorldLaunch.IsVisit || points == 0) return;
+        bonusScore = Mathf.Max(0, bonusScore + points);
+        WorldSaveSystem.MarkDirty();
+        SetScore(currentScore + points);
+    }
+
+    /// <summary>Ghi điểm combo, mốc đã thưởng và mốc Endless kế tiếp vào bản lưu đảo.</summary>
+    public void CaptureProgress(WorldProgressData progress)
+    {
+        progress.bonusScore = bonusScore;
+        progress.nextEndlessThreshold = nextEndlessThreshold;
+        progress.nextRewardScore = nextRewardScore;
+        progress.grantedMilestoneThresholds.Clear();
+        foreach (int index in grantedMilestoneIndices)
+        {
+            if (index >= 0 && index < rewardMilestones.Count && rewardMilestones[index] != null)
+                progress.grantedMilestoneThresholds.Add(rewardMilestones[index].scoreThreshold);
+        }
+    }
+
+    /// <summary>
+    /// Dựng lại điểm và các mốc đã thưởng từ bản lưu, không trao thưởng và không phát sự kiện.
+    /// Mốc nằm giữa điểm cũ và điểm mới (nếu có) sẽ được trao ở lần đổi điểm kế tiếp.
+    /// </summary>
+    public void RestoreProgress(int savedCardScore, WorldProgressData progress)
+    {
+        bonusScore = Mathf.Max(0, progress.bonusScore);
+        currentScore = Mathf.Max(0, savedCardScore + bonusScore);
+
+        grantedMilestoneIndices.Clear();
+        for (int i = 0; i < rewardMilestones.Count; i++)
+        {
+            ScoreRewardMilestone milestone = rewardMilestones[i];
+            if (milestone != null && progress.grantedMilestoneThresholds.Contains(milestone.scoreThreshold))
+                grantedMilestoneIndices.Add(i);
+        }
+
+        nextEndlessThreshold = progress.nextEndlessThreshold;
+        nextRewardScore = progress.nextRewardScore > 0
+            ? progress.nextRewardScore
+            : (scorePerReward > 0 ? (currentScore / scorePerReward + 1) * scorePerReward : 0);
+        UpdateUI();
     }
 
     /// <summary>Rebuilds displayed score from saved cards without granting milestone cards a second time.</summary>
@@ -304,6 +368,7 @@ public class ScoreManager : MonoBehaviour
     public void ResetScore()
     {
         currentScore = 0;
+        bonusScore = 0;
 
         nextRewardScore =
             scorePerReward;

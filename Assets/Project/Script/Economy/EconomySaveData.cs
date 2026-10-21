@@ -13,7 +13,9 @@ using System.Collections.Generic;
 [Serializable]
 public class EconomySaveData
 {
-    public int version = 1;
+    // 2: thêm Harmony, cột mốc và thành tựu đã nhận. 3: thêm bài trên tay. 4: thêm hàng chờ chế biến.
+    // Bản lưu cũ hơn vẫn đọc được (các trường mới để mặc định).
+    public int version = 4;
     public int coins;
     public bool starterKitGranted;
     public List<ResourceStack> resources = new List<ResourceStack>();
@@ -27,8 +29,52 @@ public class EconomySaveData
     // Thao tác chợ đang chờ server xác nhận (đăng bán, mua, hủy). Xem PendingMarketOp.
     public List<PendingMarketOp> pendingMarketOps = new List<PendingMarketOp>();
 
+    // Tiến trình của tài khoản (AchievementManager). harmonyInitialized = false ở bản lưu cũ:
+    // khi đó dùng Harmony khởi điểm của AchievementManager rồi ghi lại.
+    public bool harmonyInitialized;
+    public int totalHarmony;
+    public bool hasRankedUpAnyCreature;
+    // Id cột mốc (M1_...) và thành tựu đã nhận thưởng; đã có trong danh sách thì không bao giờ nhận lại.
+    public List<string> claimedMilestoneIds = new List<string>();
+    public List<string> claimedAchievementIds = new List<string>();
+
+    // Bài trên tay (CardDeskController), gộp theo cardID. starterHandGranted = false: chưa từng chia bài khởi đầu
+    // (tài khoản mới, New Game hoặc bản lưu cũ), khi đó dùng bộ bài khởi đầu rồi ghi lại.
+    public bool starterHandGranted;
+    public List<HandCardStack> hand = new List<HandCardStack>();
+
+    // Hàng chờ chế biến (CraftingQueueSystem). Nguyên liệu đã trừ khỏi kho lúc bắt đầu mẻ,
+    // nên mẻ phải nằm cùng file với kho. Mẻ đã nhận thành phẩm bị xóa khỏi danh sách.
+    public List<CraftingJobRecord> craftingJobs = new List<CraftingJobRecord>();
+
     // ISO 8601 (UTC), chỉ để dễ đọc file khi debug.
     public string savedAtUtc;
+}
+
+/// <summary>
+/// Một loại thẻ trên tay kèm số lá, ví dụ Forest x3. cardID tra trong CardCatalog.
+/// </summary>
+[Serializable]
+public class HandCardStack
+{
+    public string cardId;
+    public int count;
+}
+
+/// <summary>
+/// Một mẻ chế biến chưa nhận. Không lưu giờ của GameClock (đồng hồ này đếm lại từ 0 mỗi lần mở game),
+/// chỉ lưu giờ UTC xong mẻ và số giây còn lại lúc ghi (dùng khi đồng hồ máy bị lùi).
+/// </summary>
+[Serializable]
+public class CraftingJobRecord
+{
+    public string jobId;
+    public string recipeId;
+    public int quantity;
+    public double durationSeconds;
+    public string completeAtUtc;      // ISO 8601 UTC
+    public double remainingSeconds;
+    public bool isCompleted;
 }
 
 /// <summary>

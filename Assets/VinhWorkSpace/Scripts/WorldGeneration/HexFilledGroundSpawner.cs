@@ -98,6 +98,9 @@ public class HexFilledGroundSpawner : MonoBehaviour
     // Cache để không phải lặp lại việc bật GPU Instancing
     private readonly HashSet<Material> _instancedMaterials = new HashSet<Material>();
 
+    // Bộ số ngẫu nhiên có seed của lần rải cỏ hiện tại (routine chạy liền một mạch, không yield giữa chừng)
+    private DecorRandom decorRandom = new DecorRandom(0);
+
     private void Awake()
     {
         if (_instance == null)
@@ -216,6 +219,11 @@ public class HexFilledGroundSpawner : MonoBehaviour
     {
         if (habitatContainer == null) yield break;
 
+        // Seed theo ô + thẻ: thảm cỏ y hệt mỗi lần vào game và khi người khác thăm đảo (không lưu gì thêm)
+        HexTileInfo seedTile = habitatContainer.GetComponentInParent<HexTileInfo>();
+        decorRandom = DecorRandom.ForTile(seedTile != null ? seedTile.coordinates : default,
+            cardData != null ? cardData.cardID : string.Empty, "filledground");
+
         // Tạo container con riêng cho thảm cỏ để quản lý gọn gàng
         GameObject carpetContainer = new GameObject("FilledGround_GrassCarpet");
         carpetContainer.transform.SetParent(habitatContainer, false);
@@ -273,7 +281,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
         // =========================================================================
         if (clumpObj != null)
         {
-            int targetClumpCount = Random.Range(grassClumpCountRange.x, grassClumpCountRange.y + 1);
+            int targetClumpCount = decorRandom.Range(grassClumpCountRange.x, grassClumpCountRange.y + 1);
             int attempts = 0;
             int maxAttempts = targetClumpCount * 25;
 
@@ -309,7 +317,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
                 placedClumps.Add(candidate);
 
                 // Khởi tạo instance GrassClump
-                float scale = Random.Range(clumpScaleRange.x, clumpScaleRange.y);
+                float scale = decorRandom.Range(clumpScaleRange.x, clumpScaleRange.y);
                 GameObject inst = CreateGrassInstance(
                     clumpObj,
                     candidate,
@@ -335,7 +343,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
         // =========================================================================
         if (tuftObj != null)
         {
-            int targetTuftCount = Random.Range(microTuftCountRange.x, microTuftCountRange.y + 1);
+            int targetTuftCount = decorRandom.Range(microTuftCountRange.x, microTuftCountRange.y + 1);
 
             // Phân bổ: 45% viền ngoài, 25% quây quanh chân cây/đá, 30% rải tự do
             int rimTufts = Mathf.RoundToInt(targetTuftCount * 0.45f);
@@ -345,8 +353,8 @@ public class HexFilledGroundSpawner : MonoBehaviour
             // 2A. Viền mép ngoài cùng (0.82 * R -> 0.98 * R)
             for (int r = 0; r < rimTufts; r++)
             {
-                float rimRadius = Random.Range(maxHexRadius * 0.82f, maxHexRadius * 0.98f);
-                float angle = (r / (float)rimTufts) * Mathf.PI * 2f + Random.Range(-0.15f, 0.15f);
+                float rimRadius = decorRandom.Range(maxHexRadius * 0.82f, maxHexRadius * 0.98f);
+                float angle = (r / (float)rimTufts) * Mathf.PI * 2f + decorRandom.Range(-0.15f, 0.15f);
                 Vector2 rimPt = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * rimRadius;
 
                 if (!HexHabitatSpawner.IsPointInHexagon(rimPt, maxHexRadius))
@@ -362,8 +370,8 @@ public class HexFilledGroundSpawner : MonoBehaviour
             {
                 for (int b = 0; b < baseSkirtTufts / Mathf.Max(1, obstacles.Count); b++)
                 {
-                    float angle = Random.Range(0f, Mathf.PI * 2f);
-                    float d = Random.Range(heavyPropCoreClearance + 0.02f, heavyPropCoreClearance + 0.16f);
+                    float angle = decorRandom.Range(0f, Mathf.PI * 2f);
+                    float d = decorRandom.Range(heavyPropCoreClearance + 0.02f, heavyPropCoreClearance + 0.16f);
                     Vector2 basePt = obs + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * d;
 
                     if (HexHabitatSpawner.IsPointInHexagon(basePt, maxHexRadius))
@@ -427,7 +435,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
 
         placedTufts.Add(pos2D);
 
-        float scale = Random.Range(tuftScaleRange.x, tuftScaleRange.y);
+        float scale = decorRandom.Range(tuftScaleRange.x, tuftScaleRange.y);
         GameObject inst = CreateGrassInstance(
             tuftObj,
             pos2D,
@@ -460,9 +468,9 @@ public class HexFilledGroundSpawner : MonoBehaviour
 
         float tilt = Mathf.Max(0f, maxTiltAngle);
         Quaternion rot = Quaternion.Euler(
-            Random.Range(-tilt, tilt),
-            Random.Range(0f, 360f),
-            Random.Range(-tilt, tilt)
+            decorRandom.Range(-tilt, tilt),
+            decorRandom.Range(0f, 360f),
+            decorRandom.Range(-tilt, tilt)
         ) * prefab.transform.rotation;
 
         GameObject inst = Instantiate(prefab, worldPos, rot, parent);
@@ -598,8 +606,8 @@ public class HexFilledGroundSpawner : MonoBehaviour
 
         for (int i = 0; i < 50; i++)
         {
-            float rx = Random.Range(-maxInnerRadius, maxInnerRadius);
-            float ry = Random.Range(-maxOuterRadius, maxOuterRadius);
+            float rx = decorRandom.Range(-maxInnerRadius, maxInnerRadius);
+            float ry = decorRandom.Range(-maxOuterRadius, maxOuterRadius);
 
             float absX = Mathf.Abs(rx);
             float absY = Mathf.Abs(ry);

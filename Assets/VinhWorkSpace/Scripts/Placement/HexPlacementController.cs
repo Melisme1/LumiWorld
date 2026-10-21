@@ -116,6 +116,7 @@ public class HexPlacementController : MonoBehaviour
         availableExpansionCharges += Mathf.Max(0, amount);
         UpdateCreateButtonState();
         OnExpansionChargesChanged?.Invoke(availableExpansionCharges);
+        WorldSaveSystem.MarkDirty();
     }
 
     /// <summary>
@@ -126,6 +127,56 @@ public class HexPlacementController : MonoBehaviour
         availableExpansionCharges = 0;
         UpdateCreateButtonState();
         OnExpansionChargesChanged?.Invoke(availableExpansionCharges);
+        WorldSaveSystem.MarkDirty();
+    }
+
+    // =========================================================
+    // LƯU / NẠP LƯỢT MỞ RỘNG VÀ TÂM CÁC MẢNG ĐẤT (world_<id>.json)
+    // =========================================================
+
+    /// <summary>Ghi lượt mở rộng còn lại và tâm các mảng đất đã mở vào bản lưu đảo.</summary>
+    public void CaptureExpansion(WorldProgressData progress)
+    {
+        progress.expansionCharges = availableExpansionCharges;
+        progress.clusterCenters.Clear();
+        foreach (HexCoordinates center in placedClusterCenters)
+            progress.clusterCenters.Add(new HexPointRecord { q = center.Q, r = center.R });
+    }
+
+    /// <summary>
+    /// Dựng lại lượt mở rộng và tâm mảng đất từ bản lưu, không phát hiệu ứng nhận lượt.
+    /// Bản lưu cũ chưa có tâm: dò lại theo mạng Super-Hexagon từ (0, 0), giữ các tâm có ô đất trên đảo.
+    /// </summary>
+    public void RestoreExpansion(WorldProgressData progress, HexWorldGenerator generator)
+    {
+        placedClusterCenters.Clear();
+        placedClusterCenters.Add(new HexCoordinates(0, 0));
+
+        if (progress != null && progress.saved)
+        {
+            availableExpansionCharges = Mathf.Max(0, progress.expansionCharges);
+            foreach (HexPointRecord point in progress.clusterCenters)
+                if (point != null) placedClusterCenters.Add(new HexCoordinates(point.q, point.r));
+        }
+        else if (generator != null && generator.MapTiles != null)
+        {
+            HexCoordinates[] offsets = GetSuperHexOffsets(clusterRadius);
+            var frontier = new Queue<HexCoordinates>();
+            frontier.Enqueue(new HexCoordinates(0, 0));
+            while (frontier.Count > 0)
+            {
+                HexCoordinates center = frontier.Dequeue();
+                foreach (HexCoordinates offset in offsets)
+                {
+                    HexCoordinates next = center + offset;
+                    if (placedClusterCenters.Contains(next) || !generator.MapTiles.ContainsKey(next)) continue;
+                    placedClusterCenters.Add(next);
+                    frontier.Enqueue(next);
+                }
+            }
+        }
+
+        UpdateCreateButtonState();
     }
 
     /// <summary>

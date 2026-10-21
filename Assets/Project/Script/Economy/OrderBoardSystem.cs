@@ -255,7 +255,8 @@ public class OrderBoardSystem : MonoBehaviour
 
     private void FillEmptySlots()
     {
-        if (orders == null || timeRuntime.IsPaused) return;
+        // Đảo đang xem của người khác: không sinh đơn hàng theo sản lượng của đảo đó
+        if (orders == null || timeRuntime.IsPaused || WorldLaunch.IsVisit) return;
 
         HashSet<string> producing = null;
         bool changed = false;

@@ -104,6 +104,22 @@ namespace LumiWorld.Acs
                 ResetWork(state); Revision++;
             }
         }
+        /// <summary>
+        /// Nạp độ no đã lưu trước khi Register (độ no đứng yên khi tắt game). Đang ăn dở thì nạp như
+        /// Eating chưa cắn: lần chuẩn bị ăn kế tiếp tự lấy miếng mới từ ngăn thức ăn.
+        /// </summary>
+        public void RestoreState(string id, CreatureQualityRank rank, CreatureCareRules rules, double satiety, CreatureHungerStatus status)
+        {
+            if (string.IsNullOrWhiteSpace(id) || rules == null || individuals.ContainsKey(id)) return;
+            if (double.IsNaN(satiety) || double.IsInfinity(satiety)) satiety = 100;
+            var state = new Individual { id = id, rank = rank, threshold = rules.Threshold(rank),
+                satiety = Math.Max(0, Math.Min(100, satiety)), status = status };
+            if (state.satiety <= 0 && state.status == CreatureHungerStatus.Healthy) state.status = CreatureHungerStatus.Hungry;
+            individuals.Add(id, state);
+            ResetWork(state);
+            Revision++;
+        }
+
         private void ResetWork(Individual state)
         {
             timers.Cancel(WorkId(state.id));

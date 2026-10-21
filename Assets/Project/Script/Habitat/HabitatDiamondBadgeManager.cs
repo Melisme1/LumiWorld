@@ -61,6 +61,8 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
 
     private void Update()
     {
+        // Đảo đang xem của người khác: không chọn cụm môi trường, không hiện huy hiệu
+        if (WorldLaunch.IsVisit) return;
         HandleMapTileClick();
     }
 
@@ -213,7 +215,7 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
     /// </summary>
     public void RefreshBadges()
     {
-        if (!showDiamondBadges)
+        if (!showDiamondBadges || WorldLaunch.IsVisit)
         {
             ClearAllBadges();
             return;

@@ -1564,9 +1564,9 @@ MonoBehaviour:
   worldGenerator: {fileID: 832299767}
   mainCamera: {fileID: 1110052839}
   terrainPrefabs:
-  - {fileID: 1000000000000001, guid: c10000018a144b6289b7996f34397101, type: 3}
-  - {fileID: 1000000000000001, guid: c10000038a144b6289b7996f34397103, type: 3}
-  - {fileID: 1000000000000001, guid: c10000058a144b6289b7996f34397105, type: 3}
+  - {fileID: 6631663884789134560, guid: c10000018a144b6289b7996f34397101, type: 3}
+  - {fileID: 3253958818025765182, guid: c10000038a144b6289b7996f34397103, type: 3}
+  - {fileID: 5258101239339502816, guid: c10000058a144b6289b7996f34397105, type: 3}
   ghostMaterial: {fileID: 2100000, guid: d5a00ea70787c3048a1f1fc2ee8a39ee, type: 2}
   mapLayerMask:
     serializedVersion: 2
