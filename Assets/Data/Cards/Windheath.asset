@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: windheath_001
   cardName: Windheath
-  cardImage: {fileID: -1485477234, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardImage: {fileID: 21300000, guid: 0006c94dda7f4eb4b8a78aaf0b09336f, type: 3}
   cardType: 1
   baseScore: 1
   alwaysBaseScore: 0

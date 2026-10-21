@@ -37,7 +37,7 @@ public class ResourceHarvestPopup : MonoBehaviour
         cachedCam = Camera.main;
 
         textMesh = gameObject.AddComponent<TextMeshPro>();
-        string resName = resource != null ? resource.resourceName : "Tài nguyên";
+        string resName = resource != null ? resource.resourceName : "Resource";
         Color resColor = resource != null ? resource.resourceColor : Color.green;
 
         textMesh.text = $"+{amount} {resName}";

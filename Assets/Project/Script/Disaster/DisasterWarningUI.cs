@@ -532,7 +532,7 @@ namespace LumiWorld.Acs
 
             int remaining = Mathf.CeilToInt(Mathf.Max(0f, (float)top.remainingSeconds));
             bannerText.color = Color.white;
-            bannerText.text = $"{DisasterCatalog.DisplayName(top.kind)}   ·   còn {remaining}s" +
+            bannerText.text = $"{DisasterCatalog.DisplayName(top.kind)}   ·   {remaining}s left" +
                 (shown.Count > 1 ? $"   (+{shown.Count - 1})" : string.Empty) +
                 $"\n{AdviceFor(top.kind)}";
 
@@ -641,7 +641,7 @@ namespace LumiWorld.Acs
 
                 distanceText.gameObject.SetActive(true);
                 distanceText.color = accentForTracker(top);
-                distanceText.text = hexDistance <= 0 ? "tại đây" : $"{hexDistance} ô";
+                distanceText.text = hexDistance <= 0 ? "here" : $"{hexDistance} tiles";
             }
             else
             {
@@ -724,11 +724,11 @@ namespace LumiWorld.Acs
         {
             switch (kind)
             {
-                case DisasterKind.ForestFire: return "Dùng thẻ MƯA dập lửa để cứu ô trước khi nó lan rộng hơn";
+                case DisasterKind.ForestFire: return "Use a RAIN card to extinguish fire before it spreads";
                 case DisasterKind.Cyclone: return "";
-                case DisasterKind.Drought: return "Dùng mưa để chấm dứt hạn hán";
-                case DisasterKind.BarrenLand: return "Cần MƯA LỚN (mưa nhỏ không thấm)";
-                case DisasterKind.Obstacle: return "Vật cản: dọn hoặc dùng mưa";
+                case DisasterKind.Drought: return "Use rain to end drought";
+                case DisasterKind.BarrenLand: return "Heavy rain required";
+                case DisasterKind.Obstacle: return "Obstacle: clear or use rain";
                 default: return string.Empty;
             }
         }

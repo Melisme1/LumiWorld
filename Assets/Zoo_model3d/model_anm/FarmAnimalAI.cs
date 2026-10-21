@@ -119,8 +119,8 @@ public class FarmAnimalAI : MonoBehaviour
     [Tooltip("Thời gian chờ hồi connection còn lại (giây)")]
     public float cooldownRemainingSeconds = 0f;
 
-    [Tooltip("Thời gian chờ hồi hiển thị (Giờ:Phút:Giây)")]
-    public string formattedCooldownRemaining = "Sẵn sàng (Ready)";
+    [Tooltip("Formatted cooldown remaining display (Hours:Mins:Secs)")]
+    public string formattedCooldownRemaining = "Ready";
 
     // Quản lý tĩnh danh sách thú trong Scene
     private static readonly List<FarmAnimalAI> allAnimals = new List<FarmAnimalAI>();
@@ -190,7 +190,7 @@ public class FarmAnimalAI : MonoBehaviour
             {
                 cooldownRemainingSeconds = 0f;
                 isConnectionOnCooldown = false;
-                formattedCooldownRemaining = "Sẵn sàng (Ready)";
+                formattedCooldownRemaining = "Ready";
                 Debug.Log($"<color=#34D399><b>[LumiWorld Connection]</b> ✨ {animalID} ({biome}) đã hồi xong thời gian chờ! Sẵn sàng kết nối khi chạm mặt.</color>");
             }
         }
@@ -338,6 +338,13 @@ public class FarmAnimalAI : MonoBehaviour
         foreach (AnimationState state in anim)
         {
             string clipName = state.name;
+
+            string lower = clipName.ToLower();
+            if (lower.Contains("death") || lower.Contains("die") || lower.Contains("dead") || lower.Contains("fall"))
+            {
+                // Bỏ qua các clip ngã / chết để tránh thú đang đứng bỗng lăn ra ngã
+                continue;
+            }
 
             if (clipName.Contains("Walk") || clipName.Contains("Run") || clipName.Contains("Trot") ||
                 clipName.Contains("Swim") || clipName.Contains("Glide") || clipName.Contains("Flap") ||
@@ -1181,64 +1188,64 @@ public class FarmAnimalAI : MonoBehaviour
         switch (comboKey)
         {
             case "Parrot_Peacock":
-                buffTitle = "Vũ Điệu Sắc Màu & Tiếng Hót";
-                buffDesc = "Tăng +5% sản lượng tài nguyên Vùng Núi Cao!";
+                buffTitle = "Song & Color Dance";
+                buffDesc = "+5% Resource Yield for Alpine Regions!";
                 hexColor = "#F472B6";
                 TriggerScoreReward(10);
                 break;
 
             case "Dragonfly_Grasshopper":
-                buffTitle = "Cặp Đôi Tiết Khí Núi Cao";
-                buffDesc = "Tăng +15% tốc độ thu hoạch tài nguyên ô Núi Cao liền kề!";
+                buffTitle = "Alpine Weather Duo";
+                buffDesc = "+15% Harvest Speed for adjacent Alpine tiles!";
                 hexColor = "#38BDF8";
                 TriggerScoreReward(10);
                 break;
 
             case "Cows_Deer":
-                buffTitle = "Tam Tấu Gặm Cỏ & Sinh Thái Rừng";
-                buffDesc = "Tạo 'Phân bón Hữu cơ Cao cấp', giảm thời gian hồi vàng cho ô Rừng giáp ranh!";
+                buffTitle = "Grazing Trio & Forest Ecology";
+                buffDesc = "Produces Premium Fertilizer, reducing coin cooldown for adjacent Forest tiles!";
                 hexColor = "#4ADE80";
                 TriggerScoreReward(15);
                 break;
 
             case "Foxes_FlowerDog":
-                buffTitle = "Đội Cảnh Vệ Rừng Xanh";
-                buffDesc = "Bảo vệ nông sản ô Rừng tươi xốp, giảm thời gian hồi tài nguyên!";
+                buffTitle = "Forest Guardian Pack";
+                buffDesc = "Protects fertile Forest goods, reducing resource cooldown!";
                 hexColor = "#FB923C";
                 TriggerScoreReward(15);
                 break;
 
             case "Squirrel_Deer":
-                buffTitle = "Chuyền Cành Cung Cấp Năng Lượng";
-                buffDesc = "Kích hoạt Buff: Tăng +10% coin thu được từ ô này!";
+                buffTitle = "Branch Leaping Energy";
+                buffDesc = "Buff activated: +10% coins collected from this tile!";
                 hexColor = "#FACC15";
                 TriggerScoreReward(10);
                 break;
 
             case "Capy_Otter_Frog":
-                buffTitle = "Hội Thư Giãn Dưới Vòm Hoa (Chilling Zone)";
-                buffDesc = "Tỏa năng lượng hoa giúp các thú bên cạnh giảm -10% thời gian hồi vàng!";
+                buffTitle = "Chilling Zone Under Flora";
+                buffDesc = "Emits floral aura reducing neighbor coin cooldown by -10%!";
                 hexColor = "#C084FC";
                 TriggerScoreReward(15);
                 break;
 
             case "Caterpillar_Frog":
-                buffTitle = "Tiến Hóa & Thụ Phấn";
-                buffDesc = "Sản sinh tài nguyên: Tiền thu được tăng +10%!";
+                buffTitle = "Evolution & Pollination";
+                buffDesc = "Resource generation: +10% coins collected!";
                 hexColor = "#A3E635";
                 TriggerScoreReward(10);
                 break;
 
             case "Swan_WaterFrog":
-                buffTitle = "Vũ Điệu Đầm Lầy";
-                buffDesc = "Lọc sạch nguồn nước, giúp tài nguyên dưới nước thu hoạch nhanh hơn +10%!";
+                buffTitle = "Marshland Dance";
+                buffDesc = "Purifies water source, accelerating aquatic harvests by +10%!";
                 hexColor = "#22D3EE";
                 TriggerScoreReward(10);
                 break;
 
             case "Puffer_WaterFrog":
-                buffTitle = "Cảnh Báo Phình To";
-                buffDesc = "Cá nóc & Ếch nằm ngửa: Tài nguyên nhận được tăng x1.5 lần!";
+                buffTitle = "Puff Alert";
+                buffDesc = "Pufferfish & Upward Frog: 1.5x resource yield!";
                 hexColor = "#F59E0B";
                 TriggerScoreReward(20);
                 break;
@@ -1247,10 +1254,10 @@ public class FarmAnimalAI : MonoBehaviour
         string displayDesc = buffDesc;
         if (!string.IsNullOrEmpty(cooldownInfo))
         {
-            displayDesc += $"\n[Hồi chiêu: {cooldownInfo}]";
+            displayDesc += $"\n[Cooldown: {cooldownInfo}]";
         }
 
-        Debug.Log($"<color={hexColor}><b>[LumiWorld Connection]</b> ✨ <b>{buffTitle}</b>: {buffDesc} | Thời gian hồi: {cooldownInfo}</color>");
+        Debug.Log($"<color={hexColor}><b>[LumiWorld Connection]</b> ✨ <b>{buffTitle}</b>: {buffDesc} | Cooldown: {cooldownInfo}</color>");
         ShowFloatingBuffBanner(buffTitle, displayDesc, hexColor);
     }
 
@@ -1371,16 +1378,16 @@ public class FarmAnimalAI : MonoBehaviour
         if (hours > 0)
         {
             if (mins > 0) return $"{hours}h {mins:D2}m";
-            return $"{hours} tiếng";
+            return $"{hours} hours";
         }
         else if (mins > 0)
         {
-            if (secs > 0) return $"{mins}p {secs:D2}s";
-            return $"{mins} phút";
+            if (secs > 0) return $"{mins}m {secs:D2}s";
+            return $"{mins} mins";
         }
         else
         {
-            return $"{secs} giây";
+            return $"{secs}s";
         }
     }
 

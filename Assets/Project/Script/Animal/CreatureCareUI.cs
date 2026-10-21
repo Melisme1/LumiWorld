@@ -190,7 +190,7 @@ public class CreatureCareUI : MonoBehaviour
         GameObject feedLabelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         feedLabelObj.transform.SetParent(feedObj.transform, false);
         feedButtonText = feedLabelObj.GetComponent<TextMeshProUGUI>();
-        feedButtonText.text = "CHĂM SÓC (-2C)\n<size=11>+25 Care</size>";
+        feedButtonText.text = "CARE (-2C)\n<size=11>+25 Care</size>";
         feedButtonText.alignment = TextAlignmentOptions.Center;
         feedButtonText.fontSize = 13f;
         feedButtonText.fontStyle = FontStyles.Bold;
@@ -213,7 +213,7 @@ public class CreatureCareUI : MonoBehaviour
         GameObject rankUpLabelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         rankUpLabelObj.transform.SetParent(rankUpObj.transform, false);
         rankUpButtonText = rankUpLabelObj.GetComponent<TextMeshProUGUI>();
-        rankUpButtonText.text = "NÂNG RANK\n<size=11>(Đầy 100% Care)</size>";
+        rankUpButtonText.text = "RANK UP\n<size=11>(100% Care Full)</size>";
         rankUpButtonText.alignment = TextAlignmentOptions.Center;
         rankUpButtonText.fontSize = 13f;
         rankUpButtonText.fontStyle = FontStyles.Bold;
@@ -255,19 +255,19 @@ public class CreatureCareUI : MonoBehaviour
     public void RefreshData()
     {
         string id = currentAnimal != null ? currentAnimal.UniqueID : (currentIdentity != null ? currentIdentity.PlacementId : "");
-        string name = currentAnimal != null ? currentAnimal.IndividualName : "Sinh vật";
+        string name = currentAnimal != null ? currentAnimal.IndividualName : "Creature";
         int star = currentAnimal != null ? currentAnimal.StarLevel : 1;
-        string traitStr = currentAnimal != null ? currentAnimal.Trait.ToString() : "Thân thiện";
+        string traitStr = currentAnimal != null ? currentAnimal.Trait.ToString() : "Friendly";
 
         CreatureQualityRank currentRank = currentIdentity != null ? currentIdentity.QualityRank : CreatureQualityRank.RankI;
 
         creatureNameText.text = $"★ {name} ★";
-        rankBadgeText.text = $"CẤP ĐỘ GDD: <color=#38BDF8>{currentRank}</color>";
-        statsText.text = $"{star}★ · Tính cách: {traitStr}";
+        rankBadgeText.text = $"GDD RANK: <color=#38BDF8>{currentRank}</color>";
+        statsText.text = $"{star}★ · Trait: {traitStr}";
 
         int care = CreatureCareManager.Instance != null ? CreatureCareManager.Instance.GetCareProgress(id) : 0;
         careSlider.value = care;
-        careProgressLabel.text = $"Tiến trình Care: {care}/100 ({care}%)";
+        careProgressLabel.text = $"Care Progress: {care}/100 ({care}%)";
 
         // Cập nhật trạng thái nút Nâng Rank
         if (currentRank >= CreatureQualityRank.RankIII)
@@ -284,7 +284,7 @@ public class CreatureCareUI : MonoBehaviour
 
             int cost = currentRank == CreatureQualityRank.RankI ? 15 : 30;
             string nextRankStr = currentRank == CreatureQualityRank.RankI ? "Rank II" : "Rank III";
-            rankUpButtonText.text = canRankUp ? $"NÂNG {nextRankStr} (-{cost}C)" : $"CẦN 100% CARE\n<size=10>(Chi phí: {cost}C)</size>";
+            rankUpButtonText.text = canRankUp ? $"UPGRADE {nextRankStr} (-{cost}C)" : $"NEED 100% CARE\n<size=10>(Cost: {cost}C)</size>";
         }
     }
 
@@ -309,7 +309,7 @@ public class CreatureCareUI : MonoBehaviour
         string nextRankStr = currentRank == CreatureQualityRank.RankI ? "Rank II" : "Rank III";
 
         GameDialogUI.ShowConfirm(
-            $"Bạn có muốn nâng cấp sinh vật lên {nextRankStr} với chi phí {cost} xu không?",
+            $"Do you want to upgrade this creature to {nextRankStr} for {cost} coins?",
             () =>
             {
                 if (CreatureCareManager.Instance.TryRankUp(currentAnimal, currentIdentity, out string result))

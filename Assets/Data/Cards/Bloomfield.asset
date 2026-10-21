@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: bloomfield_001
   cardName: Bloomfield
-  cardImage: {fileID: -278153563, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardImage: {fileID: 21300000, guid: ccf0dd4b987f4c5d912114c285f1f60c, type: 3}
   cardType: 1
   baseScore: 1
   alwaysBaseScore: 0

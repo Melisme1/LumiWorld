@@ -158,10 +158,10 @@ public class CardLockManager : MonoBehaviour
 
         string defaultReason = lockType switch
         {
-            CardLockType.MarketEscrow => "Đang niêm yết trên Marketplace (Escrow). Không thể triển khai hoặc dùng.",
-            CardLockType.Breeding => "Đang trong quá trình lai tạo (Breeding). Không thể sản xuất hay giao dịch.",
-            CardLockType.AccountBound => "Khóa theo tài khoản (Account-bound). Không thể giao dịch trên Marketplace.",
-            _ => "Thẻ đang bị khóa."
+            CardLockType.MarketEscrow => "Listed on Marketplace (Escrow). Cannot deploy or use.",
+            CardLockType.Breeding => "Currently breeding. Cannot produce or trade.",
+            CardLockType.AccountBound => "Account-bound. Cannot trade on Marketplace.",
+            _ => "Card is locked."
         };
 
         var entry = new LockedCardEntry
@@ -221,7 +221,7 @@ public class CardLockManager : MonoBehaviour
                 resourceID = resourceId,
                 lockedAmount = 0,
                 lockType = lockType,
-                reason = !string.IsNullOrEmpty(customReason) ? customReason : "Đang niêm yết bán trên Marketplace (Escrow)"
+                reason = !string.IsNullOrEmpty(customReason) ? customReason : "Listed on Marketplace (Escrow)"
             };
             resourceLockMap[resourceId] = entry;
             lockedResources.Add(entry);

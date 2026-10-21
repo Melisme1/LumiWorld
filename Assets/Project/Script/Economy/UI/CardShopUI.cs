@@ -37,18 +37,18 @@ public class CardShopUI : MonoBehaviour
     [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
     [Header("Look")]
-    [SerializeField] private Color hudColor = new Color(0.06f, 0.09f, 0.16f, 0.88f);
-    [SerializeField] private Color backdropColor = new Color(0f, 0f, 0f, 0.45f);
-    [SerializeField] private Color panelColor = new Color(0.08f, 0.11f, 0.19f, 0.97f);
-    [SerializeField] private Color cardColor = new Color(0.13f, 0.17f, 0.27f, 1f);
-    [SerializeField] private Color sectionColor = new Color(0.05f, 0.07f, 0.13f, 0.9f);
-    [SerializeField] private Color textColor = new Color(0.93f, 0.95f, 0.99f, 1f);
-    [SerializeField] private Color mutedColor = new Color(0.62f, 0.68f, 0.80f, 1f);
-    [SerializeField] private Color enoughColor = new Color(0.45f, 0.95f, 0.55f, 1f);
-    [SerializeField] private Color missingColor = new Color(1f, 0.62f, 0.45f, 1f);
-    [SerializeField] private Color coinColor = new Color(1f, 0.84f, 0.32f, 1f);
-    [SerializeField] private Color buyColor = new Color(0.24f, 0.47f, 0.85f, 1f);
-    [SerializeField] private Color secondaryColor = new Color(0.26f, 0.30f, 0.42f, 1f);
+    [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
+    [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
+    [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
+    [SerializeField] private Color cardColor = new Color(1f, 1f, 1f, 0.95f);
+    [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
+    [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
+    [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
+    [SerializeField] private Color enoughColor = new Color(0.05f, 0.65f, 0.35f, 1f);
+    [SerializeField] private Color missingColor = new Color(0.90f, 0.35f, 0.25f, 1f);
+    [SerializeField] private Color coinColor = new Color(0.85f, 0.58f, 0.05f, 1f);
+    [SerializeField] private Color buyColor = new Color(0.01f, 0.60f, 0.90f, 1f);
+    [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
 
     [Header("Màu nền thẻ chưa có ảnh, theo loại thẻ")]
     [SerializeField] private Color creatureColor = new Color(0.78f, 0.50f, 0.24f, 1f);
@@ -223,12 +223,12 @@ public class CardShopUI : MonoBehaviour
         int price = CardShop.GetPrice(tile.card);
 
         GameDialogUI.ShowConfirm(
-            $"Bạn có muốn mua thẻ \"{cardName}\" với giá {price} xu không?",
+            $"Do you want to buy card \"{cardName}\" for {price} Coins?",
             () =>
             {
                 if (!CardShop.TryBuy(tile.card))
                 {
-                    GameDialogUI.ShowNotice("Không đủ xu để mua thẻ này!");
+                    GameDialogUI.ShowNotice("Not enough Coins to buy this card!");
                     return;
                 }
 
@@ -336,7 +336,7 @@ public class CardShopUI : MonoBehaviour
         RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
         Place(closeRect, new Vector2(1f, 1f), new Vector2(-PanelPadding, -18f), new Vector2(44f, 40f));
         EconomyHUD.AddButton(closeRect, secondaryColor).onClick.AddListener(Close);
-        CreateLabel(closeRect, "X", 20f);
+        CreateLabel(closeRect, "X", 20f, textColor);
 
         balanceChip = EconomyHUD.CreateRect("Balance", panel);
         balanceChip.anchorMin = new Vector2(1f, 1f);
@@ -344,10 +344,11 @@ public class CardShopUI : MonoBehaviour
         balanceChip.pivot = new Vector2(0.5f, 0.5f);
         balanceChip.sizeDelta = new Vector2(150f, 40f);
         balanceChip.anchoredPosition = new Vector2(-(PanelPadding + 44f + 10f + 75f), -38f);
-        EconomyHUD.CreatePanel(balanceChip, sectionColor);
+        EconomyHUD.CreateBorderedPanel(balanceChip, new Color(0.06f, 0.09f, 0.16f, 0.92f), new Color(0.08f, 0.58f, 0.95f, 0.60f));
         EconomyHUD.CreateIcon("CoinIcon", balanceChip, EconomyHUD.CoinSprite, 26f, 10f);
 
         balanceText = EconomyHUD.CreateText("Value", balanceChip, 20f, Color.white, TextAlignmentOptions.Right);
+        balanceText.fontStyle = FontStyles.Bold;
         RectTransform valueRect = balanceText.rectTransform;
         valueRect.anchorMin = Vector2.zero;
         valueRect.anchorMax = Vector2.one;
@@ -433,7 +434,7 @@ public class CardShopUI : MonoBehaviour
         tile.rect.anchoredPosition = new Vector2(
             column * (TileWidth + TileSpacing) + TileWidth * 0.5f,
             -(row * (TileHeight + TileSpacing) + TileHeight * 0.5f));
-        EconomyHUD.CreatePanel(tile.rect, cardColor);
+        EconomyHUD.CreateBorderedPanel(tile.rect, cardColor);
 
         // Ảnh thẻ bên trái. Thẻ chưa có ảnh: chữ cái đầu của tên trên nền màu theo loại thẻ
         RectTransform artRect = EconomyHUD.CreateRect("Art", tile.rect);
@@ -540,9 +541,10 @@ public class CardShopUI : MonoBehaviour
     /// <summary>
     /// Chữ đậm màu trắng căn giữa, phủ kín parent (nhãn của nút, chữ trên ảnh thẻ).
     /// </summary>
-    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize)
+    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize, Color? color = null)
     {
-        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, Color.white, TextAlignmentOptions.Center);
+        Color c = color ?? Color.white;
+        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, c, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(label.rectTransform);
         label.text = text;
         return label;

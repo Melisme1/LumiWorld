@@ -91,21 +91,21 @@ public class CreatureCareManager : MonoBehaviour
         feedback = string.Empty;
         if (string.IsNullOrEmpty(individualId))
         {
-            feedback = "Không tìm thấy cá thể sinh vật.";
+            feedback = "Creature not found.";
             return false;
         }
 
         const int feedCostCoins = 2;
         if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.CanAfford(feedCostCoins))
         {
-            feedback = $"Không đủ Coins để chăm sóc! Cần {feedCostCoins} Coins.";
+            feedback = $"Not enough Coins to care! Need {feedCostCoins} Coins.";
             return false;
         }
 
         int current = GetCareProgress(individualId);
         if (current >= 100)
         {
-            feedback = "Thanh chăm sóc đã đầy 100%! Hãy bấm Nâng Rank.";
+            feedback = "Care bar is full 100%! Click Rank Up.";
             return false;
         }
 
@@ -119,7 +119,7 @@ public class CreatureCareManager : MonoBehaviour
         creatureCareProgress[individualId] = newCare;
         OnCareProgressChanged?.Invoke(individualId, newCare);
 
-        feedback = $"Đã chăm sóc! Care: {newCare}/100 (+25)";
+        feedback = $"Cared! Care: {newCare}/100 (+25)";
         return true;
     }
 
@@ -133,21 +133,21 @@ public class CreatureCareManager : MonoBehaviour
         string id = animal != null ? animal.UniqueID : (identity != null ? identity.PlacementId : "");
         if (string.IsNullOrEmpty(id))
         {
-            resultInfo = "Thiếu định danh sinh vật.";
+            resultInfo = "Missing creature identity.";
             return false;
         }
 
         int currentCare = GetCareProgress(id);
         if (currentCare < 100)
         {
-            resultInfo = $"Chưa đủ điểm Care! Hiện tại: {currentCare}/100.";
+            resultInfo = $"Not enough Care points! Current: {currentCare}/100.";
             return false;
         }
 
         CreatureQualityRank currentRank = identity != null ? identity.QualityRank : CreatureQualityRank.RankI;
         if (currentRank >= CreatureQualityRank.RankIII)
         {
-            resultInfo = "Sinh vật đã đạt Rank tối đa (Rank III)!";
+            resultInfo = "Creature has reached maximum Rank (Rank III)!";
             return false;
         }
 
@@ -156,7 +156,7 @@ public class CreatureCareManager : MonoBehaviour
 
         if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.CanAfford(upgradeCost))
         {
-            resultInfo = $"Không đủ Coins để nâng Rank! Cần {upgradeCost} Coins.";
+            resultInfo = $"Not enough Coins to rank up! Need {upgradeCost} Coins.";
             return false;
         }
 
@@ -183,7 +183,7 @@ public class CreatureCareManager : MonoBehaviour
             AchievementManager.Instance.ReportProgress("ACH_FIRST_CARE", 1);
         }
 
-        resultInfo = $"Chúc mừng! Đã nâng lên {nextRank} (Đóng góp sản lượng tăng mạnh!)";
+        resultInfo = $"Congratulations! Upgraded to {nextRank} (Greatly boosts production!)";
         return true;
     }
 }

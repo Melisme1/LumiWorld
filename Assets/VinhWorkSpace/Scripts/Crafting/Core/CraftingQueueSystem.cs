@@ -113,26 +113,26 @@ namespace LumiWorld.Economy.Crafting
             failureReason = string.Empty;
             if (recipe == null)
             {
-                failureReason = "Công thức không hợp lệ.";
+                failureReason = "Invalid recipe.";
                 return false;
             }
 
             if (quantity <= 0)
             {
-                failureReason = "Số lượng chế biến phải lớn hơn 0.";
+                failureReason = "Crafting quantity must be greater than 0.";
                 return false;
             }
 
             if (activeJobs.Count >= maxConcurrentJobs)
             {
-                failureReason = $"Hàng đợi chế biến đã đầy ({maxConcurrentJobs}/{maxConcurrentJobs}). Hãy nhận bớt thành phẩm!";
+                failureReason = $"Crafting queue is full ({maxConcurrentJobs}/{maxConcurrentJobs}). Please claim completed items!";
                 return false;
             }
 
             var inventory = ResourceInventory.Instance;
             if (inventory == null)
             {
-                failureReason = "Kho tài nguyên chưa sẵn sàng.";
+                failureReason = "Resource warehouse is not ready.";
                 return false;
             }
 
@@ -140,7 +140,7 @@ namespace LumiWorld.Economy.Crafting
             var scaledInputs = CraftingCalculator.GetScaledInputs(recipe, quantity);
             if (!inventory.HasAll(scaledInputs))
             {
-                failureReason = "Không đủ nguyên liệu trong kho.";
+                failureReason = "Not enough materials in warehouse.";
                 return false;
             }
 
@@ -151,7 +151,7 @@ namespace LumiWorld.Economy.Crafting
                 int neededSpace = recipe.outputAmount * quantity;
                 if (freeSpace < neededSpace)
                 {
-                    failureReason = $"Kho không đủ chỗ chứa cho {neededSpace} {recipe.outputResource.resourceName} (chỉ còn trống {freeSpace}).";
+                    failureReason = $"Warehouse does not have enough space for {neededSpace} {recipe.outputResource.resourceName} (only {freeSpace} remaining).";
                     return false;
                 }
             }
@@ -159,7 +159,7 @@ namespace LumiWorld.Economy.Crafting
             // 3. Trừ nguyên liệu từ kho một cách an toàn
             if (!inventory.TryRemoveAll(scaledInputs))
             {
-                failureReason = "Lỗi khi trừ nguyên liệu kho.";
+                failureReason = "Error deducting materials from warehouse.";
                 return false;
             }
 
@@ -229,39 +229,39 @@ namespace LumiWorld.Economy.Crafting
             failureReason = string.Empty;
             if (job == null)
             {
-                failureReason = "Mục chế biến không tồn tại.";
+                failureReason = "Crafting item does not exist.";
                 return false;
             }
 
             if (!job.isCompleted)
             {
-                failureReason = "Mẻ chế biến vẫn đang trong thời gian chờ.";
+                failureReason = "Crafting batch is still in progress.";
                 return false;
             }
 
             if (job.isClaimed)
             {
-                failureReason = "Thành phẩm đã được nhận trước đó.";
+                failureReason = "Items already claimed.";
                 return false;
             }
 
             var recipe = job.Recipe;
             if (recipe == null || recipe.outputResource == null)
             {
-                failureReason = "Dữ liệu công thức thành phẩm không hợp lệ.";
+                failureReason = "Invalid recipe output data.";
                 return false;
             }
 
             var inventory = ResourceInventory.Instance;
             if (inventory == null)
             {
-                failureReason = "Kho tài nguyên chưa sẵn sàng.";
+                failureReason = "Resource warehouse is not ready.";
                 return false;
             }
             int totalAmount = job.TotalOutputAmount;
             if (totalAmount <= 0 || !activeJobs.Contains(job))
             {
-                failureReason = "Mẻ chế biến hoặc số lượng thành phẩm không hợp lệ.";
+                failureReason = "Invalid crafting job or output quantity.";
                 return false;
             }
             if (!inventory.TryAddAll(new[] { new ResourceInventory.Deposit(recipe.outputResource, totalAmount) }, () =>
@@ -270,7 +270,7 @@ namespace LumiWorld.Economy.Crafting
                 activeJobs.Remove(job);
             }))
             {
-                failureReason = "Kho không đủ chỗ để nhận toàn bộ thành phẩm. Hãy dọn kho!";
+                failureReason = "Warehouse full! Clear space to claim finished goods.";
                 return false;
             }
 
