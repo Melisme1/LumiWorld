@@ -50,6 +50,8 @@ namespace LumiWorld.Testing
         private GUIStyle statusStyle;
         private bool stylesInitialized = false;
 
+        // Công cụ test chỉ tự gắn trong Editor, không lọt vào bản build gửi người chơi
+#if UNITY_EDITOR
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoAttach()
         {
@@ -60,6 +62,7 @@ namespace LumiWorld.Testing
                 DontDestroyOnLoad(go);
             }
         }
+#endif
 
         private void Awake()
         {

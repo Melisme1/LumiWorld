@@ -72,6 +72,7 @@ public class AchievementManager : MonoBehaviour
     }
 
     [Header("Harmony & Island Unlock Progression")]
+    [Tooltip("Harmony khởi điểm của tài khoản mới; sau đó đọc từ bản lưu kinh tế (economy_<id>.json)")]
     [SerializeField] private int totalHarmony = 29;
     [SerializeField] private int nextIslandThreshold = 50;
 
@@ -123,7 +124,78 @@ public class AchievementManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
         InitializeDefaultMilestones();
         InitializeDefaultAchievements();
+        LoadProgress();
     }
+
+    // =========================================================
+    // LƯU THEO TÀI KHOẢN (economy_<id>.json, SaveSync đẩy lên server)
+    // =========================================================
+
+    private static readonly string[] LegacyClaimKeys =
+    {
+        "ACH_CLAIMED_M1_FIRST_HABITAT", "ACH_CLAIMED_M2_NEW_SPECIES", "ACH_CLAIMED_M3_RANK_UP", "ACH_CLAIMED_M4_ISLAND_STORY"
+    };
+
+    private static EconomySaveData SavedProgress
+    {
+        get
+        {
+            EconomySaveSystem saveSystem = EconomySaveSystem.Instance;
+            return saveSystem != null ? saveSystem.Progress : null;
+        }
+    }
+
+    /// <summary>
+    /// Đọc Harmony, cột mốc và thành tựu đã nhận từ bản lưu kinh tế của tài khoản.
+    /// Bản lưu cũ chưa có Harmony thì lấy giá trị khởi điểm rồi ghi lại.
+    /// </summary>
+    private void LoadProgress()
+    {
+        // Khóa PlayerPrefs cũ chỉ theo máy và bị xóa mỗi lần mở game, không chuyển sang tài khoản
+        bool removedLegacy = false;
+        foreach (string key in LegacyClaimKeys)
+        {
+            if (!PlayerPrefs.HasKey(key)) continue;
+            PlayerPrefs.DeleteKey(key);
+            removedLegacy = true;
+        }
+        if (removedLegacy) PlayerPrefs.Save();
+
+        EconomySaveData progress = SavedProgress;
+        if (progress == null) return;
+
+        if (!progress.harmonyInitialized)
+        {
+            progress.totalHarmony = totalHarmony;
+            progress.harmonyInitialized = true;
+            EconomySaveSystem.Instance.MarkDirty();
+        }
+
+        totalHarmony = progress.totalHarmony;
+        hasRankedUpAnyCreature = progress.hasRankedUpAnyCreature;
+
+        foreach (IslandMilestone milestone in milestones)
+            milestone.isClaimed = progress.claimedMilestoneIds.Contains(milestone.id);
+
+        claimedIds.Clear();
+        foreach (string id in progress.claimedAchievementIds) claimedIds.Add(id);
+        foreach (AchievementGoal goal in achievements)
+            goal.isClaimed = claimedIds.Contains(goal.id);
+
+        OnHarmonyChanged?.Invoke(totalHarmony, nextIslandThreshold);
+    }
+
+    // Chỉ đánh giá theo đảo của mình khi đảo đã dựng xong; đang xem đảo người khác hoặc đang
+    // tải lại bản server sau xung đột thì giữ nguyên trạng thái cũ
+    private static bool CanEvaluateWorld()
+    {
+        if (WorldLaunch.IsVisit || SaveSync.SavesSuspended) return false;
+        WorldSaveSystem world = WorldSaveSystem.Instance;
+        return world != null && world.IsWorldReady;
+    }
+
+    // Không trao thưởng khi đang xem đảo người khác hoặc đang tải lại bản server
+    private static bool CanGrantRewards() => !WorldLaunch.IsVisit && !SaveSync.SavesSuspended;
 
     private void Start()
     {
@@ -166,7 +238,15 @@ public class AchievementManager : MonoBehaviour
 
     private void HandleRankUpgraded(string creatureId, CreatureQualityRank rank)
     {
+        if (WorldLaunch.IsVisit) return;
         hasRankedUpAnyCreature = true;
+
+        EconomySaveData progress = SavedProgress;
+        if (progress != null && !progress.hasRankedUpAnyCreature)
+        {
+            progress.hasRankedUpAnyCreature = true;
+            EconomySaveSystem.Instance.MarkDirty();
+        }
         EvaluateMilestones();
     }
 
@@ -174,17 +254,7 @@ public class AchievementManager : MonoBehaviour
     {
         if (milestones.Count > 0) return;
 
-        // Nếu người chơi bắt đầu phiên chơi mới (chưa có lưu GameSave), xóa sạch các flag claim test cũ
-        bool isFreshSession = !PlayerPrefs.HasKey("GameSave");
-        if (isFreshSession)
-        {
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M1_FIRST_HABITAT");
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M2_NEW_SPECIES");
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M3_RANK_UP");
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M4_ISLAND_STORY");
-            PlayerPrefs.Save();
-        }
-
+        // Trạng thái đã nhận đọc từ bản lưu của tài khoản trong LoadProgress()
         milestones.Add(new IslandMilestone
         {
             index = 0,
@@ -248,15 +318,6 @@ public class AchievementManager : MonoBehaviour
             isClaimed = false,
             currentProgress = 0f
         });
-
-        // Chỉ khôi phục trạng thái claimed nếu có lưu save và cột mốc đã hoàn thành
-        if (!isFreshSession)
-        {
-            for (int i = 0; i < milestones.Count; i++)
-            {
-                milestones[i].isClaimed = PlayerPrefs.GetInt("ACH_CLAIMED_" + milestones[i].id, 0) == 1;
-            }
-        }
     }
 
     private void InitializeDefaultAchievements()
@@ -354,6 +415,7 @@ public class AchievementManager : MonoBehaviour
         {
             InitializeDefaultMilestones();
             if (milestones.Count < 4) return;
+            if (!CanEvaluateWorld()) return;
 
         // 1. Kiểm tra Mốc 1: Habitat có cư dân sinh vật
         bool m1Met = false;
@@ -404,9 +466,9 @@ public class AchievementManager : MonoBehaviour
                     m3Met = true;
                     break;
                 }
-                if (CreatureCareManager.Instance != null && !string.IsNullOrEmpty(animal.UniqueID))
+                if (CreatureCareManager.Instance != null && !string.IsNullOrEmpty(CreatureCareManager.KeyOf(animal, null)))
                 {
-                    int care = CreatureCareManager.Instance.GetCareProgress(animal.UniqueID);
+                    int care = CreatureCareManager.Instance.GetCareProgress(CreatureCareManager.KeyOf(animal, null));
                     maxCareRatio = Mathf.Max(maxCareRatio, care / 100f);
                 }
             }
@@ -450,16 +512,8 @@ public class AchievementManager : MonoBehaviour
         condition2_MaxHabitatMet = maxCluster >= 6;
         condition3_CreaturesMet = animalTotal >= 3;
 
-        // Đảm bảo tính toàn vẹn: Không thể có trạng thái 'Đã nhận' nếu cột mốc chưa hoàn thành
-        for (int i = 0; i < milestones.Count; i++)
-        {
-            var m = milestones[i];
-            if (!m.isCompleted && m.isClaimed)
-            {
-                m.isClaimed = false;
-                PlayerPrefs.DeleteKey("ACH_CLAIMED_" + m.id);
-            }
-        }
+        // Cột mốc đã nhận giữ nguyên trạng thái đã nhận kể cả khi đảo đổi sau đó (bán thú, mất ô...),
+        // để không nhận thưởng lại được
 
         OnMilestonesChanged?.Invoke();
         OnAchievementsUpdated?.Invoke();
@@ -534,6 +588,11 @@ public class AchievementManager : MonoBehaviour
     public bool ClaimMilestone(int index, out string rewardInfo)
     {
         rewardInfo = string.Empty;
+        if (!CanGrantRewards())
+        {
+            rewardInfo = "Không thể nhận thưởng lúc này.";
+            return false;
+        }
         EvaluateMilestones();
 
         if (index < 0 || index >= milestones.Count)
@@ -555,9 +614,12 @@ public class AchievementManager : MonoBehaviour
             return false;
         }
 
+        // Ghi id đã nhận vào bản lưu tài khoản; Coins và Harmony bên dưới cùng vào bản lưu đó,
+        // rồi SaveNow ghi cả ba trong một lần (không có lúc đã cộng thưởng mà chưa đánh dấu đã nhận)
         m.isClaimed = true;
-        PlayerPrefs.SetInt("ACH_CLAIMED_" + m.id, 1);
-        PlayerPrefs.Save();
+        EconomySaveData progress = SavedProgress;
+        if (progress != null && !progress.claimedMilestoneIds.Contains(m.id))
+            progress.claimedMilestoneIds.Add(m.id);
 
         // 1. Thưởng Coins
         if (m.rewardCoins > 0 && CurrencyWallet.Instance != null)
@@ -574,7 +636,9 @@ public class AchievementManager : MonoBehaviour
         // 3. Cấp thẻ bài / Quà tặng thưởng vào tay người chơi (nếu có CardDeskController)
         TryGrantMilestoneCardReward(index);
 
-        rewardInfo = $"+{m.rewardCoins} Coins & +{m.rewardHarmony} Harmony & {m.rewardBonusInfo}!";
+        SaveProgressNow();
+
+        rewardInfo = $"+{m.rewardCoins} Coin & +{m.rewardHarmony} Harmony & {m.rewardBonusInfo}!";
         OnMilestonesChanged?.Invoke();
         OnAchievementsUpdated?.Invoke();
         return true;
@@ -605,13 +669,32 @@ public class AchievementManager : MonoBehaviour
         }
     }
 
+    // Ghi bản lưu kinh tế ngay sau khi trao thưởng (id đã nhận, Coins, Harmony cùng một lần ghi)
+    private static void SaveProgressNow()
+    {
+        EconomySaveSystem saveSystem = EconomySaveSystem.Instance;
+        if (saveSystem == null) return;
+        saveSystem.MarkDirty();
+        if (!saveSystem.SaveNow())
+            Debug.LogWarning("[LumiWorld Save] Chưa ghi được phần thưởng thành tựu; sẽ thử lại ở lần lưu kế tiếp.");
+    }
+
     /// <summary>
     /// Cộng điểm Harmony cột mốc vĩnh viễn
     /// </summary>
     public void AddHarmony(int amount)
     {
-        if (amount <= 0) return;
+        if (amount <= 0 || !CanGrantRewards()) return;
         totalHarmony += amount;
+
+        EconomySaveData progress = SavedProgress;
+        if (progress != null)
+        {
+            progress.totalHarmony = totalHarmony;
+            progress.harmonyInitialized = true;
+            EconomySaveSystem.Instance.MarkDirty();
+        }
+
         OnHarmonyChanged?.Invoke(totalHarmony, nextIslandThreshold);
         OnAchievementsUpdated?.Invoke();
     }
@@ -636,6 +719,11 @@ public class AchievementManager : MonoBehaviour
     public bool ClaimAchievement(string achievementId, out string rewardInfo)
     {
         rewardInfo = string.Empty;
+        if (!CanGrantRewards())
+        {
+            rewardInfo = "Không thể nhận thưởng lúc này.";
+            return false;
+        }
 
         var goal = achievements.Find(a => a.id.Equals(achievementId, StringComparison.OrdinalIgnoreCase));
         if (goal == null)
@@ -659,6 +747,9 @@ public class AchievementManager : MonoBehaviour
         // 1. Đánh dấu đã nhận vĩnh viễn
         goal.isClaimed = true;
         claimedIds.Add(goal.id);
+        EconomySaveData progress = SavedProgress;
+        if (progress != null && !progress.claimedAchievementIds.Contains(goal.id))
+            progress.claimedAchievementIds.Add(goal.id);
 
         // 2. Trao thưởng Coins
         if (goal.rewardCoins > 0 && CurrencyWallet.Instance != null)
@@ -671,6 +762,8 @@ public class AchievementManager : MonoBehaviour
         {
             AddHarmony(goal.harmonyPoints);
         }
+
+        SaveProgressNow();
 
         rewardInfo = $"+{goal.rewardCoins} Coins & +{goal.harmonyPoints} Harmony!";
         OnAchievementsUpdated?.Invoke();

@@ -1,4 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -70,6 +73,11 @@ public class AuthScreen : MonoBehaviour
     private TMP_Text messageText;
     private Button submitButton;
     private TMP_Text submitLabel;
+
+    // Chờ server tối đa 20 giây rồi báo link sai
+    private const int ServerTimeoutSeconds = 20;
+    private int requestAttempt;
+    private Coroutine timeoutWatch;
 
     // ------------------------------------------------------------------
     //  Lifecycle
@@ -144,13 +152,18 @@ public class AuthScreen : MonoBehaviour
 
         SetBusy(true);
 
+        // Mỗi lần gửi một số mới: trả lời của lần gửi đã quá giờ (bị bỏ) thì không được tác động lên màn hình nữa
+        int attempt = ++requestAttempt;
+        Action<AuthResponse> succeeded = response => { if (attempt == requestAttempt) OnAuthSucceeded(response); };
+        Action<ApiError> failed = error => { if (attempt == requestAttempt) OnAuthFailed(error); };
+
         if (mode == Mode.Login)
         {
             ShowMessage(Texts.LoggingIn, false);
 
             var body = new LoginRequest { username = username, password = password };
             StartCoroutine(ApiClient.Post<LoginRequest, AuthResponse>(
-                "/api/v1/auth/login", body, false, OnAuthSucceeded, OnAuthFailed));
+                "/api/v1/auth/login", body, false, succeeded, failed, null, ServerTimeoutSeconds));
         }
         else
         {
@@ -163,8 +176,28 @@ public class AuthScreen : MonoBehaviour
                 confirmPassword = confirmField.text
             };
             StartCoroutine(ApiClient.Post<RegisterRequest, AuthResponse>(
-                "/api/v1/auth/register", body, false, OnAuthSucceeded, OnAuthFailed));
+                "/api/v1/auth/register", body, false, succeeded, failed, null, ServerTimeoutSeconds));
         }
+
+        if (timeoutWatch != null) StopCoroutine(timeoutWatch);
+        timeoutWatch = StartCoroutine(WatchForNoReply(attempt));
+    }
+
+    /// <summary>
+    /// Chốt chặn 20 giây: server không trả lời (link sai, tunnel đã tắt, mạng treo) thì thôi chờ,
+    /// mở lại các ô và báo kiểm tra link server. Trả lời tới muộn sau đó bị bỏ qua.
+    /// </summary>
+    private IEnumerator WatchForNoReply(int attempt)
+    {
+        yield return new WaitForSecondsRealtime(ServerTimeoutSeconds + 1f);
+        timeoutWatch = null;
+        if (attempt != requestAttempt || !busy) yield break;
+
+        requestAttempt++;
+        Debug.LogWarning($"AuthScreen: không có phản hồi từ {ApiClient.BaseUrl} sau {ServerTimeoutSeconds} giây.", this);
+        ShowMessage(Texts.ServerNoReply, true);
+        SetBusy(false);
+        if (serverField != null) Focus(serverField);
     }
 
     private string Validate(string username, string password, string confirm)
@@ -221,10 +254,12 @@ public class AuthScreen : MonoBehaviour
         if (this == null)
             return;
 
+        if (timeoutWatch != null) { StopCoroutine(timeoutWatch); timeoutWatch = null; }
         Debug.LogWarning("AuthScreen: " + error, this);
 
         ShowMessage(Describe(error), true);
         SetBusy(false);
+        if (IsWrongServer(error) && serverField != null) Focus(serverField);
 
         if (error.Code == "INVALID_CREDENTIALS")
         {
@@ -233,12 +268,25 @@ public class AuthScreen : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Link server sai: không kết nối được (DNS, bị từ chối, quá giờ, trả về không phải JSON),
+    /// hoặc có trả lời nhưng không phải từ LumiServer (trang lỗi HTML của Cloudflare 404/5xx, không có mã lỗi).
+    /// </summary>
+    private static bool IsWrongServer(ApiError error)
+    {
+        if (error.IsNetworkError) return !error.Detail.Contains("Insecure connection");
+        return string.IsNullOrEmpty(error.Code) && (error.StatusCode == 404 || error.StatusCode >= 500);
+    }
+
     private static string Describe(ApiError error)
     {
-        if (error.IsNetworkError)
+        if (error.IsNetworkError && error.Detail.Contains("Insecure connection"))
+            return Texts.InsecureHttpBlocked;
+
+        if (IsWrongServer(error))
         {
-            return error.Detail.Contains("Insecure connection")
-                ? Texts.InsecureHttpBlocked
+            return error.Detail.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0
+                ? Texts.ServerNoReply
                 : Texts.CannotReachServer;
         }
 
@@ -317,9 +365,9 @@ public class AuthScreen : MonoBehaviour
 
     private void FocusNext(int direction)
     {
-        TMP_InputField[] order = mode == Mode.Register
-            ? new[] { usernameField, passwordField, confirmField }
-            : new[] { usernameField, passwordField };
+        var order = new List<TMP_InputField> { usernameField, passwordField };
+        if (mode == Mode.Register) order.Add(confirmField);
+        if (serverField != null && serverField.gameObject.activeInHierarchy) order.Add(serverField);
 
         GameObject selected = EventSystem.current != null
             ? EventSystem.current.currentSelectedGameObject
@@ -327,7 +375,7 @@ public class AuthScreen : MonoBehaviour
 
         int current = -1;
 
-        for (int i = 0; i < order.Length; i++)
+        for (int i = 0; i < order.Count; i++)
         {
             if (order[i].gameObject == selected)
             {
@@ -336,7 +384,7 @@ public class AuthScreen : MonoBehaviour
             }
         }
 
-        int next = current < 0 ? 0 : (current + direction + order.Length) % order.Length;
+        int next = current < 0 ? 0 : (current + direction + order.Count) % order.Count;
         Focus(order[next]);
     }
 
@@ -508,6 +556,13 @@ public class AuthScreen : MonoBehaviour
         field.pointSize = 25f;
         field.textComponent.color = InkColor;
         field.textComponent.alignment = TextAlignmentOptions.MidlineLeft;
+
+        // Gạch dọc nhấp nháy chỗ đang gõ (như ô nhập trên web) và nền bôi đen khi chọn chữ
+        field.customCaretColor = true;
+        field.caretColor = InkColor;
+        field.caretWidth = 2;
+        field.caretBlinkRate = 0.85f;
+        field.selectionColor = new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.35f);
 
         var placeholderText = (TMP_Text)field.placeholder;
         placeholderText.text = placeholder;
@@ -698,7 +753,8 @@ public class AuthScreen : MonoBehaviour
         public const string InvalidCredentials = "Incorrect username or password.";
         public const string AccountSuspended = "This account can't be used right now.";
 
-        public const string CannotReachServer = "Can't reach the server. Check the server address below.";
+        public const string CannotReachServer = "Could not reach the server. Check the server link below and try again.";
+        public const string ServerNoReply = "No reply from the server after 20 seconds. Check the server link below and try again.";
         public const string InsecureHttpBlocked = "Unity is blocking http:// connections. Use an https:// address instead.";
         public const string TooManyAttempts = "Too many attempts. Wait a minute, then try again.";
         public const string ServerError = "The server ran into a problem. Try again later.";

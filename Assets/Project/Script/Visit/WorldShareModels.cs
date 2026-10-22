@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Snapshot đảo gửi lên server (giai đoạn 3): bản rút gọn của WorldSaveData, không có hand, creature hay timer.
+/// Thêm trường mới thì không đổi version (server chỉ nhận version 1); snapshot cũ thiếu trường thì để mặc định.
 /// </summary>
 [Serializable]
 public class WorldSnapshot
@@ -12,7 +13,40 @@ public class WorldSnapshot
     public int version = WorldSaveData.CurrentVersion;
     public int score;
     public List<TileRecord> tiles = new List<TileRecord>();
-    public List<PlacementRecord> placements = new List<PlacementRecord>();
+    public List<SnapshotPlacement> placements = new List<SnapshotPlacement>();
+
+    // Ô đã cháy thành tro: người thăm thấy ô đen, không có cây. Snapshot cũ không có trường này.
+    public List<HexPointRecord> burned = new List<HexPointRecord>();
+}
+
+/// <summary>
+/// Thẻ đã đặt trong snapshot: chỉ phần người thăm cần để dựng lại đảo (thẻ, ô, cụm, rank, tên, sao).
+/// Không gửi id nội bộ (placementId, animalId) và thời gian hồi combo; người thăm dựng lại với id mới.
+/// </summary>
+[Serializable]
+public class SnapshotPlacement
+{
+    public string cardID;
+    public int q, r;
+    public int clusterId = -1;
+    public int displayedScore;
+    public int qualityRank;
+    public string animalName;
+    public int animalStar;
+    public int animalTrait;
+
+    public static SnapshotPlacement From(PlacementRecord record) => new SnapshotPlacement
+    {
+        cardID = record.cardID, q = record.q, r = record.r, clusterId = record.clusterId,
+        displayedScore = record.displayedScore, qualityRank = record.qualityRank,
+        animalName = record.animalName, animalStar = record.animalStar, animalTrait = record.animalTrait,
+    };
+
+    public PlacementRecord ToRecord() => new PlacementRecord
+    {
+        cardID = cardID, q = q, r = r, clusterId = clusterId, displayedScore = displayedScore,
+        qualityRank = qualityRank, animalName = animalName, animalStar = animalStar, animalTrait = animalTrait,
+    };
 }
 
 [Serializable]

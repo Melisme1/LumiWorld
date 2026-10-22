@@ -24,6 +24,9 @@ public class WorldVisitHud : MonoBehaviour
     private const float ColumnWidth = 360f;
     private const float PanelTop = 86f;
 
+    // Dời cả lớp HUD (Pos X / Pos Y của object WorldVisitHud trong Inspector)
+    private static readonly Vector2 RootOffset = new Vector2(-5f, -99f);
+
     // Phóng theo Scale Factor của Canvas như EconomyHUD: 1 đơn vị = 1 pixel màn hình
     private Canvas canvas;
     private float fittedCanvasScale;
@@ -190,7 +193,7 @@ public class WorldVisitHud : MonoBehaviour
         root.anchorMin = Vector2.zero;
         root.anchorMax = Vector2.zero;
         root.pivot = Vector2.zero;
-        root.anchoredPosition = Vector2.zero;
+        root.anchoredPosition = RootOffset;
         root.sizeDelta = canvasSize * canvasScale;
         root.localScale = new Vector3(1f / canvasScale, 1f / canvasScale, 1f);
     }

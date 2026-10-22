@@ -129,6 +129,9 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
     // Quản lý các cầu nối và nắp góc đã tạo để không tạo trùng lặp
     private readonly HashSet<string> _createdEdgeBridges = new HashSet<string>();
+
+    // Bộ số ngẫu nhiên có seed cho props/cỏ của cạnh hoặc ngã ba đang dựng (các hàm spawn chạy liền, không yield)
+    private DecorRandom decorRandom = new DecorRandom(0);
     private readonly HashSet<string> _createdCornerFillers = new HashSet<string>();
     private readonly HashSet<string> _celebratedClusters = new HashSet<string>();
 
@@ -454,6 +457,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
                         // (Cụm 3 ô sẽ sinh 1 cây trung ở tâm và tán props ra 2 cạnh viền này)
                         if (spawnConnectorProps && !clusterEdgeKeys.Contains(edgeKey))
                         {
+                            SeedDecor("edgeprops", edgeKey, centerHabitatData);
                             SpawnEdgeConnectorProps(centerTile, neighborTile, centerHabitatData);
                         }
                     }
@@ -472,6 +476,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
             if (spawnCornerProps)
             {
+                SeedDecor("cornerprops", corner.cornerKey, centerHabitatData);
                 SpawnClusterCornerProps(centerTile, corner.tileB, corner.tileC, centerHabitatData);
             }
         }
@@ -633,6 +638,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         if (spawnSeamMicroGrass)
         {
+            SeedDecor("seamgrass", edgeKey, habitatData);
             SpawnBorderMicroGrass(midPoint, u, v, halfEdge, elevatedTopY, habitatData);
         }
     }
@@ -785,6 +791,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
                         if (spawnCornerProps)
                         {
+                            SeedDecor("cornerprops", cornerKey, centerHabitatData);
                             SpawnCornerConnectorProp(centerTile, tileB, tileC, centerHabitatData);
                         }
                     }
@@ -868,6 +875,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         if (spawnSeamMicroGrass)
         {
+            SeedDecor("cornergrass", cornerKey, habitatData);
             SpawnCornerMicroGrass(center, surfaceY, habitatData);
         }
     }
@@ -1305,14 +1313,14 @@ public class HexBiomeClusterConnector : MonoBehaviour
         if (prefab == null) return null;
 
         float randomScale = (rule != null)
-            ? UnityEngine.Random.Range(rule.scaleRange.x, rule.scaleRange.y) * scaleMultiplier
+            ? decorRandom.Range(rule.scaleRange.x, rule.scaleRange.y) * scaleMultiplier
             : scaleMultiplier;
 
         float customEmbed = (rule != null) ? rule.customGroundEmbed : 0f;
         float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(prefab, customEmbed) * randomScale;
         spawnPos.y += yOffset;
 
-        Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f) * prefab.transform.rotation;
+        Quaternion rot = Quaternion.Euler(0f, decorRandom.Range(0f, 360f), 0f) * prefab.transform.rotation;
 
         GameObject propObj = Instantiate(prefab, spawnPos, rot, ConnectionsContainer);
         propObj.name = $"{namePrefix}_{prefab.name}";
@@ -1422,7 +1430,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
         if (sproutPrefab == null) return;
 
-        int count = UnityEngine.Random.Range(seamMicroGrassCountRange.x, seamMicroGrassCountRange.y + 1);
+        int count = decorRandom.Range(seamMicroGrassCountRange.x, seamMicroGrassCountRange.y + 1);
         if (count <= 0) return;
 
         // Đoạn phẳng trên đỉnh viền nối: ~0.42m mỗi bên (tổng chiều dài ~0.85m)
@@ -1433,16 +1441,16 @@ public class HexBiomeClusterConnector : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             // Vị trí dọc theo viền tiếp giáp (v)
-            float vOffset = startV + i * step + UnityEngine.Random.Range(-step * 0.35f, step * 0.35f);
+            float vOffset = startV + i * step + decorRandom.Range(-step * 0.35f, step * 0.35f);
 
             // Vị trí ngang viền tiếp giáp (u) - đan xen nhẹ sang 2 bên sườn ô
-            float uOffset = UnityEngine.Random.Range(-0.065f, 0.065f);
+            float uOffset = decorRandom.Range(-0.065f, 0.065f);
 
             Vector3 spawnPos = midPoint + v * vOffset + u * uOffset;
             spawnPos.y = surfaceY;
 
             // Tính scale ngẫu nhiên
-            float scale = UnityEngine.Random.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
+            float scale = decorRandom.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
 
             // Cắm sâu Y chuẩn xác dựa vào bounds của prefab
             float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(sproutPrefab, seamMicroGrassGroundEmbed) * scale;
@@ -1450,9 +1458,9 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
             // Xoay ngẫu nhiên 360 độ và nghiêng nhẹ tự nhiên
             Quaternion rot = Quaternion.Euler(
-                UnityEngine.Random.Range(-3f, 3f),
-                UnityEngine.Random.Range(0f, 360f),
-                UnityEngine.Random.Range(-3f, 3f)
+                decorRandom.Range(-3f, 3f),
+                decorRandom.Range(0f, 360f),
+                decorRandom.Range(-3f, 3f)
             ) * sproutPrefab.transform.rotation;
 
             GameObject sproutObj = Instantiate(sproutPrefab, spawnPos, rot, ConnectionsContainer);
@@ -1489,28 +1497,28 @@ public class HexBiomeClusterConnector : MonoBehaviour
         GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
         if (sproutPrefab == null) return;
 
-        int count = UnityEngine.Random.Range(cornerMicroGrassCountRange.x, cornerMicroGrassCountRange.y + 1);
+        int count = decorRandom.Range(cornerMicroGrassCountRange.x, cornerMicroGrassCountRange.y + 1);
         if (count <= 0) return;
 
         float angleStep = 360f / count;
 
         for (int i = 0; i < count; i++)
         {
-            float baseAngle = i * angleStep + UnityEngine.Random.Range(-15f, 15f);
+            float baseAngle = i * angleStep + decorRandom.Range(-15f, 15f);
             float rad = baseAngle * Mathf.Deg2Rad;
-            float r = UnityEngine.Random.Range(0.04f, cornerFillerRadius * 1.15f);
+            float r = decorRandom.Range(0.04f, cornerFillerRadius * 1.15f);
 
             Vector3 spawnPos = center + new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * r;
             spawnPos.y = surfaceY;
 
-            float scale = UnityEngine.Random.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
+            float scale = decorRandom.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
             float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(sproutPrefab, seamMicroGrassGroundEmbed) * scale;
             spawnPos.y += yOffset;
 
             Quaternion rot = Quaternion.Euler(
-                UnityEngine.Random.Range(-3f, 3f),
-                UnityEngine.Random.Range(0f, 360f),
-                UnityEngine.Random.Range(-3f, 3f)
+                decorRandom.Range(-3f, 3f),
+                decorRandom.Range(0f, 360f),
+                decorRandom.Range(-3f, 3f)
             ) * sproutPrefab.transform.rotation;
 
             GameObject sproutObj = Instantiate(sproutPrefab, spawnPos, rot, ConnectionsContainer);
@@ -1567,7 +1575,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         PropArchetype spawnedMedArchetype = PropArchetype.FernBush;
 
         // 1. THỬ SINH 1 PROP TRUNG ƯU TIÊN ĐỘ ĐA DẠNG VẮT QUA ĐƯỜNG BIÊN
-        bool tryMedium = (UnityEngine.Random.value < mediumPropChance);
+        bool tryMedium = (decorRandom.value < mediumPropChance);
         if (tryMedium)
         {
             GameObject medPrefab = GetMediumPropPrefab(cardData, nearbyEntries, midPoint, out CardData.HabitatPropRule medRule, out PropArchetype medArch);
@@ -1580,8 +1588,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
                 for (int i = 0; i < candidateVOffsets.Length; i++)
                 {
-                    float candV = candidateVOffsets[i] + UnityEngine.Random.Range(-0.03f, 0.03f);
-                    float candU = UnityEngine.Random.Range(-0.06f, 0.06f);
+                    float candV = candidateVOffsets[i] + decorRandom.Range(-0.03f, 0.03f);
+                    float candU = decorRandom.Range(-0.06f, 0.06f);
                     Vector3 testPos = midPoint + v * candV + u * candU;
                     testPos.y = topY;
 
@@ -1617,7 +1625,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         var eligibleSmall = GetEligibleSmallPropsList(cardData);
         if (eligibleSmall.Count == 0) return;
 
-        int smallCount = UnityEngine.Random.Range(propsPerEdgeRange.x, propsPerEdgeRange.y + 1);
+        int smallCount = decorRandom.Range(propsPerEdgeRange.x, propsPerEdgeRange.y + 1);
         HashSet<GameObject> usedPrefabsOnEdge = new HashSet<GameObject>();
         HashSet<PropArchetype> usedArchetypesOnEdge = new HashSet<PropArchetype>();
 
@@ -1682,7 +1690,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
             float totalScore = 0f;
             for (int s = 0; s < scoredCandidates.Count; s++) totalScore += scoredCandidates[s].score;
 
-            float rVal = UnityEngine.Random.Range(0f, totalScore);
+            float rVal = decorRandom.Range(0f, totalScore);
             float acc = 0f;
             var picked = scoredCandidates[scoredCandidates.Count - 1];
             for (int s = 0; s < scoredCandidates.Count; s++)
@@ -1709,8 +1717,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 // Prop nhỏ thứ nhất: Vệ tinh tự nhiên ôm chân Prop Trung
                 for (int t = 0; t < 12; t++)
                 {
-                    float angle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
-                    float satDist = UnityEngine.Random.Range(0.12f, 0.20f);
+                    float angle = decorRandom.Range(0f, Mathf.PI * 2f);
+                    float satDist = decorRandom.Range(0.12f, 0.20f);
                     Vector3 candSat = medSpawnPos + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * satDist;
                     candSat.y = topY;
 
@@ -1732,10 +1740,10 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 for (int t = 0; t < 10; t++)
                 {
                     float offsetV = (hasSpawnedMedium)
-                        ? ((chosenMedV > 0f ? -1f : 1f) * UnityEngine.Random.Range(0.10f, 0.28f))
-                        : UnityEngine.Random.Range(-0.25f, 0.25f);
+                        ? ((chosenMedV > 0f ? -1f : 1f) * decorRandom.Range(0.10f, 0.28f))
+                        : decorRandom.Range(-0.25f, 0.25f);
 
-                    float offsetU = UnityEngine.Random.Range(-0.05f, 0.05f);
+                    float offsetU = decorRandom.Range(-0.05f, 0.05f);
                     Vector3 cand = midPoint + v * offsetV + u * offsetU;
                     cand.y = topY;
 
@@ -1839,7 +1847,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
             Vector3 perp = new Vector3(-dir.z, 0f, dir.x);
 
             // Mỗi cạnh viền tán ra từ 1 đến 2 prop nhỏ
-            int propsOnThisEdge = UnityEngine.Random.Range(1, 3);
+            int propsOnThisEdge = decorRandom.Range(1, 3);
 
             for (int pIdx = 0; pIdx < propsOnThisEdge; pIdx++)
             {
@@ -1853,10 +1861,10 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 // Prop thứ nhất ở gần chân cây trung (0.24m - 0.32m)
                 // Prop thứ hai ở xa hơn dọc theo mép (0.42m - 0.52m)
                 float dFromCenter = (pIdx == 0)
-                    ? UnityEngine.Random.Range(0.24f, 0.32f)
-                    : UnityEngine.Random.Range(0.42f, 0.52f);
+                    ? decorRandom.Range(0.24f, 0.32f)
+                    : decorRandom.Range(0.42f, 0.52f);
 
-                float lateralJitter = UnityEngine.Random.Range(-0.045f, 0.045f);
+                float lateralJitter = decorRandom.Range(-0.045f, 0.045f);
                 Vector3 spawnPos = center + dir * dFromCenter + perp * lateralJitter;
                 spawnPos.y = topY;
 
@@ -2045,7 +2053,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         float totalScore = 0f;
         for (int s = 0; s < scored.Count; s++) totalScore += scored[s].score;
 
-        float rVal = UnityEngine.Random.Range(0f, totalScore);
+        float rVal = decorRandom.Range(0f, totalScore);
         float acc = 0f;
         var picked = scored[scored.Count - 1];
         for (int s = 0; s < scored.Count; s++)
@@ -2184,7 +2192,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
             float totalWeight = 0f;
             for (int i = 0; i < candidates.Count; i++) totalWeight += candidates[i].weight;
 
-            float r = UnityEngine.Random.Range(0f, totalWeight);
+            float r = decorRandom.Range(0f, totalWeight);
             float accum = 0f;
             for (int i = 0; i < candidates.Count; i++)
             {
@@ -2272,7 +2280,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         var list = GetEligibleSmallPropsList(cardData);
         if (list.Count > 0)
         {
-            var item = list[UnityEngine.Random.Range(0, list.Count)];
+            var item = list[decorRandom.Range(0, list.Count)];
             matchedRule = item.rule;
             return item.prefab;
         }
@@ -2572,6 +2580,15 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 tileTransforms[i].position = initialPositions[i];
             }
         }
+    }
+
+    /// <summary>
+    /// Seed theo khóa cạnh/ngã ba (đã sắp thứ tự tọa độ, không phụ thuộc ô nào đặt trước) + thẻ habitat:
+    /// props nối mọc y hệt mỗi lần vào game và khi người khác thăm đảo.
+    /// </summary>
+    private void SeedDecor(string salt, string key, CardData habitatData)
+    {
+        decorRandom = DecorRandom.ForKey($"{salt}|{key}|{(habitatData != null ? habitatData.cardID : string.Empty)}");
     }
 
     private string GetEdgeKey(HexCoordinates a, HexCoordinates b)

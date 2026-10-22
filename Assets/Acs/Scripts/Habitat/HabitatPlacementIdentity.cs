@@ -22,6 +22,8 @@ namespace LumiWorld.Acs
             HabitatRuntimeManager.PrepareForWorldChange();
             qualityRank = value;
             HabitatRuntimeManager.NotifyWorldChanged();
+            // Rank nằm trong bản lưu đảo (PlacementRecord.qualityRank)
+            WorldSaveSystem.MarkDirty();
             if (Application.isPlaying && HabitatRuntimeManager.TryGetActive(out var manager)) manager.RefreshNow();
             return true;
         }

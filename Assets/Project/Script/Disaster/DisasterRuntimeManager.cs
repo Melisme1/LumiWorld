@@ -151,10 +151,214 @@ namespace LumiWorld.Acs
             EnsureTileDisasterStates();
             DisasterWarningUI.AttachWhenReady(this);
 
-            // Đặt lịch spawn ĐẦU TIÊN sau khi balance đã chắc chắn sẵn sàng.
-            // Nhờ vậy lần sinh thiên tai đầu tiên cách thời điểm vào game đúng nhịp
+            // Mọi thay đổi thiên tai đều đánh dấu cần lưu đảo (WorldSaveSystem tự bỏ qua khi đang thăm đảo)
+            DisasterStarted += _ => WorldSaveSystem.MarkDirty();
+            DisasterChanged += _ => WorldSaveSystem.MarkDirty();
+            DisasterEnded += _ => WorldSaveSystem.MarkDirty();
+
+            // Có thiên tai trong bản lưu thì dựng lại; không thì đặt lịch spawn ĐẦU TIÊN sau khi balance
+            // đã chắc chắn sẵn sàng. Nhờ vậy lần sinh thiên tai đầu tiên cách thời điểm vào game đúng nhịp
             // minSpawnIntervalMinutes..maxSpawnIntervalMinutes, không còn nổ ngay frame 1.
-            ScheduleNextSpawn();
+            if (WorldLaunch.IsVisit) ApplyVisitBurnedTiles();
+            else if (!TryRestoreFromSave()) ScheduleNextSpawn();
+        }
+
+        /// <summary>
+        /// Đang thăm đảo: tô đen và ẩn cây trên các ô cháy theo snapshot của chủ đảo.
+        /// Chỉ để xem: không có thiên tai nào chạy, không lan, không ghi gì.
+        /// </summary>
+        private void ApplyVisitBurnedTiles()
+        {
+            if (worldGenerator == null) return;
+            foreach (HexPointRecord point in VisitSession.BurnedTiles)
+            {
+                if (point == null) continue;
+                var hex = new HexCoordinates(point.q, point.r);
+                if (!worldGenerator.MapTiles.TryGetValue(hex, out var tileObj) || tileObj == null) continue;
+                var state = TileDisasterState.Ensure(tileObj);
+                if (state == null) continue;
+                state.coordinates = hex;
+                state.isBurned = true;
+                SuppressHabitatOnTile(tileObj);
+                state.RefreshVisual();
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Lưu / nạp (world_<id>.json, qua WorldSaveSystem)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Ghi dấu thiên tai trên ô và các thiên tai đang chạy. Thời gian ghi dạng "còn bao nhiêu giây"
+        /// tại lúc lưu; WorldSaveSystem ghi kèm savedAtUtc.
+        /// </summary>
+        public void CaptureForSave(DisasterSaveData data)
+        {
+            data.tiles.Clear();
+            data.active.Clear();
+            data.saved = true;
+            data.instanceCounter = instanceCounter;
+            double now = clock.NowSeconds;
+            data.nextSpawnInSeconds = nextSpawnAt >= double.MaxValue / 2 ? -1 : Math.Max(0, nextSpawnAt - now);
+
+            foreach (var state in TileDisasterState.All)
+            {
+                if (state == null) continue;
+                bool hasData = state.hasObstacle || state.isBurned || state.aridity > 0f || state.hasReceivedWater || state.HasAnyDisaster;
+                if (!hasData) continue;
+                var tile = new DisasterTileRecord { q = state.coordinates.Q, r = state.coordinates.R,
+                    hasObstacle = state.hasObstacle, isBurned = state.isBurned, aridity = state.aridity,
+                    hasReceivedWater = state.hasReceivedWater };
+                foreach (var mark in state.ActiveDisasters)
+                    tile.marks.Add(new DisasterMarkRecord { kind = mark.Key.ToString(), instanceId = mark.Value });
+                data.tiles.Add(tile);
+            }
+
+            foreach (var instance in activeList)
+            {
+                double elapsedSinceTick = Math.Max(0, now - GetLastTick(instance));
+                var record = new DisasterRecord
+                {
+                    instanceId = instance.instanceId, kind = instance.kind.ToString(),
+                    q = instance.origin.Q, r = instance.origin.R, originAffinity = (int)instance.originAffinity,
+                    remainingSeconds = Math.Max(0, instance.remainingSeconds - elapsedSinceTick),
+                    totalSeconds = instance.totalSeconds, rainApplied = instance.rainApplied,
+                    destroyedCount = instance.destroyedCount,
+                    spreadInSeconds = nextSpreadAt.TryGetValue(instance.instanceId, out var spreadAt) && spreadAt < double.MaxValue / 2
+                        ? Math.Max(0, spreadAt - now) : -1
+                };
+                if (spreadFrontier.TryGetValue(instance.instanceId, out var frontier))
+                    foreach (var hex in frontier) record.frontier.Add(new HexPointRecord { q = hex.Q, r = hex.R });
+                if (suppressedTiles.TryGetValue(instance.instanceId, out var suppressed))
+                    foreach (var hex in suppressed) record.suppressed.Add(new HexPointRecord { q = hex.Q, r = hex.R });
+                if (pendingFire.TryGetValue(instance.instanceId, out var pending))
+                    foreach (var pair in pending)
+                        record.pendingFire.Add(new PendingFireRecord { q = pair.Key.Q, r = pair.Key.R,
+                            elapsedSeconds = Math.Max(0, now - pair.Value) });
+                data.active.Add(record);
+            }
+        }
+
+        /// <summary>
+        /// Dựng lại dấu trên ô và thiên tai đang chạy từ bản lưu đảo. Khi tắt game: thời gian còn lại của
+        /// thiên tai vẫn trừ dần (hết thì kết thúc ở nhịp đầu tiên, hiệu ứng kết thúc chạy đúng một lần);
+        /// lửa không lan, ô chờ bén lửa và lịch sinh thiên tai mới thì đứng yên. Chỉ phát DisasterChanged.
+        /// </summary>
+        private bool TryRestoreFromSave()
+        {
+            if (WorldLaunch.IsVisit || worldGenerator == null) return false;
+            WorldSaveSystem world = WorldSaveSystem.Instance;
+            if (world == null || world.SavesBlocked || world.RestoredData == null) return false;
+            DisasterSaveData data = world.RestoredData.disasters;
+            if (data == null || !data.saved) return false;
+
+            double offline = 0;
+            if (DateTime.TryParse(world.RestoredData.savedAtUtc, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+                    out DateTime savedAtUtc))
+                offline = Math.Max(0, (DateTime.UtcNow - savedAtUtc).TotalSeconds);
+            double now = clock.NowSeconds;
+
+            // 1. Dấu trên từng ô
+            foreach (var tileRecord in data.tiles)
+            {
+                if (tileRecord == null) continue;
+                var hex = new HexCoordinates(tileRecord.q, tileRecord.r);
+                if (!worldGenerator.MapTiles.TryGetValue(hex, out var tileObj) || tileObj == null) continue;
+                var state = TileDisasterState.Ensure(tileObj);
+                if (state == null) continue;
+                state.coordinates = hex;
+                state.hasObstacle = tileRecord.hasObstacle;
+                state.isBurned = tileRecord.isBurned;
+                state.aridity = Mathf.Clamp01(tileRecord.aridity);
+                state.hasReceivedWater = tileRecord.hasReceivedWater;
+                foreach (var mark in tileRecord.marks)
+                    if (mark != null && Enum.TryParse(mark.kind, out DisasterKind markKind))
+                        state.Mark(markKind, mark.instanceId);
+                if (state.isBurned) SuppressHabitatOnTile(tileObj);
+                state.RefreshVisual();
+            }
+
+            // 2. Thiên tai đang chạy
+            int maxCounter = Math.Max(instanceCounter, data.instanceCounter);
+            foreach (var record in data.active)
+            {
+                if (record == null || string.IsNullOrEmpty(record.instanceId) ||
+                    !Enum.TryParse(record.kind, out DisasterKind kind)) continue;
+
+                var instance = new DisasterInstance
+                {
+                    instanceId = record.instanceId, kind = kind,
+                    origin = new HexCoordinates(record.q, record.r),
+                    originAffinity = (BiomeAffinity)record.originAffinity,
+                    totalSeconds = record.totalSeconds,
+                    remainingSeconds = Math.Max(0, record.remainingSeconds - offline),
+                    rainApplied = record.rainApplied, destroyedCount = record.destroyedCount,
+                    startedAtUnscaledTime = Time.unscaledTime
+                };
+                disasters[instance.instanceId] = instance;
+                activeList.Add(instance);
+                lastTick[instance.instanceId] = now;
+                nextSpreadAt[instance.instanceId] = record.spreadInSeconds < 0 ? double.MaxValue : now + record.spreadInSeconds;
+
+                var frontier = new List<HexCoordinates>();
+                foreach (var point in record.frontier) if (point != null) frontier.Add(new HexCoordinates(point.q, point.r));
+                spreadFrontier[instance.instanceId] = frontier;
+
+                if (record.suppressed.Count > 0)
+                {
+                    EnsureSuppressedSet(instance.instanceId);
+                    foreach (var point in record.suppressed)
+                        if (point != null) suppressedTiles[instance.instanceId].Add(new HexCoordinates(point.q, point.r));
+                }
+
+                if (record.pendingFire.Count > 0)
+                {
+                    var queue = new Dictionary<HexCoordinates, double>();
+                    foreach (var pending in record.pendingFire)
+                    {
+                        if (pending == null) continue;
+                        var hex = new HexCoordinates(pending.q, pending.r);
+                        queue[hex] = now - Math.Max(0, pending.elapsedSeconds); // đứng yên khi tắt game
+                        ShowSmokeOnTile(instance.instanceId, hex);
+                    }
+                    pendingFire[instance.instanceId] = queue;
+                }
+
+                // Hình ảnh: khối vật cản ở ô gốc, lửa trên ô đang cháy, lốc trên ô bị bão
+                if (worldGenerator.MapTiles.TryGetValue(instance.origin, out var originTile) && originTile != null &&
+                    kind == DisasterKind.Obstacle)
+                    SpawnObstacleVisual(instance, originTile);
+                foreach (var state in TileDisasterState.All)
+                {
+                    if (state == null || !state.HasInstance(kind, instance.instanceId)) continue;
+                    if (kind == DisasterKind.ForestFire) ShowFireOnTile(instance.instanceId, state.gameObject);
+                    else if (kind == DisasterKind.Cyclone)
+                    {
+                        var fx = GetTileParticles(state.gameObject, state.coordinates);
+                        if (fx != null) { fx.ShowCyclone(); TrackParticleTile(instance.instanceId, state.coordinates); }
+                    }
+                }
+
+                maxCounter = Math.Max(maxCounter, ParseCounter(instance.instanceId));
+                DisasterChanged?.Invoke(instance);
+            }
+            instanceCounter = maxCounter;
+
+            // 3. Lịch sinh thiên tai mới đứng yên khi tắt game
+            if (data.nextSpawnInSeconds >= 0) nextSpawnAt = now + data.nextSpawnInSeconds;
+            else ScheduleNextSpawn();
+
+            Debug.Log($"[LumiWorld Disaster] Đã dựng lại {activeList.Count} thiên tai và {data.tiles.Count} ô có dấu từ bản lưu " +
+                      $"(trừ {offline / 60:0} phút tắt game).", this);
+            return true;
+        }
+
+        // "ForestFire_0007" -> 7
+        private static int ParseCounter(string instanceId)
+        {
+            int cut = instanceId != null ? instanceId.LastIndexOf('_') : -1;
+            return cut >= 0 && int.TryParse(instanceId.Substring(cut + 1), out int value) ? value : 0;
         }
 
         /// <summary>Gắn TileDisasterState lên mọi ô hiện có để hệ thống khác truy vấn được ngay.</summary>
@@ -993,6 +1197,8 @@ namespace LumiWorld.Acs
         private void DestroyTile(DisasterInstance instance, GameObject tileObj)
         {
             if (tileObj == null) return;
+            // Ô vừa cháy: dấu trên ô và thẻ thú trả về tay phải vào bản lưu đảo
+            WorldSaveSystem.MarkDirty();
             instance.destroyedCount++;
 
             ReturnCreaturesOnTile(tileObj);
@@ -1029,7 +1235,9 @@ namespace LumiWorld.Acs
                 if (card == null || card.cardData == null) continue;
                 if (card.CardType != CardType.Creature) continue;
 
-                // Hoàn thẻ Thú về tay người chơi.
+                // Hoàn thẻ Thú về tay người chơi. Bỏ thú khỏi bản lưu đảo ngay trong frame này
+                // (Destroy chỉ xóa object sau khi world đã ghi), để không vừa trên đảo vừa trên tay.
+                WorldSaveSystem.ForgetPlacement(card);
                 if (CardDeskController.Instance != null)
                     CardDeskController.Instance.AddRewardCard(card.cardData);
                 Destroy(card.gameObject);
@@ -1218,6 +1426,10 @@ namespace LumiWorld.Acs
                     if (child != null && (child.name.StartsWith("Habitat_", StringComparison.Ordinal) ||
                                           child.name.StartsWith("PlacedCard_", StringComparison.Ordinal)))
                     {
+                        // Bỏ thẻ khỏi bản lưu đảo ngay (Destroy chỉ xóa object sau khi world đã ghi frame này),
+                        // để mở lại game không hiện thẻ ma trên ô vừa hồi phục
+                        foreach (var placed in child.GetComponentsInChildren<PlacedCard>(true))
+                            WorldSaveSystem.ForgetPlacement(placed);
                         Destroy(child.gameObject);
                     }
                 }
@@ -1228,6 +1440,8 @@ namespace LumiWorld.Acs
                     tileInfo.isOccupied = false;
                 }
 
+                // Ô tro tàn đã hồi phục và thẻ trên ô đã bị dọn: ghi lại đảo
+                WorldSaveSystem.MarkDirty();
                 state.RefreshVisual();
                 anyAccepted = true;
             }
@@ -1590,7 +1804,10 @@ namespace LumiWorld.Acs
             TickLifecycle(now);
             TickRainWindow(now);
 
+            // Phím tắt thử thiên tai chỉ chạy trong Editor
+#if UNITY_EDITOR
             if (enableTestHotkeys) HandleTestHotkeys();
+#endif
         }
 
         private void HandleTestHotkeys()

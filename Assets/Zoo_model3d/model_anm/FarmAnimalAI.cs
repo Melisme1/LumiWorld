@@ -1268,7 +1268,8 @@ public class FarmAnimalAI : MonoBehaviour
 
         if (ScoreManager.Instance != null)
         {
-            ScoreManager.Instance.SetScore(ScoreManager.Instance.CurrentScore + points);
+            // Điểm combo tính riêng (bonus) để không mất khi điểm thẻ được tính lại hoặc khi mở lại game
+            ScoreManager.Instance.AddBonusScore(points);
         }
     }
 
@@ -1399,6 +1400,25 @@ public class FarmAnimalAI : MonoBehaviour
         cooldownRemainingSeconds = duration;
         isConnectionOnCooldown = true;
         formattedCooldownRemaining = FormatCooldownDuration(duration);
+        // Lưu giờ hết hồi vào bản lưu đảo, để mở lại game không reset hồi combo
+        WorldSaveSystem.MarkDirty();
+    }
+
+    /// <summary>
+    /// Đặt lại thời gian hồi còn lại khi dựng đảo từ bản lưu (không ghi save). seconds &lt;= 0: đã hồi xong.
+    /// </summary>
+    public void RestoreConnectionCooldown(float seconds)
+    {
+        if (seconds <= 0f)
+        {
+            cooldownRemainingSeconds = 0f;
+            isConnectionOnCooldown = false;
+            formattedCooldownRemaining = "Sẵn sàng (Ready)";
+            return;
+        }
+        cooldownRemainingSeconds = seconds;
+        isConnectionOnCooldown = true;
+        formattedCooldownRemaining = FormatCooldownDuration(seconds);
     }
 
     /// <summary>

@@ -49,9 +49,10 @@ public static class ApiClient
         bool withToken,
         Action<TResponse> onSuccess,
         Action<ApiError> onError,
-        string idempotencyKey = null)
+        string idempotencyKey = null,
+        int timeoutSeconds = 0)
     {
-        return SendJson(UnityWebRequest.kHttpVerbPOST, path, body, withToken, onSuccess, onError, idempotencyKey);
+        return SendJson(UnityWebRequest.kHttpVerbPOST, path, body, withToken, onSuccess, onError, idempotencyKey, timeoutSeconds);
     }
 
     public static IEnumerator Put<TRequest, TResponse>(
@@ -132,7 +133,8 @@ public static class ApiClient
         bool withToken,
         Action<TResponse> onSuccess,
         Action<ApiError> onError,
-        string idempotencyKey)
+        string idempotencyKey,
+        int timeoutSeconds = 0)
     {
         byte[] payload = Encoding.UTF8.GetBytes(JsonUtility.ToJson(body));
 
@@ -141,6 +143,8 @@ public static class ApiClient
             request.uploadHandler = new UploadHandlerRaw(payload);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
+            // 0 = dùng thời gian chờ mặc định; màn đăng nhập truyền 20 giây
+            if (timeoutSeconds > 0) request.timeout = timeoutSeconds;
 
             yield return Send(request, withToken, onSuccess, onError, idempotencyKey);
         }
@@ -188,7 +192,7 @@ public static class ApiClient
         Action<ApiError> onError,
         string idempotencyKey)
     {
-        request.timeout = TimeoutSeconds;
+        if (request.timeout <= 0) request.timeout = TimeoutSeconds;
         request.SetRequestHeader("Accept", "application/json");
 
         bool sendingToken = withToken && AuthSession.IsLoggedIn;

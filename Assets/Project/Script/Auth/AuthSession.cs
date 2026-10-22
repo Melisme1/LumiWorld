@@ -48,6 +48,12 @@ public static class AuthSession
         }
     }
 
+    /// <summary>
+    /// Raised just before the account changes (login as a different player, or log out),
+    /// while PlayerId still names the old account, so per-account state can be flushed and dropped.
+    /// </summary>
+    public static event Action AccountChanging;
+
     public static void Save(AuthResponse response)
     {
         if (response == null || string.IsNullOrEmpty(response.accessToken))
@@ -55,6 +61,9 @@ public static class AuthSession
             Debug.LogWarning("AuthSession: refusing to save an empty auth response.");
             return;
         }
+
+        // Đăng nhập lại đúng tài khoản cũ thì giữ nguyên trạng thái đang chạy
+        if (PlayerId != (response.playerId ?? "")) AccountChanging?.Invoke();
 
         PlayerPrefs.SetString(TokenKey, response.accessToken);
         PlayerPrefs.SetString(PlayerIdKey, response.playerId ?? "");
@@ -70,6 +79,8 @@ public static class AuthSession
     /// </summary>
     public static void LogOut()
     {
+        if (!string.IsNullOrEmpty(PlayerId)) AccountChanging?.Invoke();
+
         PlayerPrefs.DeleteKey(TokenKey);
         PlayerPrefs.DeleteKey(PlayerIdKey);
         PlayerPrefs.DeleteKey(DisplayNameKey);

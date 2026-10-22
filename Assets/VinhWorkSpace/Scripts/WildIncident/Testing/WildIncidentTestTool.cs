@@ -28,6 +28,8 @@ namespace LumiWorld.WildIncident.Testing
         private GUIStyle buttonStyle;
         private GUIStyle subHeaderStyle;
 
+        // Công cụ test chỉ tự gắn trong Editor, không lọt vào bản build gửi người chơi
+#if UNITY_EDITOR
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoAttach()
         {
@@ -38,6 +40,7 @@ namespace LumiWorld.WildIncident.Testing
                 DontDestroyOnLoad(go);
             }
         }
+#endif
 
         private void Awake()
         {

@@ -32,6 +32,36 @@ public class WorldSaveSystem : MonoBehaviour
     /// <summary>true khi ô đất đã được dựng lại từ file, HexWorldGenerator không sinh đảo mới.</summary>
     public bool HasRestoredTiles { get; private set; }
 
+    /// <summary>
+    /// true khi Start đã chạy xong phần dựng lại đảo (kể cả khi không có file hoặc bị chặn ghi).
+    /// Hệ thống tự đánh giá theo đảo (thành tựu...) đợi cờ này để không đọc đảo đang dựng dở.
+    /// </summary>
+    public bool IsWorldReady { get; private set; }
+
+    /// <summary>
+    /// Bản lưu đảo của mình vừa nạp trong Start (null khi đang thăm, đảo mới hoặc chưa có file).
+    /// Hệ thống chạy sau (thiên tai, thứ tự -80) đọc phần của mình ở đây.
+    /// </summary>
+    public WorldSaveData RestoredData { get; private set; }
+
+    /// <summary>Danh mục thẻ dùng để dựng lại thẻ đã đặt; bài trên tay cũng tra cardID ở đây.</summary>
+    public CardCatalog Cards => cardCatalog;
+
+    /// <summary>true khi phiên này không được ghi save (dựng lại đảo thiếu asset).</summary>
+    public bool SavesBlocked => savesBlocked;
+
+    /// <summary>
+    /// Bỏ một thẻ đã đặt khỏi danh sách lưu ngay (trước khi Destroy, vì Destroy chỉ xóa object
+    /// sau LateUpdate của frame này) rồi đánh dấu cần ghi. Dùng khi thẻ rời đảo ngoài luồng đặt bài,
+    /// ví dụ cháy rừng trả thú về tay, để thú không vừa nằm trên đảo vừa nằm trên tay.
+    /// </summary>
+    public static void ForgetPlacement(PlacedCard card)
+    {
+        if (Instance == null || card == null || WorldLaunch.IsVisit) return;
+        Instance.placedCards.Remove(card);
+        Instance.dirty = true;
+    }
+
     private void Awake()
     {
         Instance = this;
@@ -45,6 +75,18 @@ public class WorldSaveSystem : MonoBehaviour
     }
 
     private void Start()
+    {
+        RestoreWorld();
+        IsWorldReady = true;
+
+        // Dựng lại thất bại: đảo đang thấy chỉ là đảo tạm và không được lưu. Báo cho người chơi biết,
+        // để không chơi tiếp trên đảo tạm rồi tưởng đảo bị reset khi vào lại (chi tiết lỗi nằm trong Console).
+        if (savesBlocked)
+            GameDialogUI.ShowNotice("Không mở được đảo đã lưu, đảo đang thấy là đảo tạm và sẽ KHÔNG được lưu. "
+                + "Đảo cũ vẫn còn nguyên trong bản lưu. Hãy báo nhóm phát triển và đừng xây tiếp trên đảo này.");
+    }
+
+    private void RestoreWorld()
     {
         // Đảo người khác tải từ server (VisitSession) thì dựng từ snapshot, không đọc file trên máy
         WorldSaveData data = VisitSession.Active ? VisitSession.ToSaveData() : store.Load();
@@ -78,7 +120,79 @@ public class WorldSaveSystem : MonoBehaviour
             BlockSaves($"Chỉ dựng lại được {generator.MapTiles.Count}/{savedCoords.Count} ô đất (TileCatalog thiếu prefab). Bấm Tools > LumiWorld > Xây danh mục save rồi chạy lại.");
 
         if (savesBlocked || !HasRestoredTiles) return;
+        if (!WorldLaunch.IsVisit) RestoredData = data;
+        SeedHabitatsAndCreatures(data);
         RestorePlacements(data, generator);
+        RestoreProgress(data, generator);
+        AccrueOfflineProduction(data);
+    }
+
+    // Trước khi dựng thẻ: habitat (id, tài nguyên đã chọn), hàng chưa thu, độ no, thức ăn, điểm chăm sóc, tên.
+    // Lần dựng habitat đầu tiên (trong RestorePlacements) sẽ khớp theo các id này thay vì tạo mới.
+    private void SeedHabitatsAndCreatures(WorldSaveData data)
+    {
+        if (WorldLaunch.IsVisit) return;
+
+        if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager))
+            habitatManager.SeedFromSave(data.habitats);
+
+        var production = LumiWorld.Acs.ResourceProductionRuntime.Instance;
+        if (production != null) production.SeedFromSave(data.production, data.creatures);
+
+        CreatureCareManager care = CreatureCareManager.Instance;
+        if (care != null && data.creatures != null)
+            foreach (CreatureSaveRecord creature in data.creatures)
+                if (creature != null) care.RestoreCreature(creature.individualId, creature.careProgress, creature.customName);
+    }
+
+    // Sau khi đảo dựng xong: cộng sản lượng cho quãng tắt game (giờ thật, tối đa 8 giờ).
+    // Đồng hồ máy bị lùi thì không cộng.
+    private static void AccrueOfflineProduction(WorldSaveData data)
+    {
+        if (WorldLaunch.IsVisit) return;
+        if (!DateTime.TryParse(data.savedAtUtc, CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime savedAtUtc)) return;
+        double offline = (DateTime.UtcNow - savedAtUtc).TotalSeconds;
+        if (offline <= 0) return;
+
+        var production = LumiWorld.Acs.ResourceProductionRuntime.Instance;
+        if (production != null) production.AccrueOffline(offline);
+    }
+
+    // Điểm combo, mốc điểm đã thưởng, lượt mở rộng và tâm mảng đất. Chạy trong Start (order -300),
+    // trước Start của ScoreUI, WildPackIncidentManager và HexPlacementController.
+    // Đang xem đảo người khác thì không dựng tiến trình (snapshot không có phần này).
+    private void RestoreProgress(WorldSaveData data, HexWorldGenerator generator)
+    {
+        if (WorldLaunch.IsVisit || savesBlocked) return;
+        WorldProgressData progress = data.progress;
+
+        if (progress != null && progress.saved && ScoreManager.Instance != null)
+        {
+            int cardScore = ScoreCalculator.Instance != null ? ScoreCalculator.Instance.CalculateTotalScore() : 0;
+            ScoreManager.Instance.RestoreProgress(cardScore, progress);
+        }
+
+        if (HexPlacementController.Instance != null)
+            HexPlacementController.Instance.RestoreExpansion(progress, generator);
+    }
+
+    // Giờ hết hồi combo của thú: trừ thời gian đã trôi khi game tắt. Đồng hồ máy bị lùi thì giữ số giây đã lưu.
+    private static void RestoreConnectionCooldown(PlacementRecord record, GameObject placedObject, DateTime savedAtUtc)
+    {
+        if (string.IsNullOrEmpty(record.connectionCooldownEndUtc) || placedObject == null) return;
+        FarmAnimalAI ai = placedObject.GetComponentInChildren<FarmAnimalAI>(true);
+        if (ai == null) return;
+
+        float remaining = record.connectionCooldownSeconds;
+        DateTime now = DateTime.UtcNow;
+        if (now >= savedAtUtc &&
+            DateTime.TryParse(record.connectionCooldownEndUtc, CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime endUtc))
+        {
+            remaining = Mathf.Min(record.connectionCooldownSeconds, (float)(endUtc - now).TotalSeconds);
+        }
+        ai.RestoreConnectionCooldown(remaining);
     }
 
     private void RestorePlacements(WorldSaveData data, HexWorldGenerator generator)
@@ -118,6 +232,11 @@ public class WorldSaveSystem : MonoBehaviour
         HexBiomeClusterConnector connector = HexBiomeClusterConnector.Instance;
         if (connector != null) connector.ReserveClusterIdsThrough(maxClusterId);
 
+        // Giờ ghi bản lưu, để biết đồng hồ máy có bị lùi không khi tính thời gian hồi combo còn lại
+        if (!DateTime.TryParse(data.savedAtUtc, CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime savedAtUtc))
+            savedAtUtc = DateTime.UtcNow;
+
         // Terrain first: creatures need their Nature card to bind to a home biome.
         int restored = 0;
         bool upgradedLegacyIds = false;
@@ -131,6 +250,7 @@ public class WorldSaveSystem : MonoBehaviour
                 {
                     PlacedCard placed = RestorePlacement(record, card, generator);
                     placedCards.Add(placed);
+                    if (card.cardType == CardType.Creature) RestoreConnectionCooldown(record, placed.gameObject, savedAtUtc);
                     restored++;
                     if ((card.cardType == CardType.Terrain || card.cardType == CardType.Creature) &&
                         string.IsNullOrEmpty(record.placementId)) upgradedLegacyIds = true;
@@ -377,8 +497,14 @@ public class WorldSaveSystem : MonoBehaviour
 
             var identity = card.GetComponent<LumiWorld.Acs.HabitatPlacementIdentity>();
             var animal = card.GetComponent<AnimalIndividual>();
+            var ai = card.GetComponentInChildren<FarmAnimalAI>(true);
+            float cooldown = ai != null ? Mathf.Max(0f, ai.cooldownRemainingSeconds) : 0f;
             data.placements.Add(new PlacementRecord
             {
+                connectionCooldownSeconds = cooldown,
+                connectionCooldownEndUtc = cooldown > 0f
+                    ? DateTime.UtcNow.AddSeconds(cooldown).ToString("o", CultureInfo.InvariantCulture)
+                    : null,
                 cardID = card.CardID,
                 q = card.placedHex.Q,
                 r = card.placedHex.R,
@@ -393,7 +519,41 @@ public class WorldSaveSystem : MonoBehaviour
             });
         }
 
+        // Tiến trình không suy ra được từ thẻ: điểm combo, mốc đã thưởng, lượt mở rộng, tâm mảng đất
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.CaptureProgress(data.progress);
+            if (HexPlacementController.Instance != null) HexPlacementController.Instance.CaptureExpansion(data.progress);
+            data.progress.saved = true;
+        }
+
+        CaptureHabitatsAndCreatures(data);
+        if (LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var disasters)) disasters.CaptureForSave(data.disasters);
         return data;
+    }
+
+    // Habitat, hàng chưa thu, độ no, thức ăn, điểm chăm sóc và tên của sinh vật.
+    // Tên đặt cũng ghi vào PlacementRecord.animalName để người thăm đảo thấy qua snapshot.
+    private static void CaptureHabitatsAndCreatures(WorldSaveData data)
+    {
+        if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager))
+            habitatManager.CaptureForSave(data.habitats);
+
+        var production = LumiWorld.Acs.ResourceProductionRuntime.Instance;
+        if (production != null) production.CaptureForSave(data.production, data.creatures);
+
+        CreatureCareManager care = CreatureCareManager.HasInstance ? CreatureCareManager.Instance : null;
+        if (care == null) return;
+        foreach (CreatureSaveRecord creature in data.creatures)
+        {
+            creature.careProgress = care.GetCareProgress(creature.individualId);
+            creature.customName = care.GetCustomName(creature.individualId);
+        }
+        foreach (PlacementRecord placement in data.placements)
+        {
+            string customName = care.GetCustomName(placement.placementId);
+            if (!string.IsNullOrEmpty(customName)) placement.animalName = customName;
+        }
     }
 
     private TileRecord CaptureTile(HexCoordinates coords, GameObject tileObject)

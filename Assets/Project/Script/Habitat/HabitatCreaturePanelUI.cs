@@ -1960,7 +1960,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         foreach (var a in allAnimals)
         {
             if (a == null) continue;
-            if (string.Equals(a.UniqueID, individualId, StringComparison.OrdinalIgnoreCase)) return a;
+            // individualId của habitat là placementId; UniqueID chỉ khớp với dữ liệu cũ
+            if (string.Equals(CreatureCareManager.KeyOf(a, null), individualId, StringComparison.Ordinal) ||
+                string.Equals(a.UniqueID, individualId, StringComparison.OrdinalIgnoreCase)) return a;
             if (a.SpeciesData != null && string.Equals(a.SpeciesData.speciesID, speciesId, StringComparison.OrdinalIgnoreCase)) return a;
         }
         return null;
@@ -2023,7 +2025,20 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             return resident.customName;
         }
 
-        string saved = PlayerPrefs.GetString($"CreatureCustomName_{resident.individualId}", "");
+        // Tên đặt nằm trong bản lưu đảo (qua CreatureCareManager)
+        string saved = CreatureCareManager.Instance != null ? CreatureCareManager.Instance.GetCustomName(resident.individualId) : null;
+        if (string.IsNullOrEmpty(saved))
+        {
+            // Tên cũ lưu bằng PlayerPrefs (theo máy): chuyển một lần sang bản lưu đảo rồi xóa khóa
+            string legacyKey = $"CreatureCustomName_{resident.individualId}";
+            saved = PlayerPrefs.GetString(legacyKey, "");
+            if (!string.IsNullOrEmpty(saved) && CreatureCareManager.Instance != null && !WorldLaunch.IsVisit)
+            {
+                CreatureCareManager.Instance.SetCustomName(resident.individualId, saved);
+                PlayerPrefs.DeleteKey(legacyKey);
+                PlayerPrefs.Save();
+            }
+        }
         if (!string.IsNullOrEmpty(saved))
         {
             resident.customName = saved;
@@ -2035,10 +2050,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private void SaveCreatureName(HabitatResident resident, string newName)
     {
-        if (resident == null) return;
+        if (resident == null || WorldLaunch.IsVisit) return;
         resident.customName = newName;
-        PlayerPrefs.SetString($"CreatureCustomName_{resident.individualId}", newName);
-        PlayerPrefs.Save();
+        if (CreatureCareManager.Instance != null) CreatureCareManager.Instance.SetCustomName(resident.individualId, newName);
     }
 
     #endregion

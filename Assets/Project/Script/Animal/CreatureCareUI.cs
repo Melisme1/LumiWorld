@@ -232,7 +232,7 @@ public class CreatureCareUI : MonoBehaviour
 
         if (HabitatCreaturePanelUI.Instance != null && HabitatRuntimeManager.TryGetActive(out var hrm) && hrm.Habitats != null)
         {
-            string searchId = animal != null ? animal.UniqueID : (identity != null ? identity.PlacementId : "");
+            string searchId = CreatureCareManager.KeyOf(animal, currentIdentity);
             foreach (var h in hrm.Habitats)
             {
                 if (h != null && h.residents != null && h.residents.Exists(r => r.individualId == searchId))
@@ -254,8 +254,8 @@ public class CreatureCareUI : MonoBehaviour
 
     public void RefreshData()
     {
-        string id = currentAnimal != null ? currentAnimal.UniqueID : (currentIdentity != null ? currentIdentity.PlacementId : "");
-        string name = currentAnimal != null ? currentAnimal.IndividualName : "Creature";
+        string id = CreatureCareManager.KeyOf(currentAnimal, currentIdentity);
+        string name = currentAnimal != null ? currentAnimal.IndividualName : "Sinh vật";
         int star = currentAnimal != null ? currentAnimal.StarLevel : 1;
         string traitStr = currentAnimal != null ? currentAnimal.Trait.ToString() : "Friendly";
 
@@ -290,7 +290,7 @@ public class CreatureCareUI : MonoBehaviour
 
     private void OnCareClicked()
     {
-        string id = currentAnimal != null ? currentAnimal.UniqueID : (currentIdentity != null ? currentIdentity.PlacementId : "");
+        string id = CreatureCareManager.KeyOf(currentAnimal, currentIdentity);
         if (CreatureCareManager.Instance.CareCreature(id, out string fb))
         {
             HexPlacementPreviewHUD.ShowFeedbackToast(fb);

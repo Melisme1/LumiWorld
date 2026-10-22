@@ -109,7 +109,8 @@ public class ScoreCalculator : MonoBehaviour
 
         if (ScoreManager.Instance != null)
         {
-            ScoreManager.Instance.SetScore(totalScore);
+            // Điểm thẻ cộng với điểm combo đã có, để tính lại không xóa điểm combo
+            ScoreManager.Instance.SetCardScore(totalScore);
         }
     }
 }

@@ -58,6 +58,15 @@ public class EconomyHUD : MonoBehaviour
             if (bar != null) bar.gameObject.SetActive(false);
         }
 
+        // Đang xem đảo người khác: chỉ giữ Coins, kho và Market (mua lô của chủ đảo).
+        // Orders, Shop, Chế biến, thành tựu, chăm thú và xem trước đặt thẻ là việc trên đảo của mình.
+        if (WorldLaunch.IsVisit || VisitSession.Active)
+        {
+            CreateOverlay<MarketUI>("MarketUI");
+            FitToCanvas();
+            return;
+        }
+
         // Bảng Đơn Hàng và Cửa hàng thẻ cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
         CreateOverlay<OrderBoardUI>("OrderBoardUI");
         CreateOverlay<CardShopUI>("CardShopUI");

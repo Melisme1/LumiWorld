@@ -83,12 +83,53 @@ public class CreatureCareManager : MonoBehaviour
         return creatureCareProgress.TryGetValue(individualId, out int care) ? care : 0;
     }
 
+    // Tên người chơi đặt cho từng sinh vật, theo placementId; lưu trong bản lưu đảo
+    private readonly Dictionary<string, string> customNames = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Khóa dùng chung cho điểm chăm sóc và tên: placementId của thẻ sinh vật (giống HabitatResident.individualId).
+    /// Chỉ khi chưa có HabitatPlacementIdentity mới dùng UniqueID của AnimalIndividual.
+    /// </summary>
+    public static string KeyOf(AnimalIndividual animal, HabitatPlacementIdentity identity)
+    {
+        if (identity == null && animal != null) identity = animal.GetComponentInParent<HabitatPlacementIdentity>();
+        if (identity != null && !string.IsNullOrEmpty(identity.PlacementId)) return identity.PlacementId;
+        return animal != null ? animal.UniqueID : string.Empty;
+    }
+
+    public string GetCustomName(string individualId) =>
+        !string.IsNullOrEmpty(individualId) && customNames.TryGetValue(individualId, out string name) ? name : null;
+
+    /// <summary>Đặt tên cho sinh vật và đánh dấu cần lưu đảo.</summary>
+    public void SetCustomName(string individualId, string name)
+    {
+        if (string.IsNullOrEmpty(individualId) || WorldLaunch.IsVisit) return;
+        if (string.IsNullOrWhiteSpace(name)) customNames.Remove(individualId);
+        else customNames[individualId] = name;
+        WorldSaveSystem.MarkDirty();
+    }
+
+    /// <summary>Nạp điểm chăm sóc và tên từ bản lưu đảo (không phát sự kiện, không ghi save).</summary>
+    public void RestoreCreature(string individualId, int careProgress, string customName)
+    {
+        if (string.IsNullOrEmpty(individualId)) return;
+        if (careProgress > 0) creatureCareProgress[individualId] = Mathf.Clamp(careProgress, 0, 100);
+        else creatureCareProgress.Remove(individualId);
+        if (!string.IsNullOrEmpty(customName)) customNames[individualId] = customName;
+    }
+
     /// <summary>
     /// Chăm sóc tăng Care Progress bằng Coins; không tác động đến độ no hay kho thức ăn.
     /// </summary>
     public bool CareCreature(string individualId, out string feedback)
     {
         feedback = string.Empty;
+        // Đảo đang xem của người khác: không chăm sóc, không trừ Coins
+        if (WorldLaunch.IsVisit)
+        {
+            feedback = "Không thể chăm sóc sinh vật trên đảo người khác.";
+            return false;
+        }
         if (string.IsNullOrEmpty(individualId))
         {
             feedback = "Creature not found.";
@@ -109,14 +150,16 @@ public class CreatureCareManager : MonoBehaviour
             return false;
         }
 
-        // Trừ phí cho ăn
-        if (CurrencyWallet.Instance != null)
+        // Trừ phí cho ăn; trừ không được thì không chăm (trước đây bỏ qua kết quả nên chăm miễn phí)
+        if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.TrySpend(feedCostCoins, CoinReason.CardPurchase))
         {
-            CurrencyWallet.Instance.TrySpend(feedCostCoins, CoinReason.CardPurchase);
+            feedback = $"Không đủ Coins để chăm sóc! Cần {feedCostCoins} Coins.";
+            return false;
         }
 
         int newCare = Mathf.Min(100, current + 25);
         creatureCareProgress[individualId] = newCare;
+        WorldSaveSystem.MarkDirty();
         OnCareProgressChanged?.Invoke(individualId, newCare);
 
         feedback = $"Cared! Care: {newCare}/100 (+25)";
@@ -129,8 +172,15 @@ public class CreatureCareManager : MonoBehaviour
     public bool TryRankUp(AnimalIndividual animal, HabitatPlacementIdentity identity, out string resultInfo)
     {
         resultInfo = string.Empty;
+        // Đảo đang xem của người khác: không nâng Rank, không trừ Coins
+        if (WorldLaunch.IsVisit)
+        {
+            resultInfo = "Không thể nâng Rank sinh vật trên đảo người khác.";
+            return false;
+        }
 
-        string id = animal != null ? animal.UniqueID : (identity != null ? identity.PlacementId : "");
+        if (identity == null && animal != null) identity = animal.GetComponentInParent<HabitatPlacementIdentity>();
+        string id = KeyOf(animal, identity);
         if (string.IsNullOrEmpty(id))
         {
             resultInfo = "Missing creature identity.";
@@ -160,9 +210,10 @@ public class CreatureCareManager : MonoBehaviour
             return false;
         }
 
-        if (CurrencyWallet.Instance != null)
+        if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.TrySpend(upgradeCost, CoinReason.CardPurchase))
         {
-            CurrencyWallet.Instance.TrySpend(upgradeCost, CoinReason.CardPurchase);
+            resultInfo = $"Không đủ Coins để nâng Rank! Cần {upgradeCost} Coins.";
+            return false;
         }
 
         // Cập nhật Rank trên identity
@@ -172,8 +223,9 @@ public class CreatureCareManager : MonoBehaviour
             HabitatRuntimeManager.NotifyWorldChanged();
         }
 
-        // Reset thanh Care về 0 để tiếp tục chu kỳ chăm sóc tiếp theo
+        // Reset thanh Care về 0 để tiếp tục chu kỳ chăm sóc tiếp theo; rank (qualityRank) và care cùng vào bản lưu đảo
         creatureCareProgress[id] = 0;
+        WorldSaveSystem.MarkDirty();
         OnCareProgressChanged?.Invoke(id, 0);
         OnRankUpgraded?.Invoke(id, nextRank);
 

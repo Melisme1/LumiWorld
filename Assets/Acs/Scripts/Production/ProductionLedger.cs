@@ -112,6 +112,34 @@ namespace LumiWorld.Acs
             }
         }
 
+        /// <summary>
+        /// Nạp lại một habitat từ bản lưu (hàng chưa thu). Mốc settle đặt ở giờ hiện tại của phiên;
+        /// thời gian tắt game được cộng riêng bằng AccrueOffline. Bỏ qua nếu id đã có.
+        /// </summary>
+        public void RestoreState(HabitatProductionState state, double settlementSeconds)
+        {
+            if (state == null || string.IsNullOrEmpty(state.habitatId) || Find(state.habitatId) != null) return;
+            state.hasSettlementTime = true;
+            state.lastSettledSeconds = settlementSeconds;
+            state.rates = state.rates ?? new List<ProductionSlotRate>();
+            state.buffers = state.buffers ?? new List<ResourceProductionBuffer>();
+            state.memberIds = state.memberIds ?? new List<string>();
+            states.Add(state);
+        }
+
+        /// <summary>
+        /// Cộng sản lượng của quãng tắt game theo tỉ lệ hiện tại (habitat đang hoạt động), giữ trần buffer.
+        /// Lùi mốc settle một khoảng offlineSeconds rồi settle tới giờ hiện tại.
+        /// </summary>
+        public void AccrueOffline(double offlineSeconds, double settlementSeconds)
+        {
+            if (!Finite(offlineSeconds) || offlineSeconds <= 0) return;
+            foreach (var state in states)
+                if (!state.isRecovery && state.hasSettlementTime)
+                    state.lastSettledSeconds = Math.Min(state.lastSettledSeconds, settlementSeconds) - offlineSeconds;
+            Settle(settlementSeconds);
+        }
+
         public void Stop(double settlementSeconds)
         {
             Settle(settlementSeconds);

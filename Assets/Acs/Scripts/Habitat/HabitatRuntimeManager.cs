@@ -248,7 +248,58 @@ namespace LumiWorld.Acs
             BeforeStateChanged?.Invoke(habitats);
             if (!HabitatEligibilityService.TrySetSelection(habitat, tier, index, resourceId, catalog, out reason)) return false;
             HabitatsChanged?.Invoke();
+            // Tài nguyên đã chọn nằm trong bản lưu đảo
+            WorldSaveSystem.MarkDirty();
             return true;
+        }
+
+        // =========================================================
+        // LƯU / NẠP (world_<id>.json, qua WorldSaveSystem)
+        // =========================================================
+
+        /// <summary>Ghi id habitat, thành viên và tài nguyên đã chọn của từng ô slot.</summary>
+        public void CaptureForSave(List<HabitatSaveRecord> records)
+        {
+            records.Clear();
+            foreach (var habitat in habitats)
+            {
+                if (habitat == null || string.IsNullOrEmpty(habitat.habitatId)) continue;
+                var record = new HabitatSaveRecord { habitatId = habitat.habitatId, islandId = habitat.islandId,
+                    natureCardId = habitat.natureCardId, affinity = (int)habitat.affinity, island = (int)habitat.island };
+                foreach (var member in habitat.members) if (member != null) record.memberIds.Add(member.placementId);
+                foreach (var slot in habitat.slots)
+                    if (slot != null) record.slots.Add(new HabitatSlotRecord { tier = (int)slot.tier, index = slot.index,
+                        resourceId = slot.selectedResourceId });
+                records.Add(record);
+            }
+        }
+
+        /// <summary>
+        /// Đặt habitat đã lưu làm "danh sách trước" trước lần dựng đầu tiên, để HabitatTopologyService.Rebuild
+        /// giữ đúng id và tài nguyên đã chọn (khớp theo placementId thành viên) thay vì tạo id mới với slot trống.
+        /// Gọi trước khi WorldSaveSystem dựng lại thẻ đã đặt.
+        /// </summary>
+        public void SeedFromSave(List<HabitatSaveRecord> records)
+        {
+            if (records == null || records.Count == 0) return;
+            var seeded = new List<HabitatState>();
+            foreach (var record in records)
+            {
+                if (record == null || string.IsNullOrEmpty(record.habitatId)) continue;
+                var state = new HabitatState { habitatId = record.habitatId, islandId = record.islandId,
+                    natureCardId = record.natureCardId, affinity = (BiomeAffinity)record.affinity, island = (HabitatIsland)record.island };
+                foreach (string id in record.memberIds)
+                    if (!string.IsNullOrEmpty(id)) state.members.Add(new HabitatHexMember { placementId = id,
+                        islandId = record.islandId, natureCardId = record.natureCardId,
+                        affinity = state.affinity, island = state.island });
+                foreach (var slot in record.slots)
+                    if (slot != null) state.slots.Add(new HabitatResourceSlot { tier = (ResourceTier)slot.tier, index = slot.index,
+                        selectedResourceId = slot.resourceId ?? string.Empty });
+                seeded.Add(state);
+            }
+            habitats = seeded;
+            fingerprint = null;
+            dirty = true;
         }
 
         [ContextMenu("Log Habitat Summary")]
