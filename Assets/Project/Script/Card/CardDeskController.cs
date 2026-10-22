@@ -257,9 +257,10 @@ public class CardDeskController : MonoBehaviour
             CardUI ui = card.GetComponent<CardUI>();
             if (ui == null || ui.CardData == null) continue;
 
-            string name = !string.IsNullOrEmpty(ui.CardData.cardName)
+            string rawName = !string.IsNullOrEmpty(ui.CardData.cardName)
                 ? ui.CardData.cardName
                 : ui.CardData.cardID;
+            string name = CardShop.TranslateToEnglish(rawName, ui.CardData.name);
 
             totalCards += ui.Count;
             parts.Add(ui.Count > 1 ? $"{name} x{ui.Count}" : name);
@@ -270,8 +271,8 @@ public class CardDeskController : MonoBehaviour
             return;
         }
 
-        string title = $"{parts.Count} LOẠI CARD";
-        string body = string.Join("  ·  ", parts) + $"  ({totalCards} LÁ)";
+        string title = $"{parts.Count} CARD TYPES";
+        string body = string.Join("  ·  ", parts) + $"  ({totalCards} CARDS)";
 
         ShowToast(title, body);
     }
@@ -653,13 +654,14 @@ private void NotifyRewardCard(
         return;
     }
 
-    string displayName = !string.IsNullOrEmpty(cardData.cardName)
+    string rawDisplayName = !string.IsNullOrEmpty(cardData.cardName)
         ? cardData.cardName
         : (!string.IsNullOrEmpty(cardData.cardID) ? cardData.cardID : "Card");
+    string displayName = CardShop.TranslateToEnglish(rawDisplayName, cardData.name);
 
     if (showRewardToast)
     {
-        string title = isNewSlot ? "NHẬN CARD MỚI" : "CỘNG THÊM CARD";
+        string title = isNewSlot ? "NEW CARD RECEIVED" : "CARD ADDED";
         string body = totalCount > 1
             ? $"{displayName} x{totalCount}"
             : displayName;

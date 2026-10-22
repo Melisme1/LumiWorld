@@ -22,7 +22,7 @@ public class WorldVisitHud : MonoBehaviour
     // Cột trái nằm dưới thanh tài nguyên (InventoryUI ở (20, 20), cao 48)
     private const float ColumnX = 20f;
     private const float ColumnWidth = 360f;
-    private const float PanelTop = 80f;
+    private const float PanelTop = 86f;
 
     // Phóng theo Scale Factor của Canvas như EconomyHUD: 1 đơn vị = 1 pixel màn hình
     private Canvas canvas;

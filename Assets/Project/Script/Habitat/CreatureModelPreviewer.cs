@@ -171,9 +171,43 @@ public class CreatureModelPreviewer : MonoBehaviour
 
         // Bật lại Animator hoặc Animation để thú có thể thở hoặc cử động idle
         var anim = currentModelInstance.GetComponentInChildren<Animation>();
-        if (anim != null) anim.enabled = true;
+        if (anim != null)
+        {
+            anim.enabled = true;
+            string bestIdle = null;
+            string[] preferred = { "Idle", "idle", "Rest_Pose", "rest_pose", "Stand", "stand", "Trot", "Walk" };
+            foreach (var p in preferred)
+            {
+                if (anim.GetClip(p) != null)
+                {
+                    bestIdle = p;
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(bestIdle))
+            {
+                foreach (AnimationState state in anim)
+                {
+                    string n = state.name.ToLower();
+                    if (n.Contains("death") || n.Contains("die") || n.Contains("fall"))
+                        continue;
+                    bestIdle = state.name;
+                    break;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(bestIdle))
+            {
+                anim.Play(bestIdle);
+            }
+        }
+
         var animator = currentModelInstance.GetComponentInChildren<Animator>();
-        if (animator != null) animator.enabled = true;
+        if (animator != null)
+        {
+            animator.enabled = true;
+        }
 
         // Căn giữa bounds của tất cả renderers và điều chỉnh kích cỡ vừa vặn
         var renderers = currentModelInstance.GetComponentsInChildren<Renderer>();

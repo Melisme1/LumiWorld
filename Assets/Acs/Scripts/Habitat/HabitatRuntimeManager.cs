@@ -207,16 +207,16 @@ namespace LumiWorld.Acs
 
         public bool CanPlaceCreature(CardData creature, CardData nature, HexCoordinates homeHex, out string reason)
         {
-            if (!IsConfigured) { reason = "HabitatRuntimeManager chưa cấu hình catalog."; return false; }
+            if (!IsConfigured) { reason = "HabitatRuntimeManager catalog is not configured."; return false; }
             if (creature == null || creature.cardType != CardType.Creature || creature.animalSpeciesData == null)
-            { reason = "Creature Card chưa gán Species."; return false; }
+            { reason = "Creature Card has no Species assigned."; return false; }
             if (nature == null || !catalog.TryGetHabitat(nature.cardID, out var habitat))
-            { reason = "Nature Card chưa có Habitat Definition trong catalog."; return false; }
+            { reason = "Nature Card has no Habitat Definition in catalog."; return false; }
             if (!catalog.speciesRegistry.TryGetActiveBySpeciesId(creature.animalSpeciesData.speciesID, out var mapping))
-            { reason = "Species chưa có mapping active trong registry."; return false; }
+            { reason = "Species has no active mapping in registry."; return false; }
             if (mapping.GetRole(habitat.affinity) == AffinityRole.None)
-            { reason = "Creature không có primary/secondary affinity phù hợp " + habitat.affinity + "."; return false; }
-            if (HasCreatureAtHome(homeHex)) { reason = "Home hex đã có creature."; return false; }
+            { reason = "Creature has no matching primary/secondary affinity for " + habitat.affinity + "."; return false; }
+            if (HasCreatureAtHome(homeHex)) { reason = "Home hex already has a creature."; return false; }
             var homeHabitat = FindHabitatByHex(homeHex);
             if (homeHabitat == null) { RefreshFromWorld(false); homeHabitat = FindHabitatByHex(homeHex); }
             if (homeHabitat != null)
@@ -225,13 +225,13 @@ namespace LumiWorld.Acs
                 if (homeHabitat.residents.Count >= maxAllowed)
                 {
                     int nextMilestone = homeHabitat.HexCount < 3 ? 3 : (homeHabitat.HexCount < 6 ? 6 : 10);
-                    reason = maxAllowed >= 6 ? "Biome đã đủ 6 sinh vật." : $"Cần đạt mốc {nextMilestone} ô môi trường cùng loại để mở thêm ô thả sinh vật (Mốc: 3 ô -> 2 thú, 6 ô -> 4 thú, 10 ô -> 6 thú).";
+                    reason = maxAllowed >= 6 ? "Biome cluster already has maximum 6 creatures." : $"Must reach {nextMilestone} connected biome tiles of the same type to unlock more creature slots (Milestones: 3 tiles -> 2 creatures, 6 tiles -> 4 creatures, 10 tiles -> 6 creatures).";
                     return false;
                 }
             }
             else
             {
-                reason = "Cần đạt mốc 3 ô môi trường cùng loại để mở ô thả sinh vật đầu tiên.";
+                reason = "Must reach 3 connected biome tiles of the same type to unlock the first creature slot.";
                 return false;
             }
             reason = string.Empty;
@@ -242,7 +242,7 @@ namespace LumiWorld.Acs
         {
             RefreshNow();
             var habitat = FindHabitat(habitatId);
-            if (habitat == null) { reason = "Habitat không tồn tại."; return false; }
+            if (habitat == null) { reason = "Habitat does not exist."; return false; }
             var eligibility = HabitatEligibilityService.EvaluateSelection(habitat, tier, index, resourceId, catalog);
             if (!string.IsNullOrEmpty(resourceId) && !eligibility.IsEligible) { reason = eligibility.Reason; return false; }
             BeforeStateChanged?.Invoke(habitats);

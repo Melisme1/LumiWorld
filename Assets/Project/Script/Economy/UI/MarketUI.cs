@@ -35,16 +35,16 @@ public class MarketUI : MonoBehaviour
     [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
     [Header("Look")]
-    [SerializeField] private Color hudColor = new Color(0.06f, 0.09f, 0.16f, 0.88f);
-    [SerializeField] private Color backdropColor = new Color(0f, 0f, 0f, 0.45f);
-    [SerializeField] private Color panelColor = new Color(0.08f, 0.11f, 0.19f, 0.97f);
-    [SerializeField] private Color rowColor = new Color(0.13f, 0.17f, 0.27f, 1f);
-    [SerializeField] private Color sectionColor = new Color(0.05f, 0.07f, 0.13f, 0.9f);
-    [SerializeField] private Color textColor = new Color(0.93f, 0.95f, 0.99f, 1f);
-    [SerializeField] private Color mutedColor = new Color(0.62f, 0.68f, 0.80f, 1f);
-    [SerializeField] private Color accentColor = new Color(0.20f, 0.66f, 0.38f, 1f);
-    [SerializeField] private Color secondaryColor = new Color(0.26f, 0.30f, 0.42f, 1f);
-    [SerializeField] private Color warningColor = new Color(1f, 0.62f, 0.45f, 1f);
+    [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
+    [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
+    [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
+    [SerializeField] private Color rowColor = new Color(1f, 1f, 1f, 0.95f);
+    [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
+    [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
+    [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
+    [SerializeField] private Color accentColor = new Color(0.01f, 0.60f, 0.90f, 1f);
+    [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
+    [SerializeField] private Color warningColor = new Color(0.90f, 0.35f, 0.25f, 1f);
 
     private sealed class Row
     {
@@ -97,6 +97,8 @@ public class MarketUI : MonoBehaviour
 
     // Dòng trạng thái ở cuối bảng
     private TextMeshProUGUI statusText;
+    private RectTransform balanceChip;
+    private TextMeshProUGUI balanceText;
 
     public bool IsOpen => window != null && window.activeSelf;
 
@@ -112,12 +114,22 @@ public class MarketUI : MonoBehaviour
 
         inventory = ResourceInventory.Instance;
         inventory.OnInventoryChanged += HandleInventoryChanged;
+        if (CurrencyWallet.Instance != null) CurrencyWallet.Instance.OnBalanceChanged += HandleBalanceChanged;
         _ = MarketSync.Instance;
     }
 
     private void OnDestroy()
     {
         if (inventory != null) inventory.OnInventoryChanged -= HandleInventoryChanged;
+        if (CurrencyWallet.Instance != null) CurrencyWallet.Instance.OnBalanceChanged -= HandleBalanceChanged;
+    }
+
+    private void HandleBalanceChanged(int balance, int delta, CoinReason reason) => RefreshBalance();
+
+    private void RefreshBalance()
+    {
+        if (balanceText != null && CurrencyWallet.Instance != null)
+            balanceText.text = Format(CurrencyWallet.Instance.Balance);
     }
 
     // =========================================================
@@ -140,6 +152,7 @@ public class MarketUI : MonoBehaviour
             : 1f;
         panel.localScale = new Vector3(panelScale, panelScale, 1f);
 
+        RefreshBalance();
         ShowTab(tab);
     }
 
@@ -198,6 +211,8 @@ public class MarketUI : MonoBehaviour
         colors.normalColor = active ? accentColor : secondaryColor;
         colors.highlightedColor = Color.Lerp(colors.normalColor, Color.white, 0.18f);
         button.colors = colors;
+        var lbl = button.GetComponentInChildren<TextMeshProUGUI>();
+        if (lbl != null) lbl.color = active ? Color.white : textColor;
     }
 
     // =========================================================
@@ -474,8 +489,21 @@ public class MarketUI : MonoBehaviour
         EconomyHUD.CreatePanel(panel, panelColor).raycastTarget = true;
 
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 26f, textColor, TextAlignmentOptions.Left);
-        Place(title.rectTransform, 28f, 20f, 500f, 40f);
+        Place(title.rectTransform, 28f, 20f, 400f, 40f);
         title.text = "Market";
+
+        balanceChip = EconomyHUD.CreateRect("Balance", panel);
+        Place(balanceChip, PanelWidth - 72f - 160f, 22f, 150f, 40f);
+        EconomyHUD.CreateBorderedPanel(balanceChip, new Color(0.06f, 0.09f, 0.16f, 0.92f), new Color(0.08f, 0.58f, 0.95f, 0.60f));
+        EconomyHUD.CreateIcon("CoinIcon", balanceChip, EconomyHUD.CoinSprite, 26f, 10f);
+
+        balanceText = EconomyHUD.CreateText("Value", balanceChip, 20f, Color.white, TextAlignmentOptions.Right);
+        balanceText.fontStyle = FontStyles.Bold;
+        RectTransform valueRect = balanceText.rectTransform;
+        valueRect.anchorMin = Vector2.zero;
+        valueRect.anchorMax = Vector2.one;
+        valueRect.offsetMin = new Vector2(42f, 0f);
+        valueRect.offsetMax = new Vector2(-12f, 0f);
 
         Button closeButton = MakeButton("CloseButton", panel, PanelWidth - 72f, 20f, 44f, 44f, "X", secondaryColor);
         closeButton.onClick.AddListener(Close);
@@ -509,7 +537,7 @@ public class MarketUI : MonoBehaviour
 
             RectTransform rowRect = EconomyHUD.CreateRect("Row" + i, listRoot);
             Place(rowRect, 0f, i * (RowHeight + RowGap), 764f, RowHeight);
-            EconomyHUD.CreatePanel(rowRect, rowColor);
+            EconomyHUD.CreateBorderedPanel(rowRect, rowColor);
             row.root = rowRect.gameObject;
 
             row.title = EconomyHUD.CreateText("Title", rowRect, 19f, textColor, TextAlignmentOptions.Left);
@@ -622,7 +650,8 @@ public class MarketUI : MonoBehaviour
         Place(rect, x, y, width, height);
 
         Button button = EconomyHUD.AddButton(rect, color);
-        CreateLabel(rect, text, 18f);
+        Color labelColor = color == secondaryColor ? textColor : Color.white;
+        CreateLabel(rect, text, 18f, labelColor);
         return button;
     }
 
@@ -632,7 +661,7 @@ public class MarketUI : MonoBehaviour
         RectTransform rect = EconomyHUD.CreateRect(objectName, parent);
         Place(rect, x, y, width, height);
 
-        Image background = EconomyHUD.CreatePanel(rect, sectionColor);
+        Image background = EconomyHUD.CreateBorderedPanel(rect, sectionColor);
         background.raycastTarget = true;
 
         TextMeshProUGUI text = EconomyHUD.CreateText("Text", rect, 22f, textColor, TextAlignmentOptions.Left);
@@ -656,9 +685,10 @@ public class MarketUI : MonoBehaviour
         return field;
     }
 
-    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize)
+    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize, Color? color = null)
     {
-        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, Color.white, TextAlignmentOptions.Center);
+        Color c = color ?? Color.white;
+        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, c, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(label.rectTransform);
         label.text = text;
         return label;

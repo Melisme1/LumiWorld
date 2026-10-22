@@ -8,6 +8,7 @@ namespace LumiWorld.Acs
     public sealed class ResourceUIItem
     {
         public string id, name, biome, tier, description;
+        public string category = "Resource";
         public Sprite icon;
         public int stock, capacity;
         public bool isUnlocked = true;
@@ -41,6 +42,10 @@ namespace LumiWorld.Acs
         public string id, name, requirements, reason;
         public Sprite icon;
         public bool eligible;
+        public string timeText;
+        public BiomeAffinity affinity;
+        public string description;
+        public ResourceTier tier;
     }
 
     public static class ResourceInventoryUILayout

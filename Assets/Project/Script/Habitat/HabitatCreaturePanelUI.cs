@@ -244,7 +244,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         wRect.sizeDelta = new Vector2(100f, 24f);
 
         weatherText = weatherObj.GetComponent<TextMeshProUGUI>();
-        weatherText.text = "Nắng";
+        weatherText.text = "Sunny";
         weatherText.fontSize = 13f;
         weatherText.fontStyle = FontStyles.Bold;
         weatherText.color = new Color(1f, 0.95f, 0.65f, 1f);
@@ -282,7 +282,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         habitatNameText.fontSize = 15f;
         habitatNameText.fontStyle = FontStyles.Bold;
         habitatNameText.color = Color.white;
-        habitatNameText.text = "Đồng Hoa Bloomfield";
+        habitatNameText.text = "Bloomfield Plains";
 
         // --- YÊU CẦU 1: THANH TIẾN TRÌNH CÔNG NGHỆ CHILL (100% khi đủ 6 thú) ---
         GameObject capBarObj = new GameObject("EnergyBar", typeof(RectTransform), typeof(Slider));
@@ -338,7 +338,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         capacityLabel.fontSize = 11f;
         capacityLabel.fontStyle = FontStyles.Bold;
         capacityLabel.color = Color.white;
-        capacityLabel.text = "0/6 Cư Dân (0%)";
+        capacityLabel.text = "0/6 Residents (0%)";
 
         var capShadow = capLblObj.GetComponent<Shadow>();
         capShadow.effectColor = new Color(0.04f, 0.08f, 0.15f, 0.90f);
@@ -370,7 +370,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         rhText.fontSize = 11.5f;
         rhText.fontStyle = FontStyles.Bold;
         rhText.color = new Color(0.22f, 0.75f, 0.98f, 1f);
-        rhText.text = "TÀI NGUYÊN KHAI THÁC";
+        rhText.text = "HARVESTABLE RESOURCES";
 
         // --- Container các ô tài nguyên ---
         GameObject resGridObj = new GameObject("ResourceSlotsContainer", typeof(RectTransform));
@@ -411,7 +411,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         harvestAllButtonText.fontSize = 11.5f;
         harvestAllButtonText.fontStyle = FontStyles.Bold;
         harvestAllButtonText.color = Color.white;
-        harvestAllButtonText.text = "Chưa có tài nguyên chờ thu";
+        harvestAllButtonText.text = "No pending resources";
 
         // --- YÊU CẦU 2: BANNER CHỮ NHẬT DƯỚI CÙNG (pannel_footer_banner.png) TỈ LỆ CHUẨN ĐÚNG MẪU ẢNH 3 ---
         GameObject footerObj = new GameObject("FooterBar", typeof(RectTransform), typeof(Image));
@@ -444,7 +444,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         footerScaleText.fontSize = 10.5f;
         footerScaleText.fontStyle = FontStyles.Bold;
         footerScaleText.color = new Color(0.98f, 0.96f, 0.92f, 1f);
-        footerScaleText.text = "Quy mô: 3 Ô Đất";
+        footerScaleText.text = "Scale: 3 Hexes";
 
         var stShadow = scaleTxtObj.GetComponent<Shadow>();
         stShadow.effectColor = new Color(0.06f, 0.10f, 0.18f, 0.90f);
@@ -465,7 +465,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         footerResidentText.fontSize = 10.5f;
         footerResidentText.fontStyle = FontStyles.Bold;
         footerResidentText.color = new Color(0.98f, 0.96f, 0.92f, 1f);
-        footerResidentText.text = "2/2 Cư Dân";
+        footerResidentText.text = "2/2 Residents";
 
         var rtShadow = resTxtObj.GetComponent<Shadow>();
         rtShadow.effectColor = new Color(0.06f, 0.10f, 0.18f, 0.90f);
@@ -578,7 +578,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         creatureNameText.fontSize = 16f;
         creatureNameText.fontStyle = FontStyles.Bold;
         creatureNameText.color = new Color(0.08f, 0.16f, 0.24f, 1f);
-        creatureNameText.text = "Nai Rừng";
+        creatureNameText.text = "Forest Deer";
 
         Button nameClickBtn = nameTxtObj.GetComponent<Button>();
         nameClickBtn.transition = Selectable.Transition.None;
@@ -684,7 +684,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         stLbl.fontStyle = FontStyles.Bold;
         stLbl.alignment = TextAlignmentOptions.MidlineLeft;
         stLbl.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        stLbl.text = "Tình Trạng:";
+        stLbl.text = "Status:";
 
         GameObject stValObj = new GameObject("StatusValue", typeof(RectTransform), typeof(TextMeshProUGUI));
         stValObj.transform.SetParent(statusCard.transform, false);
@@ -699,9 +699,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         statusBannerTitle.fontStyle = FontStyles.Bold;
         statusBannerTitle.alignment = TextAlignmentOptions.MidlineRight;
         statusBannerTitle.color = new Color(0.12f, 0.65f, 0.28f, 1f);
-        statusBannerTitle.text = "Khỏe Mạnh";
+        statusBannerTitle.text = "Healthy";
 
-        // 2. Chỉ số No & Chăm sóc (Hàng ngang thon gọn cao 28px kèm thanh tiến độ mini)
+        // 2. Fullness indicator
         GameObject hungerCard = CreateGlassCard(contentObj.transform, "HungerCard", 28f);
 
         GameObject hLabelObj = new GameObject("HungerLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -717,7 +717,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         hlTxt.fontStyle = FontStyles.Bold;
         hlTxt.alignment = TextAlignmentOptions.MidlineLeft;
         hlTxt.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        hlTxt.text = "Chỉ Số No:";
+        hlTxt.text = "Fullness:";
 
         GameObject hValObj = new GameObject("HungerValue", typeof(RectTransform), typeof(TextMeshProUGUI));
         hValObj.transform.SetParent(hungerCard.transform, false);
@@ -786,7 +786,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         fLbl.fontStyle = FontStyles.Bold;
         fLbl.alignment = TextAlignmentOptions.MidlineLeft;
         fLbl.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        fLbl.text = "Thức ăn:";
+        fLbl.text = "Food:";
 
         GameObject fValObj = new GameObject("FoodValue", typeof(RectTransform), typeof(TextMeshProUGUI));
         fValObj.transform.SetParent(foodCard.transform, false);
@@ -801,9 +801,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         favoriteFoodText.fontStyle = FontStyles.Bold;
         favoriteFoodText.alignment = TextAlignmentOptions.MidlineRight;
         favoriteFoodText.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        favoriteFoodText.text = "Lá mầm ngọt & Quả rừng tươi";
+        favoriteFoodText.text = "Sweet Sprout & Forest Berries";
 
-        // --- CÁC TRƯỜNG THÔNG TIN NHỎ (ochitietnho_thu) 2 HÀNG X 2 CỘT ---
+        // --- STAT CHIPS 2x2 ---
         GameObject chipsGrid = new GameObject("StatChipsGrid", typeof(RectTransform), typeof(GridLayoutGroup), typeof(LayoutElement));
         chipsGrid.transform.SetParent(contentObj.transform, false);
         LayoutElement leGrid = chipsGrid.GetComponent<LayoutElement>();
@@ -814,12 +814,12 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         glg.cellSize = new Vector2(124f, 28f);
         glg.spacing = new Vector2(8f, 4f);
 
-        CreateStatChip(chipsGrid.transform, "ChipSpecies", "Sâu Bướm", out chipSpeciesText);
+        CreateStatChip(chipsGrid.transform, "ChipSpecies", "Petaluff", out chipSpeciesText);
         CreateStatChip(chipsGrid.transform, "ChipRank", "Rank I", out chipRankText);
-        CreateStatChip(chipsGrid.transform, "ChipStars", "Rừng Leafwood", out chipStarsText);
-        CreateStatChip(chipsGrid.transform, "ChipTrait", "Thân Thiện", out chipTraitText);
+        CreateStatChip(chipsGrid.transform, "ChipStars", "Leafwood Forest", out chipStarsText);
+        CreateStatChip(chipsGrid.transform, "ChipTrait", "Friendly", out chipTraitText);
 
-        // Thông báo phản hồi đặt phía trên cụm nút
+        // Feedback notification text
         GameObject fbObj = new GameObject("FeedbackText", typeof(RectTransform), typeof(TextMeshProUGUI));
         fbObj.transform.SetParent(panelDetailRect, false);
         RectTransform fbRect = fbObj.GetComponent<RectTransform>();
@@ -836,7 +836,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         feedbackNotifyText.color = new Color(0.12f, 0.65f, 0.28f, 1f);
         feedbackNotifyText.text = "";
 
-        // --- BỘ 3 NÚT HÀNH ĐỘNG THEO BỐ CỤC 2 HÀNG CỦA ẢNH 1 (KHÔNG BÓP MÉO) ---
+        // --- ACTION BUTTONS (Feed, Treat, Rank Up) ---
         GameObject buttonBar = new GameObject("ButtonBar", typeof(RectTransform));
         buttonBar.transform.SetParent(panelDetailRect, false);
         RectTransform btnBarRect = buttonBar.GetComponent<RectTransform>();
@@ -846,18 +846,18 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         btnBarRect.anchoredPosition = new Vector2(0f, 8f);
         btnBarRect.sizeDelta = new Vector2(256f, 78f);
 
-        // Hàng 1: Nút Cho Ăn (Trái) & Nút Trị Liệu (Phải) - Đã xóa (-1), (-2), chữ in đậm nổi bật
+        // Row 1: Feed (Left) & Medicine / Treat (Right)
         feedButton = CreateActionCardButton(buttonBar.transform, "FeedBtn", new Vector2(-66f, 42f), new Vector2(124f, 36f),
-            HabitatCreaturePanelStyle.ButtonChoAn, "Cho Ăn", 13.5f, out feedButtonText);
+            HabitatCreaturePanelStyle.ButtonChoAn, "Deposit Food", 13.5f, out feedButtonText);
         feedButton.onClick.AddListener(OnFeedClicked);
 
         medicineButton = CreateActionCardButton(buttonBar.transform, "MedicineBtn", new Vector2(66f, 42f), new Vector2(124f, 36f),
-            HabitatCreaturePanelStyle.ButtonTriLieu, "Trị Liệu", 13.5f, out medicineButtonText);
+            HabitatCreaturePanelStyle.ButtonTriLieu, "Treat", 13.5f, out medicineButtonText);
         medicineButton.onClick.AddListener(OnMedicineClicked);
 
-        // Hàng 2: Nút Nâng Cấp (Nằm ngang toàn chiều rộng)
+        // Row 2: Rank Up (Full width)
         rankUpButton = CreateActionCardButton(buttonBar.transform, "RankUpBtn", new Vector2(0f, 2f), new Vector2(256f, 36f),
-            HabitatCreaturePanelStyle.ButtonNang, "Nâng Cấp", 14f, out rankUpButtonText);
+            HabitatCreaturePanelStyle.ButtonNang, "Rank Up", 14f, out rankUpButtonText);
         rankUpButton.onClick.AddListener(OnRankUpClicked);
 
         // Modal đổi tên sinh vật
@@ -1041,7 +1041,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         tRect.sizeDelta = new Vector2(220f, 22f);
 
         var titleTmp = titleObj.GetComponent<TextMeshProUGUI>();
-        titleTmp.text = "ĐỔI TÊN SINH VẬT";
+        titleTmp.text = "RENAME CREATURE";
         titleTmp.fontSize = 13.5f;
         titleTmp.fontStyle = FontStyles.Bold;
         titleTmp.alignment = TextAlignmentOptions.Center;
@@ -1058,7 +1058,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         dRect.sizeDelta = new Vector2(220f, 18f);
 
         var descTmp = descObj.GetComponent<TextMeshProUGUI>();
-        descTmp.text = "Nhập biệt danh yêu thích:";
+        descTmp.text = "Enter creature nickname:";
         descTmp.fontSize = 11f;
         descTmp.alignment = TextAlignmentOptions.Center;
         descTmp.color = new Color(0.70f, 0.78f, 0.88f, 1f);
@@ -1092,7 +1092,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         phObj.transform.SetParent(textArea.transform, false);
         EconomyHUD.Stretch(phObj.GetComponent<RectTransform>());
         TextMeshProUGUI phComp = phObj.GetComponent<TextMeshProUGUI>();
-        phComp.text = "Nhập tên mới...";
+        phComp.text = "Enter new name...";
         phComp.fontSize = 12f;
         phComp.fontStyle = FontStyles.Italic;
         phComp.alignment = TextAlignmentOptions.MidlineLeft;
@@ -1143,7 +1143,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         cbTxtObj.transform.SetParent(cancelBtnObj.transform, false);
         EconomyHUD.Stretch(cbTxtObj.GetComponent<RectTransform>());
         var cbTxt = cbTxtObj.GetComponent<TextMeshProUGUI>();
-        cbTxt.text = "Hủy";
+        cbTxt.text = "Cancel";
         cbTxt.fontSize = 11.5f;
         cbTxt.fontStyle = FontStyles.Bold;
         cbTxt.alignment = TextAlignmentOptions.Center;
@@ -1171,7 +1171,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         cfbTxtObj.transform.SetParent(confirmBtnObj.transform, false);
         EconomyHUD.Stretch(cfbTxtObj.GetComponent<RectTransform>());
         var cfbTxt = cfbTxtObj.GetComponent<TextMeshProUGUI>();
-        cfbTxt.text = "Lưu";
+        cfbTxt.text = "Save";
         cfbTxt.fontSize = 11.5f;
         cfbTxt.fontStyle = FontStyles.Bold;
         cfbTxt.alignment = TextAlignmentOptions.Center;
@@ -1234,13 +1234,13 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             {
                 harvestAllButton.interactable = true;
                 harvestAllButton.image.color = Color.white;
-                harvestAllButtonText.text = $"Thu Hoạch ({totalPending})";
+                harvestAllButtonText.text = $"Harvest ({totalPending})";
             }
             else
             {
                 harvestAllButton.interactable = false;
                 harvestAllButton.image.color = new Color(0.6f, 0.7f, 0.75f, 0.45f);
-                harvestAllButtonText.text = "Chưa có tài nguyên chờ thu";
+                harvestAllButtonText.text = "No pending resources";
             }
         }
     }
@@ -1292,9 +1292,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         float capRatio = Mathf.Clamp01((float)currentResidents / 6f);
 
         capacitySlider.value = capRatio;
-        capacityLabel.text = $"{currentResidents}/6 Cư Dân ({Mathf.RoundToInt(capRatio * 100f)}%)";
+        capacityLabel.text = $"{currentResidents}/6 Residents ({Mathf.RoundToInt(capRatio * 100f)}%)";
 
-        // --- 1. Lưới 6 ô sinh vật tổ ong ---
+        // --- 1. Honeycomb grid slots ---
         foreach (var old in spawnedSlotButtons)
         {
             if (old != null) Destroy(old);
@@ -1303,8 +1303,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
         Sprite hexFrame = HabitatCreaturePanelStyle.HexButtonFrame;
 
-        // Quy luật mới: 3 -> 6 -> 10 hexes, capacity tương ứng 2 -> 4 -> 6 thú:
-        // Cố định 6 slot tổ ong chia đều 3 hàng x 2 cột (mỗi hàng tương ứng 1 mốc)
+        // Capacity: 3 -> 6 -> 10 hexes, capacity: 2 -> 4 -> 6
         const int totalSlots = 6;
         for (int i = 0; i < totalSlots; i++)
         {
@@ -1317,7 +1316,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             spawnedSlotButtons.Add(slotObj);
         }
 
-        // --- 2. Các ô khai thác tài nguyên nằm ngay dưới lưới thú (Yêu cầu ảnh 1 & 4) ---
+        // --- 2. Resource production cards below avatar grid ---
         foreach (var old in spawnedResourceCards)
         {
             if (old != null) Destroy(old);
@@ -1353,7 +1352,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             spawnedResourceCards.Add(cardObj);
         }
 
-        // Cập nhật nút thu hoạch tất cả của cụm
+        // Update collect all button
         long totalPending = 0;
         if (habModel != null && habModel.buffers != null)
         {
@@ -1369,38 +1368,38 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             {
                 harvestAllButton.interactable = true;
                 harvestAllButton.image.color = Color.white;
-                harvestAllButtonText.text = $"Thu Hoạch ({totalPending})";
+                harvestAllButtonText.text = $"Harvest ({totalPending})";
             }
             else
             {
                 harvestAllButton.interactable = false;
                 harvestAllButton.image.color = new Color(0.6f, 0.7f, 0.75f, 0.45f);
-                harvestAllButtonText.text = "Chưa có tài nguyên chờ thu";
+                harvestAllButtonText.text = "No pending resources";
             }
         }
 
         int hexCount = currentHabitat.HexCount;
         if (footerScaleText != null)
         {
-            footerScaleText.text = $"Quy mô: {hexCount} Ô Đất";
+            footerScaleText.text = $"Scale: {hexCount} Hexes";
         }
         if (footerResidentText != null)
         {
-            footerResidentText.text = $"{currentResidents}/{maxCapacity} Cư Dân";
+            footerResidentText.text = $"{currentResidents}/{maxCapacity} Residents";
         }
         if (footerSummaryText != null)
         {
-            footerSummaryText.text = $"Quy mô: {hexCount} Ô Đất  |  {currentResidents}/{maxCapacity} Cư Dân";
+            footerSummaryText.text = $"Scale: {hexCount} Hexes  |  {currentResidents}/{maxCapacity} Residents";
         }
     }
 
     private GameObject CreateResourceSlotCard(int slotIndex, ResourceTier tier, int subIndex, ResourceUISlot slotData, Transform parent)
     {
         bool isUnlocked = slotData != null ? slotData.unlocked : HabitatEligibilityService.IsSlotUnlocked(currentHabitat, tier, subIndex);
-        string resName = slotData != null ? slotData.name : (isUnlocked ? "Chưa chọn" : "Khóa");
+        string resName = slotData != null ? slotData.name : (isUnlocked ? "Unselected" : "Locked");
         Sprite icon = slotData != null ? slotData.icon : null;
         double rate = slotData != null ? slotData.rate : 0.0;
-        string reason = slotData != null ? slotData.reason : (!isUnlocked ? "Mở ở " + (tier == ResourceTier.Tier2 ? "6" : (subIndex == 0 ? "3" : "4")) + " Ô Đất" : "");
+        string reason = slotData != null ? slotData.reason : (!isUnlocked ? "Unlocks at " + (tier == ResourceTier.Tier2 ? "6" : (subIndex == 0 ? "3" : "4")) + " Hexes" : "");
         bool isProducing = isUnlocked && rate > 0.001;
 
         GameObject cardObj = new GameObject($"ResSlot_{slotIndex}", typeof(RectTransform), typeof(Image));
@@ -1462,7 +1461,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
 
         // 2. Center Text (Tag + Tên tài nguyên & Tốc độ / Lý do)
-        string tierLabel = (tier == ResourceTier.Tier1 ? "T1" : "T2") + $" · Ô {subIndex + 1}";
+        string tierLabel = (tier == ResourceTier.Tier1 ? "T1" : "T2") + $" · Slot {subIndex + 1}";
         GameObject infoObj = new GameObject("Info", typeof(RectTransform));
         infoObj.transform.SetParent(cardObj.transform, false);
         RectTransform infoRect = infoObj.GetComponent<RectTransform>();
@@ -1503,20 +1502,20 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         l2Text.overflowMode = TextOverflowModes.Ellipsis;
         if (isProducing)
         {
-            l2Text.text = $"<color=#4ADE80>● {rate:0.##}/phút</color>";
+            l2Text.text = $"<color=#4ADE80>● {rate:0.##}/min</color>";
         }
         else if (isUnlocked)
         {
             l2Text.text = string.IsNullOrEmpty(slotData?.resourceId) ?
-                "<color=#94A3B8>Chưa chọn tài nguyên</color>" :
+                "<color=#94A3B8>No resource selected</color>" :
                 $"<color=#F87171>{reason}</color>";
         }
         else
         {
-            l2Text.text = "<color=#64748B>Chưa mở khóa</color>";
+            l2Text.text = "<color=#64748B>Locked</color>";
         }
 
-        // 3. Right Button ("Chọn")
+        // 3. Right Button ("Select")
         if (isUnlocked)
         {
             GameObject btnObj = new GameObject("ChooseBtn", typeof(RectTransform), typeof(Button), typeof(Image));
@@ -1537,7 +1536,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             lblObj.transform.SetParent(btnObj.transform, false);
             EconomyHUD.Stretch(lblObj.GetComponent<RectTransform>());
             var lblText = lblObj.GetComponent<TextMeshProUGUI>();
-            lblText.text = "Chọn";
+            lblText.text = "Select";
             lblText.fontSize = 11f;
             lblText.fontStyle = FontStyles.Bold;
             lblText.alignment = TextAlignmentOptions.Center;
@@ -1652,7 +1651,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             ltRect.sizeDelta = new Vector2(52f, 16f);
 
             TextMeshProUGUI ltTxt = lockTxtObj.GetComponent<TextMeshProUGUI>();
-            ltTxt.text = $"{requiredHexes} Ô";
+            ltTxt.text = $"{requiredHexes} Hexes";
             ltTxt.alignment = TextAlignmentOptions.Center;
             ltTxt.fontSize = 9.5f;
             ltTxt.fontStyle = FontStyles.Bold;
@@ -1769,69 +1768,68 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         var hunger = ResourceProductionRuntime.Instance != null ? ResourceProductionRuntime.Instance.GetCareState(indId) : null;
         int satiety = hunger != null ? Mathf.Clamp(Mathf.RoundToInt((float)hunger.Satiety), 0, 100) : 0;
 
-        // 5. Tình trạng hiện tại (Đặt lên đầu)
+        // 5. Current status banner
         if (hunger != null && hunger.Status == CreatureHungerStatus.Hungry)
         {
-            statusBannerTitle.text = "Đói Bụng · Dừng Sản Xuất";
+            statusBannerTitle.text = "Hungry · Stopped";
             statusBannerTitle.color = new Color(0.90f, 0.45f, 0.15f, 1f);
         }
         else if (hunger != null && hunger.Status == CreatureHungerStatus.Eating)
         {
-            statusBannerTitle.text = hunger.WaitingForFood ? "Chờ Thức Ăn · Dừng Sản Xuất" : "Đang Ăn · Dừng Sản Xuất";
+            statusBannerTitle.text = hunger.WaitingForFood ? "Waiting for Food · Stopped" : "Eating · Stopped";
             statusBannerTitle.color = new Color(0.85f, 0.55f, 0.05f, 1f);
         }
         else if (hunger != null && care >= 100)
         {
-            statusBannerTitle.text = "Sẵn Sàng Nâng Rank";
+            statusBannerTitle.text = "Ready to Rank Up";
             statusBannerTitle.color = new Color(0.85f, 0.55f, 0.05f, 1f);
         }
         else if (hunger != null)
         {
-            statusBannerTitle.text = "Khỏe Mạnh";
+            statusBannerTitle.text = "Healthy";
             statusBannerTitle.color = new Color(0.12f, 0.65f, 0.28f, 1f);
         }
         else
         {
-            statusBannerTitle.text = "Chưa có dữ liệu trạng thái";
+            statusBannerTitle.text = "No status data";
             statusBannerTitle.color = new Color(0.5f, 0.5f, 0.5f, 1f);
         }
 
-        // 6. Cập nhật 4 Stat Chips (Ảnh 1: thay ô ký tự sao thành tên môi trường thú đang sống)
-        string traitStr = currentSelectedAnimal != null ? currentSelectedAnimal.Trait.ToString() : "Thân Thiện";
+        // 6. Stat Chips
+        string traitStr = currentSelectedAnimal != null ? currentSelectedAnimal.Trait.ToString() : "Friendly";
         chipSpeciesText.text = resData.displayName;
         chipRankText.text = currentSelectedResident.qualityRank.ToString();
-        chipStarsText.text = affName; // Tên môi trường sống (Rừng Leafwood, Đồng Hoa Bloomfield,...)
+        chipStarsText.text = affName;
         chipTraitText.text = traitStr;
 
-        // 7. Thanh chỉ số No & Chăm sóc
+        // 7. Fullness slider & progress
         hungerSlider.value = satiety;
-        hungerProgressLabel.text = hunger != null ? $"{satiety}/100 ({satiety}%)" : "Chưa có dữ liệu";
+        hungerProgressLabel.text = hunger != null ? $"{satiety}/100 ({satiety}%)" : "No data";
 
-        // 8. Món ăn ưa thích (sạch sẽ, không biểu tượng ô vuông lỗi)
+        // 8. Food status
         var production = ResourceProductionRuntime.Instance;
         string foodId = production != null && production.CareSettings != null
             ? production.CareSettings.FoodResourceId : string.Empty;
         ResourceData foodData = production != null && production.CareSettings != null &&
             production.CareSettings.food != null ? production.CareSettings.food : ResourceCatalog.Find(foodId);
-        string foodName = foodData != null ? foodData.resourceName : "Thức ăn";
+        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(foodId, foodData != null ? foodData.resourceName : "Food");
         int warehouseFood = production != null && production.Inventory != null && !string.IsNullOrEmpty(foodId)
             ? production.Inventory.GetAmount(foodId) : 0;
         long pantryFood = production != null && !string.IsNullOrEmpty(foodId)
             ? production.GetCreatureFoodAmount(indId, foodId) : 0;
         if (foodLabelText != null) foodLabelText.text = foodName + ":";
-        favoriteFoodText.text = $"Kho {warehouseFood} · Ngăn {pantryFood}";
+        favoriteFoodText.text = $"Warehouse {warehouseFood} · Pantry {pantryFood}";
 
-        // 9. Nút hành động (Xóa (-1), (-2), chữ in đậm to rõ, nổi bật)
+        // 9. Action buttons
         if (feedButton != null)
         {
-            // Có thể nạp thức ăn sớm vào ngăn riêng ngay cả khi creature đang no.
             feedButton.interactable = hunger != null;
-            feedButtonText.text = warehouseFood > 0 ? "Nạp Thức Ăn" : "Kho hết Thức Ăn";
+            feedButtonText.text = warehouseFood > 0 ? "Deposit Food" : "Out of Food";
         }
 
         if (medicineButton != null)
         {
-            medicineButtonText.text = "Trị Liệu";
+            medicineButtonText.text = "Treat";
         }
 
         if (rankUpButton != null)
@@ -1840,11 +1838,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             rankUpButton.interactable = canRankUp;
             if (currentSelectedResident.qualityRank >= CreatureQualityRank.RankIII)
             {
-                rankUpButtonText.text = "Đã Đạt Max Rank";
+                rankUpButtonText.text = "Max Rank Reached";
             }
             else
             {
-                rankUpButtonText.text = "Nâng Cấp";
+                rankUpButtonText.text = "Rank Up";
             }
         }
 
@@ -1867,7 +1865,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         string foodId = production.CareSettings.FoodResourceId;
         ResourceData foodData = production.CareSettings.food != null
             ? production.CareSettings.food : ResourceCatalog.Find(foodId);
-        string foodName = foodData != null ? foodData.resourceName : "thức ăn";
+        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(foodId, foodData != null ? foodData.resourceName : "food");
         int available = production.Inventory != null ? production.Inventory.GetAmount(foodId) : 0;
         long pantryBefore = production.GetCreatureFoodAmount(currentSelectedResident.individualId, foodId);
         int amount = Mathf.Min(available, production.CareSettings.seedFoodUnitsToFull);
@@ -1876,8 +1874,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             currentSelectedResident.individualId, foodId, amount, out reason);
         int remaining = production.Inventory != null ? production.Inventory.GetAmount(foodId) : available;
         long pantryAfter = production.GetCreatureFoodAmount(currentSelectedResident.individualId, foodId);
-        string feedback = deposited ? $"Đã chuyển {amount} {foodName}: Kho {available} → {remaining}, ngăn cá thể {pantryBefore} → {pantryAfter}." :
-            available == 0 ? "Kho chưa có thức ăn phù hợp." : reason;
+        string feedback = deposited ? $"Transferred {amount} {foodName}: Warehouse {available} → {remaining}, Pantry {pantryBefore} → {pantryAfter}." :
+            available == 0 ? "Warehouse is out of food." : reason;
         if (deposited)
         {
             ShowFeedback(feedback, new Color(0.2f, 0.85f, 0.4f, 1f));
@@ -1897,7 +1895,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         const int medCost = 1;
         if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.CanAfford(medCost))
         {
-            ShowFeedback("Không đủ Coins để mua thuốc trị liệu!", new Color(0.95f, 0.35f, 0.35f, 1f));
+            ShowFeedback("Not enough Coins for treatment!", new Color(0.95f, 0.35f, 0.35f, 1f));
             return;
         }
 
@@ -1906,7 +1904,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             CurrencyWallet.Instance.TrySpend(medCost, CoinReason.CardPurchase);
         }
 
-        ShowFeedback("Đã dùng Dược Liệu! Thú tràn đầy sinh lực và hạnh phúc!", new Color(0.3f, 0.75f, 1f, 1f));
+        ShowFeedback("Medicine applied! Creature is vigorous and joyful!", new Color(0.3f, 0.75f, 1f, 1f));
         RefreshPanel2();
     }
 
@@ -2011,7 +2009,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             {
                 creatureNameText.text = newName;
             }
-            ShowFeedback($"Đã đổi tên thành: {newName}", new Color(0.12f, 0.85f, 0.4f, 1f));
+            ShowFeedback($"Renamed to: {newName}", new Color(0.12f, 0.85f, 0.4f, 1f));
         }
 
         CloseRenameModal();
@@ -2019,7 +2017,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private string GetCreatureName(HabitatResident resident, string fallback)
     {
-        if (resident == null) return fallback ?? "Sinh Vật";
+        if (resident == null) return fallback ?? "Creature";
         if (!string.IsNullOrEmpty(resident.customName))
         {
             return resident.customName;

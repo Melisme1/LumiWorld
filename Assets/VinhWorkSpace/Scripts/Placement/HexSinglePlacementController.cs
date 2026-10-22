@@ -323,7 +323,7 @@ public class HexSinglePlacementController : MonoBehaviour
             if (!string.IsNullOrEmpty(validator.LastValidationError))
             {
                 Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
-                HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Đặt thất bại: {validator.LastValidationError}");
+                HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Placement failed: {validator.LastValidationError}");
             }
             CancelPreview();
             return false;
@@ -333,8 +333,8 @@ public class HexSinglePlacementController : MonoBehaviour
         int placementFee = cardData != null ? cardData.placementFee : 0;
         if (placementFee > 0 && !CurrencyWallet.Instance.CanAfford(placementFee))
         {
-            Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] Không đủ Coins để đặt {cardData.cardName}: cần {placementFee}, đang có {CurrencyWallet.Instance.Balance}.</color>");
-            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Không đủ Coins: Cần {placementFee} Coins để đặt thẻ.");
+            Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] Not enough Coins to place {cardData.cardName}: need {placementFee}, currently have {CurrencyWallet.Instance.Balance}.</color>");
+            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Not enough Coins: Need {placementFee} Coins to place card.");
             CancelPreview();
             return false;
         }

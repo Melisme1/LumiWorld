@@ -39,19 +39,19 @@ public class OrderBoardUI : MonoBehaviour
     [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
     [Header("Look")]
-    [SerializeField] private Color hudColor = new Color(0.06f, 0.09f, 0.16f, 0.88f);
-    [SerializeField] private Color backdropColor = new Color(0f, 0f, 0f, 0.45f);
-    [SerializeField] private Color panelColor = new Color(0.08f, 0.11f, 0.19f, 0.97f);
-    [SerializeField] private Color cardColor = new Color(0.13f, 0.17f, 0.27f, 1f);
-    [SerializeField] private Color sectionColor = new Color(0.05f, 0.07f, 0.13f, 0.9f);
-    [SerializeField] private Color textColor = new Color(0.93f, 0.95f, 0.99f, 1f);
-    [SerializeField] private Color mutedColor = new Color(0.62f, 0.68f, 0.80f, 1f);
-    [SerializeField] private Color enoughColor = new Color(0.45f, 0.95f, 0.55f, 1f);
-    [SerializeField] private Color missingColor = new Color(1f, 0.62f, 0.45f, 1f);
-    [SerializeField] private Color coinColor = new Color(1f, 0.84f, 0.32f, 1f);
-    [SerializeField] private Color baselineColor = new Color(1f, 0.80f, 0.35f, 1f);
-    [SerializeField] private Color deliverColor = new Color(0.20f, 0.66f, 0.38f, 1f);
-    [SerializeField] private Color secondaryColor = new Color(0.26f, 0.30f, 0.42f, 1f);
+    [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
+    [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
+    [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
+    [SerializeField] private Color cardColor = new Color(1f, 1f, 1f, 0.95f);
+    [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
+    [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
+    [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
+    [SerializeField] private Color enoughColor = new Color(0.05f, 0.65f, 0.35f, 1f);
+    [SerializeField] private Color missingColor = new Color(0.90f, 0.35f, 0.25f, 1f);
+    [SerializeField] private Color coinColor = new Color(0.85f, 0.58f, 0.05f, 1f);
+    [SerializeField] private Color baselineColor = new Color(0.85f, 0.58f, 0.05f, 1f);
+    [SerializeField] private Color deliverColor = new Color(0.01f, 0.60f, 0.90f, 1f);
+    [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
 
     private class CardView
     {
@@ -495,7 +495,7 @@ public class OrderBoardUI : MonoBehaviour
         RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
         Place(closeRect, new Vector2(1f, 1f), new Vector2(-PanelPadding, -18f), new Vector2(44f, 40f));
         EconomyHUD.AddButton(closeRect, secondaryColor).onClick.AddListener(Close);
-        CreateLabel(closeRect, "X", 20f);
+        CreateLabel(closeRect, "X", 20f, textColor);
 
         balanceChip = EconomyHUD.CreateRect("Balance", panel);
         balanceChip.anchorMin = new Vector2(1f, 1f);
@@ -503,10 +503,11 @@ public class OrderBoardUI : MonoBehaviour
         balanceChip.pivot = new Vector2(0.5f, 0.5f);
         balanceChip.sizeDelta = new Vector2(150f, 40f);
         balanceChip.anchoredPosition = new Vector2(-(PanelPadding + 44f + 10f + 75f), -38f);
-        EconomyHUD.CreatePanel(balanceChip, sectionColor);
+        EconomyHUD.CreateBorderedPanel(balanceChip, new Color(0.06f, 0.09f, 0.16f, 0.92f), new Color(0.08f, 0.58f, 0.95f, 0.60f));
         EconomyHUD.CreateIcon("CoinIcon", balanceChip, EconomyHUD.CoinSprite, 26f, 10f);
 
         balanceText = EconomyHUD.CreateText("Value", balanceChip, 20f, Color.white, TextAlignmentOptions.Right);
+        balanceText.fontStyle = FontStyles.Bold;
         RectTransform valueRect = balanceText.rectTransform;
         valueRect.anchorMin = Vector2.zero;
         valueRect.anchorMax = Vector2.one;
@@ -528,7 +529,7 @@ public class OrderBoardUI : MonoBehaviour
         card.rect.anchoredPosition = new Vector2(
             PanelPadding + slot * (CardWidth + CardSpacing) + CardWidth * 0.5f,
             -HeaderHeight - CardHeight * 0.5f);
-        EconomyHUD.CreatePanel(card.rect, cardColor);
+        EconomyHUD.CreateBorderedPanel(card.rect, cardColor);
 
         RectTransform content = EconomyHUD.CreateRect("Order", card.rect);
         EconomyHUD.Stretch(content);
@@ -616,7 +617,7 @@ public class OrderBoardUI : MonoBehaviour
             RectTransform discardRect = EconomyHUD.CreateRect("DiscardButton", content);
             Place(discardRect, new Vector2(1f, 0f), new Vector2(-12f, 12f), new Vector2(discardWidth, 42f));
             EconomyHUD.AddButton(discardRect, secondaryColor).onClick.AddListener(() => Discard(card));
-            CreateLabel(discardRect, "Drop", 17f);
+            CreateLabel(discardRect, "Drop", 17f, textColor);
         }
 
         // Ô trống: đếm ngược tới đơn mới, hoặc hướng dẫn cách có đơn
@@ -636,7 +637,7 @@ public class OrderBoardUI : MonoBehaviour
     {
         RectTransform section = EconomyHUD.CreateRect("Merchant", panel);
         Place(section, Vector2.zero, new Vector2(PanelPadding, PanelPadding), new Vector2(width, MerchantHeight));
-        EconomyHUD.CreatePanel(section, sectionColor);
+        EconomyHUD.CreateBorderedPanel(section, sectionColor);
 
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", section, 16f, textColor, TextAlignmentOptions.Left);
         Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(16f, -10f), new Vector2(width * 0.5f, 24f));
@@ -683,7 +684,7 @@ public class OrderBoardUI : MonoBehaviour
             Place(oneRect, new Vector2(1f, 0.5f), new Vector2(-68f, 0f), new Vector2(54f, 36f));
             view.sellOne = EconomyHUD.AddButton(oneRect, secondaryColor);
             view.sellOne.onClick.AddListener(() => Sell(view, 1));
-            view.sellOneLabel = CreateLabel(oneRect, "Sell 1", 15f);
+            view.sellOneLabel = CreateLabel(oneRect, "Sell 1", 15f, textColor);
 
             view.floatLayer = EconomyHUD.CreateRect("FloatingNumbers", column);
             EconomyHUD.Stretch(view.floatLayer);
@@ -706,9 +707,10 @@ public class OrderBoardUI : MonoBehaviour
     /// <summary>
     /// Chữ đậm màu trắng căn giữa, phủ kín parent (nhãn của nút, chữ trong huy hiệu).
     /// </summary>
-    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize)
+    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize, Color? color = null)
     {
-        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, Color.white, TextAlignmentOptions.Center);
+        Color c = color ?? Color.white;
+        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, c, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(label.rectTransform);
         label.text = text;
         return label;

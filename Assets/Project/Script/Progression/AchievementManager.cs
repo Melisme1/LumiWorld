@@ -189,13 +189,13 @@ public class AchievementManager : MonoBehaviour
         {
             index = 0,
             id = "M1_FIRST_HABITAT",
-            title = "MÔI TRƯỜNG SỐNG ĐẦU TIÊN",
-            shortCondition = "Dựng Habitat Thiết Lập Đầu Tiên",
-            description = "Thiết lập thành công cụm môi trường sống (Habitat) phù hợp và có ít nhất 1 sinh vật cư trú định cư trên đảo.",
-            rewardText = "Tiền Vàng & Thức Ăn Chăm Sóc",
+            title = "FIRST HABITAT",
+            shortCondition = "Establish First Habitat",
+            description = "Successfully create a compatible Habitat cluster with at least 1 resident creature settled on the island.",
+            rewardText = "Coins & Creature Food",
             rewardCoins = 30,
             rewardHarmony = 15,
-            rewardBonusInfo = "Gói Thức Ăn Chăm Sóc Sinh Vật",
+            rewardBonusInfo = "Creature Care Food Pack",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -205,13 +205,13 @@ public class AchievementManager : MonoBehaviour
         {
             index = 1,
             id = "M2_NEW_SPECIES",
-            title = "LOÀI MỚI",
-            shortCondition = "Triển Khai Loài Mới Lên Đảo",
-            description = "Triển khai thành công 1 loài sinh vật mới thích nghi với điều kiện sinh thái trên hòn đảo Lumi.",
-            rewardText = "Tiền Vàng & Thẻ Địa Hình",
+            title = "NEW SPECIES",
+            shortCondition = "Deploy New Species",
+            description = "Successfully introduce a new creature species adapted to the island ecosystem.",
+            rewardText = "Coins & Terrain Card",
             rewardCoins = 40,
             rewardHarmony = 20,
-            rewardBonusInfo = "Gói Thẻ Bản Vẽ / Địa Hình Mới",
+            rewardBonusInfo = "Blueprint / Terrain Card Pack",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -221,13 +221,13 @@ public class AchievementManager : MonoBehaviour
         {
             index = 2,
             id = "M3_RANK_UP",
-            title = "LÊN CẤP",
-            shortCondition = "Nâng Rank Phẩm Chất Sinh Vật",
-            description = "Chăm sóc sinh vật đạt 100 điểm Care và thăng hạng phẩm chất lên Rank II hoặc Rank III.",
-            rewardText = "Tiền Vàng & Quà Cứu Trợ",
+            title = "RANK UP",
+            shortCondition = "Promote Creature Quality Rank",
+            description = "Care for a creature to reach 100 Care points and promote its quality rank to Rank II or Rank III.",
+            rewardText = "Coins & Supply Pack",
             rewardCoins = 50,
             rewardHarmony = 25,
-            rewardBonusInfo = "Gói Quà Cứu Trợ & Vật Phẩm Nâng Cấp",
+            rewardBonusInfo = "Care Supply Pack & Upgrade Items",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -237,13 +237,13 @@ public class AchievementManager : MonoBehaviour
         {
             index = 3,
             id = "M4_ISLAND_STORY",
-            title = "CÂU CHUYỆN ĐẢO",
-            shortCondition = "Cột Mốc Hệ Sinh Thái Toàn Đảo",
-            description = "Phát triển hệ sinh thái đảo đạt cụm Habitat từ 6 ô đất trở lên, hoặc nuôi dưỡng từ 3 cá thể sinh vật cư trú trên đảo.",
-            rewardText = "Danh Hiệu + Tiền Vàng & Thẻ Sinh Vật Hiếm",
+            title = "ISLAND STORY",
+            shortCondition = "Island Ecosystem Milestone",
+            description = "Expand a Habitat cluster to 6+ hexes, or nurture 3 or more creatures residing on the island.",
+            rewardText = "Title + Coins & Rare Creature Card",
             rewardCoins = 100,
             rewardHarmony = 35,
-            rewardBonusInfo = "Danh hiệu [Đại Hiệp Sĩ Sinh Thái Lumi] & Thẻ Sinh Vật Cực Hiếm",
+            rewardBonusInfo = "Title [Lumi Ecological Champion] & Ultra-Rare Creature Card",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -266,8 +266,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_FIRST_NATURE",
-            title = "Người Khai Hoang",
-            description = "Đặt thẻ Nature địa hình đầu tiên lên bản đồ",
+            title = "Pioneer",
+            description = "Place your first Nature terrain card on the board",
             targetCount = 1,
             currentCount = 1,
             rewardCoins = 15,
@@ -277,8 +277,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_HABITAT_3",
-            title = "Sinh Thái Khởi Sắc",
-            description = "Ghép cụm Biome đạt quy mô 3 hex (Mở ô tài nguyên T1 đầu tiên)",
+            title = "Budding Ecology",
+            description = "Expand a Biome cluster to 3 hexes (Unlocks first T1 resource slot)",
             targetCount = 3,
             currentCount = 2,
             rewardCoins = 25,
@@ -288,8 +288,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_HABITAT_6",
-            title = "Thiên Đường Cư Trú",
-            description = "Mở rộng một cụm Biome đạt quy mô tối đa 6 hex (Mở ô T2)",
+            title = "Sanctuary Haven",
+            description = "Expand a Biome cluster to 6 hexes (Unlocks T2 resource slot)",
             targetCount = 6,
             currentCount = 4,
             rewardCoins = 50,
@@ -299,8 +299,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_FIRST_CREATURE",
-            title = "Người Bạn Rừng Xanh",
-            description = "Triển khai một sinh vật vào môi trường sống phù hợp",
+            title = "Forest Companion",
+            description = "Place a creature into a compatible Habitat",
             targetCount = 1,
             currentCount = 1,
             rewardCoins = 20,
@@ -310,8 +310,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_CONNECTION_DANCE",
-            title = "Vũ Điệu Hoang Dã",
-            description = "Kích hoạt hiệu ứng kết nối vòng tròn 20s giữa các loài thú",
+            title = "Wild Harmony",
+            description = "Trigger the 20s connection ring effect between creatures",
             targetCount = 1,
             currentCount = 1,
             rewardCoins = 35,
@@ -321,8 +321,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_FIRST_CARE",
-            title = "Bàn Tay Chăm Sóc",
-            description = "Cho ăn đầy thanh Care và nâng Rank sinh vật lên Rank II",
+            title = "Caring Hand",
+            description = "Fill creature Care bar and promote creature to Rank II",
             targetCount = 1,
             currentCount = 0,
             rewardCoins = 30,
@@ -332,8 +332,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_HARVEST_10",
-            title = "Mùa Màng Bội Thu",
-            description = "Thu hoạch 10 mẻ tài nguyên vào Kho (Warehouse)",
+            title = "Bountiful Harvest",
+            description = "Harvest 10 resource batches into the Warehouse",
             targetCount = 10,
             currentCount = 6,
             rewardCoins = 30,
@@ -538,20 +538,20 @@ public class AchievementManager : MonoBehaviour
 
         if (index < 0 || index >= milestones.Count)
         {
-            rewardInfo = "Không tìm thấy cột mốc.";
+            rewardInfo = "Milestone not found.";
             return false;
         }
 
         var m = milestones[index];
         if (m.isClaimed)
         {
-            rewardInfo = "Cột mốc này đã được nhận trước đó!";
+            rewardInfo = "This milestone has already been claimed!";
             return false;
         }
 
         if (!m.isCompleted)
         {
-            rewardInfo = "Chưa hoàn thành điều kiện cột mốc!";
+            rewardInfo = "Milestone requirements not completed!";
             return false;
         }
 
@@ -574,7 +574,7 @@ public class AchievementManager : MonoBehaviour
         // 3. Cấp thẻ bài / Quà tặng thưởng vào tay người chơi (nếu có CardDeskController)
         TryGrantMilestoneCardReward(index);
 
-        rewardInfo = $"+{m.rewardCoins} Tiền Vàng & +{m.rewardHarmony} Harmony & {m.rewardBonusInfo}!";
+        rewardInfo = $"+{m.rewardCoins} Coins & +{m.rewardHarmony} Harmony & {m.rewardBonusInfo}!";
         OnMilestonesChanged?.Invoke();
         OnAchievementsUpdated?.Invoke();
         return true;
@@ -640,19 +640,19 @@ public class AchievementManager : MonoBehaviour
         var goal = achievements.Find(a => a.id.Equals(achievementId, StringComparison.OrdinalIgnoreCase));
         if (goal == null)
         {
-            rewardInfo = "Không tìm thấy thành tựu.";
+            rewardInfo = "Achievement not found.";
             return false;
         }
 
         if (goal.isClaimed || claimedIds.Contains(goal.id))
         {
-            rewardInfo = "Thành tựu này đã được nhận trước đó!";
+            rewardInfo = "This achievement has already been claimed!";
             return false;
         }
 
         if (!goal.IsCompleted)
         {
-            rewardInfo = "Chưa hoàn thành điều kiện thành tựu!";
+            rewardInfo = "Achievement requirements not met!";
             return false;
         }
 

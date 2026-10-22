@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -28,6 +28,7 @@ public class EconomyHUD : MonoBehaviour
     private static Sprite roundedSprite;
     private static Sprite coinSprite;
     private static Sprite circleSprite;
+    private static Sprite borderSprite;
 
     // Cửa sổ của Bảng Đơn Hàng và Cửa hàng thẻ, để camera và thu hoạch biết đang có bảng mở
     private static readonly List<GameObject> windows = new List<GameObject>();
@@ -50,9 +51,11 @@ public class EconomyHUD : MonoBehaviour
             CreateCorner<CoinHUD>("CoinHUD", new Vector2(1f, 1f), new Vector2(-screenMargin.x, -screenMargin.y));
         }
 
-        if (GetComponentInChildren<InventoryUI>(true) == null)
+        // Legacy resource bar removed per user request (handled by ResourceInventory / Warehouse UI)
+        var legacyBars = FindObjectsByType<InventoryUI>(FindObjectsInactive.Include);
+        foreach (var bar in legacyBars)
         {
-            CreateCorner<InventoryUI>("InventoryUI", new Vector2(0f, 1f), new Vector2(screenMargin.x, -screenMargin.y));
+            if (bar != null) bar.gameObject.SetActive(false);
         }
 
         // Bảng Đơn Hàng và Cửa hàng thẻ cần bấm được và phải phủ lên thẻ bài, nên nằm riêng ở cuối Canvas (HUD này nằm đầu)
@@ -65,6 +68,9 @@ public class EconomyHUD : MonoBehaviour
         CreateOverlay<CreatureCareUI>("CreatureCareUI");
         CreateOverlay<HabitatCreaturePanelUI>("HabitatCreaturePanelUI");
         CreateOverlay<HexPlacementPreviewHUD>("HexPlacementPreviewHUD");
+        CreateOverlay<GameSettingsUI>("GameSettingsUI");
+        CreateOverlay<AutoFeedUI>("AutoFeedUI");
+        CreateOverlay<CollapsibleHUDToolbar>("CollapsibleHUDToolbar");
 
         // Đảm bảo các Manager trung tâm tự động khởi chạy an toàn
         if (HabitatDiamondBadgeManager.Instance == null)
@@ -76,6 +82,7 @@ public class EconomyHUD : MonoBehaviour
         _ = CardLockManager.Instance;
         _ = AchievementManager.Instance;
         _ = CreatureCareManager.Instance;
+        _ = GameAudioManager.Instance;
 
         FitToCanvas();
     }
@@ -299,6 +306,8 @@ public class EconomyHUD : MonoBehaviour
         rect.offsetMax = Vector2.zero;
     }
 
+    public static readonly Color OptionBorderColor = new Color(0.08f, 0.58f, 0.95f, 0.95f); // Vibrant Cyan-Blue border
+
     /// <summary>
     /// Nền bo tròn tối màu, cùng tông với banner nhận thẻ và bong bóng thu hoạch.
     /// </summary>
@@ -310,6 +319,32 @@ public class EconomyHUD : MonoBehaviour
         image.color = color;
         image.raycastTarget = false;
         return image;
+    }
+
+    /// <summary>
+    /// Thêm viền xanh dương (hoặc màu chỉ định) ôm trọn quanh RectTransform dạng bo góc.
+    /// </summary>
+    internal static Image AddBlueBorder(RectTransform rect, Color? color = null)
+    {
+        RectTransform borderRect = CreateRect("OptionBorder", rect);
+        Stretch(borderRect);
+        Image border = borderRect.gameObject.AddComponent<Image>();
+        border.sprite = BorderSprite;
+        border.type = Image.Type.Sliced;
+        border.color = color ?? OptionBorderColor;
+        border.raycastTarget = false;
+        borderRect.SetAsLastSibling();
+        return border;
+    }
+
+    /// <summary>
+    /// Tạo panel có nền kèm viền xanh dương bo góc nổi bật theo yêu cầu của giao diện tươi sáng.
+    /// </summary>
+    internal static Image CreateBorderedPanel(RectTransform rect, Color fillColor, Color? borderColor = null)
+    {
+        Image fill = CreatePanel(rect, fillColor);
+        AddBlueBorder(rect, borderColor);
+        return fill;
     }
 
     /// <summary>
@@ -477,6 +512,58 @@ public class EconomyHUD : MonoBehaviour
             if (circleSprite == null) circleSprite = CreateCircleSprite(64);
             return circleSprite;
         }
+    }
+
+    /// <summary>
+    /// Khung viền bo góc dạng 9-slice rỗng ruột để viền quanh card/option.
+    /// </summary>
+    internal static Sprite BorderSprite
+    {
+        get
+        {
+            if (borderSprite == null) borderSprite = CreateBorderSprite(64, 20, 2.5f);
+            return borderSprite;
+        }
+    }
+
+    private static Sprite CreateBorderSprite(int size, int radius, float borderWidth)
+    {
+        Texture2D texture = NewTexture(size);
+        Color[] pixels = new Color[size * size];
+        float innerRadius = radius - borderWidth;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float px = x + 0.5f;
+                float py = y + 0.5f;
+                float dx = Mathf.Max(radius - px, px - (size - radius), 0f);
+                float dy = Mathf.Max(radius - py, py - (size - radius), 0f);
+                float distOuter = Mathf.Sqrt(dx * dx + dy * dy);
+                float alphaOuter = Mathf.Clamp01(radius - distOuter + 0.5f);
+
+                if (alphaOuter <= 0f)
+                {
+                    pixels[y * size + x] = Color.clear;
+                    continue;
+                }
+
+                float idx = Mathf.Max(innerRadius - px, px - (size - innerRadius), 0f);
+                float idy = Mathf.Max(innerRadius - py, py - (size - innerRadius), 0f);
+                float distInner = Mathf.Sqrt(idx * idx + idy * idy);
+                float alphaInner = Mathf.Clamp01(innerRadius - distInner + 0.5f);
+
+                float borderAlpha = Mathf.Clamp01(alphaOuter - alphaInner);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, borderAlpha);
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply();
+
+        Vector4 border = new Vector4(radius, radius, radius, radius);
+        return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
     }
 
     private static Sprite CreateRoundedSprite(int size, int radius)
