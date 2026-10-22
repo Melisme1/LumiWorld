@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using LumiWorld.Acs;
 
 namespace LumiWorld.Economy.Crafting
 {
@@ -354,8 +355,9 @@ namespace LumiWorld.Economy.Crafting
             var inventory = ResourceInventory.Instance;
             var outRes = selectedRecipe.outputResource;
 
-            inspectorTitle.text = selectedRecipe.recipeName;
-            inspectorDesc.text = selectedRecipe.description;
+            string outId = selectedRecipe.outputResource != null ? selectedRecipe.outputResource.resourceID : selectedRecipe.recipeID;
+            inspectorTitle.text = ResourceInventoryUIPresentation.LocalizeResourceName(outId, selectedRecipe.recipeName);
+            inspectorDesc.text = ResourceInventoryUIPresentation.LocalizeResourceDescription(outId, selectedRecipe.description);
 
             // Hiển thị Icon thành phẩm trong khung lớn
             Sprite mainIcon = selectedRecipe.GetIcon();
@@ -391,7 +393,8 @@ namespace LumiWorld.Economy.Crafting
             {
                 if (input == null) continue;
                 ResourceData res = CraftingCatalog.GetResource(input.resourceId);
-                string resName = res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : input.resourceId;
+                string rawResName = res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : input.resourceId;
+                string resName = ResourceInventoryUIPresentation.LocalizeResourceName(input.resourceId, rawResName);
                 int owned = inventory.GetAmount(input.resourceId);
                 int needed = input.amount * selectedQuantity;
                 bool enough = owned >= needed;
@@ -553,8 +556,8 @@ namespace LumiWorld.Economy.Crafting
             title.rectTransform.anchoredPosition = new Vector2(68f, 10f);
             title.rectTransform.sizeDelta = new Vector2(300f, 26f);
             title.textWrappingMode = TextWrappingModes.NoWrap;
-            title.overflowMode = TextOverflowModes.Ellipsis;
-            string rName = recipe != null ? recipe.recipeName : "Thành phẩm";
+            string qId = recipe != null ? (recipe.outputResource != null ? recipe.outputResource.resourceID : recipe.recipeID) : "";
+            string rName = recipe != null ? ResourceInventoryUIPresentation.LocalizeResourceName(qId, recipe.recipeName) : "Crafted Product";
             title.text = $"{rName} <b>x{job.TotalOutputAmount}</b>";
 
             // Status label
@@ -941,8 +944,8 @@ namespace LumiWorld.Economy.Crafting
             nameLbl.fontSizeMin = 11f;
             nameLbl.fontSizeMax = 15f;
             nameLbl.textWrappingMode = TextWrappingModes.NoWrap;
-            nameLbl.overflowMode = TextOverflowModes.Ellipsis;
-            nameLbl.text = recipe.recipeName;
+            string cardOutId = recipe.outputResource != null ? recipe.outputResource.resourceID : recipe.recipeID;
+            nameLbl.text = ResourceInventoryUIPresentation.LocalizeResourceName(cardOutId, recipe.recipeName);
 
             // Trạng thái (Có thể làm xN hoặc Thiếu nguyên liệu)
             TextMeshProUGUI statusLbl = EconomyHUD.CreateText("Status", row, 13f, mutedColor, TextAlignmentOptions.Left);

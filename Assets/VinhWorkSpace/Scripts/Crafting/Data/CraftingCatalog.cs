@@ -192,23 +192,23 @@ namespace LumiWorld.Economy.Crafting
 
         private static readonly Dictionary<string, string> RawNames = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            { "resource.leafwood.tender_leaves", "Lá non" },
-            { "resource.leafwood.acorns", "Quả sồi" },
-            { "resource.leafwood.raspberries", "Mâm xôi" },
-            { "resource.leafwood.oak_wood", "Gỗ sồi" },
-            { "resource.leafwood.sticks", "Cành cây" },
-            { "resource.leafwood.fallen_bark", "Vỏ cây rụng" },
-            { "resource.bloomfield.dandelion_flowers", "Hoa bồ công anh" },
-            { "resource.bloomfield.wild_daisies", "Hoa cúc dại" },
-            { "resource.bloomfield.lavender_sprigs", "Nhánh oải hương" },
-            { "resource.bloomfield.nectar", "Mật hoa" },
-            { "resource.windheath.mountain_blueberries", "Việt quất núi" },
-            { "resource.windheath.rosemary", "Hương thảo" },
-            { "resource.windheath.juniper_berries", "Quả bách xù" },
-            { "resource.windheath.foxtail_plumes", "Bông cỏ" },
-            { "resource.plain.wheat", "Lúa mì" },
-            { "resource.windheath.flax_stalks", "Cây lanh" },
-            { "resource.windheath.lichen", "Địa y" }
+            { "resource.leafwood.tender_leaves", "Tender Leaves" },
+            { "resource.leafwood.acorns", "Acorns" },
+            { "resource.leafwood.raspberries", "Raspberries" },
+            { "resource.leafwood.oak_wood", "Oak Wood" },
+            { "resource.leafwood.sticks", "Sticks" },
+            { "resource.leafwood.fallen_bark", "Fallen Bark" },
+            { "resource.bloomfield.dandelion_flowers", "Dandelion Flowers" },
+            { "resource.bloomfield.wild_daisies", "Wild Daisies" },
+            { "resource.bloomfield.lavender_sprigs", "Lavender Sprigs" },
+            { "resource.bloomfield.nectar", "Pure Nectar" },
+            { "resource.windheath.mountain_blueberries", "Mountain Blueberries" },
+            { "resource.windheath.rosemary", "Rosemary" },
+            { "resource.windheath.juniper_berries", "Juniper Berries" },
+            { "resource.windheath.foxtail_plumes", "Foxtail Plumes" },
+            { "resource.plain.wheat", "Wheat" },
+            { "resource.windheath.flax_stalks", "Flax Stalks" },
+            { "resource.windheath.lichen", "Mountain Lichen" }
         };
 
         public static string GetFallbackRawName(string resourceId)
@@ -272,11 +272,12 @@ namespace LumiWorld.Economy.Crafting
         public static string GetResourceName(string resourceId)
         {
             ResourceData res = GetResource(resourceId);
-            return res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : resourceId;
+            string name = res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : resourceId;
+            return Acs.ResourceInventoryUIPresentation.LocalizeResourceName(resourceId, name);
         }
 
         /// <summary>
-        /// Bản ghi mở rộng cho Kho tài nguyên (Kho Acs): gồm 2 nguyên liệu ngoài sinh cảnh và 15 thành phẩm chế tạo.
+        /// Extended records for Resource Warehouse: raw materials and 15 crafted goods.
         /// </summary>
         public struct WarehouseExtraItem
         {
@@ -290,21 +291,21 @@ namespace LumiWorld.Economy.Crafting
         }
 
         /// <summary>
-        /// Cung cấp danh sách các mục mở rộng (Lúa mì, Vỏ cây rụng và 15 món chế biến) để hiển thị trong Kho tài nguyên (phím I).
+        /// Provides list of extended warehouse items (Wheat, Fallen Bark, and 15 crafted products).
         /// </summary>
         public static List<WarehouseExtraItem> GetWarehouseExtraItems()
         {
             var list = new List<WarehouseExtraItem>();
 
-            // 1. Hai nguyên liệu thô ngoài sinh cảnh (Lúa mì & Vỏ cây rụng)
+            // 1. Two non-habitat raw materials (Wheat & Fallen Bark)
             var fallenBark = GetResource("resource.leafwood.fallen_bark");
             list.Add(new WarehouseExtraItem
             {
                 id = "resource.leafwood.fallen_bark",
-                name = fallenBark != null ? fallenBark.resourceName : "Vỏ cây rụng",
+                name = fallenBark != null ? fallenBark.resourceName : "Fallen Bark",
                 biome = "Leafwood",
-                tier = "Thô",
-                description = fallenBark != null ? fallenBark.description : "Vỏ cây sồi già rơi rụng trong rừng Leafwood, chứa nhiều thớ sợi dai dùng làm giấy.",
+                tier = "Raw",
+                description = fallenBark != null ? fallenBark.description : "Sturdy oak bark peeled naturally from aged trunks in Leafwood, rich in fiber for papercraft.",
                 icon = fallenBark?.icon,
                 capacity = fallenBark != null && fallenBark.maxStackSize > 0 ? fallenBark.maxStackSize : 999
             });
@@ -313,15 +314,15 @@ namespace LumiWorld.Economy.Crafting
             list.Add(new WarehouseExtraItem
             {
                 id = "resource.plain.wheat",
-                name = wheat != null ? wheat.resourceName : "Lúa mì",
-                biome = "Đồng cỏ",
-                tier = "Thô",
-                description = wheat != null ? wheat.description : "Bông lúa mì vàng óng thu hoạch từ các đồng cỏ, hạt mẩy giàu tinh bột.",
+                name = wheat != null ? wheat.resourceName : "Wheat",
+                biome = "Meadows",
+                tier = "Raw",
+                description = wheat != null ? wheat.description : "Golden grain stalks brimming with nutritious starch.",
                 icon = wheat?.icon,
                 capacity = wheat != null && wheat.maxStackSize > 0 ? wheat.maxStackSize : 999
             });
 
-            // 2. Toàn bộ 15 thành phẩm chế tạo (nhóm Biome hiển thị là "Chế biến")
+            // 2. All 15 crafted goods
             foreach (var recipe in All)
             {
                 if (recipe == null || recipe.outputResource == null) continue;
@@ -330,18 +331,18 @@ namespace LumiWorld.Economy.Crafting
                 string tierName;
                 switch (recipe.category)
                 {
-                    case CraftingCategory.Food: tierName = "Thức ăn"; break;
-                    case CraftingCategory.Refined: tierName = "Tinh chế"; break;
-                    case CraftingCategory.Herbal: tierName = "Dược liệu"; break;
-                    case CraftingCategory.Paper: tierName = "Thủ công"; break;
-                    default: tierName = "Chế biến"; break;
+                    case CraftingCategory.Food: tierName = "Food"; break;
+                    case CraftingCategory.Refined: tierName = "Refined"; break;
+                    case CraftingCategory.Herbal: tierName = "Herbal"; break;
+                    case CraftingCategory.Paper: tierName = "Craft"; break;
+                    default: tierName = "Crafting"; break;
                 }
 
                 list.Add(new WarehouseExtraItem
                 {
                     id = res.resourceID,
                     name = res.resourceName,
-                    biome = "Chế biến",
+                    biome = "Workshop",
                     tier = tierName,
                     description = res.description,
                     icon = recipe.GetIcon() ?? res.icon,
@@ -418,107 +419,107 @@ namespace LumiWorld.Economy.Crafting
         /// </summary>
         private static void RegisterDefaultRecipes()
         {
-            // Tài nguyên thô bổ sung chưa có file asset
-            AddRawFallback("resource.leafwood.fallen_bark", "Vỏ cây rụng",
-                "Vỏ cây sồi già rơi rụng trong rừng Leafwood, chứa nhiều thớ sợi dai dùng làm giấy.",
+            // Additional raw resources without asset files
+            AddRawFallback("resource.leafwood.fallen_bark", "Fallen Bark",
+                "Sturdy oak bark peeled naturally from aged trunks in Leafwood, rich in fiber for papercraft.",
                 new Color(0.48f, 0.32f, 0.20f, 1f));
 
-            AddRawFallback("resource.plain.wheat", "Lúa mì",
-                "Bông lúa mì vàng óng thu hoạch từ các đồng cỏ, hạt mẩy giàu tinh bột.",
+            AddRawFallback("resource.plain.wheat", "Wheat",
+                "Golden grain stalks brimming with nutritious starch.",
                 new Color(0.92f, 0.78f, 0.30f, 1f));
 
-            // Cấp 1 - Food
-            AddFallback("recipe.food.crispy_tender_leaves", "Lá non rang giòn",
-                "Lá non rang giòn rụm thơm lừng, là món ăn vặt ưa thích của sóc bay và muông thú.",
+            // Tier 1 - Food
+            AddFallback("recipe.food.crispy_tender_leaves", "Crispy Roasted Leaves",
+                "Crispy, aromatic roasted leaves, a favorite crunchy snack for flying squirrels and forest creatures.",
                 CraftingCategory.Food, "resource.leafwood.tender_leaves_crispy", 1, true, 5f, 30,
                 new (string, int)[] { ("resource.leafwood.tender_leaves", 3) },
                 new Color(0.35f, 0.75f, 0.30f, 1f));
 
-            AddFallback("recipe.food.roasted_acorns", "Hạt sồi rang",
-                "Hạt sồi sấy rang bùi béo, cung cấp dồi dào năng lượng cho sinh vật hệ Mộc.",
+            AddFallback("recipe.food.roasted_acorns", "Roasted Acorns",
+                "Aromatic, toasted wild acorns rich in healthy fats and energizing nutrients for creatures.",
                 CraftingCategory.Food, "resource.leafwood.roasted_acorns", 1, true, 5f, 35,
                 new (string, int)[] { ("resource.leafwood.acorns", 2) },
                 new Color(0.70f, 0.45f, 0.22f, 1f));
 
-            AddFallback("recipe.food.dried_raspberries", "Mâm xôi sấy khô",
-                "Mâm xôi ngọt chua thanh mát được cô đặc dinh dưỡng qua lò sấy gió.",
+            AddFallback("recipe.food.dried_raspberries", "Dried Raspberries",
+                "Sweet and tangy wild raspberries concentrated with nutrients through gentle breeze drying.",
                 CraftingCategory.Food, "resource.leafwood.dried_raspberries", 1, true, 5f, 35,
                 new (string, int)[] { ("resource.leafwood.raspberries", 2) },
                 new Color(0.85f, 0.22f, 0.35f, 1f));
 
-            AddFallback("recipe.food.dried_blueberries", "Việt quất sấy khô",
-                "Việt quất núi Windheath sấy khô dẻo thơm, kích thích vị giác của các loài thú bay.",
+            AddFallback("recipe.food.dried_blueberries", "Dried Mountain Blueberries",
+                "Tender, chewy dried highland blueberries that stimulate the appetite of winged creatures.",
                 CraftingCategory.Food, "resource.windheath.dried_mountain_blueberries", 1, true, 5f, 35,
                 new (string, int)[] { ("resource.windheath.mountain_blueberries", 2) },
                 new Color(0.30f, 0.35f, 0.80f, 1f));
 
-            // Cấp 1 - Refined
-            AddFallback("recipe.refined.dried_dandelion", "Hoa bồ công anh sấy khô",
-                "Cánh hoa bồ công anh Bloomfield phơi khô, giữ trọn sắc vàng và hương phấn hoa.",
+            // Tier 1 - Refined
+            AddFallback("recipe.refined.dried_dandelion", "Dried Dandelion Flowers",
+                "Sun-dried golden dandelion petals, preserving vibrant color and sweet floral pollen.",
                 CraftingCategory.Refined, "resource.bloomfield.dried_dandelion", 1, false, 5f, 0,
                 new (string, int)[] { ("resource.bloomfield.dandelion_flowers", 2) },
                 new Color(0.95f, 0.85f, 0.20f, 1f));
 
-            AddFallback("recipe.refined.nectar_essence", "Tinh chất mật hoa",
-                "Mật hoa Bloomfield được chưng cất thành giọt tinh chất đậm đặc và óng ả.",
+            AddFallback("recipe.refined.nectar_essence", "Pure Nectar Essence",
+                "Distilled floral nectar condensed into luminous, fragrant golden drops.",
                 CraftingCategory.Refined, "resource.bloomfield.nectar_essence", 1, false, 8f, 0,
                 new (string, int)[] { ("resource.bloomfield.nectar", 2) },
                 new Color(1.00f, 0.70f, 0.10f, 1f));
 
-            AddFallback("recipe.refined.wheat_flour", "Bột mì",
-                "Lúa mì nghiền mịn tơi xốp, nguyên liệu căn bản của mọi món bánh nướng.",
+            AddFallback("recipe.refined.wheat_flour", "Wheat Flour",
+                "Finely milled golden wheat flour, the fundamental base for hearty baked goods.",
                 CraftingCategory.Refined, "resource.plain.wheat_flour", 1, false, 6f, 0,
                 new (string, int)[] { ("resource.plain.wheat", 3) },
                 new Color(0.95f, 0.92f, 0.80f, 1f));
 
-            // Cấp 1 - Herbal & Paper
-            AddFallback("recipe.herbal.flower_powder", "Bột hoa thảo mộc",
-                "Hỗn hợp cúc dại và bồ công anh nghiền nhuyễn, có mùi thơm dịu nhẹ giúp xoa dịu tinh thần thú hoang.",
+            // Tier 1 - Herbal & Paper
+            AddFallback("recipe.herbal.flower_powder", "Herbal Flower Powder",
+                "Finely ground blend of wild daisies and dandelions, soothing and calming for wild creatures.",
                 CraftingCategory.Herbal, "resource.bloomfield.herbal_flower_powder", 1, false, 8f, 0,
                 new (string, int)[] { ("resource.bloomfield.wild_daisies", 2), ("resource.bloomfield.dandelion_flowers", 2) },
                 new Color(0.85f, 0.80f, 0.40f, 1f));
 
-            AddFallback("recipe.paper.bark_paper", "Giấy vỏ cây",
-                "Giấy thô mộc làm từ vỏ cây rụng và gỗ sồi, dùng làm giấy viết thư tín và sổ tay sinh cảnh.",
+            AddFallback("recipe.paper.bark_paper", "Bark Paper",
+                "Sturdy rustic parchment handcrafted from fallen oak bark and wood fibers.",
                 CraftingCategory.Paper, "resource.leafwood.bark_paper", 1, false, 10f, 0,
                 new (string, int)[] { ("resource.leafwood.fallen_bark", 2), ("resource.leafwood.oak_wood", 1) },
                 new Color(0.80f, 0.72f, 0.58f, 1f));
 
-            // Cấp 2 - Food
-            AddFallback("recipe.food.dried_wild_fruit_mix", "Hỗn hợp trái cây rừng sấy khô",
-                "Sự hòa quyện tuyệt hảo giữa mâm xôi ngọt lịm và việt quất chua thanh.",
+            // Tier 2 - Food
+            AddFallback("recipe.food.dried_wild_fruit_mix", "Dried Forest Fruit Mix",
+                "A delightful blend of sweet wild raspberries and tangy highland blueberries.",
                 CraftingCategory.Food, "resource.food.dried_wild_berries_mix", 1, true, 10f, 80,
                 new (string, int)[] { ("resource.leafwood.dried_raspberries", 1), ("resource.windheath.dried_mountain_blueberries", 1) },
                 new Color(0.60f, 0.25f, 0.65f, 1f));
 
-            AddFallback("recipe.food.honey_glazed_acorns", "Quả sồi ngào mật",
-                "Quả sồi bùi béo phủ lớp tinh chất mật hoa óng ánh, giòn ngọt khó cưỡng.",
+            AddFallback("recipe.food.honey_glazed_acorns", "Honey-Glazed Acorns",
+                "Crunchy roasted acorns glazed with sweet floral nectar essence, irresistible and wholesome.",
                 CraftingCategory.Food, "resource.leafwood.honey_glazed_acorns", 1, true, 12f, 90,
                 new (string, int)[] { ("resource.leafwood.acorns", 2), ("resource.bloomfield.nectar_essence", 1) },
                 new Color(0.85f, 0.55f, 0.15f, 1f));
 
-            // Cấp 2 - Herbal & Paper
-            AddFallback("recipe.herbal.forest_syrup", "Siro thảo mộc rừng",
-                "Pha chế từ tinh chất mật hoa, hương thảo và quả bách xù, giúp tăng cường sinh lực.",
+            // Tier 2 - Herbal & Paper
+            AddFallback("recipe.herbal.forest_syrup", "Forest Herbal Syrup",
+                "Concocted from nectar essence, aromatic rosemary, and juniper berries to restore vigor.",
                 CraftingCategory.Herbal, "resource.forest.wild_herbal_syrup", 1, false, 12f, 0,
                 new (string, int)[] { ("resource.bloomfield.nectar_essence", 1), ("resource.windheath.rosemary", 2), ("resource.windheath.juniper_berries", 2) },
                 new Color(0.40f, 0.65f, 0.45f, 1f));
 
-            AddFallback("recipe.paper.pressed_flower_paper", "Giấy hoa ép",
-                "Tờ giấy vỏ cây mộc mạc được ép thêm cánh hoa cúc tươi tắn đầy nghệ thuật.",
+            AddFallback("recipe.paper.pressed_flower_paper", "Pressed Flower Paper",
+                "Artisanal bark parchment delicately embedded with vibrant dried daisy petals.",
                 CraftingCategory.Paper, "resource.craft.pressed_flower_paper", 1, false, 12f, 0,
                 new (string, int)[] { ("resource.leafwood.bark_paper", 1), ("resource.bloomfield.wild_daisies", 2) },
                 new Color(0.90f, 0.85f, 0.75f, 1f));
 
-            AddFallback("recipe.paper.scented_paper", "Giấy thơm",
-                "Giấy vỏ cây ướp hương hoa oải hương thanh khiết, lưu giữ hương thơm bền lâu.",
+            AddFallback("recipe.paper.scented_paper", "Lavender Scented Paper",
+                "Fine bark paper infused with soothing lavender blossoms, retaining a long-lasting floral fragrance.",
                 CraftingCategory.Paper, "resource.craft.scented_paper", 1, false, 12f, 0,
                 new (string, int)[] { ("resource.leafwood.bark_paper", 1), ("resource.bloomfield.lavender_sprigs", 2) },
                 new Color(0.82f, 0.75f, 0.88f, 1f));
 
-            // Cấp 3 - Master Food (Bánh hạt quả rừng)
-            AddFallback("recipe.food.wild_berry_nut_cake", "Bánh hạt quả rừng",
-                "Tuyệt phẩm ẩm thực kết tinh từ cả 3 sinh cảnh: quả sồi ngào mật, hỗn hợp trái cây sấy và bột mì nướng vàng ươm.",
+            // Tier 3 - Master Food
+            AddFallback("recipe.food.wild_berry_nut_cake", "Forest Berry Nut Cake",
+                "A masterwork delicacy uniting ingredients from all three biomes: glazed acorns, dried berries, and golden baked flour.",
                 CraftingCategory.Food, "resource.food.wild_berry_nut_cake", 1, true, 20f, 250,
                 new (string, int)[] {
                     ("resource.leafwood.honey_glazed_acorns", 1),

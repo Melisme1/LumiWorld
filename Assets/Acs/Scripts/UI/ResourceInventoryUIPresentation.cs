@@ -12,22 +12,41 @@ namespace LumiWorld.Acs
         {
             if (string.IsNullOrEmpty(id)) return fallback ?? "";
             string lower = id.ToLowerInvariant();
+
+            // 15 Thành phẩm chế biến (Crafted Products)
+            if (lower.Contains("tender_leaves_crispy") || lower.Contains("la non rang") || lower.Contains("la_non_rang")) return "Crispy Roasted Leaves";
+            if (lower.Contains("roasted_acorns") || lower.Contains("hat soi rang") || lower.Contains("hat_soi_rang")) return "Roasted Acorns";
+            if (lower.Contains("dried_raspberries") || lower.Contains("mam xoi say") || lower.Contains("mam_xoi_say")) return "Dried Raspberries";
+            if (lower.Contains("dried_mountain_blueberries") || lower.Contains("viet quat say") || lower.Contains("viet_quat_say")) return "Dried Mountain Blueberries";
+            if (lower.Contains("dried_dandelion") || lower.Contains("bo cong anh say") || lower.Contains("bo_cong_anh_say")) return "Dried Dandelion Flowers";
+            if (lower.Contains("nectar_essence") || lower.Contains("tinh chat mat hoa") || lower.Contains("tinh_chat_mat_hoa")) return "Pure Nectar Essence";
+            if (lower.Contains("wheat_flour") || lower.Contains("bot mi") || lower.Contains("bot_mi")) return "Wheat Flour";
+            if (lower.Contains("herbal_flower_powder") || lower.Contains("bot hoa thao moc") || lower.Contains("bot_hoa_thao_moc")) return "Herbal Flower Powder";
+            if (lower.Contains("bark_paper") || lower.Contains("giay vo cay") || lower.Contains("giay_vo_cay")) return "Bark Paper";
+            if (lower.Contains("dried_wild_berries_mix") || lower.Contains("trai cay rung say") || lower.Contains("trai_cay_rung_say") || lower.Contains("berries_mix")) return "Dried Forest Fruit Mix";
+            if (lower.Contains("honey_glazed_acorns") || lower.Contains("ngao mat") || lower.Contains("ngao_mat")) return "Honey-Glazed Acorns";
+            if (lower.Contains("wild_herbal_syrup") || lower.Contains("siro thao moc") || lower.Contains("siro_thao_moc") || lower.Contains("forest_syrup")) return "Forest Herbal Syrup";
+            if (lower.Contains("pressed_flower_paper") || lower.Contains("giay hoa ep") || lower.Contains("giay_hoa_ep")) return "Pressed Flower Paper";
+            if (lower.Contains("scented_paper") || lower.Contains("giay thom") || lower.Contains("giay_thom")) return "Lavender Scented Paper";
+            if (lower.Contains("wild_berry_nut_cake") || lower.Contains("banh hat qua rung") || lower.Contains("banh_hat_qua_rung")) return "Forest Berry Nut Cake";
+
+            // Nguyên liệu thô (Raw Materials)
             if (lower.Contains("oak_wood") || lower.Contains("go_soi") || lower.Contains("oak")) return "Oak Wood";
             if (lower.Contains("sticks") || lower.Contains("canh_cay")) return "Sticks";
             if (lower.Contains("tender_leaves") || lower.Contains("la_non")) return "Tender Leaves";
             if (lower.Contains("raspberries") || lower.Contains("mam_xoi")) return "Raspberries";
-            if (lower.Contains("acorns") || lower.Contains("hat_de")) return "Acorns";
+            if (lower.Contains("acorns") || lower.Contains("hat_de") || lower.Contains("qua_soi") || lower.Contains("qua soi")) return "Acorns";
             if (lower.Contains("fallen_bark") || lower.Contains("vo_cay")) return "Fallen Bark";
             if (lower.Contains("wild_daisies") || lower.Contains("hoa_cuc")) return "Wild Daisies";
             if (lower.Contains("dandelion_flowers") || lower.Contains("bo_cong_anh") || lower.Contains("dandelion")) return "Dandelion Flowers";
             if (lower.Contains("nectar") || lower.Contains("mat_hoa")) return "Pure Nectar";
             if (lower.Contains("plain.wheat") || lower.Contains("lua_mi_dong_co")) return "Meadow Wheat";
-            if (lower.Contains("wheat") || lower.Contains("lua_mi")) return "Wheat";
+            if (lower.Contains("wheat") || lower.Contains("lua_mi") || lower.Contains("lúa mì")) return "Wheat";
             if (lower.Contains("lavender_sprigs") || lower.Contains("oai_huong") || lower.Contains("lavender")) return "Lavender Sprigs";
             if (lower.Contains("foxtail_plumes") || lower.Contains("co_duoi_cao") || lower.Contains("foxtail")) return "Foxtail Plumes";
             if (lower.Contains("lichen") || lower.Contains("dia_y")) return "Mountain Lichen";
-            if (lower.Contains("rosemary") || lower.Contains("huong_thao")) return "Rosemary";
-            if (lower.Contains("juniper_berries") || lower.Contains("qua_bach_xu")) return "Juniper Berries";
+            if (lower.Contains("rosemary") || lower.Contains("huong_thao") || lower.Contains("hương thảo")) return "Rosemary";
+            if (lower.Contains("juniper_berries") || lower.Contains("qua_bach_xu") || lower.Contains("quả bách xù")) return "Juniper Berries";
             if (lower.Contains("flax_stalks") || lower.Contains("than_lanh") || lower.Contains("flax")) return "Flax Stalks";
             if (lower.Contains("mountain_blueberries") || lower.Contains("viet_quat") || lower.Contains("blueberry")) return "Mountain Blueberries";
             if (lower.Contains("flour") || lower.Contains("bot_mi")) return "Wheat Flour";
@@ -47,12 +66,31 @@ namespace LumiWorld.Acs
         {
             if (string.IsNullOrEmpty(id)) return fallback ?? "";
             string lower = id.ToLowerInvariant();
+
+            // 15 Thành phẩm chế biến
+            if (lower.Contains("tender_leaves_crispy")) return "Crispy, aromatic roasted leaves, a favorite crunchy snack for flying squirrels and forest creatures.";
+            if (lower.Contains("roasted_acorns")) return "Aromatic, toasted wild acorns rich in healthy fats and energizing nutrients for creatures.";
+            if (lower.Contains("dried_raspberries")) return "Sweet and tangy wild raspberries concentrated with nutrients through gentle breeze drying.";
+            if (lower.Contains("dried_mountain_blueberries")) return "Tender, chewy dried highland blueberries that stimulate the appetite of winged creatures.";
+            if (lower.Contains("dried_dandelion")) return "Sun-dried golden dandelion petals, preserving vibrant color and sweet floral pollen.";
+            if (lower.Contains("nectar_essence")) return "Distilled floral nectar condensed into luminous, fragrant golden drops.";
+            if (lower.Contains("wheat_flour")) return "Finely milled golden wheat flour, the fundamental base for hearty baked goods.";
+            if (lower.Contains("herbal_flower_powder")) return "Finely ground blend of wild daisies and dandelions, soothing and calming for wild creatures.";
+            if (lower.Contains("bark_paper")) return "Sturdy rustic parchment handcrafted from fallen oak bark and wood fibers.";
+            if (lower.Contains("dried_wild_berries_mix") || lower.Contains("berries_mix")) return "A delightful blend of sweet wild raspberries and tangy highland blueberries.";
+            if (lower.Contains("honey_glazed_acorns")) return "Crunchy roasted acorns glazed with sweet floral nectar essence, irresistible and wholesome.";
+            if (lower.Contains("wild_herbal_syrup") || lower.Contains("forest_syrup")) return "Concocted from nectar essence, aromatic rosemary, and juniper berries to restore vigor.";
+            if (lower.Contains("pressed_flower_paper")) return "Artisanal bark parchment delicately embedded with vibrant dried daisy petals.";
+            if (lower.Contains("scented_paper")) return "Fine bark paper infused with soothing lavender blossoms, retaining a long-lasting floral fragrance.";
+            if (lower.Contains("wild_berry_nut_cake")) return "A masterwork delicacy uniting ingredients from all three biomes: glazed acorns, dried berries, and golden baked flour.";
+
+            // Nguyên liệu thô
             if (lower.Contains("oak_wood")) return "Sturdy oak timber harvested from ancient Leafwood trees.";
             if (lower.Contains("sticks")) return "Fallen branches gathered from the forest canopy, useful for crafting.";
             if (lower.Contains("tender_leaves")) return "Fresh, nutrient-rich young leaves favored by forest creatures.";
             if (lower.Contains("raspberries")) return "Juicy wild berries growing in quiet forest clearings.";
             if (lower.Contains("acorns")) return "Nutritious wild acorns dropped from towering oak crowns.";
-            if (lower.Contains("fallen_bark")) return "Sturdy oak bark peeled naturally from aged trunks, rich in fiber.";
+            if (lower.Contains("fallen_bark")) return "Sturdy oak bark peeled naturally from aged trunks in Leafwood, rich in fiber for papercraft.";
             if (lower.Contains("wild_daisies")) return "Charming blooming daisies from vibrant flower fields.";
             if (lower.Contains("dandelion_flowers")) return "Bright golden dandelion blooms rich in pollen.";
             if (lower.Contains("nectar")) return "Sweet aromatic floral nectar harvested by gentle breezes.";

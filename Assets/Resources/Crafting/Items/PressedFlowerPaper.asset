@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,10 +13,8 @@ MonoBehaviour:
   m_Name: PressedFlowerPaper
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: resource.craft.pressed_flower_paper
-  resourceName: "Gi\u1EA5y hoa \xE9p"
-  description: "T\u1EDD gi\u1EA5y v\u1ECF c\xE2y m\u1ED9c m\u1EA1c \u0111\u01B0\u1EE3c
-    \xE9p th\xEAm c\xE1nh hoa c\xFAc t\u01B0\u01A1i t\u1EAFn \u0111\u1EA7y ngh\u1EC7
-    thu\u1EADt."
+  resourceName: "Pressed Flower Paper"
+  description: "Artisanal bark parchment delicately embedded with vibrant dried daisy petals."
   icon: {fileID: 21300000, guid: 9826824f01ca498fb6872f37222ffffb, type: 3}
   resourceColor: {r: 0.9, g: 0.85, b: 0.75, a: 1}
   hexColor: '#E6D9BF'
