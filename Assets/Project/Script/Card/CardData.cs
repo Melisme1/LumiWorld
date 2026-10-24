@@ -99,6 +99,16 @@ public class CardData : ScriptableObject
     [Tooltip("Danh sách các nhóm prop sẽ rải ngẫu nhiên khi đặt bài. Nếu danh sách này có dữ liệu, game sẽ tự động rải props thay vì chỉ đặt 1 prefabToPlace duy nhất.")]
     public List<HabitatPropRule> habitatProps = new List<HabitatPropRule>();
 
+    [Header("Ground Cover / Cỏ phủ nền (FilledGround)")]
+    [Tooltip("Prefab cỏ phủ nền: kéo prefab nào vào đây thì spawn đúng prefab đó (random trong danh sách), độc lập với Habitat Props. Để trống = không phủ cỏ cho lá bài này.")]
+    public List<GameObject> groundCoverPrefabs = new List<GameObject>();
+
+    [Tooltip("Số lượng cỏ phủ nền trên mỗi ô hex (random trong khoảng Min–Max).")]
+    public Vector2Int groundCoverCountRange = new Vector2Int(80, 120);
+
+    [Tooltip("Hệ số scale mỗi cây cỏ (nhân với scale gốc của prefab, random trong khoảng Min–Max).")]
+    public Vector2 groundCoverScaleRange = new Vector2(0.9f, 1.3f);
+
 
     /// <summary>
     /// Kiểm tra lá bài này có phải thẻ Sông Suối hay không

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -134,24 +134,12 @@ public class HexFilledGroundSpawner : MonoBehaviour
     /// </summary>
     public bool HasFilledGround(CardData cardData)
     {
-        if (cardData == null) return false;
+        if (cardData == null || cardData.groundCoverPrefabs == null) return false;
 
-        // 1. Kiểm tra nếu trong cardData có quy tắc tên FilledGround / GroundCover
-        if (cardData.habitatProps != null)
+        foreach (var p in cardData.groundCoverPrefabs)
         {
-            foreach (var rule in cardData.habitatProps)
-            {
-                if (IsFilledGroundRule(rule)) return true;
-            }
+            if (p != null) return true;
         }
-
-        // 2. Mặc định áp dụng cho Leafwood (rừng xanh tươi tốt)
-        if (!string.IsNullOrEmpty(cardData.cardName) &&
-            cardData.cardName.IndexOf("Leafwood", System.StringComparison.OrdinalIgnoreCase) >= 0)
-        {
-            return true;
-        }
-
         return false;
     }
 
@@ -181,8 +169,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
             {
                 if (p != null)
                 {
-                    if (p == grassClumpPrefab || p == microGrassTuftPrefab ||
-                        p.name == "GrassClump" || p.name == "MicroGrassTuft")
+                    if (p == grassClumpPrefab || p == microGrassTuftPrefab)
                     {
                         return true;
                     }
@@ -221,29 +208,23 @@ public class HexFilledGroundSpawner : MonoBehaviour
         carpetContainer.transform.SetParent(habitatContainer, false);
         carpetContainer.transform.localPosition = Vector3.zero;
 
-        // Xác định Prefab sử dụng (ưu tiên lấy từ customRule nếu có, hoặc dùng prefab mặc định)
-        GameObject clumpObj = grassClumpPrefab;
-        GameObject tuftObj = microGrassTuftPrefab;
-
-        if (customRule != null && customRule.prefabs != null && customRule.prefabs.Count > 0)
+        // Prefab pool: toàn bộ prefab kéo vào mục Ground Cover Prefabs của card (không phân loại theo tên).
+        List<GameObject> pool = new List<GameObject>();
+        if (cardData != null && cardData.groundCoverPrefabs != null)
         {
-            foreach (var p in customRule.prefabs)
+            foreach (var p in cardData.groundCoverPrefabs)
             {
-                if (p == null) continue;
-                if (p.name.IndexOf("Micro", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    tuftObj = p;
-                }
-                else
-                {
-                    clumpObj = p;
-                }
+                if (p != null) pool.Add(p);
             }
-            if (clumpObj == null) clumpObj = customRule.prefabs[0];
-            if (tuftObj == null) tuftObj = customRule.prefabs[customRule.prefabs.Count - 1];
         }
 
-        if (clumpObj == null && tuftObj == null) yield break;
+        if (pool.Count == 0) yield break;
+
+        // Số lượng & scale do từng card quyết định (CardData.groundCoverCountRange / groundCoverScaleRange).
+        Vector2Int countRange = cardData.groundCoverCountRange;
+        Vector2 scaleRange = cardData.groundCoverScaleRange;
+        if (countRange.y < countRange.x) countRange.y = countRange.x;
+        if (scaleRange.y < scaleRange.x) scaleRange.y = scaleRange.x;
 
         // Chuẩn bị danh sách vật cản lớn cần né tâm (VD: thân cây đại thụ tại tâm (0,0) hoặc đá tảng)
         List<Vector2> obstacles = new List<Vector2>();
@@ -261,81 +242,16 @@ public class HexFilledGroundSpawner : MonoBehaviour
         float maxHexRadius = HexMetrics.InnerRadius * Mathf.Clamp(hexCoverageMargin, 0.85f, 0.99f);
 
         // Danh sách lưu toàn bộ vị trí cỏ đã đặt để kiểm tra khoảng cách
-        List<Vector2> placedClumps = new List<Vector2>();
         List<Vector2> placedTufts = new List<Vector2>();
 
         // Danh sách chứa các instance cỏ để diễn hoạt Pop-in
         List<(Transform target, Vector3 finalScale, float delay)> animatedInstances = new List<(Transform, Vector3, float)>();
 
         // =========================================================================
-        // GIAI ĐOẠN 1: PHỦ LỚP CỎ NỀN CHÍNH (GrassClump)
-        // Rải đều 20-26 bụi cỏ khắp mặt ô lục giác theo phân bố Poisson-Relaxed
+        // RẢI CỎ TỪ POOL (số lượng/scale theo card): viền mép, chân vật cản, lấp khe trống
         // =========================================================================
-        if (clumpObj != null)
         {
-            int targetClumpCount = Random.Range(grassClumpCountRange.x, grassClumpCountRange.y + 1);
-            int attempts = 0;
-            int maxAttempts = targetClumpCount * 25;
-
-            while (placedClumps.Count < targetClumpCount && attempts < maxAttempts)
-            {
-                attempts++;
-                Vector2 candidate = GetRandomPointInHexagon(maxHexRadius);
-
-                // 1. Kiểm tra vật cản lớn (né tâm lõi thân cây / tim tảng đá)
-                bool hitObstacle = false;
-                foreach (var obs in obstacles)
-                {
-                    if (Vector2.Distance(candidate, obs) < heavyPropCoreClearance)
-                    {
-                        hitObstacle = true;
-                        break;
-                    }
-                }
-                if (hitObstacle) continue;
-
-                // 2. Kiểm tra khoảng cách với các bụi GrassClump khác
-                bool tooClose = false;
-                foreach (var placed in placedClumps)
-                {
-                    if (Vector2.Distance(candidate, placed) < minClumpDistance)
-                    {
-                        tooClose = true;
-                        break;
-                    }
-                }
-                if (tooClose) continue;
-
-                placedClumps.Add(candidate);
-
-                // Khởi tạo instance GrassClump
-                float scale = Random.Range(clumpScaleRange.x, clumpScaleRange.y);
-                GameObject inst = CreateGrassInstance(
-                    clumpObj,
-                    candidate,
-                    grassClumpGroundEmbed,
-                    scale,
-                    carpetContainer.transform,
-                    centerWorldPos,
-                    $"Clump_{placedClumps.Count}");
-
-                float distFromCenter = candidate.magnitude;
-                float delay = useRippleWavePopIn ? (distFromCenter / Mathf.Max(0.5f, waveSpeed)) : 0f;
-                animatedInstances.Add((inst.transform, inst.transform.localScale, delay));
-                inst.transform.localScale = Vector3.zero;
-            }
-        }
-
-        // =========================================================================
-        // GIAI ĐOẠN 2: PHỦ LỚP MẦM CỎ VIỀN & CHÂN ĐẾ (MicroGrassTuft)
-        // Phủ 35-48 mầm cỏ nhỏ tập trung vào:
-        // - Viền mép ngoài cùng (Rim Accent)
-        // - Vành đai chân gốc cây / tảng đá (Base Skirt)
-        // - Lấp các khe hở còn trống (Infill)
-        // =========================================================================
-        if (tuftObj != null)
-        {
-            int targetTuftCount = Random.Range(microTuftCountRange.x, microTuftCountRange.y + 1);
+            int targetTuftCount = Random.Range(countRange.x, countRange.y + 1);
 
             // Phân bổ: 45% viền ngoài, 25% quây quanh chân cây/đá, 30% rải tự do
             int rimTufts = Mathf.RoundToInt(targetTuftCount * 0.45f);
@@ -354,7 +270,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
                     rimPt = GetRandomPointInHexagon(maxHexRadius);
                 }
 
-                SpawnTuftInstance(tuftObj, rimPt, placedTufts, carpetContainer.transform, centerWorldPos, animatedInstances);
+                SpawnTuftInstance(pool, scaleRange, rimPt, placedTufts, carpetContainer.transform, centerWorldPos, animatedInstances);
             }
 
             // 2B. Quây quanh chân đế vật cản lớn (r = 0.12m .. 0.28m)
@@ -368,7 +284,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
 
                     if (HexHabitatSpawner.IsPointInHexagon(basePt, maxHexRadius))
                     {
-                        SpawnTuftInstance(tuftObj, basePt, placedTufts, carpetContainer.transform, centerWorldPos, animatedInstances);
+                        SpawnTuftInstance(pool, scaleRange, basePt, placedTufts, carpetContainer.transform, centerWorldPos, animatedInstances);
                     }
                 }
             }
@@ -392,7 +308,7 @@ public class HexFilledGroundSpawner : MonoBehaviour
                 }
                 if (hitObstacle) continue;
 
-                SpawnTuftInstance(tuftObj, freePt, placedTufts, carpetContainer.transform, centerWorldPos, animatedInstances);
+                SpawnTuftInstance(pool, scaleRange, freePt, placedTufts, carpetContainer.transform, centerWorldPos, animatedInstances);
             }
         }
 
@@ -412,7 +328,8 @@ public class HexFilledGroundSpawner : MonoBehaviour
     }
 
     private void SpawnTuftInstance(
-        GameObject tuftObj,
+        List<GameObject> pool,
+        Vector2 scaleRange,
         Vector2 pos2D,
         List<Vector2> placedTufts,
         Transform parent,
@@ -427,9 +344,9 @@ public class HexFilledGroundSpawner : MonoBehaviour
 
         placedTufts.Add(pos2D);
 
-        float scale = Random.Range(tuftScaleRange.x, tuftScaleRange.y);
+        float scale = Random.Range(scaleRange.x, scaleRange.y);
         GameObject inst = CreateGrassInstance(
-            tuftObj,
+            pool[Random.Range(0, pool.Count)],
             pos2D,
             microTuftGroundEmbed,
             scale,

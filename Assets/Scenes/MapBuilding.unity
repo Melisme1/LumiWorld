@@ -302,7 +302,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa306779ab726884187d899a34a81610, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RiverNetworkManager
-  riverConfig: {fileID: 0}
+  riverConfig: {fileID: 11400000, guid: c1c2d3e4f5a600020002000000000088, type: 2}
 --- !u!4 &58995565
 Transform:
   m_ObjectHideFlags: 0
@@ -1568,7 +1568,7 @@ MonoBehaviour:
   minMediumClearance: 0.24
   minSmallClearance: 0.11
   spawnSeamMicroGrass: 1
-  seamMicroGrassPrefab: {fileID: 2504055665502931040, guid: 731be306e5239b34f9b207405909774b, type: 3}
+  seamMicroGrassPrefab: {fileID: 0}
   seamMicroGrassCountRange: {x: 5, y: 8}
   cornerMicroGrassCountRange: {x: 4, y: 7}
   seamMicroGrassScaleRange: {x: 1.1, y: 1.8}
