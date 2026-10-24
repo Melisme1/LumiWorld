@@ -61,11 +61,12 @@ public class CardRewardToast : MonoBehaviour
     {
         if (cardData == null) return null;
 
-        string displayName = !string.IsNullOrEmpty(cardData.cardName)
+        string rawDisplayName = !string.IsNullOrEmpty(cardData.cardName)
             ? cardData.cardName
             : (!string.IsNullOrEmpty(cardData.cardID) ? cardData.cardID : "Card");
+        string displayName = CardShop.TranslateToEnglish(rawDisplayName, cardData.name);
 
-        return Show("NHẬN CARD MỚI", displayName, anchoredPosition, cardData.cardImage);
+        return Show("NEW CARD UNLOCKED", displayName, anchoredPosition, cardData.cardImage);
     }
 
     /// <summary>

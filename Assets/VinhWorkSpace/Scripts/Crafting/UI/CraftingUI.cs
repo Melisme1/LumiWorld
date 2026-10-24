@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using LumiWorld.Acs;
 
 namespace LumiWorld.Economy.Crafting
 {
@@ -32,21 +33,21 @@ namespace LumiWorld.Economy.Crafting
         [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
         [Header("Màu sắc giao diện (Look & Feel)")]
-        [SerializeField] private Color hudColor = new Color(0.06f, 0.09f, 0.16f, 0.88f);
-        [SerializeField] private Color backdropColor = new Color(0f, 0f, 0f, 0.50f);
-        [SerializeField] private Color panelColor = new Color(0.08f, 0.11f, 0.19f, 0.98f);
-        [SerializeField] private Color cardColor = new Color(0.13f, 0.17f, 0.27f, 1f);
-        [SerializeField] private Color selectedCardColor = new Color(0.20f, 0.28f, 0.44f, 1f);
-        [SerializeField] private Color sectionColor = new Color(0.05f, 0.07f, 0.13f, 0.90f);
-        [SerializeField] private Color slotColor = new Color(0.07f, 0.09f, 0.16f, 0.95f);
-        [SerializeField] private Color textColor = new Color(0.93f, 0.95f, 0.99f, 1f);
-        [SerializeField] private Color mutedColor = new Color(0.62f, 0.68f, 0.80f, 1f);
-        [SerializeField] private Color enoughColor = new Color(0.45f, 0.95f, 0.55f, 1f);
-        [SerializeField] private Color missingColor = new Color(1f, 0.62f, 0.45f, 1f);
-        [SerializeField] private Color accentColor = new Color(0.20f, 0.66f, 0.38f, 1f);
-        [SerializeField] private Color secondaryColor = new Color(0.26f, 0.30f, 0.42f, 1f);
-        [SerializeField] private Color tabActiveColor = new Color(0.24f, 0.47f, 0.85f, 1f);
-        [SerializeField] private Color tabInactiveColor = new Color(0.16f, 0.20f, 0.30f, 1f);
+        [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
+        [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
+        [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
+        [SerializeField] private Color cardColor = new Color(1f, 1f, 1f, 0.95f);
+        [SerializeField] private Color selectedCardColor = new Color(0.88f, 0.94f, 0.99f, 1f);
+        [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
+        [SerializeField] private Color slotColor = new Color(0.85f, 0.92f, 0.98f, 0.95f);
+        [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
+        [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
+        [SerializeField] private Color enoughColor = new Color(0.05f, 0.65f, 0.35f, 1f);
+        [SerializeField] private Color missingColor = new Color(0.90f, 0.35f, 0.25f, 1f);
+        [SerializeField] private Color accentColor = new Color(0.01f, 0.60f, 0.90f, 1f);
+        [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
+        [SerializeField] private Color tabActiveColor = new Color(0.01f, 0.60f, 0.90f, 1f);
+        [SerializeField] private Color tabInactiveColor = new Color(0.88f, 0.93f, 0.97f, 1f);
 
         private RectTransform openButton;
         private GameObject badge;
@@ -97,8 +98,11 @@ namespace LumiWorld.Economy.Crafting
         private Button btnClaimAll;
         private TextMeshProUGUI btnClaimAllLabel;
         private TextMeshProUGUI queueSummaryText;
+        private RectTransform balanceChip;
+        private TextMeshProUGUI balanceText;
         private ResourceInventory subscribedInventory;
         private CraftingQueueSystem subscribedQueue;
+        private CurrencyWallet subscribedWallet;
 
         public bool IsOpen => window != null && window.activeSelf;
 
@@ -143,6 +147,10 @@ namespace LumiWorld.Economy.Crafting
                 subscribedQueue.OnQueueChanged += Refresh;
             }
 
+            subscribedWallet = CurrencyWallet.Instance;
+            if (subscribedWallet != null)
+                subscribedWallet.OnBalanceChanged += HandleBalanceChanged;
+
             // Chọn công thức đầu tiên làm mặc định
             if (CraftingCatalog.All.Count > 0)
             {
@@ -174,6 +182,9 @@ namespace LumiWorld.Economy.Crafting
                 subscribedQueue.OnQueueChanged -= Refresh;
             }
             subscribedQueue = null;
+
+            if (subscribedWallet != null) subscribedWallet.OnBalanceChanged -= HandleBalanceChanged;
+            subscribedWallet = null;
         }
 
         // =========================================================
@@ -234,10 +245,18 @@ namespace LumiWorld.Economy.Crafting
 
         private void HandleInventoryChanged(string id, int newAmount, int delta) => Refresh();
         private void HandleJobUpdated(ActiveCraftingJob job) => Refresh();
+        private void HandleBalanceChanged(int balance, int delta, CoinReason reason) => RefreshBalance();
+
+        private void RefreshBalance()
+        {
+            if (balanceText != null && CurrencyWallet.Instance != null)
+                balanceText.text = CurrencyWallet.Instance.Balance.ToString("N0");
+        }
 
         private void Refresh()
         {
             RefreshBadge();
+            RefreshBalance();
             if (!IsOpen) return;
 
             RefreshTabs();
@@ -269,7 +288,7 @@ namespace LumiWorld.Economy.Crafting
             {
                 bool active = item.tab == currentTab;
                 item.bg.color = active ? tabActiveColor : tabInactiveColor;
-                item.label.color = active ? Color.white : mutedColor;
+                item.label.color = active ? Color.white : new Color(0.28f, 0.38f, 0.50f, 1f);
             }
         }
 
@@ -292,12 +311,12 @@ namespace LumiWorld.Economy.Crafting
                 int maxCraft = CraftingCalculator.GetMaxCraftableCount(card.recipe, inventory);
                 if (maxCraft > 0)
                 {
-                    card.status.text = $"Có thể làm: <color=#{ColorUtility.ToHtmlStringRGB(enoughColor)}><b>x{maxCraft}</b></color>";
+                    card.status.text = $"Craftable: <color=#{ColorUtility.ToHtmlStringRGB(enoughColor)}><b>x{maxCraft}</b></color>";
                     card.status.color = textColor;
                 }
                 else
                 {
-                    card.status.text = $"<color=#{ColorUtility.ToHtmlStringRGB(missingColor)}>Thiếu nguyên liệu</color>";
+                    card.status.text = $"<color=#{ColorUtility.ToHtmlStringRGB(missingColor)}>Missing ingredients</color>";
                 }
             }
 
@@ -336,8 +355,9 @@ namespace LumiWorld.Economy.Crafting
             var inventory = ResourceInventory.Instance;
             var outRes = selectedRecipe.outputResource;
 
-            inspectorTitle.text = selectedRecipe.recipeName;
-            inspectorDesc.text = selectedRecipe.description;
+            string outId = selectedRecipe.outputResource != null ? selectedRecipe.outputResource.resourceID : selectedRecipe.recipeID;
+            inspectorTitle.text = ResourceInventoryUIPresentation.LocalizeResourceName(outId, selectedRecipe.recipeName);
+            inspectorDesc.text = ResourceInventoryUIPresentation.LocalizeResourceDescription(outId, selectedRecipe.description);
 
             // Hiển thị Icon thành phẩm trong khung lớn
             Sprite mainIcon = selectedRecipe.GetIcon();
@@ -354,17 +374,17 @@ namespace LumiWorld.Economy.Crafting
 
             inspectorCategory.text = selectedRecipe.category switch
             {
-                CraftingCategory.Food => "THỨC ĂN",
-                CraftingCategory.Refined => "TINH CHẾ",
-                CraftingCategory.Herbal => "DƯỢC LIỆU",
-                CraftingCategory.Paper => "THỦ CÔNG",
-                _ => "CHẾ BIẾN"
+                CraftingCategory.Food => "FOOD",
+                CraftingCategory.Refined => "REFINED",
+                CraftingCategory.Herbal => "HERBAL",
+                CraftingCategory.Paper => "CRAFT",
+                _ => "PROCESSING"
             };
 
             inspectorEdibleTag.gameObject.SetActive(selectedRecipe.isEdible);
             if (selectedRecipe.isEdible)
             {
-                inspectorEdibleTag.text = $"ĂN TRỰC TIẾP (+{selectedRecipe.feedingExpBonus} EXP)";
+                inspectorEdibleTag.text = $"EDIBLE (+{selectedRecipe.feedingExpBonus} EXP)";
             }
 
             // Xóa và dựng lại danh sách nguyên liệu trực tiếp (với khung slot riêng cho từng icon)
@@ -373,7 +393,8 @@ namespace LumiWorld.Economy.Crafting
             {
                 if (input == null) continue;
                 ResourceData res = CraftingCatalog.GetResource(input.resourceId);
-                string resName = res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : input.resourceId;
+                string rawResName = res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : input.resourceId;
+                string resName = ResourceInventoryUIPresentation.LocalizeResourceName(input.resourceId, rawResName);
                 int owned = inventory.GetAmount(input.resourceId);
                 int needed = input.amount * selectedQuantity;
                 bool enough = owned >= needed;
@@ -384,7 +405,7 @@ namespace LumiWorld.Economy.Crafting
                 le.minHeight = 38f;
                 le.preferredHeight = 38f;
                 le.flexibleWidth = 1f;
-                EconomyHUD.CreatePanel(row, sectionColor);
+                EconomyHUD.CreateBorderedPanel(row, sectionColor);
 
                 // Khung slot ảnh nguyên liệu (chừa chỗ sẵn sàng để thêm sprite icon)
                 RectTransform iconSlot = EconomyHUD.CreateRect("IconSlot", row);
@@ -421,20 +442,20 @@ namespace LumiWorld.Economy.Crafting
             }
 
             // Cây nguyên liệu thô phân rã
-            rawBreakdownText.text = "<b>Nguyên liệu gốc:</b> " + CraftingCalculator.FormatRawBreakdown(selectedRecipe, selectedQuantity);
+            rawBreakdownText.text = "<b>Base Materials:</b> " + CraftingCalculator.FormatRawBreakdown(selectedRecipe, selectedQuantity);
 
             // Thời gian chế biến
             float totalDuration = selectedRecipe.craftDurationSeconds * selectedQuantity;
             durationText.text = totalDuration > 0
-                ? $"Thời gian hoàn thành: <b>{totalDuration:0.#} giây</b> ({(selectedRecipe.craftDurationSeconds):0.#}s/mẻ)"
-                : "Thời gian: <b>Tức thì</b>";
+                ? $"Duration: <b>{totalDuration:0.#}s</b> ({(selectedRecipe.craftDurationSeconds):0.#}s/batch)"
+                : "Duration: <b>Instant</b>";
 
             quantityText.text = selectedQuantity.ToString(CultureInfo.InvariantCulture);
 
             // Nút Bắt đầu chế biến
             bool canCraft = CraftingCalculator.CanCraft(selectedRecipe, inventory, selectedQuantity);
             btnStartCraft.interactable = canCraft;
-            btnStartCraftLabel.text = canCraft ? $"CHẾ BIẾN (x{selectedQuantity})" : "KHÔNG ĐỦ NGUYÊN LIỆU";
+            btnStartCraftLabel.text = canCraft ? $"CRAFT (x{selectedQuantity})" : "NOT ENOUGH MATERIALS";
             btnStartCraftLabel.color = canCraft ? Color.white : mutedColor;
         }
 
@@ -464,7 +485,7 @@ namespace LumiWorld.Economy.Crafting
             var queue = CraftingQueueSystem.Instance;
             if (queue.TryStartCrafting(selectedRecipe, selectedQuantity, out string error))
             {
-                StartCoroutine(EconomyHUD.FloatText(panel, $"- Chế biến {selectedRecipe.recipeName} x{selectedQuantity}!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
+                StartCoroutine(EconomyHUD.FloatText(panel, $"- Crafted {selectedRecipe.recipeName} x{selectedQuantity}!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
                 Refresh();
             }
             else
@@ -487,15 +508,15 @@ namespace LumiWorld.Economy.Crafting
 
             int completedCount = queue.GetCompletedCount();
             btnClaimAll.interactable = completedCount > 0;
-            btnClaimAllLabel.text = completedCount > 0 ? $"NHẬN TẤT CẢ ({completedCount})" : "NHẬN TẤT CẢ";
+            btnClaimAllLabel.text = completedCount > 0 ? $"CLAIM ALL ({completedCount})" : "CLAIM ALL";
 
-            queueSummaryText.text = $"Đang hoạt động: <b>{jobs.Count}/{queue.MaxConcurrentJobs}</b> mẻ chế biến";
+            queueSummaryText.text = $"Active: <b>{jobs.Count}/{queue.MaxConcurrentJobs}</b> crafting batches";
 
             if (jobs.Count == 0)
             {
                 TextMeshProUGUI empty = EconomyHUD.CreateText("Empty", queueListContent, 18f, mutedColor, TextAlignmentOptions.Center);
                 empty.rectTransform.sizeDelta = new Vector2(PanelWidth - 64f, 80f);
-                empty.text = "Hàng đợi đang trống. Hãy chọn món bên danh mục để bắt đầu chế biến!";
+                empty.text = "Queue is empty. Select a recipe from the catalog to start crafting!";
                 return;
             }
 
@@ -515,7 +536,7 @@ namespace LumiWorld.Economy.Crafting
 
             RectTransform row = EconomyHUD.CreateRect("JobRow", queueListContent);
             row.sizeDelta = new Vector2(PanelWidth - 64f, 68f);
-            EconomyHUD.CreatePanel(row, cardColor);
+            EconomyHUD.CreateBorderedPanel(row, cardColor);
 
             // Khung slot icon thành phẩm
             RectTransform slot = EconomyHUD.CreateRect("Slot", row);
@@ -535,8 +556,8 @@ namespace LumiWorld.Economy.Crafting
             title.rectTransform.anchoredPosition = new Vector2(68f, 10f);
             title.rectTransform.sizeDelta = new Vector2(300f, 26f);
             title.textWrappingMode = TextWrappingModes.NoWrap;
-            title.overflowMode = TextOverflowModes.Ellipsis;
-            string rName = recipe != null ? recipe.recipeName : "Thành phẩm";
+            string qId = recipe != null ? (recipe.outputResource != null ? recipe.outputResource.resourceID : recipe.recipeID) : "";
+            string rName = recipe != null ? ResourceInventoryUIPresentation.LocalizeResourceName(qId, recipe.recipeName) : "Crafted Product";
             title.text = $"{rName} <b>x{job.TotalOutputAmount}</b>";
 
             // Status label
@@ -571,13 +592,13 @@ namespace LumiWorld.Economy.Crafting
             Button claimBtn = EconomyHUD.AddButton(btnRect, accentColor);
             TextMeshProUGUI claimLbl = EconomyHUD.CreateText("Lbl", btnRect, 15f, Color.white, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(claimLbl.rectTransform);
-            claimLbl.text = "NHẬN";
+            claimLbl.text = "CLAIM";
 
             claimBtn.onClick.AddListener(() =>
             {
                 if (CraftingQueueSystem.Instance.TryClaimJob(job, out string err))
                 {
-                    StartCoroutine(EconomyHUD.FloatText(panel, $"+ Nhận {rName} x{job.TotalOutputAmount} vào kho!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
+                    StartCoroutine(EconomyHUD.FloatText(panel, $"+ Claimed {rName} x{job.TotalOutputAmount} to warehouse!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
                     Refresh();
                 }
                 else
@@ -614,13 +635,13 @@ namespace LumiWorld.Economy.Crafting
 
                 if (card.job.isCompleted)
                 {
-                    card.status.text = $"<color=#{ColorUtility.ToHtmlStringRGB(enoughColor)}><b>ĐÃ HOÀN THÀNH</b></color>";
+                    card.status.text = $"<color=#{ColorUtility.ToHtmlStringRGB(enoughColor)}><b>COMPLETED</b></color>";
                     card.claimButton.interactable = true;
-                    card.claimLabel.text = "NHẬN";
+                    card.claimLabel.text = "CLAIM";
                 }
                 else
                 {
-                    card.status.text = $"Đang chế biến... còn lại <b>{remaining:0.#}s</b>";
+                    card.status.text = $"Crafting... <b>{remaining:0.#}s</b> remaining";
                     card.claimButton.interactable = false;
                     card.claimLabel.text = $"{remaining:0}s";
                 }
@@ -644,10 +665,10 @@ namespace LumiWorld.Economy.Crafting
             Button btn = EconomyHUD.AddButton(openButton, hudColor);
             btn.onClick.AddListener(Toggle);
 
-            // Chữ "Chế biến" căn giữa hoàn toàn, font 20f bold đồng bộ với nút Orders và Shop
+            // Chữ "Crafting" căn giữa hoàn toàn, font 20f bold đồng bộ với nút Orders và Shop
             TextMeshProUGUI label = EconomyHUD.CreateText("Label", openButton, 20f, Color.white, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(label.rectTransform);
-            label.text = "Chế biến";
+            label.text = "Crafting";
 
             // Huy hiệu báo mẻ đã hoàn thành (nằm góc trên phải nút, chỉ hiện khi có mẻ xong)
             RectTransform badgeRect = EconomyHUD.CreateRect("Badge", openButton);
@@ -723,7 +744,7 @@ namespace LumiWorld.Economy.Crafting
             title.rectTransform.anchoredPosition = new Vector2(28f, -16f);
             title.rectTransform.sizeDelta = new Vector2(750f, 32f);
             title.textWrappingMode = TextWrappingModes.NoWrap;
-            title.text = "XƯỞNG CHẾ BIẾN TÀI NGUYÊN";
+            title.text = "RESOURCE WORKSHOP";
 
             // Phụ đề nằm ngay dưới, thụt lề 28px
             TextMeshProUGUI subtitle = EconomyHUD.CreateText("Subtitle", panel, 14f, mutedColor, TextAlignmentOptions.Left);
@@ -734,8 +755,26 @@ namespace LumiWorld.Economy.Crafting
             subtitle.rectTransform.anchoredPosition = new Vector2(28f, -50f);
             subtitle.rectTransform.sizeDelta = new Vector2(750f, 22f);
             subtitle.textWrappingMode = TextWrappingModes.NoWrap;
-            subtitle.text = "Sơ chế thực phẩm dinh dưỡng cho thú, tinh luyện dược liệu & thủ công giấy";
+            subtitle.text = "Nutritious animal feed, herbal remedies & crafted paper";
 
+
+            // Coin balance chip (dark frame matching CoinHUD)
+            balanceChip = EconomyHUD.CreateRect("Balance", panel);
+            balanceChip.anchorMin = new Vector2(1f, 1f);
+            balanceChip.anchorMax = new Vector2(1f, 1f);
+            balanceChip.pivot = new Vector2(0.5f, 0.5f);
+            balanceChip.sizeDelta = new Vector2(150f, 38f);
+            balanceChip.anchoredPosition = new Vector2(-(Spacing + 40f + 12f + 75f), -34f);
+            EconomyHUD.CreateBorderedPanel(balanceChip, new Color(0.06f, 0.09f, 0.16f, 0.92f), new Color(0.08f, 0.58f, 0.95f, 0.60f));
+            EconomyHUD.CreateIcon("CoinIcon", balanceChip, EconomyHUD.CoinSprite, 26f, 10f);
+
+            balanceText = EconomyHUD.CreateText("Value", balanceChip, 20f, Color.white, TextAlignmentOptions.Right);
+            balanceText.fontStyle = FontStyles.Bold;
+            RectTransform valueRect = balanceText.rectTransform;
+            valueRect.anchorMin = Vector2.zero;
+            valueRect.anchorMax = Vector2.one;
+            valueRect.offsetMin = new Vector2(42f, 0f);
+            valueRect.offsetMax = new Vector2(-12f, 0f);
 
             // Nút đóng (X)
             RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
@@ -745,7 +784,7 @@ namespace LumiWorld.Economy.Crafting
             closeRect.anchoredPosition = new Vector2(-Spacing, -16f);
             closeRect.sizeDelta = new Vector2(40f, 36f);
             EconomyHUD.AddButton(closeRect, secondaryColor).onClick.AddListener(Close);
-            TextMeshProUGUI closeLbl = EconomyHUD.CreateText("Lbl", closeRect, 18f, Color.white, TextAlignmentOptions.Center);
+            TextMeshProUGUI closeLbl = EconomyHUD.CreateText("Lbl", closeRect, 18f, textColor, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(closeLbl.rectTransform);
             closeLbl.text = "X";
         }
@@ -761,12 +800,12 @@ namespace LumiWorld.Economy.Crafting
 
             var tabs = new (TabFilter filter, string label, float width)[]
             {
-                (TabFilter.All, "Tất cả", 90f),
-                (TabFilter.Food, "Thức ăn", 100f),
-                (TabFilter.Refined, "Tinh chế", 100f),
-                (TabFilter.Herbal, "Dược liệu", 100f),
-                (TabFilter.Paper, "Thủ công", 100f),
-                (TabFilter.Queue, "Hàng đợi (Queue)", 150f)
+                (TabFilter.All, "All", 80f),
+                (TabFilter.Food, "Food", 90f),
+                (TabFilter.Refined, "Refined", 95f),
+                (TabFilter.Herbal, "Medicine", 105f),
+                (TabFilter.Paper, "Craft", 90f),
+                (TabFilter.Queue, "Queue", 110f)
             };
 
             float curX = 0f;
@@ -873,6 +912,7 @@ namespace LumiWorld.Economy.Crafting
             bg.sprite = EconomyHUD.RoundedSprite;
             bg.type = Image.Type.Sliced;
             bg.color = cardColor;
+            EconomyHUD.AddBlueBorder(row);
 
             Button btn = row.gameObject.AddComponent<Button>();
             btn.targetGraphic = bg;
@@ -904,8 +944,8 @@ namespace LumiWorld.Economy.Crafting
             nameLbl.fontSizeMin = 11f;
             nameLbl.fontSizeMax = 15f;
             nameLbl.textWrappingMode = TextWrappingModes.NoWrap;
-            nameLbl.overflowMode = TextOverflowModes.Ellipsis;
-            nameLbl.text = recipe.recipeName;
+            string cardOutId = recipe.outputResource != null ? recipe.outputResource.resourceID : recipe.recipeID;
+            nameLbl.text = ResourceInventoryUIPresentation.LocalizeResourceName(cardOutId, recipe.recipeName);
 
             // Trạng thái (Có thể làm xN hoặc Thiếu nguyên liệu)
             TextMeshProUGUI statusLbl = EconomyHUD.CreateText("Status", row, 13f, mutedColor, TextAlignmentOptions.Left);
@@ -928,7 +968,7 @@ namespace LumiWorld.Economy.Crafting
             EconomyHUD.CreatePanel(edBadge, new Color(0.12f, 0.35f, 0.22f, 0.95f));
             TextMeshProUGUI edLbl = EconomyHUD.CreateText("Lbl", edBadge, 11f, enoughColor, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(edLbl.rectTransform);
-            edLbl.text = "ĂN ĐƯỢC";
+            edLbl.text = "EDIBLE";
             edBadge.gameObject.SetActive(recipe.isEdible);
 
             return new RecipeCardView
@@ -952,7 +992,7 @@ namespace LumiWorld.Economy.Crafting
             col.pivot = new Vector2(1f, 0.5f);
             col.sizeDelta = new Vector2(RightColWidth, 0f);
             col.anchoredPosition = Vector2.zero;
-            EconomyHUD.CreatePanel(col, sectionColor);
+            EconomyHUD.CreateBorderedPanel(col, sectionColor);
 
             // ================= Header Showcase (Thành phẩm) =================
             RectTransform header = EconomyHUD.CreateRect("Header", col);
@@ -1093,7 +1133,7 @@ namespace LumiWorld.Economy.Crafting
             btnMax.onClick.AddListener(SetMaxQuantity);
             TextMeshProUGUI maxLbl = EconomyHUD.CreateText("L", maxRect, 14f, Color.white, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(maxLbl.rectTransform);
-            maxLbl.text = "Tối đa";
+            maxLbl.text = "Max";
 
             // ================= Nút Bắt đầu Chế biến =================
             RectTransform craftBtnRect = EconomyHUD.CreateRect("CraftBtn", col);
@@ -1107,7 +1147,7 @@ namespace LumiWorld.Economy.Crafting
             btnStartCraft.onClick.AddListener(StartCraftingCurrent);
             btnStartCraftLabel = EconomyHUD.CreateText("Lbl", craftBtnRect, 16f, Color.white, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(btnStartCraftLabel.rectTransform);
-            btnStartCraftLabel.text = "BẮT ĐẦU CHẾ BIẾN";
+            btnStartCraftLabel.text = "START CRAFTING";
         }
 
         private RectTransform CreateCenterSubRect(RectTransform parent, float xOffset, Vector2 size)
@@ -1147,13 +1187,13 @@ namespace LumiWorld.Economy.Crafting
                 int claimed = CraftingQueueSystem.Instance.ClaimAllCompleted();
                 if (claimed > 0)
                 {
-                    StartCoroutine(EconomyHUD.FloatText(panel, $"Đã nhận {claimed} mẻ thành phẩm vào kho!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
+                    StartCoroutine(EconomyHUD.FloatText(panel, $"Claimed {claimed} crafted batches into warehouse!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
                     Refresh();
                 }
             });
             btnClaimAllLabel = EconomyHUD.CreateText("Lbl", claimAllRect, 14f, Color.white, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(btnClaimAllLabel.rectTransform);
-            btnClaimAllLabel.text = "NHẬN TẤT CẢ";
+            btnClaimAllLabel.text = "CLAIM ALL";
 
             // Danh sách các mẻ đang chờ
             RectTransform scrollArea = EconomyHUD.CreateRect("ScrollArea", queueContentArea);

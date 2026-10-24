@@ -116,8 +116,9 @@ public class AnimalIndividual : MonoBehaviour
         string starIcons = new string('★', starLevel);
         string rankTitle = GetRankTitle(rank);
         string traitTitle = GetTraitName(trait);
-        this.individualName = $"[{starIcons} {rankTitle}] {speciesData.speciesName} ({traitTitle}) #{uniqueID}";
-        gameObject.name = $"{speciesData.speciesName}_{starLevel}Star_{uniqueID}";
+        string speciesTitle = CardShop.TranslateToEnglish(speciesData.speciesName, speciesData.speciesID);
+        this.individualName = $"[{starIcons} {rankTitle}] {speciesTitle} ({traitTitle}) #{uniqueID}";
+        gameObject.name = $"{speciesTitle}_{starLevel}Star_{uniqueID}";
 
         // 4. Tính toán thông số năng suất thực tế
         ComputeEffectiveStats();
@@ -129,14 +130,14 @@ public class AnimalIndividual : MonoBehaviour
         ApplyToMovementAI();
         ApplyToVisualEnhancer();
 
-        string resourceLabel = activeResource != null ? activeResource.GetColoredName() : "<color=grey>(Vùng đất này không có tài nguyên)</color>";
-        string terrainLabel = habitatTerrain != null ? $"tại vùng đất <b>{habitatTerrain.cardName}</b>" : "";
+        string resourceLabel = activeResource != null ? activeResource.GetColoredName() : "<color=grey>(This land has no resources)</color>";
+        string terrainLabel = habitatTerrain != null ? $"on land <b>{habitatTerrain.cardName}</b>" : "";
 
         string productionLabel = LumiWorld.Acs.ResourceProductionRuntime.ClaimsWorld ?
-            "→ Production GDD: chọn tài nguyên trong HabitatSystem; rate theo Rank GDD và Settings trong Hierarchy." :
-            $"→ Khai thác: {resourceLabel} | Năng suất: {actualResourceAmount} mỗi {actualProductionInterval:F1}s";
-        Debug.Log($"<color={GetRankHexColor(rank)}><b>[LumiWorld Động Vật]</b> Bạn vừa triệu hồi: {individualName} {terrainLabel}!</color>\n" +
-                  productionLabel + $" | Tốc độ: {actualWalkSpeed:F2}m/s");
+            "→ GDD Production: Select resource in HabitatSystem; rate based on GDD Rank and Hierarchy Settings." :
+            $"→ Harvest: {resourceLabel} | Yield: {actualResourceAmount} every {actualProductionInterval:F1}s";
+        Debug.Log($"<color={GetRankHexColor(rank)}><b>[LumiWorld Animals]</b> Summoned: {individualName} {terrainLabel}!</color>\n" +
+                  productionLabel + $" | Speed: {actualWalkSpeed:F2}m/s");
     }
 
     public void RestoreSavedState(AnimalSpeciesData data, GameObject tileObj, string savedId,
@@ -387,23 +388,23 @@ public class AnimalIndividual : MonoBehaviour
 
     public static string GetRankTitle(AnimalRank r) => r switch
     {
-        AnimalRank.Common => "Phổ thông",
-        AnimalRank.Uncommon => "Hảo hạng",
-        AnimalRank.Rare => "Quý hiếm",
-        AnimalRank.Epic => "Sử thi",
-        AnimalRank.Legendary => "Huyền thoại",
-        _ => "Thường"
+        AnimalRank.Common => "Common",
+        AnimalRank.Uncommon => "Uncommon",
+        AnimalRank.Rare => "Rare",
+        AnimalRank.Epic => "Epic",
+        AnimalRank.Legendary => "Legendary",
+        _ => "Normal"
     };
 
     public static string GetTraitName(AnimalTrait t) => t switch
     {
-        AnimalTrait.Energetic => "Năng động",
-        AnimalTrait.Lazy => "Lười biếng",
-        AnimalTrait.ResourceHoarder => "Thần tài",
-        AnimalTrait.NatureLover => "Yêu thiên nhiên",
-        AnimalTrait.Friendly => "Hòa đồng",
-        AnimalTrait.LuckyStar => "Ngôi sao may mắn",
-        _ => "Bình thường"
+        AnimalTrait.Energetic => "Energetic",
+        AnimalTrait.Lazy => "Lazy",
+        AnimalTrait.ResourceHoarder => "Resource Hoarder",
+        AnimalTrait.NatureLover => "Nature Lover",
+        AnimalTrait.Friendly => "Friendly",
+        AnimalTrait.LuckyStar => "Lucky Star",
+        _ => "Normal"
     };
 
     public static Color GetRankColor(AnimalRank r) => r switch

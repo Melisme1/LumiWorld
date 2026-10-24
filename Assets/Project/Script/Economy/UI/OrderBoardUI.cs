@@ -26,7 +26,15 @@ public class OrderBoardUI : MonoBehaviour
     private const float CardHeight = 270f;
     private const float CardSpacing = 14f;
     private const float SectionGap = 16f;
-    private const float MerchantHeight = 104f;
+    // Quầy thương nhân: danh sách cuộn 2 cột, thấy 3 hàng (6 tài nguyên) cùng lúc
+    private const float MerchantHeight = 202f;
+    private const float MerchantHeaderHeight = 40f;
+    private const int MerchantColumns = 2;
+    private const float MerchantRowHeight = 44f;
+    private const float MerchantRowGap = 8f;
+    private const float MerchantColumnGap = 12f;
+    private const float MerchantScrollbarWidth = 8f;
+    private const float MerchantScrollbarGap = 10f;
     private const int RequirementRows = 3;
 
     // Giao xong, ô có ngay đơn mới: trong khoảng này nút Giao của ô đó không nhận bấm,
@@ -39,19 +47,19 @@ public class OrderBoardUI : MonoBehaviour
     [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
     [Header("Look")]
-    [SerializeField] private Color hudColor = new Color(0.06f, 0.09f, 0.16f, 0.88f);
-    [SerializeField] private Color backdropColor = new Color(0f, 0f, 0f, 0.45f);
-    [SerializeField] private Color panelColor = new Color(0.08f, 0.11f, 0.19f, 0.97f);
-    [SerializeField] private Color cardColor = new Color(0.13f, 0.17f, 0.27f, 1f);
-    [SerializeField] private Color sectionColor = new Color(0.05f, 0.07f, 0.13f, 0.9f);
-    [SerializeField] private Color textColor = new Color(0.93f, 0.95f, 0.99f, 1f);
-    [SerializeField] private Color mutedColor = new Color(0.62f, 0.68f, 0.80f, 1f);
-    [SerializeField] private Color enoughColor = new Color(0.45f, 0.95f, 0.55f, 1f);
-    [SerializeField] private Color missingColor = new Color(1f, 0.62f, 0.45f, 1f);
-    [SerializeField] private Color coinColor = new Color(1f, 0.84f, 0.32f, 1f);
-    [SerializeField] private Color baselineColor = new Color(1f, 0.80f, 0.35f, 1f);
-    [SerializeField] private Color deliverColor = new Color(0.20f, 0.66f, 0.38f, 1f);
-    [SerializeField] private Color secondaryColor = new Color(0.26f, 0.30f, 0.42f, 1f);
+    [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
+    [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
+    [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
+    [SerializeField] private Color cardColor = new Color(1f, 1f, 1f, 0.95f);
+    [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
+    [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
+    [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
+    [SerializeField] private Color enoughColor = new Color(0.05f, 0.65f, 0.35f, 1f);
+    [SerializeField] private Color missingColor = new Color(0.90f, 0.35f, 0.25f, 1f);
+    [SerializeField] private Color coinColor = new Color(0.85f, 0.58f, 0.05f, 1f);
+    [SerializeField] private Color baselineColor = new Color(0.85f, 0.58f, 0.05f, 1f);
+    [SerializeField] private Color deliverColor = new Color(0.01f, 0.60f, 0.90f, 1f);
+    [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
 
     private class CardView
     {
@@ -83,6 +91,7 @@ public class OrderBoardUI : MonoBehaviour
     private class MerchantView
     {
         public ResourceData resource;
+        public RectTransform row;
         public TextMeshProUGUI stock;
         public Button sellOne;
         public TextMeshProUGUI sellOneLabel;
@@ -110,6 +119,9 @@ public class OrderBoardUI : MonoBehaviour
     private Coroutine balancePunch;
     private readonly List<CardView> cards = new List<CardView>();
     private readonly List<MerchantView> merchant = new List<MerchantView>();
+    private RectTransform merchantContent;
+    private TextMeshProUGUI merchantEmpty;
+    private float merchantCellWidth;
     private float countdownTimer;
 
     public bool IsOpen => window != null && window.activeSelf;
@@ -349,13 +361,31 @@ public class OrderBoardUI : MonoBehaviour
 
     private void RefreshMerchant()
     {
+        if (merchantContent == null) return;
+
+        // Chỉ hiện tài nguyên đang có trong kho, xếp lại thành lưới 2 cột theo thứ tự danh mục
+        int shown = 0;
         foreach (MerchantView view in merchant)
         {
             int stock = inventory.GetAmount(view.resource);
-            view.stock.text = stock.ToString(CultureInfo.InvariantCulture);
+            bool visible = stock > 0;
+            view.row.gameObject.SetActive(visible);
+            if (!visible) continue;
+
+            int column = shown % MerchantColumns;
+            int row = shown / MerchantColumns;
+            view.row.anchoredPosition = new Vector2(column * (merchantCellWidth + MerchantColumnGap),
+                -row * (MerchantRowHeight + MerchantRowGap));
+            shown++;
+
+            view.stock.text = "Owned " + FormatNumber(stock) + "  ·  " + NpcMerchant.GetUnitPrice(view.resource) + " Coins each";
             SetButton(view.sellOne, view.sellOneLabel, stock >= 1);
             SetButton(view.sellTen, view.sellTenLabel, stock >= 10);
         }
+
+        int rows = (shown + MerchantColumns - 1) / MerchantColumns;
+        merchantContent.sizeDelta = new Vector2(0f, Mathf.Max(0f, rows * (MerchantRowHeight + MerchantRowGap) - MerchantRowGap));
+        merchantEmpty.gameObject.SetActive(shown == 0);
     }
 
     private void SetButton(Button button, TextMeshProUGUI label, bool on)
@@ -396,10 +426,10 @@ public class OrderBoardUI : MonoBehaviour
         int coins = amount * NpcMerchant.GetUnitPrice(view.resource);
         if (!NpcMerchant.TrySell(view.resource, amount)) return;
 
-        // Số bay mọc lên từ chỗ hai nút bán
+        // Số bay mọc lên từ chỗ hai nút bán (gọn trong hàng vì danh sách cắt phần tràn)
         float x = view.floatLayer.rect.width * 0.5f - 60f;
         StartCoroutine(EconomyHUD.FloatText(view.floatLayer, "+" + FormatNumber(coins), coinColor, 20f,
-            new Vector2(x, 34f), new Vector2(x, 72f), 0.9f));
+            new Vector2(x, 0f), new Vector2(x, 14f), 0.9f));
     }
 
     private void Punch(ref Coroutine routine, Transform target, float peak)
@@ -495,7 +525,7 @@ public class OrderBoardUI : MonoBehaviour
         RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
         Place(closeRect, new Vector2(1f, 1f), new Vector2(-PanelPadding, -18f), new Vector2(44f, 40f));
         EconomyHUD.AddButton(closeRect, secondaryColor).onClick.AddListener(Close);
-        CreateLabel(closeRect, "X", 20f);
+        CreateLabel(closeRect, "X", 20f, textColor);
 
         balanceChip = EconomyHUD.CreateRect("Balance", panel);
         balanceChip.anchorMin = new Vector2(1f, 1f);
@@ -503,10 +533,11 @@ public class OrderBoardUI : MonoBehaviour
         balanceChip.pivot = new Vector2(0.5f, 0.5f);
         balanceChip.sizeDelta = new Vector2(150f, 40f);
         balanceChip.anchoredPosition = new Vector2(-(PanelPadding + 44f + 10f + 75f), -38f);
-        EconomyHUD.CreatePanel(balanceChip, sectionColor);
+        EconomyHUD.CreateBorderedPanel(balanceChip, new Color(0.06f, 0.09f, 0.16f, 0.92f), new Color(0.08f, 0.58f, 0.95f, 0.60f));
         EconomyHUD.CreateIcon("CoinIcon", balanceChip, EconomyHUD.CoinSprite, 26f, 10f);
 
         balanceText = EconomyHUD.CreateText("Value", balanceChip, 20f, Color.white, TextAlignmentOptions.Right);
+        balanceText.fontStyle = FontStyles.Bold;
         RectTransform valueRect = balanceText.rectTransform;
         valueRect.anchorMin = Vector2.zero;
         valueRect.anchorMax = Vector2.one;
@@ -528,7 +559,7 @@ public class OrderBoardUI : MonoBehaviour
         card.rect.anchoredPosition = new Vector2(
             PanelPadding + slot * (CardWidth + CardSpacing) + CardWidth * 0.5f,
             -HeaderHeight - CardHeight * 0.5f);
-        EconomyHUD.CreatePanel(card.rect, cardColor);
+        EconomyHUD.CreateBorderedPanel(card.rect, cardColor);
 
         RectTransform content = EconomyHUD.CreateRect("Order", card.rect);
         EconomyHUD.Stretch(content);
@@ -616,7 +647,7 @@ public class OrderBoardUI : MonoBehaviour
             RectTransform discardRect = EconomyHUD.CreateRect("DiscardButton", content);
             Place(discardRect, new Vector2(1f, 0f), new Vector2(-12f, 12f), new Vector2(discardWidth, 42f));
             EconomyHUD.AddButton(discardRect, secondaryColor).onClick.AddListener(() => Discard(card));
-            CreateLabel(discardRect, "Drop", 17f);
+            CreateLabel(discardRect, "Drop", 17f, textColor);
         }
 
         // Ô trống: đếm ngược tới đơn mới, hoặc hướng dẫn cách có đơn
@@ -636,7 +667,7 @@ public class OrderBoardUI : MonoBehaviour
     {
         RectTransform section = EconomyHUD.CreateRect("Merchant", panel);
         Place(section, Vector2.zero, new Vector2(PanelPadding, PanelPadding), new Vector2(width, MerchantHeight));
-        EconomyHUD.CreatePanel(section, sectionColor);
+        EconomyHUD.CreateBorderedPanel(section, sectionColor);
 
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", section, 16f, textColor, TextAlignmentOptions.Left);
         Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(16f, -10f), new Vector2(width * 0.5f, 24f));
@@ -654,41 +685,118 @@ public class OrderBoardUI : MonoBehaviour
             return;
         }
 
-        const float spacing = 12f;
-        float columnWidth = (width - 32f - spacing * (resources.Count - 1)) / resources.Count;
+        // Vùng cuộn dọc dưới tiêu đề: viewport cắt phần thừa, lăn chuột để cuộn.
+        // Camera không zoom theo vì EconomyHUD.IsWindowOpen chặn input bản đồ khi bảng đang mở.
+        Vector2 listSize = new Vector2(width - 32f, MerchantHeight - MerchantHeaderHeight - 12f);
+        RectTransform scrollRect = EconomyHUD.CreateRect("List", section);
+        Place(scrollRect, new Vector2(0f, 1f), new Vector2(16f, -MerchantHeaderHeight), listSize);
+        ScrollRect scroll = scrollRect.gameObject.AddComponent<ScrollRect>();
+
+        RectTransform viewport = EconomyHUD.CreateRect("Viewport", scrollRect);
+        EconomyHUD.Stretch(viewport);
+        viewport.offsetMax = new Vector2(-(MerchantScrollbarGap + MerchantScrollbarWidth), 0f);
+        viewport.gameObject.AddComponent<RectMask2D>();
+        Image hitArea = viewport.gameObject.AddComponent<Image>();
+        hitArea.color = Color.clear;   // lăn chuột ở khe giữa các hàng vẫn cuộn được
+
+        merchantContent = EconomyHUD.CreateRect("Content", viewport);
+        merchantContent.anchorMin = new Vector2(0f, 1f);
+        merchantContent.anchorMax = new Vector2(1f, 1f);
+        merchantContent.pivot = new Vector2(0.5f, 1f);
+        merchantContent.sizeDelta = Vector2.zero;
+        merchantContent.anchoredPosition = Vector2.zero;
+
+        scroll.viewport = viewport;
+        scroll.content = merchantContent;
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 20f;
+        scroll.verticalScrollbar = BuildMerchantScrollbar(scrollRect);
+        scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+
+        merchantEmpty = EconomyHUD.CreateText("Empty", viewport, 14f, mutedColor, TextAlignmentOptions.Center);
+        merchantEmpty.fontStyle = FontStyles.Normal;
+        EconomyHUD.Stretch(merchantEmpty.rectTransform);
+        merchantEmpty.text = "Nothing to sell yet. Harvest or craft resources first.";
+
+        float viewportWidth = listSize.x - MerchantScrollbarGap - MerchantScrollbarWidth;
+        merchantCellWidth = (viewportWidth - MerchantColumnGap * (MerchantColumns - 1)) / MerchantColumns;
+        const float sellTenWidth = 62f;
+        const float sellOneWidth = 54f;
+        const float buttonGap = 6f;
+        float textLeft = 42f;
+        float textWidth = merchantCellWidth - textLeft - sellOneWidth - sellTenWidth - buttonGap - 14f;
 
         for (int i = 0; i < resources.Count; i++)
         {
             MerchantView view = new MerchantView { resource = resources[i] };
 
-            RectTransform column = EconomyHUD.CreateRect(view.resource.resourceID, section);
-            Place(column, Vector2.zero, new Vector2(16f + i * (columnWidth + spacing), 12f), new Vector2(columnWidth, 52f));
-            EconomyHUD.CreateIcon("Icon", column, BiomeHarvestIndicator.GetResourceSprite(view.resource), 32f, 0f);
+            // Mỗi tài nguyên một hàng cố định: icon, tên, số đang có và giá, hai nút bán
+            view.row = EconomyHUD.CreateRect(view.resource.resourceID, merchantContent);
+            Place(view.row, new Vector2(0f, 1f), Vector2.zero, new Vector2(merchantCellWidth, MerchantRowHeight));
+            EconomyHUD.CreatePanel(view.row, cardColor);
 
-            view.stock = EconomyHUD.CreateText("Stock", column, 20f, textColor, TextAlignmentOptions.Left);
-            Place(view.stock.rectTransform, new Vector2(0f, 1f), new Vector2(40f, -2f), new Vector2(64f, 26f));
+            RectTransform iconSlot = EconomyHUD.CreateRect("IconSlot", view.row);
+            Place(iconSlot, new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(30f, 30f));
+            EconomyHUD.CreateIcon("Icon", iconSlot, BiomeHarvestIndicator.GetResourceSprite(view.resource), 28f, 0f);
 
-            TextMeshProUGUI price = EconomyHUD.CreateText("Price", column, 13f, mutedColor, TextAlignmentOptions.Left);
-            price.fontStyle = FontStyles.Normal;
-            Place(price.rectTransform, new Vector2(0f, 1f), new Vector2(40f, -28f), new Vector2(64f, 20f));
-            price.text = "Price " + NpcMerchant.GetUnitPrice(view.resource);
+            TextMeshProUGUI name = EconomyHUD.CreateText("Name", view.row, 15f, textColor, TextAlignmentOptions.Left);
+            Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(textLeft, -3f), new Vector2(textWidth, 20f));
+            name.textWrappingMode = TextWrappingModes.NoWrap;
+            name.overflowMode = TextOverflowModes.Ellipsis;
+            name.enableAutoSizing = false;
+            name.text = view.resource.resourceName;
 
-            RectTransform tenRect = EconomyHUD.CreateRect("SellTenButton", column);
-            Place(tenRect, new Vector2(1f, 0.5f), Vector2.zero, new Vector2(62f, 36f));
+            view.stock = EconomyHUD.CreateText("Stock", view.row, 12f, mutedColor, TextAlignmentOptions.Left);
+            view.stock.fontStyle = FontStyles.Normal;
+            Place(view.stock.rectTransform, new Vector2(0f, 1f), new Vector2(textLeft, -23f), new Vector2(textWidth, 18f));
+            view.stock.textWrappingMode = TextWrappingModes.NoWrap;
+            view.stock.overflowMode = TextOverflowModes.Ellipsis;
+            view.stock.enableAutoSizing = false;
+
+            RectTransform tenRect = EconomyHUD.CreateRect("SellTenButton", view.row);
+            Place(tenRect, new Vector2(1f, 0.5f), new Vector2(-6f, 0f), new Vector2(sellTenWidth, 32f));
             view.sellTen = EconomyHUD.AddButton(tenRect, secondaryColor);
             view.sellTen.onClick.AddListener(() => Sell(view, 10));
-            view.sellTenLabel = CreateLabel(tenRect, "Sell 10", 15f);
+            view.sellTenLabel = CreateLabel(tenRect, "Sell 10", 14f);
 
-            RectTransform oneRect = EconomyHUD.CreateRect("SellOneButton", column);
-            Place(oneRect, new Vector2(1f, 0.5f), new Vector2(-68f, 0f), new Vector2(54f, 36f));
+            RectTransform oneRect = EconomyHUD.CreateRect("SellOneButton", view.row);
+            Place(oneRect, new Vector2(1f, 0.5f), new Vector2(-6f - sellTenWidth - buttonGap, 0f), new Vector2(sellOneWidth, 32f));
             view.sellOne = EconomyHUD.AddButton(oneRect, secondaryColor);
             view.sellOne.onClick.AddListener(() => Sell(view, 1));
-            view.sellOneLabel = CreateLabel(oneRect, "Sell 1", 15f);
+            view.sellOneLabel = CreateLabel(oneRect, "Sell 1", 15f, textColor);
 
-            view.floatLayer = EconomyHUD.CreateRect("FloatingNumbers", column);
+            view.floatLayer = EconomyHUD.CreateRect("FloatingNumbers", view.row);
             EconomyHUD.Stretch(view.floatLayer);
             merchant.Add(view);
         }
+    }
+
+    private Scrollbar BuildMerchantScrollbar(RectTransform parent)
+    {
+        RectTransform track = EconomyHUD.CreateRect("Scrollbar", parent);
+        track.anchorMin = new Vector2(1f, 0f);
+        track.anchorMax = new Vector2(1f, 1f);
+        track.pivot = new Vector2(1f, 0.5f);
+        track.sizeDelta = new Vector2(MerchantScrollbarWidth, 0f);
+        track.anchoredPosition = Vector2.zero;
+        EconomyHUD.CreatePanel(track, panelColor).raycastTarget = true;
+
+        RectTransform slidingArea = EconomyHUD.CreateRect("SlidingArea", track);
+        EconomyHUD.Stretch(slidingArea);
+
+        RectTransform handle = EconomyHUD.CreateRect("Handle", slidingArea);
+        EconomyHUD.Stretch(handle);
+        Image handleImage = EconomyHUD.CreatePanel(handle, mutedColor);
+        handleImage.raycastTarget = true;
+
+        Scrollbar scrollbar = track.gameObject.AddComponent<Scrollbar>();
+        scrollbar.handleRect = handle;
+        scrollbar.targetGraphic = handleImage;
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        scrollbar.navigation = new Navigation { mode = Navigation.Mode.None };
+        return scrollbar;
     }
 
     /// <summary>
@@ -706,9 +814,10 @@ public class OrderBoardUI : MonoBehaviour
     /// <summary>
     /// Chữ đậm màu trắng căn giữa, phủ kín parent (nhãn của nút, chữ trong huy hiệu).
     /// </summary>
-    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize)
+    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize, Color? color = null)
     {
-        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, Color.white, TextAlignmentOptions.Center);
+        Color c = color ?? Color.white;
+        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, c, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(label.rectTransform);
         label.text = text;
         return label;

@@ -61,6 +61,21 @@ namespace LumiWorld.Acs
             return result.AsReadOnly();
         }
 
+        /// <summary>
+        /// Nạp lại thức ăn đã lưu của một sinh vật (trước Synchronize). Ngăn chưa có chủ ở habitat nào thì
+        /// để orphan; Synchronize sẽ gắn lại khi sinh vật được dựng lại.
+        /// </summary>
+        public void RestoreAmount(string individualId, string foodId, long amount)
+        {
+            if (string.IsNullOrWhiteSpace(individualId) || string.IsNullOrWhiteSpace(foodId) || amount <= 0) return;
+            if (!pantries.TryGetValue(individualId, out var pantry))
+            {
+                pantry = new Pantry { individualId = individualId, orphan = true };
+                pantries.Add(individualId, pantry);
+            }
+            pantry.amounts[foodId] = amount;
+        }
+
         // Merge/split/movement only updates the location of each owner. Validate the whole
         // membership snapshot before mutation so duplicate IDs cannot silently share a pantry.
         public void Synchronize(IReadOnlyList<HabitatState> habitats)

@@ -70,6 +70,8 @@ public class InboxSync : MonoBehaviour
     private void StartSync()
     {
         if (syncing || !AuthSession.IsLoggedIn) return;
+        // Đang xem đảo người khác: chưa áp hộp thư, đợi về đảo của mình (scene load sẽ gọi lại)
+        if (WorldLaunch.IsVisit) return;
 
         StartCoroutine(SyncOnce());
     }

@@ -86,6 +86,8 @@ public class ResourceInventory : MonoBehaviour
     public bool TryConsume(string resourceId, int amount, Func<bool> commitOwner)
     {
         if (string.IsNullOrWhiteSpace(resourceId) || amount <= 0 || commitOwner == null) return false;
+        // Đảo đang xem của người khác: không lấy hàng trong kho của người xem (cho ăn, chế biến...)
+        if (WorldLaunch.IsVisit) return false;
         int previous = GetAmount(resourceId);
         if (previous < amount) return false;
         amounts[resourceId] = previous - amount;

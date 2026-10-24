@@ -136,7 +136,7 @@ public class CardDrag : MonoBehaviour,
         // 0. Kiểm tra trạng thái khóa (Escrow, Breeding, Account-bound)
         if (cardUI != null && cardUI.IsLocked)
         {
-            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Thẻ đang bị khóa: {cardUI.CurrentLockReason}");
+            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Card is locked: {cardUI.CurrentLockReason}");
             return;
         }
 
@@ -287,6 +287,15 @@ public class CardDrag : MonoBehaviour,
 
         if (placedSuccessfully)
         {
+            if (draggedCard != null && draggedCard.cardType == CardType.Terrain)
+            {
+                GameAudioManager.Instance?.PlayPlace();
+            }
+            else
+            {
+                GameAudioManager.Instance?.PlayCard();
+            }
+
             // Đặt thành công: khôi phục alpha/scale về bình thường trước khi rời tay.
             // Nếu chồng còn lá (slot được giữ lại), card phải trở về trạng thái rõ nét.
             RestoreVisualAfterPlacement();
@@ -310,9 +319,10 @@ public class CardDrag : MonoBehaviour,
             {
                 if (lacksCoins)
                 {
+                    string cardTitle = CardShop.TranslateToEnglish(draggedCard.cardName, draggedCard.cardID);
                     GameDialogUI.ShowNotice(
-                        $"Không đủ Coins để trả phí đặt thẻ!\nCần {draggedCard.placementFee} Coins để đặt thẻ \"{draggedCard.cardName}\".",
-                        title: "THÔNG BÁO");
+                        $"Not enough Coins to pay placement fee!\nNeed {draggedCard.placementFee} Coins to place \"{cardTitle}\".",
+                        title: "NOTICE");
                 }
                 else
                 {
@@ -321,8 +331,8 @@ public class CardDrag : MonoBehaviour,
                     if (!string.IsNullOrEmpty(reason))
                     {
                         GameDialogUI.ShowNotice(
-                            $"Vị trí đặt thẻ không hợp lệ!\n{reason}",
-                            title: "THÔNG BÁO");
+                            $"Invalid card placement!\n{reason}",
+                            title: "NOTICE");
                     }
                 }
             }

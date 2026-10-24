@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: leafwood_001
   cardName: Leafwood
-  cardImage: {fileID: -866576416, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardImage: {fileID: 21300000, guid: 4e791c3ff38b4bedac4d9e58b8448ce4, type: 3}
   cardType: 1
   baseScore: 1
   alwaysBaseScore: 0

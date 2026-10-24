@@ -27,16 +27,16 @@ namespace LumiWorld.Acs
         public static HabitatEligibilityResult EvaluateResource(HabitatState habitat,
             ResourceProductionDefinition definition, SpeciesMappingRegistry registry, Func<string, bool> canProduce = null)
         {
-            if (habitat == null || registry == null) return Reject("Thiếu habitat hoặc Species Registry.");
-            if (definition == null || definition.resource == null) return Reject("Chưa chọn tài nguyên hoặc thiếu definition.");
-            if (!definition.isEnabled) return Reject("Tài nguyên đang tắt.");
+            if (habitat == null || registry == null) return Reject("Missing habitat or Species Registry.");
+            if (definition == null || definition.resource == null) return Reject("No resource selected or missing definition.");
+            if (!definition.isEnabled) return Reject("Resource is disabled.");
             if (definition.affinity != habitat.affinity || HabitatDataRules.GetIsland(definition.affinity) != habitat.island)
-                return Reject("Tài nguyên không thuộc biome/đảo của nhóm.");
+                return Reject("Resource does not match habitat biome or island.");
             if (GetSlotCount(habitat.HexCount, definition.tier) == 0)
-                return Reject(definition.tier == ResourceTier.Tier2 ? "T2 cần nhóm đủ 6 hex trở lên." : "T1 cần nhóm từ 3 đến 12 hex.");
+                return Reject(definition.tier == ResourceTier.Tier2 ? "T2 requires a cluster of 6+ hexes." : "T1 requires a cluster of 3 to 12 hexes.");
             if (definition.requirements == null || definition.requirements.Count == 0 ||
                 (definition.tier == ResourceTier.Tier1 && definition.requirements.Count != 1))
-                return Reject("Requirements không hợp lệ.");
+                return Reject("Invalid requirements.");
 
             var residentIds = new HashSet<string>(StringComparer.Ordinal);
             var residentHomes = new HashSet<HexCoordinates>();
@@ -44,7 +44,7 @@ namespace LumiWorld.Acs
                 foreach (var resident in habitat.residents)
                     if (resident != null && habitat.ContainsHex(resident.homeHex) &&
                         (!residentIds.Add(resident.individualId) || !residentHomes.Add(resident.homeHex)))
-                        return Reject("Cư dân trùng individual ID hoặc nhiều creature cùng home hex.");
+                        return Reject("Duplicate resident ID or multiple creatures on same home hex.");
 
             var requiredSpecies = new HashSet<string>(StringComparer.Ordinal);
             var missing = new List<string>();
@@ -53,12 +53,12 @@ namespace LumiWorld.Acs
             {
                 if (requirement == null || requirement.minimumCount < 1 ||
                     !registry.TryGetByGddKey(requirement.gddSpeciesKey, out var entry) || !entry.IsActive ||
-                    string.IsNullOrEmpty(entry.SpeciesId)) return Reject("Required species thiếu mapping hoặc đang pending.");
-                if (!requiredSpecies.Add(entry.SpeciesId)) return Reject("Requirements trùng species.");
+                    string.IsNullOrEmpty(entry.SpeciesId)) return Reject("Required species missing mapping or pending.");
+                if (!requiredSpecies.Add(entry.SpeciesId)) return Reject("Requirements contain duplicate species.");
                 if ((requirement.role != AffinityRole.Primary && requirement.role != AffinityRole.Secondary) ||
                     entry.GetRole(habitat.affinity) != requirement.role ||
                     (definition.tier == ResourceTier.Tier1 && requirement.role != AffinityRole.Primary))
-                    return Reject("Species/primary/secondary không khớp biome.");
+                    return Reject("Species role does not match biome.");
                 int count = 0;
                 int residentCount = 0;
                 var individuals = new HashSet<string>(StringComparer.Ordinal);
@@ -81,23 +81,23 @@ namespace LumiWorld.Acs
                         missing.Add(name + " " + residentCount + "/" + requirement.minimumCount);
                 }
             }
-            if (missing.Count == 0 && resting.Count == 0) return new HabitatEligibilityResult(true, "Đủ điều kiện.");
-            string reason = missing.Count > 0 ? "Thiếu cư dân cùng biome: " + string.Join(", ", missing) + "." : "";
+            if (missing.Count == 0 && resting.Count == 0) return new HabitatEligibilityResult(true, "Eligible.");
+            string reason = missing.Count > 0 ? "Missing biome resident: " + string.Join(", ", missing) + "." : "";
             if (resting.Count > 0)
-                reason += (reason.Length > 0 ? " " : "") + "Cư dân đang đói/ăn: " + string.Join(", ", resting) + ".";
+                reason += (reason.Length > 0 ? " " : "") + "Resident hungry/eating: " + string.Join(", ", resting) + ".";
             return Reject(reason);
         }
 
         public static HabitatEligibilityResult EvaluateSelection(HabitatState habitat, ResourceTier tier, int index,
             string resourceId, ResourceProductionCatalog catalog, Func<string, bool> canProduce = null)
         {
-            if (!IsSlotUnlocked(habitat, tier, index)) return Reject("Slot đang khóa theo số hex.");
-            if (string.IsNullOrEmpty(resourceId)) return Reject("Chưa chọn tài nguyên.");
+            if (!IsSlotUnlocked(habitat, tier, index)) return Reject("Slot is locked by hex count.");
+            if (string.IsNullOrEmpty(resourceId)) return Reject("No resource selected.");
             var definition = FindDefinition(catalog, resourceId);
-            if (definition == null || definition.tier != tier) return Reject("Tài nguyên không có trong catalog hoặc sai tier.");
+            if (definition == null || definition.tier != tier) return Reject("Resource not in catalog or wrong tier.");
             if (tier == ResourceTier.Tier1 && habitat.slots != null &&
                 habitat.slots.Exists(s => s != null && s.tier == tier && s.index != index && s.selectedResourceId == resourceId))
-                return Reject("Hai slot T1 không được chọn cùng tài nguyên.");
+                return Reject("Both T1 slots cannot select the same resource.");
             return EvaluateResource(habitat, definition, catalog != null ? catalog.speciesRegistry : null, canProduce);
         }
 
@@ -105,11 +105,11 @@ namespace LumiWorld.Acs
             ResourceProductionCatalog catalog, out string reason)
         {
             var slot = habitat != null ? habitat.GetSlot(tier, index) : null;
-            if (slot == null) { reason = "Slot không tồn tại."; return false; }
+            if (slot == null) { reason = "Slot does not exist."; return false; }
             if (string.IsNullOrEmpty(resourceId))
             {
                 slot.selectedResourceId = string.Empty;
-                reason = "Đã bỏ lựa chọn.";
+                reason = "Selection cleared.";
                 return true;
             }
             var eligibility = EvaluateSelection(habitat, tier, index, resourceId, catalog);

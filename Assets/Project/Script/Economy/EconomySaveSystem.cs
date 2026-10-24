@@ -72,6 +72,20 @@ public class EconomySaveSystem : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Tiến trình của tài khoản: Harmony, cột mốc và thành tựu đã nhận (AchievementManager),
+    /// bài trên tay (CardDeskController). Các hệ thống đó sửa trực tiếp trường của mình rồi gọi
+    /// MarkDirty() (hoặc SaveNow() khi vừa trao thưởng).
+    /// </summary>
+    public EconomySaveData Progress
+    {
+        get
+        {
+            EnsureLoaded();
+            return data;
+        }
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticState()
     {
@@ -285,6 +299,10 @@ public class EconomySaveSystem : MonoBehaviour
         if (data.orderRefills == null) data.orderRefills = new List<OrderSlotRefill>();
         if (data.appliedInboxIds == null) data.appliedInboxIds = new List<string>();
         if (data.pendingMarketOps == null) data.pendingMarketOps = new List<PendingMarketOp>();
+        if (data.claimedMilestoneIds == null) data.claimedMilestoneIds = new List<string>();
+        if (data.claimedAchievementIds == null) data.claimedAchievementIds = new List<string>();
+        if (data.hand == null) data.hand = new List<HandCardStack>();
+        if (data.craftingJobs == null) data.craftingJobs = new List<CraftingJobRecord>();
     }
 
     // Dữ liệu được cập nhật ngay khi ví/kho đổi (không đợi lúc lưu),

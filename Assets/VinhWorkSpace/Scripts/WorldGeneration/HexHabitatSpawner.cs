@@ -63,6 +63,10 @@ public class HexHabitatSpawner : MonoBehaviour
         habitatContainer.transform.SetParent(tileTransform, true);
         habitatContainer.transform.position = centerWorldPos;
 
+        // Seed theo ô + thẻ: cây, đá mọc y hệt mỗi lần vào game và khi người khác thăm đảo (không lưu gì thêm)
+        HexTileInfo seedTile = tileTransform.GetComponent<HexTileInfo>();
+        DecorRandom rng = DecorRandom.ForTile(seedTile != null ? seedTile.coordinates : default, cardData.cardID, "habitat");
+
         // Danh sách lưu tọa độ cục bộ (X, Z), bán kính chiếm dụng, và clusterId
         List<(Vector2 pos2D, float clearanceRadius, int clusterId)> placedProps = new List<(Vector2, float, int)>();
 
@@ -120,12 +124,12 @@ public class HexHabitatSpawner : MonoBehaviour
                 // CHẾ ĐỘ 1: SINH THEO CỤM / BẦY (CLUSTERS / PATCHES)
                 // Khi clusterAsPatch = true, countRange đóng vai trò là SỐ LƯỢNG CỤM trên ô hex
                 // =========================================================================
-                int numClusters = Random.Range(rule.countRange.x, rule.countRange.y + 1);
+                int numClusters = rng.Range(rule.countRange.x, rule.countRange.y + 1);
                 if (numClusters <= 0) continue;
 
                 for (int c = 0; c < numClusters; c++)
                 {
-                    int propsInCluster = Random.Range(rule.propsPerClusterRange.x, rule.propsPerClusterRange.y + 1);
+                    int propsInCluster = rng.Range(rule.propsPerClusterRange.x, rule.propsPerClusterRange.y + 1);
                     if (propsInCluster <= 0) continue;
 
                     int thisClusterId = nextClusterId++;
@@ -141,7 +145,7 @@ public class HexHabitatSpawner : MonoBehaviour
                     int maxCenterAttempts = tileHasRiver ? 80 : 40;
                     for (int tryCenter = 0; tryCenter < maxCenterAttempts; tryCenter++)
                     {
-                        Vector2 sampleCenter = GetRandomPointInHexagon(allowedCenterRadius);
+                        Vector2 sampleCenter = GetRandomPointInHexagon(allowedCenterRadius, rng);
                         float minDist = float.MaxValue;
                         bool farEnough = true;
 
@@ -191,16 +195,16 @@ public class HexHabitatSpawner : MonoBehaviour
                     // 2. Sinh các cây/bụi tụ lại quây quần xung quanh clusterCenter
                     for (int pIdx = 0; pIdx < propsInCluster; pIdx++)
                     {
-                        GameObject selectedPrefab = rule.prefabs[Random.Range(0, rule.prefabs.Count)];
+                        GameObject selectedPrefab = rule.prefabs[rng.Range(0, rule.prefabs.Count)];
                         if (selectedPrefab == null) continue;
 
-                        float randomScale = Random.Range(rule.scaleRange.x, rule.scaleRange.y);
+                        float randomScale = rng.Range(rule.scaleRange.x, rule.scaleRange.y);
                         Vector2 propPos2D = clusterCenter;
 
                         if (pIdx == 0)
                         {
                             // Bụi / cây đầu tiên đặt ngay tâm cụm (lệch ngẫu nhiên cực nhẹ 2-3cm)
-                            propPos2D = clusterCenter + Random.insideUnitCircle * 0.03f;
+                            propPos2D = clusterCenter + rng.insideUnitCircle * 0.03f;
                         }
                         else
                         {
@@ -212,8 +216,8 @@ public class HexHabitatSpawner : MonoBehaviour
                             int maxSpotAttempts = tileHasRiver ? 50 : 30;
                             for (int trySpot = 0; trySpot < maxSpotAttempts; trySpot++)
                             {
-                                float angle = Random.Range(0f, Mathf.PI * 2f);
-                                float dist = Random.Range(0.08f, clusterRadius);
+                                float angle = rng.Range(0f, Mathf.PI * 2f);
+                                float dist = rng.Range(0.08f, clusterRadius);
                                 Vector2 candidateSpot = clusterCenter + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * dist;
 
                                 float siblingFootprint = GetPrefabHorizontalFootprint(selectedPrefab, rule, randomScale);
@@ -270,7 +274,7 @@ public class HexHabitatSpawner : MonoBehaviour
                         }
 
                         // Tạo prop thực tế
-                        SpawnPropInstance(selectedPrefab, propPos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{rule.groupName}_C{c}_{pIdx}");
+                        SpawnPropInstance(selectedPrefab, propPos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{rule.groupName}_C{c}_{pIdx}", rng);
                         placedProps.Add((propPos2D, Mathf.Max(0.12f, rule.minDistance * 0.65f), thisClusterId));
 
                         if (waitStagger != null)
@@ -286,7 +290,7 @@ public class HexHabitatSpawner : MonoBehaviour
                 // CHẾ ĐỘ 2: RẢI CÂY ĐƠN LẺ (SINGLE PROPS / PACKING)
                 // Đưa thông số dư dả: cố gắng lấp đầy ô, chỗ nào hết chỗ thì bỏ qua
                 // =========================================================================
-                int targetCount = Random.Range(rule.countRange.x, rule.countRange.y + 1);
+                int targetCount = rng.Range(rule.countRange.x, rule.countRange.y + 1);
                 if (targetCount <= 0) continue;
 
                 int spawnedThisGroup = 0;
@@ -294,10 +298,10 @@ public class HexHabitatSpawner : MonoBehaviour
 
                 for (int i = 0; i < targetCount; i++)
                 {
-                    GameObject selectedPrefab = rule.prefabs[Random.Range(0, rule.prefabs.Count)];
+                    GameObject selectedPrefab = rule.prefabs[rng.Range(0, rule.prefabs.Count)];
                     if (selectedPrefab == null) continue;
 
-                    float randomScale = Random.Range(rule.scaleRange.x, rule.scaleRange.y);
+                    float randomScale = rng.Range(rule.scaleRange.x, rule.scaleRange.y);
                     Vector2 candidatePos2D = Vector2.zero;
 
                     if (rule.placeAtCenter)
@@ -338,7 +342,7 @@ public class HexHabitatSpawner : MonoBehaviour
                         int attemptsForThisProp = tileHasRiver ? 60 : 40;
                         for (int trySample = 0; trySample < attemptsForThisProp; trySample++)
                         {
-                            Vector2 sample = GetRandomPointInHexagon(allowedRadius);
+                            Vector2 sample = GetRandomPointInHexagon(allowedRadius, rng);
                             float minDist = float.MaxValue;
                             bool isFarEnough = true;
 
@@ -382,7 +386,7 @@ public class HexHabitatSpawner : MonoBehaviour
                         }
                     }
 
-                    SpawnPropInstance(selectedPrefab, candidatePos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{selectedPrefab.name}_{spawnedThisGroup}");
+                    SpawnPropInstance(selectedPrefab, candidatePos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{selectedPrefab.name}_{spawnedThisGroup}", rng);
                     placedProps.Add((candidatePos2D, rule.minDistance, -1));
                     spawnedThisGroup++;
 
@@ -466,16 +470,17 @@ public class HexHabitatSpawner : MonoBehaviour
         float randomScale,
         Transform container,
         Vector3 centerWorldPos,
-        string instanceName)
+        string instanceName,
+        DecorRandom rng)
     {
         float yOffset = GetPrefabBottomYOffset(selectedPrefab, rule.customGroundEmbed) * randomScale;
         Vector3 worldSpawnPos = centerWorldPos + new Vector3(pos2D.x, yOffset, pos2D.y);
 
         float tiltAngle = Mathf.Max(0f, rule.maxTiltAngle);
         Quaternion randomRotation = Quaternion.Euler(
-            Random.Range(-tiltAngle, tiltAngle),
-            Random.Range(0f, 360f),
-            Random.Range(-tiltAngle, tiltAngle)
+            rng.Range(-tiltAngle, tiltAngle),
+            rng.Range(0f, 360f),
+            rng.Range(-tiltAngle, tiltAngle)
         ) * selectedPrefab.transform.rotation;
 
         GameObject propInstance = Instantiate(selectedPrefab, worldSpawnPos, randomRotation, container);
@@ -659,7 +664,7 @@ public class HexHabitatSpawner : MonoBehaviour
     /// Sinh điểm 2D ngẫu nhiên phân bố ĐỀU (Uniform Distribution) phủ kín toàn bộ 100% diện tích lục giác Pointed-Top,
     /// lan tỏa ra tận 6 góc nhọn và các cạnh biên mà không bị cắt tỉa hình tròn.
     /// </summary>
-    private Vector2 GetRandomPointInHexagon(float maxInnerRadius)
+    private Vector2 GetRandomPointInHexagon(float maxInnerRadius, DecorRandom rng)
     {
         if (maxInnerRadius <= 0.01f) return Vector2.zero;
 
@@ -670,8 +675,8 @@ public class HexHabitatSpawner : MonoBehaviour
         // Do đó tỉ lệ thành công là 75% ngay lần thử đầu tiên, đảm bảo phân bố hoàn toàn đồng đều ra tận 6 góc.
         for (int i = 0; i < 60; i++)
         {
-            float rx = Random.Range(-maxInnerRadius, maxInnerRadius);
-            float ry = Random.Range(-maxOuterRadius, maxOuterRadius);
+            float rx = rng.Range(-maxInnerRadius, maxInnerRadius);
+            float ry = rng.Range(-maxOuterRadius, maxOuterRadius);
 
             float absX = Mathf.Abs(rx);
             float absY = Mathf.Abs(ry);

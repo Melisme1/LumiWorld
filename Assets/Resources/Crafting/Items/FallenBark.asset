@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: FallenBark
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: resource.leafwood.fallen_bark
-  resourceName: "V\u1ECF c\xE2y r\u1EE5ng"
-  description: "V\u1ECF c\xE2y s\u1ED3i gi\xE0 r\u01A1i r\u1EE5ng trong r\u1EEBng
-    Leafwood, ch\u1EE9a nhi\u1EC1u th\u1EDB s\u1EE3i dai d\xF9ng l\xE0m gi\u1EA5y."
+  resourceName: "Fallen Bark"
+  description: "Sturdy oak bark peeled naturally from aged trunks in Leafwood, rich in fiber for papercraft."
   icon: {fileID: 21300000, guid: 0c5ddcdbd6c142147b340f9275ff197b, type: 3}
   resourceColor: {r: 0.48, g: 0.32, b: 0.2, a: 1}
   hexColor: '#7A5233'

@@ -47,6 +47,8 @@ namespace LumiWorld.Economy.Crafting
         public event Action<ActiveCraftingJob> OnJobClaimed;
         public event Action OnQueueChanged;
 
+        private EconomySaveSystem saveSystem;
+
         private void Awake()
         {
             if (_instance != null && _instance != this)
@@ -56,6 +58,116 @@ namespace LumiWorld.Economy.Crafting
             }
             _instance = this;
             InitializeTimers();
+
+            // Hàng chờ nằm trong bản lưu kinh tế của tài khoản: dựng lại mỗi lần vào đảo,
+            // nên đổi scene (World map, thăm đảo) hay mở lại game đều không mất mẻ đang chạy
+            if (!WorldLaunch.IsVisit) LoadFromSave();
+        }
+
+        private void OnDestroy()
+        {
+            if (saveSystem != null) saveSystem.PreparingSave -= CaptureToSave;
+            if (_instance == this) _instance = null;
+        }
+
+        /// <summary>Hủy hàng chờ đang chạy (New Game, đổi tài khoản); lần vào đảo kế tiếp nạp lại từ bản lưu mới.</summary>
+        public static void DestroyIfExists()
+        {
+            if (_instance != null) Destroy(_instance.gameObject);
+        }
+
+        // =========================================================
+        // LƯU / NẠP (economy_<id>.json)
+        // =========================================================
+
+        private static bool CanChange => !WorldLaunch.IsVisit && !SaveSync.SavesSuspended;
+
+        private void LoadFromSave()
+        {
+            saveSystem = EconomySaveSystem.Instance;
+            if (saveSystem == null) return;
+            saveSystem.PreparingSave += CaptureToSave;
+
+            EconomySaveData saved = saveSystem.Progress;
+            if (!DateTime.TryParse(saved.savedAtUtc, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+                    out DateTime savedAtUtc))
+                savedAtUtc = DateTime.UtcNow;
+            DateTime now = DateTime.UtcNow;
+
+            activeJobs.Clear();
+            foreach (CraftingJobRecord record in saved.craftingJobs)
+            {
+                if (record == null || string.IsNullOrEmpty(record.jobId)) continue;
+
+                var job = new ActiveCraftingJob
+                {
+                    jobId = record.jobId,
+                    recipeId = record.recipeId,
+                    quantity = record.quantity,
+                    timerId = "craft_" + record.jobId,
+                    durationSeconds = record.durationSeconds,
+                    isCompleted = record.isCompleted,
+                    isClaimed = false
+                };
+
+                if (job.Recipe == null)
+                    Debug.LogWarning($"[LumiWorld Chế Biến] Không tìm thấy công thức '{record.recipeId}' của mẻ {record.jobId}; giữ mẻ trong bản lưu.", this);
+
+                if (!job.isCompleted)
+                {
+                    // Chế biến chạy theo giờ thật cả khi tắt game; đồng hồ máy bị lùi thì giữ số giây đã lưu
+                    double remaining = Math.Min(record.durationSeconds, Math.Max(0, record.remainingSeconds));
+                    if (now >= savedAtUtc &&
+                        DateTime.TryParse(record.completeAtUtc, System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+                            out DateTime completeAt))
+                    {
+                        remaining = Math.Min(record.durationSeconds, (completeAt - now).TotalSeconds);
+                    }
+
+                    if (remaining <= 0) job.isCompleted = true;
+                    else timerService.StartCountdown(job.timerId, remaining, OfflineTimerPolicy.Advance);
+                }
+
+                activeJobs.Add(job);
+            }
+
+            if (activeJobs.Count > 0) OnQueueChanged?.Invoke();
+        }
+
+        // Ghi lại hàng chờ ngay trước mỗi lần EconomySaveSystem ghi file
+        private void CaptureToSave()
+        {
+            if (!CanChange || saveSystem == null) return;
+
+            DateTime now = DateTime.UtcNow;
+            List<CraftingJobRecord> records = saveSystem.Progress.craftingJobs;
+            records.Clear();
+            foreach (ActiveCraftingJob job in activeJobs)
+            {
+                if (job == null || job.isClaimed) continue;
+                double remaining = job.isCompleted ? 0 : GetRemainingSeconds(job);
+                records.Add(new CraftingJobRecord
+                {
+                    jobId = job.jobId,
+                    recipeId = job.recipeId,
+                    quantity = job.quantity,
+                    durationSeconds = job.durationSeconds,
+                    completeAtUtc = now.AddSeconds(remaining).ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                    remainingSeconds = remaining,
+                    isCompleted = job.isCompleted
+                });
+            }
+        }
+
+        // Ghi file ngay: thay đổi kho (trừ nguyên liệu / cộng thành phẩm) và hàng chờ vào cùng một lần ghi
+        private void SaveNow()
+        {
+            if (saveSystem == null) return;
+            saveSystem.MarkDirty();
+            if (!saveSystem.SaveNow())
+                Debug.LogWarning("[LumiWorld Chế Biến] Chưa ghi được hàng chờ chế biến; sẽ thử lại ở lần lưu kế tiếp.", this);
         }
 
         private void InitializeTimers()
@@ -100,6 +212,7 @@ namespace LumiWorld.Economy.Crafting
 
             if (changed)
             {
+                if (saveSystem != null && CanChange) saveSystem.MarkDirty();
                 OnQueueChanged?.Invoke();
             }
         }
@@ -111,28 +224,33 @@ namespace LumiWorld.Economy.Crafting
         public bool TryStartCrafting(CraftingRecipeData recipe, int quantity, out string failureReason)
         {
             failureReason = string.Empty;
+            if (!CanChange)
+            {
+                failureReason = "Không thể chế biến lúc này.";
+                return false;
+            }
             if (recipe == null)
             {
-                failureReason = "Công thức không hợp lệ.";
+                failureReason = "Invalid recipe.";
                 return false;
             }
 
             if (quantity <= 0)
             {
-                failureReason = "Số lượng chế biến phải lớn hơn 0.";
+                failureReason = "Crafting quantity must be greater than 0.";
                 return false;
             }
 
             if (activeJobs.Count >= maxConcurrentJobs)
             {
-                failureReason = $"Hàng đợi chế biến đã đầy ({maxConcurrentJobs}/{maxConcurrentJobs}). Hãy nhận bớt thành phẩm!";
+                failureReason = $"Crafting queue is full ({maxConcurrentJobs}/{maxConcurrentJobs}). Please claim completed items!";
                 return false;
             }
 
             var inventory = ResourceInventory.Instance;
             if (inventory == null)
             {
-                failureReason = "Kho tài nguyên chưa sẵn sàng.";
+                failureReason = "Resource warehouse is not ready.";
                 return false;
             }
 
@@ -140,7 +258,7 @@ namespace LumiWorld.Economy.Crafting
             var scaledInputs = CraftingCalculator.GetScaledInputs(recipe, quantity);
             if (!inventory.HasAll(scaledInputs))
             {
-                failureReason = "Không đủ nguyên liệu trong kho.";
+                failureReason = "Not enough materials in warehouse.";
                 return false;
             }
 
@@ -151,7 +269,7 @@ namespace LumiWorld.Economy.Crafting
                 int neededSpace = recipe.outputAmount * quantity;
                 if (freeSpace < neededSpace)
                 {
-                    failureReason = $"Kho không đủ chỗ chứa cho {neededSpace} {recipe.outputResource.resourceName} (chỉ còn trống {freeSpace}).";
+                    failureReason = $"Warehouse does not have enough space for {neededSpace} {recipe.outputResource.resourceName} (only {freeSpace} remaining).";
                     return false;
                 }
             }
@@ -159,7 +277,7 @@ namespace LumiWorld.Economy.Crafting
             // 3. Trừ nguyên liệu từ kho một cách an toàn
             if (!inventory.TryRemoveAll(scaledInputs))
             {
-                failureReason = "Lỗi khi trừ nguyên liệu kho.";
+                failureReason = "Error deducting materials from warehouse.";
                 return false;
             }
 
@@ -187,6 +305,9 @@ namespace LumiWorld.Economy.Crafting
                 InitializeTimers();
                 timerService.StartCountdown(timerId, totalDuration, OfflineTimerPolicy.Advance);
             }
+
+            // Nguyên liệu đã trừ khỏi kho: ghi kho và mẻ mới trong cùng một lần
+            SaveNow();
 
             OnJobStarted?.Invoke(job);
             OnQueueChanged?.Invoke();
@@ -227,41 +348,46 @@ namespace LumiWorld.Economy.Crafting
         public bool TryClaimJob(ActiveCraftingJob job, out string failureReason)
         {
             failureReason = string.Empty;
+            if (!CanChange)
+            {
+                failureReason = "Không thể nhận thành phẩm lúc này.";
+                return false;
+            }
             if (job == null)
             {
-                failureReason = "Mục chế biến không tồn tại.";
+                failureReason = "Crafting item does not exist.";
                 return false;
             }
 
             if (!job.isCompleted)
             {
-                failureReason = "Mẻ chế biến vẫn đang trong thời gian chờ.";
+                failureReason = "Crafting batch is still in progress.";
                 return false;
             }
 
             if (job.isClaimed)
             {
-                failureReason = "Thành phẩm đã được nhận trước đó.";
+                failureReason = "Items already claimed.";
                 return false;
             }
 
             var recipe = job.Recipe;
             if (recipe == null || recipe.outputResource == null)
             {
-                failureReason = "Dữ liệu công thức thành phẩm không hợp lệ.";
+                failureReason = "Invalid recipe output data.";
                 return false;
             }
 
             var inventory = ResourceInventory.Instance;
             if (inventory == null)
             {
-                failureReason = "Kho tài nguyên chưa sẵn sàng.";
+                failureReason = "Resource warehouse is not ready.";
                 return false;
             }
             int totalAmount = job.TotalOutputAmount;
             if (totalAmount <= 0 || !activeJobs.Contains(job))
             {
-                failureReason = "Mẻ chế biến hoặc số lượng thành phẩm không hợp lệ.";
+                failureReason = "Invalid crafting job or output quantity.";
                 return false;
             }
             if (!inventory.TryAddAll(new[] { new ResourceInventory.Deposit(recipe.outputResource, totalAmount) }, () =>
@@ -270,9 +396,12 @@ namespace LumiWorld.Economy.Crafting
                 activeJobs.Remove(job);
             }))
             {
-                failureReason = "Kho không đủ chỗ để nhận toàn bộ thành phẩm. Hãy dọn kho!";
+                failureReason = "Warehouse full! Clear space to claim finished goods.";
                 return false;
             }
+
+            // Thành phẩm đã vào kho và mẻ đã bỏ khỏi hàng chờ: ghi cùng một lần, không nhận lại được
+            SaveNow();
 
             OnJobClaimed?.Invoke(job);
             OnQueueChanged?.Invoke();

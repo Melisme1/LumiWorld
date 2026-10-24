@@ -36,72 +36,73 @@ public static class HabitatCreaturePanelStyle
     private static Sprite pencilIconSprite;
 
     private static readonly Dictionary<string, Sprite> detailBgCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, Sprite> resourceDetailCardCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, Sprite> creatureAvatarCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
 
-    // Bảng quy đổi toàn diện: Canonical Name, Tên tiếng Việt, Prefab 3D tương ứng
-    private static readonly Dictionary<string, (string canonicalName, string vietnameseName, string prefabName)> speciesMap =
+    // Bảng quy đổi toàn diện: Canonical Name, English Display Name, Prefab 3D tương ứng
+    private static readonly Dictionary<string, (string canonicalName, string englishName, string prefabName)> speciesMap =
         new Dictionary<string, (string, string, string)>(StringComparer.OrdinalIgnoreCase)
     {
-        { "caterpillar", ("Petaluff", "Sâu Bướm", "saubuom_anm") },
-        { "saubuom", ("Petaluff", "Sâu Bướm", "saubuom_anm") },
-        { "petaluff", ("Petaluff", "Sâu Bướm", "saubuom_anm") },
+        { "caterpillar", ("Petaluff", "Petaluff", "saubuom_anm") },
+        { "saubuom", ("Petaluff", "Petaluff", "saubuom_anm") },
+        { "petaluff", ("Petaluff", "Petaluff", "saubuom_anm") },
 
-        { "deer", ("Bramblet", "Nai Rừng", "nai_anm") },
-        { "nai", ("Bramblet", "Nai Rừng", "nai_anm") },
-        { "bramblet", ("Bramblet", "Nai Rừng", "nai_anm") },
+        { "deer", ("Bramblet", "Bramblet", "nai_anm") },
+        { "nai", ("Bramblet", "Bramblet", "nai_anm") },
+        { "bramblet", ("Bramblet", "Bramblet", "nai_anm") },
 
-        { "flyingsquirrel", ("Spriglide", "Sóc Bay", "socbay_anm") },
-        { "socbay", ("Spriglide", "Sóc Bay", "socbay_anm") },
-        { "spriglide", ("Spriglide", "Sóc Bay", "socbay_anm") },
+        { "flyingsquirrel", ("Spriglide", "Spriglide", "socbay_anm") },
+        { "socbay", ("Spriglide", "Spriglide", "socbay_anm") },
+        { "spriglide", ("Spriglide", "Spriglide", "socbay_anm") },
 
-        { "grasshopper", ("Frondle", "Châu Chấu", "chauchau_anm") },
-        { "chauchau", ("Frondle", "Châu Chấu", "chauchau_anm") },
-        { "frondle", ("Frondle", "Châu Chấu", "chauchau_anm") },
+        { "grasshopper", ("Frondle", "Frondle", "chauchau_anm") },
+        { "chauchau", ("Frondle", "Frondle", "chauchau_anm") },
+        { "frondle", ("Frondle", "Frondle", "chauchau_anm") },
 
-        { "flowerdog", ("Dandrift", "Chó Hoa", "chohoa_anm") },
-        { "chohoa", ("Dandrift", "Chó Hoa", "chohoa_anm") },
-        { "dandrift", ("Dandrift", "Chó Hoa", "chohoa_anm") },
+        { "flowerdog", ("Dandrift", "Dandrift", "chohoa_anm") },
+        { "chohoa", ("Dandrift", "Dandrift", "chohoa_anm") },
+        { "dandrift", ("Dandrift", "Dandrift", "chohoa_anm") },
 
-        { "peacock", ("Galume", "Chim Công", "chimcong_anm") },
-        { "chimcong", ("Galume", "Chim Công", "chimcong_anm") },
-        { "galume", ("Galume", "Chim Công", "chimcong_anm") },
+        { "peacock", ("Galume", "Galume", "chimcong_anm") },
+        { "chimcong", ("Galume", "Galume", "chimcong_anm") },
+        { "galume", ("Galume", "Galume", "chimcong_anm") },
 
-        { "highlandcow", ("Heathorn", "Bò Lông Dài", "bolongdai_anm") },
-        { "bolongdai", ("Heathorn", "Bò Lông Dài", "bolongdai_anm") },
-        { "heathorn", ("Heathorn", "Bò Lông Dài", "bolongdai_anm") },
+        { "highlandcow", ("Heathorn", "Heathorn", "bolongdai_anm") },
+        { "bolongdai", ("Heathorn", "Heathorn", "bolongdai_anm") },
+        { "heathorn", ("Heathorn", "Heathorn", "bolongdai_anm") },
 
-        { "dragonfly", ("Iriwing", "Chuồn Chuồn", "chuongchuong_anm") },
-        { "chuongchuong", ("Iriwing", "Chuồn Chuồn", "chuongchuong_anm") },
-        { "iriwing", ("Iriwing", "Chuồn Chuồn", "chuongchuong_anm") },
+        { "dragonfly", ("Iriwing", "Iriwing", "chuongchuong_anm") },
+        { "chuongchuong", ("Iriwing", "Iriwing", "chuongchuong_anm") },
+        { "iriwing", ("Iriwing", "Iriwing", "chuongchuong_anm") },
 
-        { "otter", ("Rivlet", "Rái Cá", "raica_anm") },
-        { "raica", ("Rivlet", "Rái Cá", "raica_anm") },
-        { "rivlet", ("Rivlet", "Rái Cá", "raica_anm") },
+        { "otter", ("Rivlet", "Rivlet", "raica_anm") },
+        { "raica", ("Rivlet", "Rivlet", "raica_anm") },
+        { "rivlet", ("Rivlet", "Rivlet", "raica_anm") },
 
-        { "capybara", ("Pebbara", "Capybara", "capybara_anm") },
-        { "pebbara", ("Pebbara", "Capybara", "capybara_anm") },
+        { "capybara", ("Pebbara", "Pebbara", "capybara_anm") },
+        { "pebbara", ("Pebbara", "Pebbara", "capybara_anm") },
 
-        { "grassfox", ("Fernkin", "Cáo Cỏ", "caoco_anm") },
-        { "caoco", ("Fernkin", "Cáo Cỏ", "caoco_anm") },
-        { "fernkin", ("Fernkin", "Cáo Cỏ", "caoco_anm") },
+        { "grassfox", ("Fernkin", "Fernkin", "caoco_anm") },
+        { "caoco", ("Fernkin", "Fernkin", "caoco_anm") },
+        { "fernkin", ("Fernkin", "Fernkin", "caoco_anm") },
 
-        { "blossomfrog", ("Puddleaf", "Ếch Hoa", "echhoa_anm") },
-        { "echhoa", ("Puddleaf", "Ếch Hoa", "echhoa_anm") },
-        { "puddleaf", ("Puddleaf", "Ếch Hoa", "echhoa_anm") },
+        { "blossomfrog", ("Puddleaf", "Puddleaf", "echhoa_anm") },
+        { "echhoa", ("Puddleaf", "Puddleaf", "echhoa_anm") },
+        { "puddleaf", ("Puddleaf", "Puddleaf", "echhoa_anm") },
 
-        { "parrot", ("Heliko", "Vẹt 7 Màu", "chimvet7mau_anm") },
-        { "chimvet7mau", ("Heliko", "Vẹt 7 Màu", "chimvet7mau_anm") },
-        { "heliko", ("Heliko", "Vẹt 7 Màu", "chimvet7mau_anm") },
+        { "parrot", ("Heliko", "Heliko", "chimvet7mau_anm") },
+        { "chimvet7mau", ("Heliko", "Heliko", "chimvet7mau_anm") },
+        { "heliko", ("Heliko", "Heliko", "chimvet7mau_anm") },
 
-        { "cow", ("Heathorn", "Bò Sữa", "bo_anm") },
-        { "bo", ("Heathorn", "Bò Sữa", "bo_anm") },
+        { "cow", ("Heathorn", "Heathorn", "bo_anm") },
+        { "bo", ("Heathorn", "Heathorn", "bo_anm") },
 
-        { "fox", ("Fernkin", "Cáo Lửa", "cao_anm") },
-        { "cao", ("Fernkin", "Cáo Lửa", "cao_anm") },
+        { "fox", ("Fernkin", "Fernkin", "cao_anm") },
+        { "cao", ("Fernkin", "Fernkin", "cao_anm") },
 
-        { "reedle", ("Reedle", "Chim Cò Lau", "thiennga_anm") },
-        { "craggle", ("Craggle", "Rùa Đá", "canoc_anm") },
-        { "lotelle", ("Lotelle", "Rùa Sen", "echduoica_anm") }
+        { "reedle", ("Reedle", "Reedle", "thiennga_anm") },
+        { "craggle", ("Craggle", "Craggle", "canoc_anm") },
+        { "lotelle", ("Lotelle", "Lotelle", "echduoica_anm") }
     };
 
     public static Sprite PanelBackground
@@ -397,6 +398,7 @@ public static class HabitatCreaturePanelStyle
         techArtBoxSprite = null;
         pencilIconSprite = null;
         detailBgCache.Clear();
+        resourceDetailCardCache.Clear();
         creatureAvatarCache.Clear();
     }
 
@@ -440,6 +442,49 @@ public static class HabitatCreaturePanelStyle
     }
 
     /// <summary>
+    /// Nạp khung nền bo tròn thuần màu Biome (Leafwood xanh lá, Reedmarsh xanh dương, Bloomfield hồng, Windheath xám),
+    /// cắt riêng phần đầu màu, không bị dính nền xám phía dưới.
+    /// </summary>
+    public static Sprite GetResourceDetailCardBackground(BiomeAffinity affinity)
+    {
+        string filename = GetResourceDetailCardFileName(affinity);
+        if (resourceDetailCardCache.TryGetValue(filename, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
+        string fullPath = "Assets/chitietthu_pannel/" + filename;
+        Sprite sp = LoadSpriteFromDisk(fullPath);
+        if (sp != null)
+        {
+            resourceDetailCardCache[filename] = sp;
+        }
+        return sp;
+    }
+
+    private static string GetResourceDetailCardFileName(BiomeAffinity affinity)
+    {
+        switch (affinity)
+        {
+            case BiomeAffinity.Leafwood:
+            case BiomeAffinity.Rainleaf:
+                return "chitiet_khung_xanhla.png";
+
+            case BiomeAffinity.Reedmarsh:
+            case BiomeAffinity.Lilywater:
+                return "chitiet_khung_xanhduong.png";
+
+            case BiomeAffinity.Bloomfield:
+                return "chitiet_khung_hong.png";
+
+            case BiomeAffinity.Windheath:
+            case BiomeAffinity.Streamstone:
+            default:
+                return "chitiet_khung_xam.png";
+        }
+    }
+
+    /// <summary>
     /// Tra cứu toàn diện: Tên tiếng Việt, Tên tệp Avatar chuẩn, Prefab 3D từ Resources và Card Sprite fallback
     /// </summary>
     public static (string displayName, string canonicalAvt, GameObject modelPrefab, Sprite cardSprite) ResolveCreatureData(string speciesId)
@@ -454,7 +499,7 @@ public static class HabitatCreaturePanelStyle
         if (speciesMap.TryGetValue(clean, out var mapped))
         {
             canonical = mapped.canonicalName;
-            dispName = mapped.vietnameseName;
+            dispName = mapped.englishName;
             pName = mapped.prefabName;
         }
 
@@ -734,14 +779,14 @@ public static class HabitatCreaturePanelStyle
     {
         switch (affinity)
         {
-            case BiomeAffinity.Leafwood: return "Rừng Leafwood";
-            case BiomeAffinity.Bloomfield: return "Đồng Hoa Bloomfield";
-            case BiomeAffinity.Windheath: return "Thảo Nguyên Windheath";
-            case BiomeAffinity.Reedmarsh: return "Đầm Lau Reedmarsh";
-            case BiomeAffinity.Lilywater: return "Hồ Sen Lilywater";
-            case BiomeAffinity.Streamstone: return "Suối Đá Streamstone";
-            case BiomeAffinity.Rainleaf: return "Rừng Mưa Rainleaf";
-            default: return "Vùng Đất Tự Nhiên";
+            case BiomeAffinity.Leafwood: return "Leafwood Forest";
+            case BiomeAffinity.Bloomfield: return "Bloomfield Plains";
+            case BiomeAffinity.Windheath: return "Windheath Plateau";
+            case BiomeAffinity.Reedmarsh: return "Reedmarsh";
+            case BiomeAffinity.Lilywater: return "Lilywater Lake";
+            case BiomeAffinity.Streamstone: return "Streamstone";
+            case BiomeAffinity.Rainleaf: return "Rainleaf Forest";
+            default: return "Natural Habitat";
         }
     }
 
@@ -751,21 +796,21 @@ public static class HabitatCreaturePanelStyle
         {
             case BiomeAffinity.Leafwood:
             case BiomeAffinity.Rainleaf:
-                return "Lá mầm ngọt & Quả rừng tươi";
+                return "Sweet Sprouts & Wild Berries";
 
             case BiomeAffinity.Bloomfield:
-                return "Mật hoa tinh khiết & Cánh hoa thơm";
+                return "Pure Nectar & Fragrant Petals";
 
             case BiomeAffinity.Windheath:
             case BiomeAffinity.Streamstone:
-                return "Khoáng thạch & Hạt thông";
+                return "Mineral Stones & Pine Nuts";
 
             case BiomeAffinity.Reedmarsh:
             case BiomeAffinity.Lilywater:
-                return "Rong biển ngọc & Tảo non";
+                return "Gem Kelp & Fresh Algae";
 
             default:
-                return "Thảo mộc tự nhiên & Trái cây";
+                return "Natural Herbs & Fruits";
         }
     }
 

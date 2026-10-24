@@ -68,7 +68,7 @@ namespace LumiWorld.Acs
         }
         public void FeedSelected()
         {
-            string message = "Chọn một cư dân trước.";
+            string message = "Select a resident first.";
             if (production != null && !string.IsNullOrEmpty(IndividualId)) production.TryFeed(HabitatId, IndividualId, out message);
             try { onActionMessage.Invoke(message); } catch (Exception exception) { Debug.LogException(exception, this); }
             Refresh();
@@ -77,14 +77,14 @@ namespace LumiWorld.Acs
         public void SetPantryTransferAmount(int amount) => pantryTransferAmount = Math.Max(1, amount);
         public void DepositSelectedFood()
         {
-            string message = "Chọn một cư dân trước.";
+            string message = "Select a resident first.";
             if (production != null && !string.IsNullOrEmpty(IndividualId))
                 production.DepositCreatureFood(HabitatId, IndividualId, pantryFoodId, pantryTransferAmount, out message);
             PublishMessage(message); Refresh();
         }
         public void WithdrawSelectedFood()
         {
-            string message = "Chọn một cư dân trước.";
+            string message = "Select a resident first.";
             if (production != null && !string.IsNullOrEmpty(IndividualId))
                 production.WithdrawCreatureFood(IndividualId, pantryFoodId, pantryTransferAmount, out message);
             PublishMessage(message); Refresh();

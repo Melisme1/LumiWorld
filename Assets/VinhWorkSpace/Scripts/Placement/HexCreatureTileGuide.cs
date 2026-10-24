@@ -205,11 +205,11 @@ public class HexCreatureTileGuide : MonoBehaviour
             GameObject tileObj = pair.Value;
             if (tileObj == null) continue;
 
-            // 1. Ô ĐÃ CÓ THÚ SINH SỐNG (Báo đỏ ngắn gọn: "Đã có thú rồi")
+            // 1. Ô ĐÃ CÓ THÚ SINH SỐNG (Báo đỏ ngắn gọn: "Creature present")
             if (validator != null && validator.HasPlacedCreature(tileObj))
             {
                 AnimalVisualEnhancer animal = tileObj.GetComponentInChildren<AnimalVisualEnhancer>();
-                CreateTileGuideVisual(coords, tileObj, true, "Đã có thú rồi", animal);
+                CreateTileGuideVisual(coords, tileObj, true, "Creature present", animal);
 
                 if (animal != null)
                 {
@@ -220,7 +220,7 @@ public class HexCreatureTileGuide : MonoBehaviour
             // 2. Ô TRỐNG HỢP LỆ (Có thể đặt thú này -> Sáng bừng xanh lá toàn bộ)
             else if (validator != null && validator.ValidatePlacement(coords, worldGen, creatureCard, out _))
             {
-                CreateTileGuideVisual(coords, tileObj, false, "Đặt vào đây", null);
+                CreateTileGuideVisual(coords, tileObj, false, "Place here", null);
             }
         }
     }

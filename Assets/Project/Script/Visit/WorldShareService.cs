@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public static class WorldShareService
 {
-    public const int MaxSnapshotBytes = 100 * 1024;
+    public const int MaxSnapshotBytes = 300 * 1024;   // khớp WorldEndpoints.MaxSnapshotBytes trên server
     /// <summary>Lưới bản đồ rộng 10 cột (khớp WorldEndpoints.MapColumns trên server).</summary>
     public const int MapColumns = 10;
 
@@ -191,13 +191,22 @@ public static class WorldShareService
         {
             score = score,
             tiles = world.tiles ?? new List<TileRecord>(),
-            placements = world.placements ?? new List<PlacementRecord>(),
         };
+
+        // Chỉ gửi phần người thăm cần; bản lưu của mình không đổi
+        if (world.placements != null)
+            foreach (PlacementRecord record in world.placements)
+                if (record != null) snapshot.placements.Add(SnapshotPlacement.From(record));
+
+        // Ô cháy thành tro (bước 8), để người thăm thấy ô đen và không có cây như chủ đảo
+        if (world.disasters != null && world.disasters.tiles != null)
+            foreach (DisasterTileRecord tile in world.disasters.tiles)
+                if (tile != null && tile.isBurned) snapshot.burned.Add(new HexPointRecord { q = tile.q, r = tile.r });
 
         string json = JsonUtility.ToJson(snapshot);
         if (Encoding.UTF8.GetByteCount(json) > MaxSnapshotBytes)
         {
-            error = "The island is too large to share (over 100 KB).";
+            error = "The island is too large to share (over 300 KB).";
             return null;
         }
 

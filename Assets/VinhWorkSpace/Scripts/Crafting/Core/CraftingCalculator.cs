@@ -137,7 +137,7 @@ namespace LumiWorld.Economy.Crafting
             if (recipe == null) return string.Empty;
 
             var rawMap = CalculateRawBreakdown(recipe);
-            if (rawMap.Count == 0) return "Không có nguyên liệu yêu cầu";
+            if (rawMap.Count == 0) return "No raw materials required";
 
             var sb = new StringBuilder();
             int index = 0;

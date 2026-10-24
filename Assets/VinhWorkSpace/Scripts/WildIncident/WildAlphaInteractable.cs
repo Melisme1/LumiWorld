@@ -175,7 +175,7 @@ public class WildAlphaInteractable : MonoBehaviour
         titleRect.anchoredPosition = new Vector2(0f, 275f);
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) titleText.font = fontAsset;
-        titleText.text = "Thú Đầu Đàn Xuất Hiện";
+        titleText.text = "Alpha Creature Emerged";
         titleText.fontSize = 28f;
         titleText.fontStyle = FontStyles.Bold;
         titleText.alignment = TextAlignmentOptions.Center;
@@ -208,7 +208,7 @@ public class WildAlphaInteractable : MonoBehaviour
         string speciesName = GetSpeciesDisplayName();
         AnimalRank alphaRank = associatedIncident != null ? associatedIncident.AlphaRank : AnimalRank.Common;
         string rankTitle = GetRankDisplayName(alphaRank);
-        string hostBiome = associatedIncident?.HostCluster != null ? associatedIncident.HostCluster.BiomeName : "Đất Hoang";
+        string hostBiome = associatedIncident?.HostCluster != null ? associatedIncident.HostCluster.BiomeName : "Wilderness";
 
         GameObject creatureInfoObj = new GameObject("CreatureInfo");
         creatureInfoObj.transform.SetParent(insetObj.transform, false);
@@ -223,8 +223,8 @@ public class WildAlphaInteractable : MonoBehaviour
         creatureInfoText.alignment = TextAlignmentOptions.Center;
         creatureInfoText.color = skin != null ? skin.forest : new Color(0.24f, 0.35f, 0.25f, 1f);
         creatureInfoText.text =
-            $"<b>{speciesName} Đầu Đàn</b>\n" +
-            $"<size=16><color=#854D0E><b>{rankTitle}</b></color>  •  <color=#4B5563>Cụm {hostBiome}</color></size>";
+            $"<b>Alpha {speciesName}</b>\n" +
+            $"<size=16><color=#854D0E><b>{rankTitle}</b></color>  •  <color=#4B5563>{hostBiome} Cluster</color></size>";
 
         // B. Hộp Cảnh Báo Phong Tỏa & Hướng Dẫn Tự Nhiên (Phần giữa inset)
         GameObject alertCardObj = new GameObject("AlertCard");
@@ -247,7 +247,7 @@ public class WildAlphaInteractable : MonoBehaviour
         alertHeaderRect.anchoredPosition = new Vector2(0f, 68f);
         TextMeshProUGUI alertHeaderText = alertHeaderObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) alertHeaderText.font = fontAsset;
-        alertHeaderText.text = "Khu Vực Bị Phong Tỏa";
+        alertHeaderText.text = "Territory Blocked";
         alertHeaderText.fontSize = 17.5f;
         alertHeaderText.fontStyle = FontStyles.Bold;
         alertHeaderText.alignment = TextAlignmentOptions.TopLeft;
@@ -267,8 +267,8 @@ public class WildAlphaInteractable : MonoBehaviour
         alertText.color = new Color(0.20f, 0.24f, 0.22f, 1f);
         alertText.alignment = TextAlignmentOptions.TopLeft;
         alertText.text =
-            $"Đàn thú đang chiếm giữ cụm <b>{hostBiome}</b>, khiến các ô đất tạm ngừng sinh tài nguyên.\n\n" +
-            $"Hãy thuần hóa để giải phóng hòn đảo và nhận thẻ thú vào bộ bài!";
+            $"The wild pack is occupying the <b>{hostBiome}</b> cluster, temporarily halting resource production.\n\n" +
+            $"Tame them to free the island and earn a creature card!";
 
         // 5. Nút Bấm Hành Động (Bottom Actions - 2 nút lớn 310x56px cân đối, sang trọng)
         // Nút Xanh: Thuần Hóa
@@ -280,7 +280,7 @@ public class WildAlphaInteractable : MonoBehaviour
             skin != null ? skin.buttonPrimary : null,
             skin != null ? skin.buttonPPU : 8f,
             new Color(0.24f, 0.52f, 0.30f, 1f),
-            "Thuần Hóa",
+            "Tame",
             fontAsset,
             skin != null ? skin.ivory : Color.white,
             () => {
@@ -291,7 +291,7 @@ public class WildAlphaInteractable : MonoBehaviour
                     {
                         SpeciesName = GetSpeciesDisplayName(),
                         Rank = associatedIncident.AlphaRank,
-                        BiomeName = associatedIncident.HostCluster != null ? associatedIncident.HostCluster.BiomeName : "Đất Hoang",
+                        BiomeName = associatedIncident.HostCluster != null ? associatedIncident.HostCluster.BiomeName : "Wilderness",
                         CreatureCard = associatedIncident.AlphaCreatureCard,
                         Incident = associatedIncident,
                         TimeLimitSeconds = 24f
@@ -320,7 +320,7 @@ public class WildAlphaInteractable : MonoBehaviour
             skin != null ? skin.buttonSecondary : null,
             skin != null ? skin.buttonPPU : 8f,
             new Color(0.88f, 0.85f, 0.78f, 1f),
-            "Để Lại",
+            "Leave",
             fontAsset,
             skin != null ? skin.forest : new Color(0.24f, 0.35f, 0.25f, 1f),
             CloseModal
@@ -447,37 +447,26 @@ public class WildAlphaInteractable : MonoBehaviour
             var card = associatedIncident.AlphaCreatureCard;
             if (card.animalSpeciesData != null && !string.IsNullOrEmpty(card.animalSpeciesData.speciesName))
             {
-                return card.animalSpeciesData.speciesName;
+                return CardShop.TranslateToEnglish(card.animalSpeciesData.speciesName, card.animalSpeciesData.speciesID);
             }
             if (!string.IsNullOrEmpty(card.cardName))
             {
-                return card.cardName switch
-                {
-                    "Cow" => "Bò Sữa",
-                    "Deer" => "Hươu Sao",
-                    "Fox" => "Cáo Đỏ",
-                    "Capybara" => "Chuột Lang Capybara",
-                    "Peacock" => "Chim Công",
-                    "Parrot" => "Vẹt Nam Mỹ",
-                    "Dragonfly" => "Chuồn Chuồn Ngọc",
-                    "Otter" => "Rái Cá",
-                    _ => card.cardName
-                };
+                return CardShop.TranslateToEnglish(card.cardName, card.cardID);
             }
         }
-        return "Linh Thú";
+        return "Creature";
     }
 
     private static string GetRankDisplayName(AnimalRank rank)
     {
         return rank switch
         {
-            AnimalRank.Common => "Cấp 1 - Phổ thông",
-            AnimalRank.Uncommon => "Cấp 2 - Hảo hạng",
-            AnimalRank.Rare => "Cấp 3 - Quý hiếm",
-            AnimalRank.Epic => "Cấp 4 - Sử thi",
-            AnimalRank.Legendary => "Cấp 5 - Huyền thoại",
-            _ => $"Cấp {(int)rank}"
+            AnimalRank.Common => "Tier 1 - Common",
+            AnimalRank.Uncommon => "Tier 2 - Uncommon",
+            AnimalRank.Rare => "Tier 3 - Rare",
+            AnimalRank.Epic => "Tier 4 - Epic",
+            AnimalRank.Legendary => "Tier 5 - Legendary",
+            _ => $"Tier {(int)rank}"
         };
     }
 
