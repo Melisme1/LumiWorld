@@ -56,6 +56,9 @@ public class ScoreManager : MonoBehaviour
         }
 
         Instance = this;
+        currentScore = 0;
+        grantedMilestoneIndices.Clear();
+        nextEndlessThreshold = -1;
 
         nextRewardScore =
             scorePerReward;

@@ -26,9 +26,8 @@ public class HexGroupDetector : MonoBehaviour
         if (startCard == null || startCard.cardData == null)
             return group;
 
-        // Các card đánh dấu alwaysBaseScore (Rain) luôn đứng RIÊNG, không gom nhóm với ai
-        // để đảm bảo chúng luôn chỉ cộng +baseScore.
-        if (startCard.cardData.alwaysBaseScore)
+        // Các card đánh dấu alwaysBaseScore (Rain) hoặc River luôn đứng RIÊNG, không gom nhóm theo CardType
+        if (startCard.cardData.alwaysBaseScore || startCard.cardData.IsRiverCard())
         {
             group.Add(startCard);
             return group;
@@ -49,8 +48,8 @@ public class HexGroupDetector : MonoBehaviour
             if (card == null || card.cardData == null)
                 continue;
 
-            // Card alwaysBaseScore (Rain) không tham gia gom nhóm
-            if (card.cardData.alwaysBaseScore)
+            // Card alwaysBaseScore (Rain) hoặc River không tham gia gom nhóm theo CardType
+            if (card.cardData.alwaysBaseScore || card.cardData.IsRiverCard())
                 continue;
 
             // Chỉ gom nhóm các thẻ cùng loại (Creature với Creature, Terrain với Terrain)

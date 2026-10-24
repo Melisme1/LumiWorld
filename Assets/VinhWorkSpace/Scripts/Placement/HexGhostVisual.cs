@@ -310,6 +310,17 @@ public class HexGhostVisual : MonoBehaviour
         if (cardData == null) return null;
         // Thẻ biến đổi địa hình (như Rain) không sinh vật phẩm nổi lên trên mặt ô
         if (cardData.IsTileTransformCard()) return null;
+        if (cardData.IsRiverCard())
+        {
+            if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.Config != null)
+            {
+                bool isFirstRiverTile = (RiverNetworkManager.Instance.RiverMap == null || RiverNetworkManager.Instance.RiverMap.Count == 0);
+                return isFirstRiverTile
+                    ? RiverNetworkManager.Instance.Config.springHeadPrefab
+                    : RiverNetworkManager.Instance.Config.straightPrefab;
+            }
+        }
+
         if (cardData.prefabToPlace != null) return cardData.prefabToPlace;
 
         if (cardData.HasHabitatProps())
@@ -322,6 +333,7 @@ public class HexGhostVisual : MonoBehaviour
                 }
             }
         }
+
         return null;
     }
 

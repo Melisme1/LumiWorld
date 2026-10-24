@@ -66,6 +66,14 @@ public class HexHabitatSpawner : MonoBehaviour
         // Danh sách lưu tọa độ cục bộ (X, Z), bán kính chiếm dụng, và clusterId
         List<(Vector2 pos2D, float clearanceRadius, int clusterId)> placedProps = new List<(Vector2, float, int)>();
 
+        HexTileInfo tileInfo = tileTransform.GetComponent<HexTileInfo>();
+        RiverTileSegment riverSeg = null;
+        if (tileInfo != null && RiverNetworkManager.Instance != null)
+        {
+            RiverNetworkManager.Instance.RiverMap.TryGetValue(tileInfo.coordinates, out riverSeg);
+        }
+        bool tileHasRiver = (riverSeg != null);
+
         // Bán kính vùng an toàn của ô hex (Pointed-top: InnerRadius = 1.0f)
         float maxHexRadius = HexMetrics.InnerRadius * Mathf.Clamp(cardData.habitatSpawnMargin, 0.5f, 1.05f);
 
@@ -130,19 +138,27 @@ public class HexHabitatSpawner : MonoBehaviour
                     bool foundClusterCenter = false;
                     float bestCenterScore = -1f;
 
-                    for (int tryCenter = 0; tryCenter < 40; tryCenter++)
+                    int maxCenterAttempts = tileHasRiver ? 80 : 40;
+                    for (int tryCenter = 0; tryCenter < maxCenterAttempts; tryCenter++)
                     {
                         Vector2 sampleCenter = GetRandomPointInHexagon(allowedCenterRadius);
                         float minDist = float.MaxValue;
                         bool farEnough = true;
+
+                        if (tileHasRiver && IsTooCloseToRiver(sampleCenter, riverSeg, true, false))
+                        {
+                            farEnough = false;
+                        }
+
+                        // Khi có suối hoặc sau nhiều lần thử, nới lỏng nhẹ khoảng cách để tận dụng tối đa đất khô 2 bên bờ
+                        float distRelax = (tryCenter >= 40) ? 0.60f : 0.80f;
+                        float requiredDist = Mathf.Max(0.12f, rule.minDistance * distRelax);
 
                         foreach (var placed in placedProps)
                         {
                             float d = Vector2.Distance(sampleCenter, placed.pos2D);
                             if (d < minDist) minDist = d;
 
-                            // Khoảng cách tối thiểu giữa tâm cụm với các prop khác (dựa trên minDistance)
-                            float requiredDist = Mathf.Max(0.18f, rule.minDistance * 0.80f);
                             if (d < requiredDist)
                             {
                                 farEnough = false;
@@ -193,7 +209,8 @@ public class HexHabitatSpawner : MonoBehaviour
                             Vector2 bestSpotInCluster = clusterCenter;
                             float bestDistToSibling = -1f;
 
-                            for (int trySpot = 0; trySpot < 30; trySpot++)
+                            int maxSpotAttempts = tileHasRiver ? 50 : 30;
+                            for (int trySpot = 0; trySpot < maxSpotAttempts; trySpot++)
                             {
                                 float angle = Random.Range(0f, Mathf.PI * 2f);
                                 float dist = Random.Range(0.08f, clusterRadius);
@@ -201,9 +218,13 @@ public class HexHabitatSpawner : MonoBehaviour
 
                                 float siblingFootprint = GetPrefabHorizontalFootprint(selectedPrefab, rule, randomScale);
                                 if (!IsPointInHexagon(candidateSpot, Mathf.Max(0.12f, maxHexRadius - siblingFootprint))) continue;
+                                if (tileHasRiver && IsTooCloseToRiver(candidateSpot, riverSeg, false, false)) continue;
 
                                 bool validWithAll = true;
                                 float minSiblingDist = float.MaxValue;
+
+                                float siblingMinD = (trySpot >= 25) ? 0.07f : 0.09f;
+                                float externalMinD = (trySpot >= 25) ? Mathf.Max(0.10f, rule.minDistance * 0.45f) : Mathf.Max(0.14f, rule.minDistance * 0.60f);
 
                                 foreach (var placed in placedProps)
                                 {
@@ -211,8 +232,8 @@ public class HexHabitatSpawner : MonoBehaviour
 
                                     if (placed.clusterId == thisClusterId)
                                     {
-                                        // Các bụi anh em trong cùng 1 cụm: cho phép đứng gần nhau (0.09m - 0.12m)
-                                        if (d < 0.09f)
+                                        // Các bụi anh em trong cùng 1 cụm: cho phép đứng gần nhau (0.07m - 0.12m)
+                                        if (d < siblingMinD)
                                         {
                                             validWithAll = false;
                                             break;
@@ -222,7 +243,7 @@ public class HexHabitatSpawner : MonoBehaviour
                                     else
                                     {
                                         // Với các prop ngoài cụm: giữ khoảng cách mềm
-                                        if (d < Mathf.Max(0.14f, rule.minDistance * 0.60f))
+                                        if (d < externalMinD)
                                         {
                                             validWithAll = false;
                                             break;
@@ -281,6 +302,8 @@ public class HexHabitatSpawner : MonoBehaviour
 
                     if (rule.placeAtCenter)
                     {
+                        if (tileHasRiver) continue; // Bỏ qua cây đại thụ ở tâm khi ô này đã có suối chảy qua!
+
                         bool centerOccupied = false;
                         foreach (var placed in placedProps)
                         {
@@ -312,19 +335,27 @@ public class HexHabitatSpawner : MonoBehaviour
                         Vector2 bestSpot = Vector2.zero;
                         float bestScore = -1f;
 
-                        for (int trySample = 0; trySample < maxAttempts; trySample++)
+                        int attemptsForThisProp = tileHasRiver ? 60 : 40;
+                        for (int trySample = 0; trySample < attemptsForThisProp; trySample++)
                         {
                             Vector2 sample = GetRandomPointInHexagon(allowedRadius);
                             float minDist = float.MaxValue;
                             bool isFarEnough = true;
+
+                            bool isHeavy = rule != null && (rule.minDistance > 0.40f || !rule.clusterAsPatch);
+                            if (tileHasRiver && IsTooCloseToRiver(sample, riverSeg, false, isHeavy))
+                            {
+                                isFarEnough = false;
+                            }
+
+                            float minRequired = (trySample >= 30) ? Mathf.Max(0.12f, rule.minDistance * 0.65f) : rule.minDistance;
 
                             foreach (var placed in placedProps)
                             {
                                 float d = Vector2.Distance(sample, placed.pos2D);
                                 if (d < minDist) minDist = d;
 
-                                // Kiểm tra khoảng cách: minDistance của rule chính là tiêu chuẩn ngăn cách
-                                float requiredDist = Mathf.Max(rule.minDistance, placed.clearanceRadius * 0.85f);
+                                float requiredDist = Mathf.Max(minRequired, placed.clearanceRadius * 0.75f);
                                 if (d < requiredDist)
                                 {
                                     isFarEnough = false;
@@ -363,6 +394,66 @@ public class HexHabitatSpawner : MonoBehaviour
             }
         }
 
+        // Tự động kích hoạt RiverPropHarmonizer sau khi sinh xong để đảm bảo 100% không có hoa cỏ nào đè lên sông
+        if (tileHasRiver && riverSeg != null)
+        {
+            RiverPropHarmonizer.HarmonizePropsForRiver(
+                tileTransform.gameObject,
+                riverSeg.pieceType,
+                riverSeg.currentRotationY,
+                riverSeg.flowStep == 0 && (riverSeg.connectedPortsMask == 0),
+                this,
+                riverSeg
+            );
+        }
+    }
+
+    /// <summary>
+    /// Kiểm tra xem một vị trí prop có bị lấn/đè vào hành lang sông suối hoặc hang nguồn hay không.
+    /// Đảm bảo tất cả cây cối, bụi hoa chỉ mọc xung quanh bờ suối chứ tuyệt đối không đè lên sông.
+    /// </summary>
+    public static bool IsTooCloseToRiver(Vector2 localPos2D, RiverTileSegment seg, bool isClusterCenter, bool isHeavy)
+    {
+        if (seg == null) return false;
+
+        // Bán kính vùng cấm xung quanh suối:
+        // Đoạn mương đá có nửa bề rộng ~0.14m. Cỏ và hoa có thể mọc ven mép mương (0.18m).
+        // Cụm hoa cần 0.26m để tâm cụm không quá sát đá. Cây lớn cần 0.38m để không che lòng suối.
+        float reqDist = isClusterCenter ? 0.26f : (isHeavy ? 0.38f : 0.18f);
+
+        if (seg.pieceType == RiverPieceType.SpringHead)
+        {
+            if (localPos2D.magnitude < (isHeavy ? 0.45f : 0.30f)) return true;
+        }
+
+        if (seg.CachedPaths != null && seg.CachedPaths.Count > 0)
+        {
+            for (int p = 0; p < seg.CachedPaths.Count; p++)
+            {
+                var path = seg.CachedPaths[p];
+                for (int i = 0; i < path.Count; i++)
+                {
+                    float d = Vector2.Distance(localPos2D, new Vector2(path[i].position.x, path[i].position.z));
+                    if (d < reqDist) return true;
+                }
+            }
+        }
+        else
+        {
+            for (int d = 0; d < 6; d++)
+            {
+                if (seg.HasPort(d))
+                {
+                    Vector3 portLocal = RiverSplinePath.GetEdgeMidpointLocal(d);
+                    float distToPort = Vector2.Distance(localPos2D, new Vector2(portLocal.x, portLocal.z));
+                    if (distToPort < reqDist) return true;
+                }
+            }
+
+            if (localPos2D.magnitude < reqDist) return true;
+        }
+
+        return false;
     }
 
     /// <summary>

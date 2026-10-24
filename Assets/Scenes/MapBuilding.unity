@@ -273,6 +273,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 34622036}
   m_CullTransparentMesh: 1
+--- !u!1 &58995563
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 58995565}
+  - component: {fileID: 58995564}
+  m_Layer: 0
+  m_Name: RiverNetworkManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &58995564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 58995563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa306779ab726884187d899a34a81610, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RiverNetworkManager
+  riverConfig: {fileID: 0}
+--- !u!4 &58995565
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 58995563}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &74655633
 GameObject:
   m_ObjectHideFlags: 0
@@ -1483,6 +1528,73 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &968261115
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 968261117}
+  - component: {fileID: 968261116}
+  m_Layer: 0
+  m_Name: HexBiomeClusterConnector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &968261116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 968261115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d33a63c3aaec2240af7ecf5ec8710e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HexBiomeClusterConnector
+  bridgeYOffset: 0.0012
+  cornerFillerRadius: 0.12
+  spawnConnectorProps: 1
+  mediumPropChance: 0.5
+  vegetationPriority: 0.9
+  propsPerEdgeRange: {x: 2, y: 4}
+  minMediumClearance: 0.24
+  minSmallClearance: 0.11
+  spawnSeamMicroGrass: 1
+  seamMicroGrassPrefab: {fileID: 2504055665502931040, guid: 731be306e5239b34f9b207405909774b, type: 3}
+  seamMicroGrassCountRange: {x: 5, y: 8}
+  cornerMicroGrassCountRange: {x: 4, y: 7}
+  seamMicroGrassScaleRange: {x: 1.1, y: 1.8}
+  seamMicroGrassGroundEmbed: 0.005
+  spawnCornerProps: 1
+  allowMediumPropAtCorner: 1
+  cornerMediumPropChance: 0.5
+  cornerSmallPropsRange: {x: 2, y: 3}
+  enableCelebration: 1
+  celebrationBounceHeight: 0.065
+  celebrationDuration: 0.35
+  enableBiomeSizeLimit: 1
+  maxTilesPerCluster: 9
+--- !u!4 &968261117
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 968261115}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1003825507
 GameObject:
   m_ObjectHideFlags: 0
@@ -2367,10 +2479,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
-  maxSpacing: 220
-  minSpacing: 60
-  handWidth: 800
-  cardWidth: 20
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+  maxSpacing: 165
+  minSpacing: 120
+  handWidth: 900
+  cardWidth: 150
   appearDelay: 0.1
   rearrangeDuration: 0.25
   showRewardToast: 0
@@ -3243,3 +3358,5 @@ SceneRoots:
   - {fileID: 953997785}
   - {fileID: 770000012}
   - {fileID: 305089949}
+  - {fileID: 968261117}
+  - {fileID: 58995565}

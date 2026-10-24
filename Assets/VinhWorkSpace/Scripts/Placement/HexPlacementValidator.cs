@@ -109,6 +109,87 @@ public class HexPlacementValidator : MonoBehaviour
             return false;
         }
 
+        // 0.8 Kiểm tra thẻ Sông Suối (River Card)
+        if (cardData != null && cardData.IsRiverCard())
+        {
+            // Ô đã có dòng suối từ trước -> Không cho đặt đè
+            if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
+            {
+                lastValidationError = "Ô này đã có dòng suối";
+                return false;
+            }
+
+            // Ô đang có thú sinh sống trực tiếp -> Không cho đặt trực tiếp lên thú
+            if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
+            {
+                lastValidationError = "Ô này đang có thú sinh sống. Hãy đặt suối ở ô lân cận để tạo bến nước!";
+                return false;
+            }
+
+            // BẮT BUỘC: Ô này phải ĐÃ ĐẶT thẻ Môi trường (Biome / Terrain card)
+            if (!HasPlacedTerrain(tileObj))
+            {
+                lastValidationError = "Cần đặt thẻ Môi trường (Biome) trước khi khai thông dòng suối!";
+                return false;
+            }
+
+            // Quy tắc đặt suối: Khởi nguồn từ đỉnh cao nhất & Nối tiếp dòng chảy dốc xuống (Elevation Origin & Downhill Rule)
+            HexTileInfo tileInfo = tileObj.GetComponent<HexTileInfo>();
+            var (targetTopY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
+
+            List<HexCoordinates> riverNeighbors = new List<HexCoordinates>();
+            if (RiverNetworkManager.Instance != null)
+            {
+                for (int dir = 0; dir < 6; dir++)
+                {
+                    HexCoordinates n = coords.GetNeighbor(dir);
+                    if (RiverNetworkManager.Instance.HasRiver(n))
+                    {
+                        riverNeighbors.Add(n);
+                    }
+                }
+            }
+
+            // TRƯỜNG HỢP 1: ĐẶT Ô THƯỢNG NGUỒN (Độc lập, chưa kề ô suối nào)
+            if (riverNeighbors.Count == 0)
+            {
+                // Thượng nguồn BẮT BUỘC phải bắt đầu từ Tầng trung (Tier 1) hoặc Tầng cao (Tier 2): topY >= 1.35m
+                // Không cho phép đặt nguồn ở vùng thung lũng trũng thấp nhất (Tier 0)
+                if (targetTopY < 1.35f)
+                {
+                    lastValidationError = "Thượng nguồn suối phải bắt đầu từ Tầng trung (đồi) hoặc Tầng cao (núi) để có độ dốc dòng chảy!";
+                    return false;
+                }
+            }
+            // TRƯỜNG HỢP 2: NỐI TIẾP DÒNG SUỐI ĐÃ CÓ (Kề ít nhất 1 ô suối)
+            else
+            {
+                // DỐC ĐỊA HÌNH: Nước chỉ chảy dốc xuống hoặc bằng phẳng, TUYỆT ĐỐI không thể chảy ngược lên dốc cao hơn!
+                bool canFlowDownhill = false;
+                foreach (var nCoords in riverNeighbors)
+                {
+                    if (worldGen.MapTiles.TryGetValue(nCoords, out GameObject nTileObj) && nTileObj != null)
+                    {
+                        var (nTopY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(nTileObj);
+                        if (targetTopY <= nTopY + 0.15f)
+                        {
+                            canFlowDownhill = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!canFlowDownhill)
+                {
+                    lastValidationError = "Nước không thể chảy ngược lên dốc cao hơn!";
+                    return false;
+                }
+            }
+
+            lastValidationError = "";
+            return true;
+        }
+
         // 1. Phân biệt theo loại thẻ:
         if (cardData != null && cardData.cardType == CardType.Creature)
         {
