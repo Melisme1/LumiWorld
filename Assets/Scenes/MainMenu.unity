@@ -499,9 +499,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 11500000, guid: c54274b05ae436a41921cfbc1d581b63, type: 3}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
+      - m_Target: {fileID: 897128794}
+        m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
+        m_MethodName: OnContinue
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -889,7 +889,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
   gameSceneName: MapBuilding
   settingsPanel: {fileID: 0}
-  continueButton: {fileID: 0}
+  continueButton: {fileID: 573181565}
 --- !u!1 &1236036259
 GameObject:
   m_ObjectHideFlags: 0

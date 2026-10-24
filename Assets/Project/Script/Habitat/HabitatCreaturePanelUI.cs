@@ -63,6 +63,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     private Slider hungerSlider;
     private TextMeshProUGUI hungerProgressLabel;
     private TextMeshProUGUI favoriteFoodText;
+    private TextMeshProUGUI foodLabelText;
 
     // Bộ 3 nút hành động 3D
     private Button feedButton;
@@ -780,11 +781,12 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         fLRect.offsetMax = new Vector2(0f, 0f);
 
         var fLbl = fLblObj.GetComponent<TextMeshProUGUI>();
+        foodLabelText = fLbl;
         fLbl.fontSize = 12f;
         fLbl.fontStyle = FontStyles.Bold;
         fLbl.alignment = TextAlignmentOptions.MidlineLeft;
         fLbl.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        fLbl.text = "Ưa Thích:";
+        fLbl.text = "Thức ăn:";
 
         GameObject fValObj = new GameObject("FoodValue", typeof(RectTransform), typeof(TextMeshProUGUI));
         fValObj.transform.SetParent(foodCard.transform, false);
@@ -1806,14 +1808,25 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         hungerProgressLabel.text = hunger != null ? $"{satiety}/100 ({satiety}%)" : "Chưa có dữ liệu";
 
         // 8. Món ăn ưa thích (sạch sẽ, không biểu tượng ô vuông lỗi)
-        favoriteFoodText.text = HabitatCreaturePanelStyle.GetFavoriteFoodInfo(currentHabitat.affinity);
+        var production = ResourceProductionRuntime.Instance;
+        string foodId = production != null && production.CareSettings != null
+            ? production.CareSettings.FoodResourceId : string.Empty;
+        ResourceData foodData = production != null && production.CareSettings != null &&
+            production.CareSettings.food != null ? production.CareSettings.food : ResourceCatalog.Find(foodId);
+        string foodName = foodData != null ? foodData.resourceName : "Thức ăn";
+        int warehouseFood = production != null && production.Inventory != null && !string.IsNullOrEmpty(foodId)
+            ? production.Inventory.GetAmount(foodId) : 0;
+        long pantryFood = production != null && !string.IsNullOrEmpty(foodId)
+            ? production.GetCreatureFoodAmount(indId, foodId) : 0;
+        if (foodLabelText != null) foodLabelText.text = foodName + ":";
+        favoriteFoodText.text = $"Kho {warehouseFood} · Ngăn {pantryFood}";
 
         // 9. Nút hành động (Xóa (-1), (-2), chữ in đậm to rõ, nổi bật)
         if (feedButton != null)
         {
             // Có thể nạp thức ăn sớm vào ngăn riêng ngay cả khi creature đang no.
             feedButton.interactable = hunger != null;
-            feedButtonText.text = "Nạp Thức Ăn";
+            feedButtonText.text = warehouseFood > 0 ? "Nạp Thức Ăn" : "Kho hết Thức Ăn";
         }
 
         if (medicineButton != null)
@@ -1852,12 +1865,18 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         var production = ResourceProductionRuntime.Instance;
         if (production == null || production.CareSettings == null) return;
         string foodId = production.CareSettings.FoodResourceId;
+        ResourceData foodData = production.CareSettings.food != null
+            ? production.CareSettings.food : ResourceCatalog.Find(foodId);
+        string foodName = foodData != null ? foodData.resourceName : "thức ăn";
         int available = production.Inventory != null ? production.Inventory.GetAmount(foodId) : 0;
+        long pantryBefore = production.GetCreatureFoodAmount(currentSelectedResident.individualId, foodId);
         int amount = Mathf.Min(available, production.CareSettings.seedFoodUnitsToFull);
         string reason = string.Empty;
         bool deposited = amount > 0 && production.DepositCreatureFood(currentHabitat.habitatId,
             currentSelectedResident.individualId, foodId, amount, out reason);
-        string feedback = deposited ? $"Đã nạp {amount} thức ăn; creature sẽ tự ăn khi cần." :
+        int remaining = production.Inventory != null ? production.Inventory.GetAmount(foodId) : available;
+        long pantryAfter = production.GetCreatureFoodAmount(currentSelectedResident.individualId, foodId);
+        string feedback = deposited ? $"Đã chuyển {amount} {foodName}: Kho {available} → {remaining}, ngăn cá thể {pantryBefore} → {pantryAfter}." :
             available == 0 ? "Kho chưa có thức ăn phù hợp." : reason;
         if (deposited)
         {

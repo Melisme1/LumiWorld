@@ -42,6 +42,14 @@ namespace LumiWorld.Acs
             }
         }
 
+        public void Restore(string savedId, CreatureQualityRank savedRank, PlacedCard placedCard)
+        {
+            if (!string.IsNullOrEmpty(savedId)) placementId = savedId;
+            qualityRank = (int)savedRank >= (int)CreatureQualityRank.RankI &&
+                (int)savedRank <= (int)CreatureQualityRank.RankIII ? savedRank : CreatureQualityRank.RankI;
+            Bind(placedCard);
+        }
+
         // Called only for duplicated instance identities; it never changes the bound home hex.
         public void RegenerateId() => placementId = Guid.NewGuid().ToString("N");
 

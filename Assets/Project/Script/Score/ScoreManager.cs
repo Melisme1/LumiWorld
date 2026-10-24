@@ -114,6 +114,26 @@ public class ScoreManager : MonoBehaviour
         OnScoreChanged?.Invoke(currentScore);
     }
 
+    /// <summary>Rebuilds displayed score from saved cards without granting milestone cards a second time.</summary>
+    public void RestoreScoreWithoutRewards(int savedCardScore)
+    {
+        currentScore = Mathf.Max(0, savedCardScore);
+        grantedMilestoneIndices.Clear();
+        int maxThreshold = 0;
+        for (int i = 0; i < rewardMilestones.Count; i++)
+        {
+            ScoreRewardMilestone milestone = rewardMilestones[i];
+            if (milestone == null) continue;
+            maxThreshold = Mathf.Max(maxThreshold, milestone.scoreThreshold);
+            if (currentScore >= milestone.scoreThreshold) grantedMilestoneIndices.Add(i);
+        }
+        nextRewardScore = scorePerReward > 0 ? (currentScore / scorePerReward + 1) * scorePerReward : 0;
+        nextEndlessThreshold = maxThreshold > 0 && endlessInterval > 0
+            ? maxThreshold + (Mathf.Max(0, currentScore - maxThreshold) / endlessInterval + 1) * endlessInterval
+            : -1;
+        UpdateUI();
+    }
+
     // =========================================
     // CHECK CARD REWARD
     // =========================================

@@ -55,8 +55,8 @@ public class MainMenuController : MonoBehaviour
         BuildAccountBar();
         RefreshAccountBar();
 
-        // Một nút Play thay cho New Game và Continue: mỗi tài khoản chỉ có một save
-        if (continueButton != null) continueButton.gameObject.SetActive(false);
+        // Continue resumes the current save; New Game replaces it after confirmation.
+        if (continueButton != null) continueButton.gameObject.SetActive(true);
     }
 
 
@@ -67,7 +67,7 @@ public class MainMenuController : MonoBehaviour
     private bool startingGame;
 
     /// <summary>
-    /// Nút Play. Chưa đăng nhập thì mở màn đăng nhập, đăng nhập xong quay về đây.
+    /// Nút Continue. Chưa đăng nhập thì mở màn đăng nhập, đăng nhập xong quay về đây.
     /// Đã đăng nhập thì tải save mới nhất từ server (nếu lấy được), rồi vào MapBuilding:
     /// có save thì dựng lại đảo cũ, chưa có thì sinh đảo mới (WorldSaveSystem).
     /// </summary>
@@ -87,8 +87,38 @@ public class MainMenuController : MonoBehaviour
         StartCoroutine(SaveSync.PullBeforePlay(() => SceneManager.LoadScene(gameSceneName)));
     }
 
-    // Giữ tên cũ để nút đã gán trong scene vẫn chạy; cả hai đều vào OnPlay
-    public void OnNewGame() => OnPlay();
+    public void OnNewGame()
+    {
+        if (!AuthSession.IsLoggedIn)
+        {
+            SceneManager.LoadScene(LoginSceneName);
+            return;
+        }
+        if (startingGame) return;
+        GameDialogUI.ShowConfirm(
+            "Tạo world mới sẽ thay thế world và kho hiện tại của tài khoản. Bạn có muốn tiếp tục?",
+            () => StartCoroutine(CreateNewGame()),
+            confirmText: "TẠO MỚI", cancelText: "GIỮ WORLD", title: "NEW GAME");
+    }
+
+    private System.Collections.IEnumerator CreateNewGame()
+    {
+        if (startingGame) yield break;
+        startingGame = true;
+        if (VisitSession.Active) VisitSession.End();
+        bool created = false;
+        string error = null;
+        yield return SaveSync.StartNewGame((success, message) => { created = success; error = message; });
+        if (!created)
+        {
+            startingGame = false;
+            GameDialogUI.ShowNotice(error ?? "Không tạo được world mới.");
+            yield break;
+        }
+        // Unity's Destroy is deferred; let old persistent economy objects disappear first.
+        yield return null;
+        SceneManager.LoadScene(gameSceneName);
+    }
 
     public void OnContinue() => OnPlay();
 

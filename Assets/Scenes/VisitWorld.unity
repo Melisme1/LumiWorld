@@ -1356,6 +1356,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldSaveSystem
   tileCatalog: {fileID: 11400000, guid: 92746a155416be14dbfa279f98a50044, type: 2}
+  cardCatalog: {fileID: 11400000, guid: cf26c41eaf01e6741a9c3235fb09c2b8, type: 2}
   devVisitWorldId: 
 --- !u!4 &953997785
 Transform:

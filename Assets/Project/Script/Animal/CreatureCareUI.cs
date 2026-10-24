@@ -181,7 +181,7 @@ public class CreatureCareUI : MonoBehaviour
         feedRect.sizeDelta = new Vector2(170f, 44f);
 
         feedButton = feedObj.GetComponent<Button>();
-        feedButton.onClick.AddListener(OnFeedClicked);
+        feedButton.onClick.AddListener(OnCareClicked);
 
         Image feedImg = feedObj.GetComponent<Image>();
         feedImg.sprite = PreserveDiamondStyle.DiamondBase;
@@ -190,7 +190,7 @@ public class CreatureCareUI : MonoBehaviour
         GameObject feedLabelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         feedLabelObj.transform.SetParent(feedObj.transform, false);
         feedButtonText = feedLabelObj.GetComponent<TextMeshProUGUI>();
-        feedButtonText.text = "CHO ĂN (-2C)\n<size=11>+25 Care</size>";
+        feedButtonText.text = "CHĂM SÓC (-2C)\n<size=11>+25 Care</size>";
         feedButtonText.alignment = TextAlignmentOptions.Center;
         feedButtonText.fontSize = 13f;
         feedButtonText.fontStyle = FontStyles.Bold;
@@ -288,10 +288,10 @@ public class CreatureCareUI : MonoBehaviour
         }
     }
 
-    private void OnFeedClicked()
+    private void OnCareClicked()
     {
         string id = currentAnimal != null ? currentAnimal.UniqueID : (currentIdentity != null ? currentIdentity.PlacementId : "");
-        if (CreatureCareManager.Instance.FeedCreature(id, out string fb))
+        if (CreatureCareManager.Instance.CareCreature(id, out string fb))
         {
             HexPlacementPreviewHUD.ShowFeedbackToast(fb);
             RefreshData();
