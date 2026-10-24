@@ -239,11 +239,7 @@ namespace LumiWorld.Acs
             }
         }
 
-        /// <summary>
-        /// Dựng lại dấu trên ô và thiên tai đang chạy từ bản lưu đảo. Khi tắt game: thời gian còn lại của
-        /// thiên tai vẫn trừ dần (hết thì kết thúc ở nhịp đầu tiên, hiệu ứng kết thúc chạy đúng một lần);
-        /// lửa không lan, ô chờ bén lửa và lịch sinh thiên tai mới thì đứng yên. Chỉ phát DisasterChanged.
-        /// </summary>
+        /// <summary>Dựng lại dấu và đồng hồ disaster từ save. Toàn bộ đồng hồ disaster đóng băng khi rời đảo.</summary>
         private bool TryRestoreFromSave()
         {
             if (WorldLaunch.IsVisit || worldGenerator == null) return false;
@@ -252,11 +248,9 @@ namespace LumiWorld.Acs
             DisasterSaveData data = world.RestoredData.disasters;
             if (data == null || !data.saved) return false;
 
-            double offline = 0;
-            if (DateTime.TryParse(world.RestoredData.savedAtUtc, System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
-                    out DateTime savedAtUtc))
-                offline = Math.Max(0, (DateTime.UtcNow - savedAtUtc).TotalSeconds);
+            // Disaster time advances only while the owner's island is open. Remaining durations
+            // and relative timers were captured when leaving, so menu/map/visit/offline time is excluded.
+            const double offline = 0;
             double now = clock.NowSeconds;
 
             // 1. Dấu trên từng ô
@@ -349,8 +343,7 @@ namespace LumiWorld.Acs
             if (data.nextSpawnInSeconds >= 0) nextSpawnAt = now + data.nextSpawnInSeconds;
             else ScheduleNextSpawn();
 
-            Debug.Log($"[LumiWorld Disaster] Đã dựng lại {activeList.Count} thiên tai và {data.tiles.Count} ô có dấu từ bản lưu " +
-                      $"(trừ {offline / 60:0} phút tắt game).", this);
+            Debug.Log($"[LumiWorld Disaster] Đã dựng lại {activeList.Count} thiên tai và {data.tiles.Count} ô có dấu; đồng hồ được tiếp tục từ lúc rời đảo.", this);
             return true;
         }
 
