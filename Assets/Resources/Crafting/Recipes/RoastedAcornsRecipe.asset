@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: RoastedAcornsRecipe
   m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Economy.Crafting.CraftingRecipeData
   recipeID: recipe.food.roasted_acorns
-  recipeName: "H\u1EA1t s\u1ED3i rang"
-  description: "H\u1EA1t s\u1ED3i s\u1EA5y rang b\xF9i b\xE9o, cung c\u1EA5p d\u1ED3i
-    d\xE0o n\u0103ng l\u01B0\u1EE3ng cho sinh v\u1EADt h\u1EC7 M\u1ED9c."
+  recipeName: "Roasted Acorns"
+  description: "Aromatic, toasted wild acorns rich in healthy fats and energizing nutrients for creatures."
   category: 0
   recipeIcon: {fileID: 21300000, guid: 9de12c2b881049a48d7bcf904866aff6, type: 3}
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010004, type: 2}

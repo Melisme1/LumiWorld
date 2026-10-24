@@ -928,7 +928,7 @@ public class AutoFeedUI : MonoBehaviour
                         currentFoodList.Add(new ResourceUIItem
                         {
                             id = id,
-                            name = recipe.recipeName,
+                            name = ResourceInventoryUIPresentation.LocalizeResourceName(id, recipe.recipeName),
                             icon = recipe.GetIcon(),
                             category = "Food",
                             stock = stock

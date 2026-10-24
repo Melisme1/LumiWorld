@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Wheat
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: resource.bloomfield.wheat
-  resourceName: Lúa mì
-  description: Nguyên liệu thô từ Bloomfield để chế biến Bột mì.
+  resourceName: "Wheat"
+  description: "Golden grain stalks brimming with nutritious starch."
   icon: {fileID: 21300000, guid: c379b17158904f23a9a243185c4eadc2, type: 3}
   resourceColor: {r: 1, g: 1, b: 1, a: 1}
   hexColor: '#FFFFFF'

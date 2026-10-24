@@ -14,12 +14,12 @@ namespace LumiWorld.Economy.Crafting
         [Tooltip("Mã định danh duy nhất (ví dụ: recipe.food.crispy_leaves)")]
         public string recipeID = "recipe.food.crispy_leaves";
 
-        [Tooltip("Tên hiển thị của công thức")]
-        public string recipeName = "Lá non rang giòn";
+        [Tooltip("Display name of recipe")]
+        public string recipeName = "Crispy Roasted Leaves";
 
         [TextArea(2, 4)]
-        [Tooltip("Mô tả về món ăn / sản phẩm chế biến")]
-        public string description = "Lá non tuyển chọn từ Leafwood được rang giòn, là món ăn vặt yêu thích của các sinh vật.";
+        [Tooltip("Description of crafted product")]
+        public string description = "Crispy, aromatic roasted leaves, a favorite crunchy snack for flying squirrels and forest creatures.";
 
         [Tooltip("Phân loại công thức (Thức ăn, Tinh chế, Dược liệu, Thủ công)")]
         public CraftingCategory category = CraftingCategory.Food;

@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: Rosemary
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: resource.windheath.rosemary
-  resourceName: "H\u01B0\u01A1ng th\u1EA3o"
-  description: "H\u01B0\u01A1ng th\u1EA3o t\u1EEB Windheath, nguy\xEAn li\u1EC7u
-    gia v\u1ECB, h\u01B0\u01A1ng th\u01A1m v\xE0 ch\u0103m s\xF3c trong game."
+  resourceName: "Rosemary"
+  description: "Fragrant aromatic herb thriving in breezy highlands."
   icon: {fileID: 21300000, guid: 92165e2dd0592bf4d93fcc18b650c7b7, type: 3}
   resourceColor: {r: 1, g: 1, b: 1, a: 1}
   hexColor: '#FFFFFF'
