@@ -30,7 +30,6 @@ public class RiverModelDiagnostic : MonoBehaviour
         CheckPrefab("PondBasin (Hồ đọng)", config.pondBasinPrefab);
         CheckPrefab("Straight (Suối thẳng)", config.straightPrefab);
         CheckPrefab("Curve60 (Suối cua 60)", config.curve60Prefab);
-        CheckPrefab("Curve120 (Suối cua 120)", config.curve120Prefab);
         CheckPrefab("Fork3Way (Ngã ba)", config.fork3WayPrefab);
         CheckPrefab("Waterfall (Thác nước)", config.waterfallPrefab);
     }

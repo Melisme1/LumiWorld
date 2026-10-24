@@ -34,7 +34,6 @@ public static class RiverSetupUtility
 
         // 3. Quét tự động các file FBX trong Assets/VinhWorkSpace/Props/Waterfall
         config.straightPrefab = FindFbx("Stream_Path");
-        config.curve120Prefab = FindFbx("Pebble_Stream");
         config.fork3WayPrefab = FindFbx("Stone_Crossroad");
         config.springHeadPrefab = FindFbx("Stone_Hollow");
         config.pondBasinPrefab = FindFbx("Meadow_Pond");

@@ -11,10 +11,7 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Dải suối thẳng 180° (Variant A / C)")]
     public GameObject straightPrefab;
 
-    [Tooltip("Dải suối cua 120° chuẩn lục giác (Variant B)")]
-    public GameObject curve120Prefab;
-
-    [Tooltip("Dải suối cua gắt 60° (Nếu để trống sẽ tự động dùng curve120)")]
+    [Tooltip("Dải suối cua gắt 60° (Prefab mô hình uốn cong riêng)")]
     public GameObject curve60Prefab;
 
     [Tooltip("Đầu nguồn suối / Hang đá rỗng cạn (Variant D)")]
@@ -129,6 +126,9 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Độ bù vị trí (X, Y, Z) cho Thượng Nguồn Grotto (Transform Position cục bộ của prefab trong ô).")]
     public Vector3 springHeadOffset = Vector3.zero;
 
+    [Tooltip("Độ bù vị trí (X, Y, Z) cho Suối cua 60° (Transform Position cục bộ của prefab trong ô).")]
+    public Vector3 curve60Offset = Vector3.zero;
+
     [Tooltip("Độ nâng trục Y cho Hồ đọng cuối nguồn Pond Basin (mặc định ~0.12m)")]
     public float pondBasinYOffset = 0.125f;
 
@@ -226,9 +226,9 @@ public class RiverConfig : ScriptableObject
             case RiverPieceType.Straight:
                 return straightPrefab;
             case RiverPieceType.Curve120:
-                return curve120Prefab;
+                return straightPrefab;
             case RiverPieceType.Curve60:
-                return curve60Prefab != null ? curve60Prefab : curve120Prefab;
+                return curve60Prefab;
             case RiverPieceType.SpringHead:
                 return springHeadPrefab;
             case RiverPieceType.Fork3Way:

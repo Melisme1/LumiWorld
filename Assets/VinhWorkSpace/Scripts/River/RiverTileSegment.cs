@@ -71,13 +71,26 @@ public class RiverTileSegment : MonoBehaviour
         transform.rotation = targetRotation;
 
         GameObject prefab = config != null ? config.GetPrefabForPiece(pieceType) : null;
-        if (prefab == null)
+        if (prefab == null && pieceType != RiverPieceType.Straight && pieceType != RiverPieceType.Curve120)
         {
             Debug.LogError($"[RiverTileSegment] Không tìm thấy prefab cho pieceType: {pieceType} trong RiverConfig!");
             return;
         }
 
-        if (pieceType == RiverPieceType.Straight || pieceType == RiverPieceType.Curve120 || pieceType == RiverPieceType.Curve60)
+        // Suối thẳng Straight và khúc cua Curve120 rải các đoạn mương ghép qua UpdateConnectingTrenches
+        if (pieceType == RiverPieceType.Straight || pieceType == RiverPieceType.Curve120)
+        {
+            if (visualInstance != null)
+            {
+                if (Application.isPlaying) Destroy(visualInstance);
+                else DestroyImmediate(visualInstance);
+                visualInstance = null;
+            }
+            return;
+        }
+
+        // Đối với Curve60: Nếu chưa cấu hình prefab thì xóa visualInstance và để UpdateConnectingTrenches fallback
+        if (pieceType == RiverPieceType.Curve60 && prefab == null)
         {
             if (visualInstance != null)
             {
@@ -101,6 +114,7 @@ public class RiverTileSegment : MonoBehaviour
         {
             if (pieceType == RiverPieceType.PondBasin) piecePosOffset = config.pondOffset;
             else if (pieceType == RiverPieceType.SpringHead) piecePosOffset = config.springHeadOffset;
+            else if (pieceType == RiverPieceType.Curve60) piecePosOffset = config.curve60Offset;
         }
         visualInstance.transform.localPosition = piecePosOffset;
         visualInstance.transform.localRotation = Quaternion.Euler(0f, pieceRotOffset, 0f) * prefab.transform.localRotation;
@@ -359,10 +373,9 @@ public class RiverTileSegment : MonoBehaviour
                 break;
             }
 
-            case RiverPieceType.Curve60:
             case RiverPieceType.Curve120:
             {
-                // Khúc cua cong: Uốn lượn mượt mà theo đường cong Bézier, kích thước đồng bộ, không gãy nhọn
+                // Khúc cua cong 120°: Giữ nguyên cách rải các đoạn mương thẳng theo đường cong Bézier (tự nhiên, không giả)
                 if (connectedPorts.Count >= 2)
                 {
                     int p0 = connectedPorts[0];
@@ -383,6 +396,37 @@ public class RiverTileSegment : MonoBehaviour
 
                     var curvePath = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 20);
                     SpawnTrenchCurve(curvePath, _trenchContainer, config, baseWorldPos, pieceType);
+                }
+                break;
+            }
+
+            case RiverPieceType.Curve60:
+            {
+                // Khúc cua gắt 60°: Sử dụng model Curved prefab mới được cấu hình trong RiverConfig.
+                // Nếu chưa cấu hình prefab (null) thì mới fallback rải mương thẳng theo spline.
+                if (config == null || config.curve60Prefab == null)
+                {
+                    if (connectedPorts.Count >= 2)
+                    {
+                        int p0 = connectedPorts[0];
+                        int p1 = connectedPorts[1];
+
+                        int inPort = p0;
+                        int outPort = p1;
+                        if (RiverNetworkManager.Instance != null)
+                        {
+                            var n0 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(p0));
+                            var n1 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(p1));
+                            if (n0 != null && n1 != null && n1.flowStep < n0.flowStep)
+                            {
+                                inPort = p1;
+                                outPort = p0;
+                            }
+                        }
+
+                        var curvePath = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 20);
+                        SpawnTrenchCurve(curvePath, _trenchContainer, config, baseWorldPos, pieceType);
+                    }
                 }
                 break;
             }
