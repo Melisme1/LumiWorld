@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: RiverConfig
   m_EditorClassIdentifier: Assembly-CSharp::RiverConfig
   straightPrefab: {fileID: 5435703443123820949, guid: 07fe16ff967c3fd46a6ac837d2aa6234, type: 3}
-  curve60Prefab: {fileID: 8773923962652013416, guid: b4fb6fd16e679a9409a324985e25566b, type: 3}
+  curve60Prefab: {fileID: 9129809584112356507, guid: 5a65cda0108b57246840e12e905da987, type: 3}
   springHeadPrefab: {fileID: 8392878831646941944, guid: d6f0226175dc0a74b807b5ab009b1f96, type: 3}
   fork3WayPrefab: {fileID: 7182930419283746152, guid: d5c4b3a2109876543210fedcba987654, type: 3}
   pondBasinPrefab: {fileID: 5025072383023463357, guid: edf820c5a3e5f44479c3c3eda2f00c82, type: 3}
@@ -21,7 +21,7 @@ MonoBehaviour:
   modelScale: {x: 1, y: 1, z: 1}
   straightScale: {x: 0.32, y: 0.3, z: 0.25}
   curve120Scale: {x: 0.32, y: 0.3, z: 0.28}
-  curve60Scale: {x: 0.32, y: 0.3, z: 0.28}
+  curve60Scale: {x: 0.43, y: 0.32, z: 0.53}
   fork3WayScale: {x: 0.32, y: 0.42, z: 0.32}
   springHeadScale: {x: 0.68, y: 0.68, z: 0.68}
   pondBasinScale: {x: 1, y: 1, z: 1}
@@ -30,13 +30,13 @@ MonoBehaviour:
   straightRotationOffset: 0
   springHeadRotationOffset: 180
   curve120RotationOffset: 0
-  curve60RotationOffset: 0
+  curve60RotationOffset: -5
   fork3WayRotationOffset: 0
   pondBasinRotationOffset: -103.5
   waterfallRotationOffset: 0
   springHeadYOffset: 0.194
   springHeadOffset: {x: 0, y: 0, z: 0}
-  curve60Offset: {x: 0, y: 0, z: 0}
+  curve60Offset: {x: 0, y: -0.02, z: 0}
   pondBasinYOffset: 0
   pondOffset: {x: 0, y: 0.07, z: 0.17}
   pondTextureOffset: {x: 0, y: 0}
@@ -44,6 +44,7 @@ MonoBehaviour:
   springHeadMouthDistance: 0.2
   pondInletDistance: 0.48
   waterfallInwardOffset: 0.04
+  curve60MouthDistance: 0.35
   straightYOffset: 0.045
   curve120YOffset: 0.045
   curve60YOffset: 0.045

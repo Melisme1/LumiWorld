@@ -89,18 +89,6 @@ public class RiverTileSegment : MonoBehaviour
             return;
         }
 
-        // Đối với Curve60: Nếu chưa cấu hình prefab thì xóa visualInstance và để UpdateConnectingTrenches fallback
-        if (pieceType == RiverPieceType.Curve60 && prefab == null)
-        {
-            if (visualInstance != null)
-            {
-                if (Application.isPlaying) Destroy(visualInstance);
-                else DestroyImmediate(visualInstance);
-                visualInstance = null;
-            }
-            return;
-        }
-
         if (visualInstance == null || visualInstance.name != prefab.name)
         {
             if (visualInstance != null) Destroy(visualInstance);
@@ -232,13 +220,26 @@ public class RiverTileSegment : MonoBehaviour
             {
                 foreach (int p in ports)
                 {
-                    var pPath = RiverSplinePath.BuildSpringHeadPath(p, 0.35f, 8);
+                    float mouthDist = (pieceType == RiverPieceType.Curve60 && config != null) ? config.curve60MouthDistance : 0.35f;
+                    var pPath = RiverSplinePath.BuildSpringHeadPath(p, mouthDist, 8);
                     if (pPath.Count > 0) _cachedPaths.Add(pPath);
                 }
             }
             else
             {
-                var path = RiverSplinePath.BuildThroughPath(ports[0], ports[1], 0f, 10);
+                int inPort = ports[0];
+                int outPort = ports[1];
+                if (RiverNetworkManager.Instance != null)
+                {
+                    var n0 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(ports[0]));
+                    var n1 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(ports[1]));
+                    if (n0 != null && n1 != null && n1.flowStep < n0.flowStep)
+                    {
+                        inPort = ports[1];
+                        outPort = ports[0];
+                    }
+                }
+                var path = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 10);
                 if (path.Count > 0) _cachedPaths.Add(path);
             }
         }
@@ -375,7 +376,7 @@ public class RiverTileSegment : MonoBehaviour
 
             case RiverPieceType.Curve120:
             {
-                // Khúc cua cong 120°: Giữ nguyên cách rải các đoạn mương thẳng theo đường cong Bézier (tự nhiên, không giả)
+                // Khuc cua cong 120 do: Uon luon muot ma theo duong cong Bezier, kich thuoc dong bo
                 if (connectedPorts.Count >= 2)
                 {
                     int p0 = connectedPorts[0];
@@ -402,31 +403,39 @@ public class RiverTileSegment : MonoBehaviour
 
             case RiverPieceType.Curve60:
             {
-                // Khúc cua gắt 60°: Sử dụng model Curved prefab mới được cấu hình trong RiverConfig.
-                // Nếu chưa cấu hình prefab (null) thì mới fallback rải mương thẳng theo spline.
-                if (config == null || config.curve60Prefab == null)
+                // Khuc cua 60 do: Su dung model Curved60 (Curved60.prefab) o tam o va rai 2 doan muong thang noi tu 2 mep o vao mieng Curved60
+                float mouthDist = config != null ? config.curve60MouthDistance : 0.35f;
+
+                int inPort = connectedPorts[0];
+                int outPort = (connectedPorts.Count > 1) ? connectedPorts[1] : connectedPorts[0];
+                if (connectedPorts.Count >= 2 && RiverNetworkManager.Instance != null)
                 {
-                    if (connectedPorts.Count >= 2)
+                    var n0 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(connectedPorts[0]));
+                    var n1 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(connectedPorts[1]));
+                    if (n0 != null && n1 != null && n1.flowStep < n0.flowStep)
                     {
-                        int p0 = connectedPorts[0];
-                        int p1 = connectedPorts[1];
-
-                        int inPort = p0;
-                        int outPort = p1;
-                        if (RiverNetworkManager.Instance != null)
-                        {
-                            var n0 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(p0));
-                            var n1 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(p1));
-                            if (n0 != null && n1 != null && n1.flowStep < n0.flowStep)
-                            {
-                                inPort = p1;
-                                outPort = p0;
-                            }
-                        }
-
-                        var curvePath = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 20);
-                        SpawnTrenchCurve(curvePath, _trenchContainer, config, baseWorldPos, pieceType);
+                        inPort = connectedPorts[1];
+                        outPort = connectedPorts[0];
                     }
+                }
+
+                // Nhanh 1: Cong vao (Inflow) -> Muong thang tu mep o VAO mieng Curved60
+                {
+                    Vector3 normIn = RiverSplinePath.GetEdgeNormalLocal(inPort);
+                    float inwIn = _waterfallInstances.ContainsKey(inPort) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    Vector3 edgeIn = RiverSplinePath.GetEdgeMidpointLocal(inPort) - normIn * inwIn;
+                    Vector3 mouthIn = normIn * mouthDist;
+                    SpawnTrenchLine(edgeIn, mouthIn, _trenchContainer, config, baseWorldPos);
+                }
+
+                // Nhanh 2: Cong ra (Outflow) -> Muong thang tu mieng Curved60 RA mep o / thac nuoc
+                if (connectedPorts.Count >= 2)
+                {
+                    Vector3 normOut = RiverSplinePath.GetEdgeNormalLocal(outPort);
+                    float inwOut = _waterfallInstances.ContainsKey(outPort) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    Vector3 edgeOut = RiverSplinePath.GetEdgeMidpointLocal(outPort) - normOut * inwOut;
+                    Vector3 mouthOut = normOut * mouthDist;
+                    SpawnTrenchLine(mouthOut, edgeOut, _trenchContainer, config, baseWorldPos);
                 }
                 break;
             }

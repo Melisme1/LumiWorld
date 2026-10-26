@@ -68,7 +68,7 @@ public class RiverConfig : ScriptableObject
             case RiverPieceType.Curve120:
                 return (curve120Scale.sqrMagnitude > 0.01f) ? curve120Scale : straightScale;
             case RiverPieceType.Curve60:
-                return (curve60Scale.sqrMagnitude > 0.01f) ? curve60Scale : straightScale;
+                return (curve60Scale.sqrMagnitude > 0.01f) ? curve60Scale : Vector3.one;
             case RiverPieceType.Fork3Way:
                 return (fork3WayScale.sqrMagnitude > 0.01f) ? fork3WayScale : straightScale;
             case RiverPieceType.SpringHead:
@@ -156,6 +156,9 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác nước / vách dốc (~0.04m - 0.08m) để mương vươn dài sát mép đỉnh vách dốc mà không bị thò lơ lửng. Mặc định 0.04m.")]
     public float waterfallInwardOffset = 0.04f;
 
+    [Tooltip("Khoang cach tu tam o toi diem noi muong cua Curved60 (~0.28m - 0.35m) de muong noi khop vao mieng muong cua model Curved60. Mac dinh 0.35m.")]
+    public float curve60MouthDistance = 0.35f;
+
     [Tooltip("Độ nâng trục Y cho Suối thẳng Straight (mặc định ~0.10m)")]
     public float straightYOffset = 0.095f;
 
@@ -241,4 +244,5 @@ public class RiverConfig : ScriptableObject
                 return straightPrefab != null ? straightPrefab : springHeadPrefab;
         }
     }
+
 }

@@ -90,11 +90,32 @@ public static class RiverSplinePath
 
         // Điểm điều khiển trung tâm:
         int diff = ((outDir - inDir) % 6 + 6) % 6;
+        if (diff > 3) diff = 6 - diff;
+
+        // Cua gắt 60° (diff == 1): Hai cổng kề nhau (ví dụ hướng 3 sang hướng 2)
+        // Nối trực tiếp từ cổng vào sang cổng ra bằng một đường cong Bézier bậc 3 (Cubic Bézier)
+        // Ôm quanh góc chung giữa 2 cạnh, KHÔNG đi qua tâm ô (0,0,0) vì sẽ tạo góc nhọn đâm vào giữa ô rồi giật ngược ra
+        if (diff == 1)
+        {
+            float handleLength = 0.38f;
+            Vector3 cp1 = pIn + tanIn * handleLength;
+            Vector3 cp2 = pOut - tanOut * handleLength;
+
+            List<Vector3> arcPoints = new List<Vector3>(steps + 1);
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = (float)i / steps;
+                Vector3 pos = EvaluateCubicBezier(pIn, cp1, cp2, pOut, t);
+                arcPoints.Add(pos);
+            }
+            return GenerateWaypointsFromPoints(arcPoints);
+        }
+
         Vector3 centerPos = Vector3.zero;
 
         if (diff == 3)
         {
-            // Suối thẳng 180 độ: Thêm độ võng uốn lượn tự nhiên hình chữ S nhẹ (Meandering S-curve)
+            // Suối thẳng 180 độ: Thêm độ võng uốn lượn tự nhiên hình chữ S nhỏ (Meandering S-curve)
             // Vector ngang vuông góc với trục dòng chảy
             Vector3 streamAxis = (pOut - pIn).normalized;
             Vector3 lateralDir = new Vector3(-streamAxis.z, 0f, streamAxis.x);
@@ -102,13 +123,9 @@ public static class RiverSplinePath
         }
 
         // Tạo 4 điểm điều khiển cho Cubic Bézier:
-        // P0 = pIn
-        // P1 = pIn + tanIn * 0.38f
-        // P2 = pOut - tanOut * 0.38f
-        // P3 = pOut
-        float handleLength = 0.38f;
-        Vector3 cp1 = pIn + tanIn * handleLength;
-        Vector3 cp2 = pOut - tanOut * handleLength;
+        float handleLen = 0.38f;
+        Vector3 cpA = pIn + tanIn * handleLen;
+        Vector3 cpB = pOut - tanOut * handleLen;
 
         // Nếu có độ võng trung tâm, ta kết hợp 2 đoạn Bézier (In -> Center -> Out) để uốn lượn mềm như dải lụa
         List<Vector3> rawPoints = new List<Vector3>(steps);
