@@ -29,7 +29,7 @@ MonoBehaviour:
     spawnByTime: 1
     weight: 1
     restrictToBiomes: 1
-    affectedBiomes: 0200000001000000
+    affectedBiomes: 020000000100000003000000
     spreadRadius: 1
     spreadIntervalSeconds: 7
     maxTiles: 7
@@ -45,7 +45,7 @@ MonoBehaviour:
     affectedBiomes: 020000000100000003000000
     spreadRadius: 2
     spreadIntervalSeconds: 1
-    maxTiles: 7
+    maxTiles: 6
     durationSeconds: 60
     rainToCure: 1
     harvestSpeedMultiplier: 0.469

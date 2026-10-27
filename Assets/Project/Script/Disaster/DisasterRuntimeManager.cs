@@ -1612,10 +1612,21 @@ namespace LumiWorld.Acs
         }
 
         /// <summary>Danh sách ô đang bị một thiên tai phủ (cho UI highlight).</summary>
+        /// <remarks>Đây là API tiện lợi, mỗi lần gọi tạo List mới. Vòng Update của UI gọi mỗi frame
+        /// nên dùng bản FillAffectedTiles (đổ vào list có sẵn) để không sinh rác GC.</remarks>
         public List<GameObject> GetAffectedTiles(DisasterInstance instance)
         {
             var result = new List<GameObject>();
-            if (instance == null || worldGenerator == null) return result;
+            FillAffectedTiles(instance, result);
+            return result;
+        }
+
+        /// <summary>Đổ danh sách ô đang bị một thiên tai phủ vào buffer có sẵn (không cấp phát).</summary>
+        public void FillAffectedTiles(DisasterInstance instance, List<GameObject> result)
+        {
+            if (result == null) return;
+            result.Clear();
+            if (instance == null || worldGenerator == null) return;
 
             foreach (var pair in worldGenerator.MapTiles)
             {
@@ -1639,8 +1650,6 @@ namespace LumiWorld.Acs
                     }
                 }
             }
-
-            return result;
         }
 
         // ------------------------------------------------------------------

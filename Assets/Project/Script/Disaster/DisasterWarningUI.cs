@@ -68,7 +68,10 @@ namespace LumiWorld.Acs
         private Material highlightMaterial;
         private Mesh highlightMesh;
 
+
+
         private readonly List<DisasterInstance> shown = new List<DisasterInstance>();
+        private readonly List<GameObject> tileBuffer = new List<GameObject>();
         private readonly List<Transform> highlightPool = new List<Transform>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -359,16 +362,24 @@ namespace LumiWorld.Acs
             SyncHighlights();
         }
 
+        private void HideTag()
+        {
+            if (worldTagRoot != null) worldTagRoot.gameObject.SetActive(false);
+            if (arrowRoot != null) arrowRoot.gameObject.SetActive(false);
+            if (distanceText != null) distanceText.gameObject.SetActive(false);
+        }
+
         private void Refresh()
         {
+            // Build() có thể đã thoát sớm (không có Canvas) -> các tham chiếu này còn null.
+            if (worldTagRoot == null) return;
+
             shown.Clear();
             if (manager == null) manager = FindAnyObjectByType<DisasterRuntimeManager>();
             if (manager != null) shown.AddRange(manager.ActiveDisasters);
             if (shown.Count == 0)
             {
-                worldTagRoot.gameObject.SetActive(false);
-                arrowRoot.gameObject.SetActive(false);
-                distanceText.gameObject.SetActive(false);
+                HideTag();
                 return;
             }
 
@@ -378,9 +389,7 @@ namespace LumiWorld.Acs
 
             if (!TryGetAffectedCenter(top, out Vector3 worldCenter, out _))
             {
-                worldTagRoot.gameObject.SetActive(false);
-                arrowRoot.gameObject.SetActive(false);
-                distanceText.gameObject.SetActive(false);
+                HideTag();
                 return;
             }
             UpdateWorldTag(top, worldCenter);
@@ -391,10 +400,10 @@ namespace LumiWorld.Acs
             center = Vector3.zero;
             tileCount = 0;
             if (instance == null || manager == null) return false;
-            var tiles = manager.GetAffectedTiles(instance);
-            for (int i = 0; i < tiles.Count; i++)
+            manager.FillAffectedTiles(instance, tileBuffer);
+            for (int i = 0; i < tileBuffer.Count; i++)
             {
-                var tile = tiles[i];
+                var tile = tileBuffer[i];
                 if (tile == null) continue;
                 center += tile.transform.position;
                 tileCount++;
@@ -417,8 +426,8 @@ namespace LumiWorld.Acs
                 if (!alwaysShowHighlights &&
                     Time.unscaledTime - instance.startedAtUnscaledTime > 3f) continue;
 
-                var tiles = manager.GetAffectedTiles(instance);
-                foreach (var tile in tiles)
+                manager.FillAffectedTiles(instance, tileBuffer);
+                foreach (var tile in tileBuffer)
                 {
                     if (tile == null) continue;
 
@@ -441,8 +450,14 @@ namespace LumiWorld.Acs
                 }
             }
 
+            // Pool luôn được dùng theo thứ tự 0..used-1 nên mọi vòng từ used trở đi là vòng KHÔNG
+            // còn ô nào dùng trong frame này -> phải tắt. Đây chính là chỗ giấu vòng khi thiên tai
+            // kết thúc (used về 0) hoặc khi số ô bị ảnh hưởng giảm.
             for (int i = used; i < highlightPool.Count; i++)
-                highlightPool[i].gameObject.SetActive(false);
+            {
+                var marker = highlightPool[i];
+                if (marker != null) marker.gameObject.SetActive(false);
+            }
         }
 
         private Transform GetHighlight(int index)
@@ -510,6 +525,8 @@ namespace LumiWorld.Acs
 
         private void OnDestroy()
         {
+            if (worldTagRoot != null) Destroy(worldTagRoot.gameObject);
+
             if (manager != null)
             {
                 manager.DisasterStarted -= OnDisasterChanged;
