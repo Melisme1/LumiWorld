@@ -105,8 +105,47 @@ public static class CardShop
     public static string CardName(CardData card)
     {
         if (card == null) return string.Empty;
-        if (!string.IsNullOrEmpty(card.cardName)) return card.cardName;
-        return !string.IsNullOrEmpty(card.cardID) ? card.cardID : card.name;
+        string raw = !string.IsNullOrEmpty(card.cardName) ? card.cardName : (!string.IsNullOrEmpty(card.cardID) ? card.cardID : card.name);
+        return TranslateToEnglish(raw, card.name);
+    }
+
+    public static string TranslateToEnglish(string name, string fallbackAsset = "")
+    {
+        if (string.IsNullOrEmpty(name)) return fallbackAsset ?? string.Empty;
+        string key = name.Trim().ToLowerInvariant();
+
+        if (key.Contains("bò lông dài") || key.Contains("bolongdai") || key.Contains("highland")) return "Highland Cow";
+        if (key.Contains("chim công") || key.Contains("chimcong") || key.Contains("peacock")) return "Peacock";
+        if (key.Contains("châu chấu") || key.Contains("chauchau") || key.Contains("grasshopper")) return "Grasshopper";
+        if (key.Contains("chó hoa") || key.Contains("chohoa") || key.Contains("flowerdog")) return "Flower Dog";
+        if (key.Contains("nai rừng") || key.Contains("nai") || key.Contains("deer")) return "Forest Deer";
+        if (key.Contains("sâu bướm") || key.Contains("saubuom") || key.Contains("caterpillar")) return "Caterpillar";
+        if (key.Contains("sóc bay") || key.Contains("socbay") || key.Contains("flyingsquirrel")) return "Flying Squirrel";
+        if (key.Contains("bò cỏ") || key.Contains("bo") || key.Contains("cow")) return "Meadow Cow";
+        if (key.Contains("chuồn chuồn") || key.Contains("chuonchuon") || key.Contains("dragonfly")) return "Dragonfly";
+        if (key.Contains("rái cá") || key.Contains("raica") || key.Contains("otter")) return "River Otter";
+        if (key.Contains("ếch hoa") || key.Contains("echhoa") || key.Contains("blossomfrog")) return "Blossom Frog";
+        if (key.Contains("cáo cỏ") || key.Contains("caoco") || key.Contains("grassfox")) return "Grass Fox";
+        if (key.Contains("cáo đỏ") || key.Contains("cao") || key.Contains("fox")) return "Red Fox";
+        if (key.Contains("vẹt 7 màu") || key.Contains("chimvet") || key.Contains("parrot")) return "Rainbow Parrot";
+        if (key.Contains("thiên nga") || key.Contains("thiennga") || key.Contains("swan")) return "Swan";
+        if (key.Contains("capybara")) return "Capybara";
+        if (key.Contains("mưa") || key.Contains("rain")) return "Rain";
+        if (key.Contains("cháy rừng") || key.Contains("hoa hoan") || key.Contains("forest fire")) return "Forest Fire";
+        if (key.Contains("lốc xoáy") || key.Contains("loc xoay") || key.Contains("cyclone")) return "Cyclone";
+        if (key.Contains("hạn hán") || key.Contains("han han") || key.Contains("drought")) return "Drought";
+        if (key.Contains("đất cằn") || key.Contains("dat can") || key.Contains("barren")) return "Barren Land";
+        if (key.Contains("chướng ngại") || key.Contains("chuong ngai") || key.Contains("obstacle")) return "Obstacle";
+        if (key.Contains("leafwood")) return "Leafwood";
+        if (key.Contains("bloomfield")) return "Bloomfield";
+        if (key.Contains("windheath")) return "Windheath";
+        if (key.Contains("reedmarsh")) return "Reedmarsh";
+        if (key.Contains("lilywater")) return "Lilywater";
+        if (key.Contains("streamstone")) return "Streamstone";
+        if (key.Contains("rainleaf")) return "Rainleaf";
+        if (key.Contains("đồng cỏ") || key.Contains("dong co")) return "Meadows";
+
+        return name;
     }
 
     // Khi tắt Domain Reload lúc vào Play Mode, biến static không tự xóa: nạp lại danh sách mỗi lần chạy

@@ -92,7 +92,7 @@ public class ScorePopup : MonoBehaviour
 #if UNITY_EDITOR
     private static Sprite[] LoadSpritesFromAssetDatabase()
     {
-        string[] guids = UnityEditor.AssetDatabase.FindAssets("poitn t:Sprite");
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("poitn t:Texture2D");
 
         foreach (string guid in guids)
         {
@@ -129,9 +129,21 @@ public class ScorePopup : MonoBehaviour
         Sprite sprite = GetSpriteForScore(score);
         if (sprite == null)
         {
-            Debug.LogWarning("ScorePopup: Không tìm thấy sprite. " +
-                             "Hãy gán sprite (+1/+2/+10) vào ScorePopupManager trong Inspector.");
-            return null;
+            // Fallback tạo nhãn TextMeshPro hiển thị số điểm nếu sprite sheet chưa load
+            GameObject fallbackObj = new GameObject($"ScorePopup_Text_+{score}");
+            fallbackObj.transform.position = worldPosition;
+            Camera mainCam = Camera.main;
+            if (mainCam != null) fallbackObj.transform.rotation = mainCam.transform.rotation;
+            var tmp = fallbackObj.AddComponent<TMPro.TextMeshPro>();
+            tmp.text = $"+{score}";
+            tmp.fontSize = 4.5f;
+            tmp.fontStyle = TMPro.FontStyles.Bold;
+            tmp.alignment = TMPro.TextAlignmentOptions.Center;
+            tmp.color = new Color(0.20f, 1.0f, 0.45f, 1.0f);
+            tmp.sortingOrder = 1000;
+            ScorePopup textPopup = fallbackObj.AddComponent<ScorePopup>();
+            textPopup.Play();
+            return textPopup;
         }
 
         GameObject popupObj = new GameObject($"ScorePopup_+{score}");

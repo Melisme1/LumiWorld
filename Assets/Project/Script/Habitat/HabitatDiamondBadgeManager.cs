@@ -61,6 +61,8 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
 
     private void Update()
     {
+        // Đảo đang xem của người khác: không chọn cụm môi trường, không hiện huy hiệu
+        if (WorldLaunch.IsVisit) return;
         HandleMapTileClick();
     }
 
@@ -91,6 +93,13 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
             var identity = hit.collider.GetComponentInParent<HabitatPlacementIdentity>();
             var tile = hit.collider.GetComponentInParent<HexTileInfo>();
 
+            // Chỉ chấp nhận khi chuột trỏ trên bề mặt trên cùng của ô lục giác (không nhận khi bấm vào sườn vách/cạnh bên)
+            if (identity == null && tile != null && !HexMetrics.IsTopSurfaceHit(hit))
+            {
+                // Chạm vào cạnh bên / vách đứng của ô -> không tính là chọn bề mặt và dừng kiểm tra để không xuyên thấu
+                break;
+            }
+
             if (habitatManager == null) HabitatRuntimeManager.TryGetActive(out habitatManager);
             if (habitatManager != null && habitatManager.Habitats != null)
             {
@@ -109,6 +118,12 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
                         return;
                     }
                 }
+            }
+
+            // Đã chạm bề mặt của một ô lục giác (nhưng không thuộc Habitat nào) -> dừng kiểm tra không xuyên qua ô phía sau
+            if (tile != null)
+            {
+                break;
             }
         }
 
@@ -213,7 +228,7 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
     /// </summary>
     public void RefreshBadges()
     {
-        if (!showDiamondBadges)
+        if (!showDiamondBadges || WorldLaunch.IsVisit)
         {
             ClearAllBadges();
             return;

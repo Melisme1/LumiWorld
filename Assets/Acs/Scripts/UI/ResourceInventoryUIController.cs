@@ -73,7 +73,8 @@ namespace LumiWorld.Acs
             openRecovery = OpenRecovery, closeSummary = CloseSummary,
             collectSummary = () => { if (summaryOffline) production.CollectAll(); else production.CollectRecovery(); },
             collectPending = (habitatId, resourceId) => production.CollectResource(habitatId, resourceId),
-            closeReceipt = () => view.Receipt.gameObject.SetActive(false)
+            closeReceipt = () => view.Receipt.gameObject.SetActive(false),
+            getStock = id => inventory != null ? inventory.GetAmount(id) : 0
         };
 
         private void Update()
@@ -137,14 +138,14 @@ namespace LumiWorld.Acs
             if (view.SelectorWindow.gameObject.activeSelf)
             {
                 var source = FindHabitat(selectorHabitatId);
-                if (source == null) { CloseSelector(); Notice("Habitat đã thay đổi. Hãy chọn lại nhóm."); }
+                if (source == null) { CloseSelector(); Notice("Habitat has changed. Please select again."); }
                 else
                 {
                     var options = ResourceInventoryUIPresentation.Options(source, manager.Catalog, selectorTier, selectorIndex);
                     var eligible = HabitatEligibilityService.EvaluateSelection(source, selectorTier, selectorIndex, pendingResourceId, manager.Catalog);
                     bool canApply = HabitatEligibilityService.IsSlotUnlocked(source, selectorTier, selectorIndex) &&
                         (string.IsNullOrEmpty(pendingResourceId) || eligible.IsEligible);
-                    view.UpdateOptions(options, pendingResourceId, canApply, string.IsNullOrEmpty(pendingResourceId) ? "Bỏ lựa chọn: giữ nguyên hàng đã sản xuất." : eligible.Reason);
+                    view.UpdateOptions(options, pendingResourceId, canApply, string.IsNullOrEmpty(pendingResourceId) ? "Deselect: Keep already produced goods." : eligible.Reason);
                 }
             }
             if (view.SummaryWindow.gameObject.activeSelf)
@@ -207,10 +208,22 @@ namespace LumiWorld.Acs
             {
                 var identity = hit.collider.GetComponentInParent<HabitatPlacementIdentity>();
                 var tile = hit.collider.GetComponentInParent<HexTileInfo>();
+
+                // Chỉ chấp nhận khi chuột trỏ trên bề mặt trên cùng của ô lục giác (không nhận khi bấm vào sườn vách/cạnh bên)
+                if (identity == null && tile != null && !HexMetrics.IsTopSurfaceHit(hit))
+                {
+                    break;
+                }
+
                 foreach (var habitat in manager.Habitats)
                     if (identity != null && (habitat.members.Exists(m => m.placementId == identity.PlacementId) || habitat.residents.Exists(r => r.individualId == identity.PlacementId)) ||
                         tile != null && habitat.ContainsHex(tile.coordinates))
                     { Select(habitat); return; }
+
+                if (tile != null)
+                {
+                    break;
+                }
             }
         }
         private void ShowModal(RectTransform modal)
@@ -219,12 +232,18 @@ namespace LumiWorld.Acs
         {
             if (view != null)
             {
+                view.ResetSelection();
                 warehouseItems = ResourceInventoryUIPresentation.Warehouse(manager.Catalog, inventory.GetAmount, onlyCollected: true);
                 view.BuildWarehouseItems(warehouseItems);
                 ShowModal(view.WarehouseWindow);
             }
         }
-        public void CloseWarehouse() { view?.WarehouseWindow.gameObject.SetActive(false); EconomyHUD.MarkWindowClosed(); }
+        public void CloseWarehouse()
+        {
+            view?.ResetSelection();
+            view?.WarehouseWindow.gameObject.SetActive(false);
+            EconomyHUD.MarkWindowClosed();
+        }
         public void OpenSelectorFor(string habitatId, ResourceTier tier, int index)
         {
             var habitat = FindHabitat(habitatId);
@@ -238,7 +257,13 @@ namespace LumiWorld.Acs
             if (!HabitatEligibilityService.IsSlotUnlocked(habitat, tier, index)) return;
             selectorHabitatId = selectedHabitatId; selectorTier = tier; selectorIndex = index;
             pendingResourceId = habitat.GetSlot(tier,index).selectedResourceId;
-            view.BuildOptions(ResourceInventoryUIPresentation.Options(habitat, manager.Catalog, tier, index)); ShowModal(view.SelectorWindow);
+            var options = ResourceInventoryUIPresentation.Options(habitat, manager.Catalog, tier, index);
+            view.BuildOptions(options);
+            var eligible = HabitatEligibilityService.EvaluateSelection(habitat, tier, index, pendingResourceId, manager.Catalog);
+            bool canApply = HabitatEligibilityService.IsSlotUnlocked(habitat, tier, index) &&
+                (string.IsNullOrEmpty(pendingResourceId) || eligible.IsEligible);
+            view.UpdateOptions(options, pendingResourceId, canApply, string.IsNullOrEmpty(pendingResourceId) ? "Deselect: Keep already produced goods." : eligible.Reason);
+            ShowModal(view.SelectorWindow);
         }
         public void CloseSelector() { view?.SelectorWindow.gameObject.SetActive(false); pendingResourceId = null; EconomyHUD.MarkWindowClosed(); }
         private void ApplySelection()
@@ -268,7 +293,7 @@ namespace LumiWorld.Acs
                     if (row != null) row.amount += item.Transferred;
                     else received.Add(new ResourceUIBuffer { resourceId = item.ResourceId, name = item.ResourceName, icon = definition?.resource?.icon, amount = item.Transferred });
                 }
-            view.ShowReceipt(receipt.Message + " Nhận " + receipt.TotalTransferred + "; còn chờ " + receipt.TotalRemaining + ".", received);
+            view.ShowReceipt(receipt.Message + " Received " + receipt.TotalTransferred + "; remaining " + receipt.TotalRemaining + ".", received);
             receiptUntil = Time.unscaledTime + 6; dirty = true;
         }
         private void Changed() => dirty = true;

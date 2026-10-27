@@ -73,11 +73,20 @@ public static class VisitSession
     /// <summary>Snapshot dưới dạng WorldSaveData để WorldSaveSystem dựng lại như một đảo đã lưu.</summary>
     public static WorldSaveData ToSaveData()
     {
+        var placements = new List<PlacementRecord>();
+        if (Snapshot.placements != null)
+            foreach (SnapshotPlacement placement in Snapshot.placements)
+                if (placement != null) placements.Add(placement.ToRecord());
+
         return new WorldSaveData
         {
             playerId = OwnerId,
             tiles = Snapshot.tiles ?? new List<TileRecord>(),
-            placements = Snapshot.placements ?? new List<PlacementRecord>(),
+            placements = placements,
         };
     }
+
+    /// <summary>Ô đã cháy của đảo đang thăm (rỗng với snapshot cũ hoặc khi không thăm).</summary>
+    public static List<HexPointRecord> BurnedTiles =>
+        Snapshot != null && Snapshot.burned != null ? Snapshot.burned : new List<HexPointRecord>();
 }

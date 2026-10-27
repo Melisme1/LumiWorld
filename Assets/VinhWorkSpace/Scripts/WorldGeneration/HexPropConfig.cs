@@ -31,4 +31,33 @@ public class HexPropConfig : MonoBehaviour
         get => maxEmbedHeightRatio;
         set => maxEmbedHeightRatio = Mathf.Clamp(value, 0.05f, 0.5f);
     }
+
+    [Header("Obstacle Navigation (AI Thú Né Tránh)")]
+    [Tooltip("Chế độ vật cản cho AI động vật:\n" +
+             "• AutoDetect: Tự động phân loại theo tên/kích thước prefab (gốc cây, thân cây, tảng đá, khúc gỗ)\n" +
+             "• SolidObstacle: Luôn coi là vật cản cứng, thú tuyệt đối không đi xuyên qua\n" +
+             "• Passable: Luôn coi là thực vật mềm, thú có thể dẫm lướt qua tự nhiên")]
+    [SerializeField] private PropObstacleMode obstacleMode = PropObstacleMode.AutoDetect;
+
+    [Tooltip("Bán kính cản va chạm tùy chỉnh (mét). Để 0 sẽ tự động tính từ kích thước thực tế của mô hình.")]
+    [SerializeField] private float customObstacleRadius = 0f;
+
+    public PropObstacleMode ObstacleMode
+    {
+        get => obstacleMode;
+        set => obstacleMode = value;
+    }
+
+    public float CustomObstacleRadius
+    {
+        get => customObstacleRadius;
+        set => customObstacleRadius = Mathf.Max(0f, value);
+    }
+}
+
+public enum PropObstacleMode
+{
+    AutoDetect = 0,
+    SolidObstacle = 1,
+    Passable = 2
 }

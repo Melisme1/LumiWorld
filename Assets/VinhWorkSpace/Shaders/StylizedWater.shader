@@ -38,7 +38,7 @@ Shader "Custom/StylizedWater"
     {
         Tags 
         { 
-            "Queue"="Transparent" 
+            "Queue"="Transparent-100" 
             "RenderType"="Transparent" 
             "RenderPipeline"="UniversalPipeline"
         }

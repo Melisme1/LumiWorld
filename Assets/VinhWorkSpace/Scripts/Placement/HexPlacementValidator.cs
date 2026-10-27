@@ -60,7 +60,7 @@ public class HexPlacementValidator : MonoBehaviour
         {
             if (disasterState != null && disasterState.Has(LumiWorld.Acs.DisasterKind.Cyclone))
             {
-                lastValidationError = "Không thể dùng Rain trên ô đang bị Cyclone ảnh hưởng";
+                lastValidationError = "Cannot use Rain on a tile affected by a Cyclone";
                 return false;
             }
 
@@ -75,7 +75,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Nếu không có thiên tai, kiểm tra xem ô có phải là ô đất khô Arid cần cải tạo hay không
             if (!cardData.IsTileTransformCard() || !cardData.IsTileAllowed(tileObj, worldGen))
             {
-                lastValidationError = "Ô này không có thiên tai và đã tươi tốt, không cần tưới mưa";
+                lastValidationError = "This tile has no disaster and is already lush, no need for rain";
                 return false;
             }
 
@@ -85,7 +85,7 @@ public class HexPlacementValidator : MonoBehaviour
             {
                 if (pc != null && pc.cardData != null && pc.cardData.IsTileTransformCard())
                 {
-                    lastValidationError = "Ô này đã được biến đổi địa hình";
+                    lastValidationError = "This tile has already been transformed";
                     return false;
                 }
             }
@@ -98,15 +98,96 @@ public class HexPlacementValidator : MonoBehaviour
         // và yêu cầu người chơi phải dùng thẻ Mưa để dọn tàn tích trước!
         if (disasterState != null && disasterState.isBurned)
         {
-            lastValidationError = "Ô này đang bị cháy rụi tàn tro. Cần dùng thẻ Mưa để dọn tàn tích trước!";
+            lastValidationError = "This tile is burned to ashes. Use a Rain card to clear ruins first!";
             return false;
         }
 
         // Nếu ô đang có thiên tai hoạt động (cháy rừng, lốc xoáy...), chặn đặt thẻ thường
         if (disasterState != null && disasterState.HasAnyDisaster)
         {
-            lastValidationError = "Ô này đang xảy ra thiên tai, không thể đặt thẻ!";
+            lastValidationError = "A disaster is currently active on this tile, cannot place card!";
             return false;
+        }
+
+        // 0.8 Kiểm tra thẻ Sông Suối (River Card)
+        if (cardData != null && cardData.IsRiverCard())
+        {
+            // Ô đã có dòng suối từ trước -> Không cho đặt đè
+            if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
+            {
+                lastValidationError = "Ô này đã có dòng suối";
+                return false;
+            }
+
+            // Ô đang có thú sinh sống trực tiếp -> Không cho đặt trực tiếp lên thú
+            if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
+            {
+                lastValidationError = "Ô này đang có thú sinh sống. Hãy đặt suối ở ô lân cận để tạo bến nước!";
+                return false;
+            }
+
+            // BẮT BUỘC: Ô này phải ĐÃ ĐẶT thẻ Môi trường (Biome / Terrain card)
+            if (!HasPlacedTerrain(tileObj))
+            {
+                lastValidationError = "Cần đặt thẻ Môi trường (Biome) trước khi khai thông dòng suối!";
+                return false;
+            }
+
+            // Quy tắc đặt suối: Khởi nguồn từ đỉnh cao nhất & Nối tiếp dòng chảy dốc xuống (Elevation Origin & Downhill Rule)
+            HexTileInfo tileInfo = tileObj.GetComponent<HexTileInfo>();
+            var (targetTopY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
+
+            List<HexCoordinates> riverNeighbors = new List<HexCoordinates>();
+            if (RiverNetworkManager.Instance != null)
+            {
+                for (int dir = 0; dir < 6; dir++)
+                {
+                    HexCoordinates n = coords.GetNeighbor(dir);
+                    if (RiverNetworkManager.Instance.HasRiver(n))
+                    {
+                        riverNeighbors.Add(n);
+                    }
+                }
+            }
+
+            // TRƯỜNG HỢP 1: ĐẶT Ô THƯỢNG NGUỒN (Độc lập, chưa kề ô suối nào)
+            if (riverNeighbors.Count == 0)
+            {
+                // Thượng nguồn BẮT BUỘC phải bắt đầu từ Tầng trung (Tier 1) hoặc Tầng cao (Tier 2): topY >= 1.35m
+                // Không cho phép đặt nguồn ở vùng thung lũng trũng thấp nhất (Tier 0)
+                if (targetTopY < 1.35f)
+                {
+                    lastValidationError = "Thượng nguồn suối phải bắt đầu từ Tầng trung (đồi) hoặc Tầng cao (núi) để có độ dốc dòng chảy!";
+                    return false;
+                }
+            }
+            // TRƯỜNG HỢP 2: NỐI TIẾP DÒNG SUỐI ĐÃ CÓ (Kề ít nhất 1 ô suối)
+            else
+            {
+                // DỐC ĐỊA HÌNH: Nước chỉ chảy dốc xuống hoặc bằng phẳng, TUYỆT ĐỐI không thể chảy ngược lên dốc cao hơn!
+                bool canFlowDownhill = false;
+                foreach (var nCoords in riverNeighbors)
+                {
+                    if (worldGen.MapTiles.TryGetValue(nCoords, out GameObject nTileObj) && nTileObj != null)
+                    {
+                        var (nTopY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(nTileObj);
+                        if (targetTopY <= nTopY + 0.15f)
+                        {
+                            canFlowDownhill = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!canFlowDownhill)
+                {
+                    lastValidationError = "Nước không thể chảy ngược lên dốc cao hơn!";
+                    return false;
+                }
+            }
+
+            lastValidationError = "";
+            return true;
         }
 
         // 1. Phân biệt theo loại thẻ:
@@ -115,7 +196,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Thẻ thú không được đặt nếu ô này ĐÃ CÓ một con thú khác
             if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
             {
-                lastValidationError = "Mỗi home hex chỉ chứa một creature.";
+                lastValidationError = "Each home hex can only contain one creature.";
                 return false;
             }
 
@@ -123,7 +204,7 @@ public class HexPlacementValidator : MonoBehaviour
             // (Kể cả khi ô đã được tưới Rain thành Lush, người chơi vẫn BẮT BUỘC phải đặt thẻ Terrain lên trước rồi mới được đặt thú)
             if (!HasPlacedTerrain(tileObj))
             {
-                lastValidationError = "Cần đặt thẻ Địa hình (Terrain) trước khi thả thú";
+                lastValidationError = "Must place a Terrain card before placing a creature.";
                 return false;
             }
 
@@ -138,14 +219,14 @@ public class HexPlacementValidator : MonoBehaviour
                 var (clusterSize, creatureCount) = GetClusterCreatureStats(coords, terrainCard, worldGen);
                 if (clusterSize < 3)
                 {
-                    lastValidationError = $"Cụm Biome cần tối thiểu 3 ô Nature để nuôi thú (Hiện có: {clusterSize} ô)";
+                    lastValidationError = $"Biome cluster requires at least 3 Nature tiles to raise creatures (Currently: {clusterSize} tiles)";
                     return false;
                 }
 
                 int capacity = CalculateClusterCreatureCapacity(clusterSize);
                 if (creatureCount >= capacity)
                 {
-                    lastValidationError = $"Cụm Biome đã đạt giới hạn số thú ({creatureCount}/{capacity}). Hãy mở rộng cụm (mốc 3/6/9 ô)";
+                    lastValidationError = $"Biome cluster has reached max creature capacity ({creatureCount}/{capacity}). Expand the cluster (milestones: 3/6/9 tiles)";
                     return false;
                 }
             }
@@ -155,14 +236,14 @@ public class HexPlacementValidator : MonoBehaviour
             // Ô này đã có thẻ Terrain từ trước thì không được đè thêm thẻ Terrain khác
             if (HasPlacedTerrain(tileObj))
             {
-                lastValidationError = "Ô này đã được phủ địa hình";
+                lastValidationError = "This tile already has terrain.";
                 return false;
             }
 
             // Các thẻ Terrain tuân theo quy tắc kiểm tra chiếm ô
             if (IsTileOccupied(tileObj))
             {
-                lastValidationError = "Ô này đã bị chiếm dụng";
+                lastValidationError = "This tile is already occupied.";
                 return false;
             }
         }
@@ -171,7 +252,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Các thẻ khác (Building...): Tuân theo quy tắc kiểm tra chiếm ô thông thường
             if (IsTileOccupied(tileObj))
             {
-                lastValidationError = "Ô này đã bị chiếm dụng";
+                lastValidationError = "This tile is already occupied.";
                 return false;
             }
         }
@@ -184,7 +265,7 @@ public class HexPlacementValidator : MonoBehaviour
             {
                 if (pc != null && pc.cardData != null && pc.cardData.IsTileTransformCard())
                 {
-                    lastValidationError = "Ô này đã được biến đổi địa hình";
+                    lastValidationError = "This tile has already been transformed.";
                     return false;
                 }
             }
@@ -193,7 +274,7 @@ public class HexPlacementValidator : MonoBehaviour
         // Mapped creature residency follows GDD affinities; physical prefab lists remain for other cards.
         if (cardData != null && !(useHabitatRules && cardData.cardType == CardType.Creature) && !cardData.IsTileAllowed(tileObj, worldGen))
         {
-            lastValidationError = "Địa hình không thích hợp với loài thú/thẻ bài này";
+            lastValidationError = "Terrain is not suitable for this creature/card.";
             return false;
         }
 

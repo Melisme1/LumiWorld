@@ -44,6 +44,10 @@ public class ScoreCalculator : MonoBehaviour
             if (card == null || card.cardData == null)
                 continue;
 
+            // Bỏ qua thẻ Sông Suối ở vòng lặp gom nhóm thường (được tính riêng ở mục RiverNetworkManager bên dưới)
+            if (card.cardData.IsRiverCard())
+                continue;
+
             if (processed.Contains(card))
                 continue;
 
@@ -96,6 +100,14 @@ public class ScoreCalculator : MonoBehaviour
             }
         }
 
+        // =========================================================
+        // TÍNH ĐIỂM HỆ THỐNG SÔNG SUỐI (RIVER NETWORK & WATERING HOLE)
+        // =========================================================
+        if (RiverNetworkManager.Instance != null)
+        {
+            totalScore += RiverNetworkManager.Instance.CalculateTotalRiverScore();
+        }
+
         return totalScore;
     }
 
@@ -109,7 +121,8 @@ public class ScoreCalculator : MonoBehaviour
 
         if (ScoreManager.Instance != null)
         {
-            ScoreManager.Instance.SetScore(totalScore);
+            // Điểm thẻ cộng với điểm combo đã có, để tính lại không xóa điểm combo
+            ScoreManager.Instance.SetCardScore(totalScore);
         }
     }
 }

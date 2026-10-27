@@ -33,4 +33,4 @@ MonoBehaviour:
   habitatSpawnMargin: 0.5
   habitatProps: []
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}
+  - {fileID: 846643552139226012, guid: c10000048a144b6289b7996f34397104, type: 3}

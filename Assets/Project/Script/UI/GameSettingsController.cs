@@ -115,6 +115,7 @@ public class GameSettingsController : MonoBehaviour
 
     public void BackToMainMenu()
     {
+        if (WorldSaveSystem.Instance != null) WorldSaveSystem.Instance.SaveNow();
         SceneManager.LoadScene(mainMenuSceneName);
     }
 
@@ -126,6 +127,7 @@ public class GameSettingsController : MonoBehaviour
     public void QuitGame()
     {
         Debug.Log("Quit Game");
+        if (WorldSaveSystem.Instance != null) WorldSaveSystem.Instance.SaveNow();
 
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;

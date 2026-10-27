@@ -221,7 +221,7 @@ public class GameDialogUI : MonoBehaviour
         cancelTxtRect.sizeDelta = new Vector2(190f, 40f);
 
         cancelButtonText = cancelTxtObj.GetComponent<TextMeshProUGUI>();
-        cancelButtonText.text = "HỦY BỎ";
+        cancelButtonText.text = "CANCEL";
         cancelButtonText.alignment = TextAlignmentOptions.Center;
         cancelButtonText.verticalAlignment = VerticalAlignmentOptions.Middle;
         cancelButtonText.horizontalAlignment = HorizontalAlignmentOptions.Center;
@@ -266,7 +266,7 @@ public class GameDialogUI : MonoBehaviour
         confirmTxtRect.sizeDelta = new Vector2(190f, 40f);
 
         confirmButtonText = confirmTxtObj.GetComponent<TextMeshProUGUI>();
-        confirmButtonText.text = "XÁC NHẬN";
+        confirmButtonText.text = "CONFIRM";
         confirmButtonText.alignment = TextAlignmentOptions.Center;
         confirmButtonText.verticalAlignment = VerticalAlignmentOptions.Middle;
         confirmButtonText.horizontalAlignment = HorizontalAlignmentOptions.Center;
@@ -384,22 +384,22 @@ public class GameDialogUI : MonoBehaviour
     /// <summary>
     /// Hiển thị Panel Thông Báo (Notification Panel) kèm nút OK để tắt
     /// </summary>
-    public static void ShowNotice(string message, Action onOk = null, string title = "THÔNG BÁO")
+    public static void ShowNotice(string message, Action onOk = null, string title = "NOTICE")
     {
         EnsureInstance();
         instance.InternalShowNotice(message, onOk, title);
     }
 
     /// <summary>
-    /// Hiển thị Panel Xác Nhận (Confirmation Panel) với 2 nút HỦY BỎ và XÁC NHẬN
+    /// Hiển thị Panel Xác Nhận (Confirmation Panel) với 2 nút CANCEL và CONFIRM
     /// </summary>
     public static void ShowConfirm(
         string message,
         Action onConfirm,
         Action onCancel = null,
-        string confirmText = "XÁC NHẬN",
-        string cancelText = "HỦY BỎ",
-        string title = "XÁC NHẬN")
+        string confirmText = "CONFIRM",
+        string cancelText = "CANCEL",
+        string title = "CONFIRM")
     {
         EnsureInstance();
         instance.InternalShowConfirm(message, onConfirm, onCancel, confirmText, cancelText, title);
@@ -415,7 +415,7 @@ public class GameDialogUI : MonoBehaviour
 
         this.onOkCallback = onOk;
 
-        noticeTitleText.text = SanitizeText(!string.IsNullOrEmpty(title) ? title : "THÔNG BÁO");
+        noticeTitleText.text = SanitizeText(!string.IsNullOrEmpty(title) ? title : "NOTICE");
         noticeMessageText.text = SanitizeText(message);
 
         backdropObj.SetActive(true);
@@ -438,11 +438,11 @@ public class GameDialogUI : MonoBehaviour
         this.onConfirmCallback = onConfirm;
         this.onCancelCallback = onCancel;
 
-        confirmTitleText.text = SanitizeText(!string.IsNullOrEmpty(title) ? title : "XÁC NHẬN");
+        confirmTitleText.text = SanitizeText(!string.IsNullOrEmpty(title) ? title : "CONFIRM");
         confirmMessageText.text = SanitizeText(message);
 
-        confirmButtonText.text = SanitizeText(!string.IsNullOrEmpty(confirmText) ? confirmText : "XÁC NHẬN");
-        cancelButtonText.text = SanitizeText(!string.IsNullOrEmpty(cancelText) ? cancelText : "HỦY BỎ");
+        confirmButtonText.text = SanitizeText(!string.IsNullOrEmpty(confirmText) ? confirmText : "CONFIRM");
+        cancelButtonText.text = SanitizeText(!string.IsNullOrEmpty(cancelText) ? cancelText : "CANCEL");
 
         backdropObj.SetActive(true);
         confirmModalObj.SetActive(true);

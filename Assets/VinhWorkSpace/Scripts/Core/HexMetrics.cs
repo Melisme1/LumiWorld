@@ -8,6 +8,20 @@ public static class HexMetrics
     public const float TileHeight = 1.0f;  // Chiều cao khối (Y size = 1.0f)
     public const float DefaultTileY = -0.5f; // Mực nền của các khối lục giác chìm dưới nước (-0.5f)
 
+    /// <summary>
+    /// Ngưỡng pháp tuyến trục Y tối thiểu để xác định điểm va chạm nằm trên bề mặt trên cùng của ô (tránh sườn dốc/vách đứng)
+    /// </summary>
+    public const float MinSurfaceNormalY = 0.55f;
+
+    /// <summary>
+    /// Kiểm tra xem điểm chạm Raycast có nằm trên bề mặt trên cùng của ô lục giác hay không.
+    /// Trả về false nếu trỏ chuột vào cạnh sườn hoặc vách đứng của khối.
+    /// </summary>
+    public static bool IsTopSurfaceHit(in RaycastHit hit)
+    {
+        return hit.normal.y >= MinSurfaceNormalY;
+    }
+
     // Đổi từ Hex Coordinates sang World Position (Pointed-Top)
     public static Vector3 HexToWorldPosition(HexCoordinates hex, float yElevation = DefaultTileY)
     {

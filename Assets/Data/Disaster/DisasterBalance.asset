@@ -49,7 +49,7 @@ MonoBehaviour:
     durationSeconds: 60
     rainToCure: 1
     harvestSpeedMultiplier: 0.469
-  cycloneRainThreshold: 4
+  cycloneRainThreshold: 6
   cycloneRainWindowSeconds: 10
   spawnCycloneOnRainOverdose: 1
   defaultDurationSeconds: 60

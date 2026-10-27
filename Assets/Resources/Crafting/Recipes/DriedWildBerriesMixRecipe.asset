@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: DriedWildBerriesMixRecipe
   m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Economy.Crafting.CraftingRecipeData
   recipeID: recipe.food.dried_wild_fruit_mix
-  recipeName: "H\u1ED7n h\u1EE3p tr\xE1i c\xE2y r\u1EEBng s\u1EA5y kh\xF4"
-  description: "S\u1EF1 h\xF2a quy\u1EC7n tuy\u1EC7t h\u1EA3o gi\u1EEFa m\xE2m x\xF4i
-    ng\u1ECDt l\u1ECBm v\xE0 vi\u1EC7t qu\u1EA5t chua thanh."
+  recipeName: "Dried Forest Fruit Mix"
+  description: "A delightful blend of sweet wild raspberries and tangy highland blueberries."
   category: 0
   recipeIcon: {fileID: 21300000, guid: 012efe17875a477bb90e1c2a0d282fbc, type: 3}
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010012, type: 2}

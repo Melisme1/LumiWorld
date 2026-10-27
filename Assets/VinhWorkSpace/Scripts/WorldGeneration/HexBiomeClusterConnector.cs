@@ -364,12 +364,17 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         // Xác định thẻ Habitat trên ô trung tâm (duyệt qua toàn bộ PlacedCard trên ô, không bị che bởi thẻ Rain)
         PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
+        bool centerHasRiver = (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(centerHex));
         if (centerHabitatData == null || !centerHabitatData.HasHabitatProps())
         {
-            if (centerCard == null || centerCard.cardData == null || !centerCard.cardData.HasHabitatProps())
+            if (centerCard != null && centerCard.cardData != null && centerCard.cardData.HasHabitatProps())
+            {
+                centerHabitatData = centerCard.cardData;
+            }
+            else if (!centerHasRiver)
+            {
                 return;
-
-            centerHabitatData = centerCard.cardData;
+            }
         }
 
         if (centerCard != null && centerCard.clusterId <= 0)
@@ -431,13 +436,32 @@ public class HexBiomeClusterConnector : MonoBehaviour
             {
                 PlacedCard neighborCard = GetHabitatCardOnTile(neighborTile);
 
-                if (neighborCard != null && AreHabitatsMatching(centerHabitatData, neighborCard.cardData))
+                // Kiểm tra xem có dòng suối chảy qua ranh giới giữa 2 ô này không
+                bool riverCrossesEdge = false;
+                if (RiverNetworkManager.Instance != null)
                 {
-                    // NẾU BẬT GIỚI HẠN BIOME: Cả 2 ô center và neighbor PHẢI THUỘC CÙNG 1 CỤM CLUSTER ID THÌ MỚI TẠO VIỀN NỐI!
-                    if (enableBiomeSizeLimit)
+                    RiverTileSegment segCenter = RiverNetworkManager.Instance.GetRiver(centerHex);
+                    RiverTileSegment segNeighbor = RiverNetworkManager.Instance.GetRiver(neighborHex);
+                    if (segCenter != null && segCenter.HasPort(dir)) riverCrossesEdge = true;
+                    if (segNeighbor != null)
+                    {
+                        int oppositeDir = (dir + 3) % 6;
+                        if (segNeighbor.HasPort(oppositeDir)) riverCrossesEdge = true;
+                    }
+                }
+
+                bool habitatsMatch = (neighborCard != null && AreHabitatsMatching(centerHabitatData, neighborCard.cardData));
+
+                // Trường hợp 1: Cùng Habitat Biome
+                // Trường hợp 2 (Yêu cầu chủ dự án): Có dòng suối chảy qua giữa 2 ô -> LUÔN CÓ MỐI NỐI (SeamBridge)
+                // nhưng khi có suối chảy qua thì TUYỆT ĐỐI KHÔNG sinh props trên mối nối nữa!
+                if (habitatsMatch || riverCrossesEdge)
+                {
+                    // Nếu không có sông chảy qua thì mới xét giới hạn kích thước Biome
+                    if (!riverCrossesEdge && enableBiomeSizeLimit)
                     {
                         if (centerCard == null || centerCard.clusterId <= 0 ||
-                            neighborCard.clusterId <= 0 ||
+                            neighborCard == null || neighborCard.clusterId <= 0 ||
                             neighborCard.clusterId != centerCard.clusterId)
                         {
                             continue; // Khác cụm -> BỎ QUA, không tạo viền nối giữa các ô khác cụm!
@@ -448,13 +472,13 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     if (!_createdEdgeBridges.Contains(edgeKey))
                     {
                         _createdEdgeBridges.Add(edgeKey);
-                        CreateEdgeSeamBridge(centerHex, centerTile, neighborHex, neighborTile, edgeKey, centerHabitatData, worldGen);
+                        CardData bridgeHabitatData = centerHabitatData != null ? centerHabitatData : (neighborCard != null ? neighborCard.cardData : null);
+                        CreateEdgeSeamBridge(centerHex, centerTile, neighborHex, neighborTile, edgeKey, bridgeHabitatData, worldGen);
 
-                        // CHỈ sinh props theo quy tắc 2 ô liền nhau nếu cạnh này KHÔNG thuộc cụm 3 ô vừa tạo.
-                        // (Cụm 3 ô sẽ sinh 1 cây trung ở tâm và tán props ra 2 cạnh viền này)
-                        if (spawnConnectorProps && !clusterEdgeKeys.Contains(edgeKey))
+                        // CHỈ sinh props theo quy tắc 2 ô liền nhau nếu KHÔNG CÓ SUỐI CHẢY QUA và không thuộc cụm 3 ô vừa tạo
+                        if (!riverCrossesEdge && spawnConnectorProps && !clusterEdgeKeys.Contains(edgeKey))
                         {
-                            SpawnEdgeConnectorProps(centerTile, neighborTile, centerHabitatData);
+                            SpawnEdgeConnectorProps(centerTile, neighborTile, bridgeHabitatData);
                         }
                     }
                 }
@@ -631,7 +655,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         StartCoroutine(AnimateBridgePopIn(bridgeGo.transform));
 
-        if (spawnSeamMicroGrass)
+        if (spawnSeamMicroGrass && !IsPositionNearRiver(midPoint, 0.40f))
         {
             SpawnBorderMicroGrass(midPoint, u, v, halfEdge, elevatedTopY, habitatData);
         }
@@ -1418,6 +1442,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         Vector3 midPoint, Vector3 u, Vector3 v, float halfEdge, float surfaceY, CardData habitatData)
     {
         if (!ShouldSpawnSeamGrassForHabitat(habitatData)) return;
+        if (IsPositionNearRiver(midPoint, 0.52f)) return;
 
         GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
         if (sproutPrefab == null) return;
@@ -1485,6 +1510,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
     private void SpawnCornerMicroGrass(Vector3 center, float surfaceY, CardData habitatData)
     {
         if (!ShouldSpawnSeamGrassForHabitat(habitatData)) return;
+        if (IsPositionNearRiver(center, 0.60f)) return;
 
         GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
         if (sproutPrefab == null) return;
@@ -1554,6 +1580,24 @@ public class HexBiomeClusterConnector : MonoBehaviour
         var (topYA, _, _) = GetTileHeightLevels(tileA);
         var (topYB, _, _) = GetTileHeightLevels(tileB);
         if (Mathf.Abs(topYA - topYB) > 0.15f) return;
+
+        // Nếu một trong 2 ô có suối nối sang ô kia -> TUYỆT ĐỐI KHÔNG sinh connector props cản trở dòng suối
+        HexTileInfo infoA = tileA.GetComponent<HexTileInfo>();
+        HexTileInfo infoB = tileB.GetComponent<HexTileInfo>();
+        if (infoA != null && infoB != null && RiverNetworkManager.Instance != null)
+        {
+            RiverTileSegment segA = RiverNetworkManager.Instance.GetRiver(infoA.coordinates);
+            RiverTileSegment segB = RiverNetworkManager.Instance.GetRiver(infoB.coordinates);
+            for (int d = 0; d < 6; d++)
+            {
+                if (segA != null && infoA.coordinates.GetNeighbor(d) == infoB.coordinates && segA.HasPort(d))
+                    return;
+                if (segB != null && infoB.coordinates.GetNeighbor(d) == infoA.coordinates && segB.HasPort(d))
+                    return;
+            }
+        }
+
+        if (IsPositionNearRiver(midPoint, 0.65f)) return;
 
         float topY = (topYA + topYB) * 0.5f;
 
@@ -1791,6 +1835,9 @@ public class HexBiomeClusterConnector : MonoBehaviour
         float topY = (topYA + topYB + topYC) / 3f;
         Vector3 center = (posA + posB + posC) / 3f;
         center.y = topY;
+
+        // Nếu ngã ba 3 ô này nằm trong hành lang sông suối -> Tuyệt đối không sinh cây hay cụm cản dòng!
+        if (IsPositionNearRiver(center, 0.85f)) return;
 
         List<NearbyPropEntry> nearbyEntries = GetNearbyPropEntries(center, 1.25f);
 
@@ -2420,6 +2467,154 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 DestroyConnectionObjectsNear(junction, 0.68f);
             }
         }
+    }
+
+    /// <summary>
+    /// Dọn sạch các props thực vật (cây trung, bụi hoa, mầm cỏ) trong BiomeConnectionsContainer nằm gần hành lang sông suối.
+    /// TUYỆT ĐỐI BẢO VỆ các mối nối hàn rãnh (SeamBridge) và nắp ngã ba (CornerFiller) để bề mặt đất giữa 2 hex không bao giờ bị nứt/mất mối nối!
+    /// </summary>
+    public void ClearPropsNearRiver(Vector3 center, float radius)
+    {
+        if (_connectionsContainer == null) return;
+        float radiusSqr = radius * radius;
+        for (int i = _connectionsContainer.childCount - 1; i >= 0; i--)
+        {
+            Transform child = _connectionsContainer.GetChild(i);
+            if (child == null) continue;
+
+            // TUYỆT ĐỐI BẢO VỆ MỐI NỐI HÀN RÃNH 2 HEX (SeamBridge, CornerFiller, EdgeBridge)
+            string cName = child.name;
+            if (cName.StartsWith("SeamBridge_") || 
+                cName.StartsWith("CornerFiller_") || 
+                cName.StartsWith("EdgeBridge_"))
+            {
+                continue;
+            }
+
+            Vector3 delta = child.position - center;
+            if (delta.x * delta.x + delta.z * delta.z > radiusSqr) continue;
+            DestroyConnectionObject(child);
+        }
+    }
+
+    /// <summary>
+    /// Phục hồi mọi mối nối hàn rãnh (SeamBridge) hoặc nắp ngã ba (CornerFiller) nếu bị thiếu/hỏng mà không xóa các mối nối đang có
+    /// </summary>
+    public void RestoreMissingBridges()
+    {
+        if (ConnectionsContainer == null) return;
+        _createdEdgeBridges.RemoveWhere(k => _connectionsContainer.Find($"SeamBridge_{k}") == null);
+        _createdCornerFillers.RemoveWhere(k => _connectionsContainer.Find($"CornerFiller_{k}") == null);
+
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen == null || worldGen.MapTiles == null) return;
+
+        // Dọn sạch các mối nối vô tình sinh trên các ô đất thô chưa đặt thẻ Habitat
+        if (_connectionsContainer != null)
+        {
+            for (int i = _connectionsContainer.childCount - 1; i >= 0; i--)
+            {
+                Transform child = _connectionsContainer.GetChild(i);
+                if (child == null) continue;
+                string n = child.name;
+                if (n.StartsWith("SeamBridge_"))
+                {
+                    string key = n.Substring("SeamBridge_".Length);
+                    string[] parts = key.Split('_');
+                    if (parts.Length == 4 &&
+                        int.TryParse(parts[0], out int q1) && int.TryParse(parts[1], out int r1) &&
+                        int.TryParse(parts[2], out int q2) && int.TryParse(parts[3], out int r2))
+                    {
+                        HexCoordinates hA = new HexCoordinates(q1, r1);
+                        HexCoordinates hB = new HexCoordinates(q2, r2);
+                        PlacedCard cA = worldGen.MapTiles.TryGetValue(hA, out GameObject tA) ? GetHabitatCardOnTile(tA) : null;
+                        PlacedCard cB = worldGen.MapTiles.TryGetValue(hB, out GameObject tB) ? GetHabitatCardOnTile(tB) : null;
+
+                        bool riverCrosses = false;
+                        if (RiverNetworkManager.Instance != null)
+                        {
+                            RiverTileSegment segA = RiverNetworkManager.Instance.GetRiver(hA);
+                            RiverTileSegment segB = RiverNetworkManager.Instance.GetRiver(hB);
+                            for (int d = 0; d < 6; d++)
+                            {
+                                if (segA != null && hA.GetNeighbor(d) == hB && segA.HasPort(d)) riverCrosses = true;
+                                if (segB != null && hB.GetNeighbor(d) == hA && segB.HasPort(d)) riverCrosses = true;
+                            }
+                        }
+
+                        if (!riverCrosses && (cA == null || cB == null || !AreNatureCardsMatching(cA.cardData, cB.cardData)))
+                        {
+                            _createdEdgeBridges.Remove(key);
+                            DestroyConnectionObject(child);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Quét các ô có Habitat Props HOẶC có sông suối để kết nối cụm sinh thái
+        foreach (var pair in worldGen.MapTiles)
+        {
+            PlacedCard card = GetHabitatCardOnTile(pair.Value);
+            bool hasRiver = RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(pair.Key);
+            if ((card != null && card.cardData != null && card.cardData.HasHabitatProps()) || hasRiver)
+            {
+                ConnectAllNearby(pair.Key, card != null ? card.cardData : null);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Kiểm tra xem một vị trí thế giới có nằm trong hành lang chiếm dụng của Sông/Suối/Thác nước hay không
+    /// </summary>
+    public static bool IsPositionNearRiver(Vector3 worldPos, float radius)
+    {
+        if (RiverNetworkManager.Instance == null || RiverNetworkManager.Instance.RiverMap == null) return false;
+        float radiusSqr = radius * radius;
+
+        foreach (var pair in RiverNetworkManager.Instance.RiverMap)
+        {
+            RiverTileSegment seg = pair.Value;
+            if (seg == null) continue;
+
+            Vector3 segPos = seg.transform.position;
+
+            // 1. Kiểm tra các waypoints thực tế của dải sông/thác nước
+            // Chú ý: path[w].position đã là offset không gian thế giới (unrotated) tương đối so với tâm ô hex
+            if (seg.CachedPaths != null && seg.CachedPaths.Count > 0)
+            {
+                for (int p = 0; p < seg.CachedPaths.Count; p++)
+                {
+                    var path = seg.CachedPaths[p];
+                    for (int w = 0; w < path.Count; w++)
+                    {
+                        Vector3 wpWorld = segPos + path[w].position;
+                        float dx = worldPos.x - wpWorld.x;
+                        float dz = worldPos.z - wpWorld.z;
+                        if (dx * dx + dz * dz < radiusSqr) return true;
+                    }
+                }
+            }
+            else
+            {
+                // Fallback theo các cổng kết nối và tâm ô lục giác của đoạn suối
+                for (int d = 0; d < 6; d++)
+                {
+                    if (seg.HasPort(d))
+                    {
+                        Vector3 portWorld = segPos + RiverSplinePath.GetEdgeMidpointLocal(d);
+                        float dx = worldPos.x - portWorld.x;
+                        float dz = worldPos.z - portWorld.z;
+                        if (dx * dx + dz * dz < radiusSqr) return true;
+                    }
+                }
+
+                float dxCenter = worldPos.x - segPos.x;
+                float dzCenter = worldPos.z - segPos.z;
+                if (dxCenter * dxCenter + dzCenter * dzCenter < radiusSqr) return true;
+            }
+        }
+        return false;
     }
 
     private void DestroyConnectionObjectsNear(Vector3 center, float radius)

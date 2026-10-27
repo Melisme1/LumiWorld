@@ -65,6 +65,10 @@ public class CardData : ScriptableObject
     [Tooltip("Nếu tích chọn (mặc định), đặt lá bài này sẽ CHIẾM ô: các card khác không đặt lên được nữa. Bỏ tích với card biến đổi địa hình như Rain để khối sau biến đổi vẫn trống, cho phép đặt card khác (ví dụ Forest) lên.")]
     public bool occupiesTile = true;
 
+    [Header("River / Stream Integration")]
+    [Tooltip("Nếu tích chọn: đây là lá bài Sông Suối (tạo rãnh suối uốn lượn nối các ô và bến nước cho thú)")]
+    public bool isRiverCard = false;
+
     [Header("Animal Integration (For Creature Cards)")]
     [Tooltip("Dữ liệu thông số loài động vật nếu lá bài này là Creature (để sinh ra cá thể 1★-5★ với Trait riêng)")]
     public AnimalSpeciesData animalSpeciesData;
@@ -95,6 +99,24 @@ public class CardData : ScriptableObject
     [Tooltip("Danh sách các nhóm prop sẽ rải ngẫu nhiên khi đặt bài. Nếu danh sách này có dữ liệu, game sẽ tự động rải props thay vì chỉ đặt 1 prefabToPlace duy nhất.")]
     public List<HabitatPropRule> habitatProps = new List<HabitatPropRule>();
 
+    [Header("Ground Cover / Cỏ phủ nền (FilledGround)")]
+    [Tooltip("Prefab cỏ phủ nền: kéo prefab nào vào đây thì spawn đúng prefab đó (random trong danh sách), độc lập với Habitat Props. Để trống = không phủ cỏ cho lá bài này.")]
+    public List<GameObject> groundCoverPrefabs = new List<GameObject>();
+
+    [Tooltip("Số lượng cỏ phủ nền trên mỗi ô hex (random trong khoảng Min–Max).")]
+    public Vector2Int groundCoverCountRange = new Vector2Int(80, 120);
+
+    [Tooltip("Hệ số scale mỗi cây cỏ (nhân với scale gốc của prefab, random trong khoảng Min–Max).")]
+    public Vector2 groundCoverScaleRange = new Vector2(0.9f, 1.3f);
+
+
+    /// <summary>
+    /// Kiểm tra lá bài này có phải thẻ Sông Suối hay không
+    /// </summary>
+    public bool IsRiverCard()
+    {
+        return isRiverCard || cardID == "River" || string.Equals(cardName, "River", System.StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// Kiểm tra lá bài này có phải dạng biến đổi khối lục giác hay không (card Special như Rain).

@@ -79,12 +79,12 @@ namespace LumiWorld.Acs
         {
             switch (kind)
             {
-                case DisasterKind.Obstacle: return "Vật cản";
-                case DisasterKind.ForestFire: return "Cháy rừng";
-                case DisasterKind.Cyclone: return "Bão";
-                case DisasterKind.Drought: return "Hạn hán";
-                case DisasterKind.BarrenLand: return "Khô cằn";
-                default: return "Thiên tai";
+                case DisasterKind.Obstacle: return "Obstacle";
+                case DisasterKind.ForestFire: return "Forest Fire";
+                case DisasterKind.Cyclone: return "Cyclone";
+                case DisasterKind.Drought: return "Drought";
+                case DisasterKind.BarrenLand: return "Barren Land";
+                default: return "Disaster";
             }
         }
 
@@ -92,11 +92,11 @@ namespace LumiWorld.Acs
         {
             switch (kind)
             {
-                case DisasterKind.Obstacle: return "VẬT CẢN";
-                case DisasterKind.ForestFire: return "CHÁY";
-                case DisasterKind.Cyclone: return "LỐC";
-                case DisasterKind.Drought: return "HẠN HÁN";
-                case DisasterKind.BarrenLand: return "KHÔ";
+                case DisasterKind.Obstacle: return "OBSTACLE";
+                case DisasterKind.ForestFire: return "FIRE";
+                case DisasterKind.Cyclone: return "CYCLONE";
+                case DisasterKind.Drought: return "DROUGHT";
+                case DisasterKind.BarrenLand: return "BARREN";
                 default: return "!";
             }
         }

@@ -336,14 +336,14 @@ public class ScoreUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler
         {
             if (targetSubLabel != null)
             {
-                targetSubLabel.text = "<size=10><color=#7DD3FC><b>ĐẶT ĐẤT</b></color></size>";
+                targetSubLabel.text = "<size=10><color=#7DD3FC><b>PLACE LAND</b></color></size>";
             }
         }
         else if (availableCharges > 0)
         {
             if (targetSubLabel != null)
             {
-                targetSubLabel.text = "<size=10><color=#FEF08A><b>MỞ ĐẤT</b></color></size>";
+                targetSubLabel.text = "<size=10><color=#FEF08A><b>EXPAND LAND</b></color></size>";
             }
         }
         else
@@ -411,12 +411,12 @@ public class ScoreUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler
                 else
                 {
                     GameDialogUI.ShowConfirm(
-                        "Bạn có muốn sử dụng 1 lượt mở rộng để đắp thêm một mảnh đất trống mới không?",
+                        "Do you want to use 1 expansion charge to place a new vacant land tile?",
                         onConfirm: () =>
                         {
                             HexPlacementController.Instance.StartPlacement();
                         },
-                        title: "MỞ RỘNG VÙNG ĐẤT"
+                        title: "EXPAND LAND"
                     );
                 }
             }
@@ -426,7 +426,7 @@ public class ScoreUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler
             TriggerPunch(1.08f, 0.18f);
 
             int remaining = Mathf.Max(0, activeThreshold - currentScore);
-            GameDialogUI.ShowNotice($"Bạn chưa đủ điểm mở rộng đất! Cần tích lũy thêm <b>{remaining} điểm</b> để mở khóa lượt đắp đất mới.", title: "CHƯA ĐỦ ĐIỂM");
+            GameDialogUI.ShowNotice($"Not enough score to expand land! Need <b>{remaining} more points</b> to unlock new terrain placement.", title: "NOT ENOUGH POINTS");
         }
     }
 
@@ -552,7 +552,7 @@ public class ScoreUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler
         // Nhãn tiêu đề "ĐIỂM SỐ" nhỏ phía trên số
         headerLabel = CreateTMP("HeaderLabel", discRect, 10f, new Color(0.98f, 0.90f, 0.60f, 1f), TextAlignmentOptions.Center);
         headerLabel.rectTransform.anchoredPosition = new Vector2(0f, 24f);
-        headerLabel.text = "ĐIỂM SỐ";
+        headerLabel.text = "SCORE";
 
         // Nhãn mục tiêu phía dưới số
         targetSubLabel = CreateTMP("TargetSubLabel", discRect, 11f, new Color(0.85f, 0.90f, 0.95f, 1f), TextAlignmentOptions.Center);

@@ -464,19 +464,19 @@ public class HabitatDiamondBadge : MonoBehaviour
         {
             if (hexCount < 3)
             {
-                resourceSlotText.text = "<color=#94A3B8>0/3 Ô tài nguyên</color>";
+                resourceSlotText.text = "<color=#94A3B8>0/3 Resource Slots</color>";
             }
             else if (hexCount == 3)
             {
-                resourceSlotText.text = "<color=#86EFAC>1/3 Ô tài nguyên (T1)</color>";
+                resourceSlotText.text = "<color=#86EFAC>1/3 Resource Slots (T1)</color>";
             }
             else if (hexCount >= 4 && hexCount < 6)
             {
-                resourceSlotText.text = "<color=#86EFAC>2/3 Ô tài nguyên (2 T1)</color>";
+                resourceSlotText.text = "<color=#86EFAC>2/3 Resource Slots (2 T1)</color>";
             }
             else
             {
-                resourceSlotText.text = "<color=#FDE047>3/3 Ô tài nguyên (Full)</color>";
+                resourceSlotText.text = "<color=#FDE047>3/3 Resource Slots (Full)</color>";
             }
         }
     }

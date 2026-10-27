@@ -1354,7 +1354,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
         legRect.anchoredPosition = new Vector2(0f, -222f);
         var legTmp = legendObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) legTmp.font = fontAsset;
-        legTmp.text = "<color=#6E523D>[A, W, S, D] hoặc [Mũi tên] • [SPACE] Chạm nhịp</color>";
+        legTmp.text = "<color=#6E523D>[A, W, S, D] or [Arrow Keys] • [SPACE] Tap rhythm</color>";
         legTmp.fontSize = 12.5f;
         legTmp.alignment = TextAlignmentOptions.Center;
         legTmp.raycastTarget = false;
@@ -3035,11 +3035,11 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
 
     private static string GetRankText(AnimalRank rank) => rank switch
     {
-        AnimalRank.Common => "Cấp 1 - Phổ thông",
-        AnimalRank.Uncommon => "Cấp 2 - Hảo hạng",
-        AnimalRank.Rare => "Cấp 3 - Quý hiếm",
-        AnimalRank.Epic => "Cấp 4 - Sử thi",
-        AnimalRank.Legendary => "Cấp 5 - Huyền thoại",
-        _ => $"Cấp {(int)rank}"
+        AnimalRank.Common => "Tier 1 - Common",
+        AnimalRank.Uncommon => "Tier 2 - Uncommon",
+        AnimalRank.Rare => "Tier 3 - Rare",
+        AnimalRank.Epic => "Tier 4 - Epic",
+        AnimalRank.Legendary => "Tier 5 - Legendary",
+        _ => $"Tier {(int)rank}"
     };
 }

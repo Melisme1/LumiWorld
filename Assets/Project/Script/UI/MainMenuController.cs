@@ -96,9 +96,9 @@ public class MainMenuController : MonoBehaviour
         }
         if (startingGame) return;
         GameDialogUI.ShowConfirm(
-            "Tạo world mới sẽ thay thế world và kho hiện tại của tài khoản. Bạn có muốn tiếp tục?",
+            "Creating a new world will overwrite your account's current world and inventory. Do you want to continue?",
             () => StartCoroutine(CreateNewGame()),
-            confirmText: "TẠO MỚI", cancelText: "GIỮ WORLD", title: "NEW GAME");
+            confirmText: "NEW GAME", cancelText: "KEEP WORLD", title: "NEW GAME");
     }
 
     private System.Collections.IEnumerator CreateNewGame()
@@ -112,7 +112,7 @@ public class MainMenuController : MonoBehaviour
         if (!created)
         {
             startingGame = false;
-            GameDialogUI.ShowNotice(error ?? "Không tạo được world mới.");
+            GameDialogUI.ShowNotice(error ?? "Failed to create new world.");
             yield break;
         }
         // Unity's Destroy is deferred; let old persistent economy objects disappear first.

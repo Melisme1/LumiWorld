@@ -72,6 +72,7 @@ public class AchievementManager : MonoBehaviour
     }
 
     [Header("Harmony & Island Unlock Progression")]
+    [Tooltip("Harmony khởi điểm của tài khoản mới; sau đó đọc từ bản lưu kinh tế (economy_<id>.json)")]
     [SerializeField] private int totalHarmony = 29;
     [SerializeField] private int nextIslandThreshold = 50;
 
@@ -123,7 +124,78 @@ public class AchievementManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
         InitializeDefaultMilestones();
         InitializeDefaultAchievements();
+        LoadProgress();
     }
+
+    // =========================================================
+    // LƯU THEO TÀI KHOẢN (economy_<id>.json, SaveSync đẩy lên server)
+    // =========================================================
+
+    private static readonly string[] LegacyClaimKeys =
+    {
+        "ACH_CLAIMED_M1_FIRST_HABITAT", "ACH_CLAIMED_M2_NEW_SPECIES", "ACH_CLAIMED_M3_RANK_UP", "ACH_CLAIMED_M4_ISLAND_STORY"
+    };
+
+    private static EconomySaveData SavedProgress
+    {
+        get
+        {
+            EconomySaveSystem saveSystem = EconomySaveSystem.Instance;
+            return saveSystem != null ? saveSystem.Progress : null;
+        }
+    }
+
+    /// <summary>
+    /// Đọc Harmony, cột mốc và thành tựu đã nhận từ bản lưu kinh tế của tài khoản.
+    /// Bản lưu cũ chưa có Harmony thì lấy giá trị khởi điểm rồi ghi lại.
+    /// </summary>
+    private void LoadProgress()
+    {
+        // Khóa PlayerPrefs cũ chỉ theo máy và bị xóa mỗi lần mở game, không chuyển sang tài khoản
+        bool removedLegacy = false;
+        foreach (string key in LegacyClaimKeys)
+        {
+            if (!PlayerPrefs.HasKey(key)) continue;
+            PlayerPrefs.DeleteKey(key);
+            removedLegacy = true;
+        }
+        if (removedLegacy) PlayerPrefs.Save();
+
+        EconomySaveData progress = SavedProgress;
+        if (progress == null) return;
+
+        if (!progress.harmonyInitialized)
+        {
+            progress.totalHarmony = totalHarmony;
+            progress.harmonyInitialized = true;
+            EconomySaveSystem.Instance.MarkDirty();
+        }
+
+        totalHarmony = progress.totalHarmony;
+        hasRankedUpAnyCreature = progress.hasRankedUpAnyCreature;
+
+        foreach (IslandMilestone milestone in milestones)
+            milestone.isClaimed = progress.claimedMilestoneIds.Contains(milestone.id);
+
+        claimedIds.Clear();
+        foreach (string id in progress.claimedAchievementIds) claimedIds.Add(id);
+        foreach (AchievementGoal goal in achievements)
+            goal.isClaimed = claimedIds.Contains(goal.id);
+
+        OnHarmonyChanged?.Invoke(totalHarmony, nextIslandThreshold);
+    }
+
+    // Chỉ đánh giá theo đảo của mình khi đảo đã dựng xong; đang xem đảo người khác hoặc đang
+    // tải lại bản server sau xung đột thì giữ nguyên trạng thái cũ
+    private static bool CanEvaluateWorld()
+    {
+        if (WorldLaunch.IsVisit || SaveSync.SavesSuspended) return false;
+        WorldSaveSystem world = WorldSaveSystem.Instance;
+        return world != null && world.IsWorldReady;
+    }
+
+    // Không trao thưởng khi đang xem đảo người khác hoặc đang tải lại bản server
+    private static bool CanGrantRewards() => !WorldLaunch.IsVisit && !SaveSync.SavesSuspended;
 
     private void Start()
     {
@@ -166,7 +238,15 @@ public class AchievementManager : MonoBehaviour
 
     private void HandleRankUpgraded(string creatureId, CreatureQualityRank rank)
     {
+        if (WorldLaunch.IsVisit) return;
         hasRankedUpAnyCreature = true;
+
+        EconomySaveData progress = SavedProgress;
+        if (progress != null && !progress.hasRankedUpAnyCreature)
+        {
+            progress.hasRankedUpAnyCreature = true;
+            EconomySaveSystem.Instance.MarkDirty();
+        }
         EvaluateMilestones();
     }
 
@@ -174,28 +254,18 @@ public class AchievementManager : MonoBehaviour
     {
         if (milestones.Count > 0) return;
 
-        // Nếu người chơi bắt đầu phiên chơi mới (chưa có lưu GameSave), xóa sạch các flag claim test cũ
-        bool isFreshSession = !PlayerPrefs.HasKey("GameSave");
-        if (isFreshSession)
-        {
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M1_FIRST_HABITAT");
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M2_NEW_SPECIES");
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M3_RANK_UP");
-            PlayerPrefs.DeleteKey("ACH_CLAIMED_M4_ISLAND_STORY");
-            PlayerPrefs.Save();
-        }
-
+        // Trạng thái đã nhận đọc từ bản lưu của tài khoản trong LoadProgress()
         milestones.Add(new IslandMilestone
         {
             index = 0,
             id = "M1_FIRST_HABITAT",
-            title = "MÔI TRƯỜNG SỐNG ĐẦU TIÊN",
-            shortCondition = "Dựng Habitat Thiết Lập Đầu Tiên",
-            description = "Thiết lập thành công cụm môi trường sống (Habitat) phù hợp và có ít nhất 1 sinh vật cư trú định cư trên đảo.",
-            rewardText = "Tiền Vàng & Thức Ăn Chăm Sóc",
+            title = "FIRST HABITAT",
+            shortCondition = "Establish First Habitat",
+            description = "Successfully create a compatible Habitat cluster with at least 1 resident creature settled on the island.",
+            rewardText = "Coins & Creature Food",
             rewardCoins = 30,
             rewardHarmony = 15,
-            rewardBonusInfo = "Gói Thức Ăn Chăm Sóc Sinh Vật",
+            rewardBonusInfo = "Creature Care Food Pack",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -205,13 +275,13 @@ public class AchievementManager : MonoBehaviour
         {
             index = 1,
             id = "M2_NEW_SPECIES",
-            title = "LOÀI MỚI",
-            shortCondition = "Triển Khai Loài Mới Lên Đảo",
-            description = "Triển khai thành công 1 loài sinh vật mới thích nghi với điều kiện sinh thái trên hòn đảo Lumi.",
-            rewardText = "Tiền Vàng & Thẻ Địa Hình",
+            title = "NEW SPECIES",
+            shortCondition = "Deploy New Species",
+            description = "Successfully introduce a new creature species adapted to the island ecosystem.",
+            rewardText = "Coins & Terrain Card",
             rewardCoins = 40,
             rewardHarmony = 20,
-            rewardBonusInfo = "Gói Thẻ Bản Vẽ / Địa Hình Mới",
+            rewardBonusInfo = "Blueprint / Terrain Card Pack",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -221,13 +291,13 @@ public class AchievementManager : MonoBehaviour
         {
             index = 2,
             id = "M3_RANK_UP",
-            title = "LÊN CẤP",
-            shortCondition = "Nâng Rank Phẩm Chất Sinh Vật",
-            description = "Chăm sóc sinh vật đạt 100 điểm Care và thăng hạng phẩm chất lên Rank II hoặc Rank III.",
-            rewardText = "Tiền Vàng & Quà Cứu Trợ",
+            title = "RANK UP",
+            shortCondition = "Promote Creature Quality Rank",
+            description = "Care for a creature to reach 100 Care points and promote its quality rank to Rank II or Rank III.",
+            rewardText = "Coins & Supply Pack",
             rewardCoins = 50,
             rewardHarmony = 25,
-            rewardBonusInfo = "Gói Quà Cứu Trợ & Vật Phẩm Nâng Cấp",
+            rewardBonusInfo = "Care Supply Pack & Upgrade Items",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -237,26 +307,17 @@ public class AchievementManager : MonoBehaviour
         {
             index = 3,
             id = "M4_ISLAND_STORY",
-            title = "CÂU CHUYỆN ĐẢO",
-            shortCondition = "Cột Mốc Hệ Sinh Thái Toàn Đảo",
-            description = "Phát triển hệ sinh thái đảo đạt cụm Habitat từ 6 ô đất trở lên, hoặc nuôi dưỡng từ 3 cá thể sinh vật cư trú trên đảo.",
-            rewardText = "Danh Hiệu + Tiền Vàng & Thẻ Sinh Vật Hiếm",
+            title = "ISLAND STORY",
+            shortCondition = "Island Ecosystem Milestone",
+            description = "Expand a Habitat cluster to 6+ hexes, or nurture 3 or more creatures residing on the island.",
+            rewardText = "Title + Coins & Rare Creature Card",
             rewardCoins = 100,
             rewardHarmony = 35,
-            rewardBonusInfo = "Danh hiệu [Đại Hiệp Sĩ Sinh Thái Lumi] & Thẻ Sinh Vật Cực Hiếm",
+            rewardBonusInfo = "Title [Lumi Ecological Champion] & Ultra-Rare Creature Card",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
         });
-
-        // Chỉ khôi phục trạng thái claimed nếu có lưu save và cột mốc đã hoàn thành
-        if (!isFreshSession)
-        {
-            for (int i = 0; i < milestones.Count; i++)
-            {
-                milestones[i].isClaimed = PlayerPrefs.GetInt("ACH_CLAIMED_" + milestones[i].id, 0) == 1;
-            }
-        }
     }
 
     private void InitializeDefaultAchievements()
@@ -266,8 +327,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_FIRST_NATURE",
-            title = "Người Khai Hoang",
-            description = "Đặt thẻ Nature địa hình đầu tiên lên bản đồ",
+            title = "Pioneer",
+            description = "Place your first Nature terrain card on the board",
             targetCount = 1,
             currentCount = 1,
             rewardCoins = 15,
@@ -277,8 +338,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_HABITAT_3",
-            title = "Sinh Thái Khởi Sắc",
-            description = "Ghép cụm Biome đạt quy mô 3 hex (Mở ô tài nguyên T1 đầu tiên)",
+            title = "Budding Ecology",
+            description = "Expand a Biome cluster to 3 hexes (Unlocks first T1 resource slot)",
             targetCount = 3,
             currentCount = 2,
             rewardCoins = 25,
@@ -288,8 +349,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_HABITAT_6",
-            title = "Thiên Đường Cư Trú",
-            description = "Mở rộng một cụm Biome đạt quy mô tối đa 6 hex (Mở ô T2)",
+            title = "Sanctuary Haven",
+            description = "Expand a Biome cluster to 6 hexes (Unlocks T2 resource slot)",
             targetCount = 6,
             currentCount = 4,
             rewardCoins = 50,
@@ -299,8 +360,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_FIRST_CREATURE",
-            title = "Người Bạn Rừng Xanh",
-            description = "Triển khai một sinh vật vào môi trường sống phù hợp",
+            title = "Forest Companion",
+            description = "Place a creature into a compatible Habitat",
             targetCount = 1,
             currentCount = 1,
             rewardCoins = 20,
@@ -310,8 +371,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_CONNECTION_DANCE",
-            title = "Vũ Điệu Hoang Dã",
-            description = "Kích hoạt hiệu ứng kết nối vòng tròn 20s giữa các loài thú",
+            title = "Wild Harmony",
+            description = "Trigger the 20s connection ring effect between creatures",
             targetCount = 1,
             currentCount = 1,
             rewardCoins = 35,
@@ -321,8 +382,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_FIRST_CARE",
-            title = "Bàn Tay Chăm Sóc",
-            description = "Cho ăn đầy thanh Care và nâng Rank sinh vật lên Rank II",
+            title = "Caring Hand",
+            description = "Fill creature Care bar and promote creature to Rank II",
             targetCount = 1,
             currentCount = 0,
             rewardCoins = 30,
@@ -332,8 +393,8 @@ public class AchievementManager : MonoBehaviour
         achievements.Add(new AchievementGoal
         {
             id = "ACH_HARVEST_10",
-            title = "Mùa Màng Bội Thu",
-            description = "Thu hoạch 10 mẻ tài nguyên vào Kho (Warehouse)",
+            title = "Bountiful Harvest",
+            description = "Harvest 10 resource batches into the Warehouse",
             targetCount = 10,
             currentCount = 6,
             rewardCoins = 30,
@@ -354,6 +415,7 @@ public class AchievementManager : MonoBehaviour
         {
             InitializeDefaultMilestones();
             if (milestones.Count < 4) return;
+            if (!CanEvaluateWorld()) return;
 
         // 1. Kiểm tra Mốc 1: Habitat có cư dân sinh vật
         bool m1Met = false;
@@ -404,9 +466,9 @@ public class AchievementManager : MonoBehaviour
                     m3Met = true;
                     break;
                 }
-                if (CreatureCareManager.Instance != null && !string.IsNullOrEmpty(animal.UniqueID))
+                if (CreatureCareManager.Instance != null && !string.IsNullOrEmpty(CreatureCareManager.KeyOf(animal, null)))
                 {
-                    int care = CreatureCareManager.Instance.GetCareProgress(animal.UniqueID);
+                    int care = CreatureCareManager.Instance.GetCareProgress(CreatureCareManager.KeyOf(animal, null));
                     maxCareRatio = Mathf.Max(maxCareRatio, care / 100f);
                 }
             }
@@ -450,16 +512,8 @@ public class AchievementManager : MonoBehaviour
         condition2_MaxHabitatMet = maxCluster >= 6;
         condition3_CreaturesMet = animalTotal >= 3;
 
-        // Đảm bảo tính toàn vẹn: Không thể có trạng thái 'Đã nhận' nếu cột mốc chưa hoàn thành
-        for (int i = 0; i < milestones.Count; i++)
-        {
-            var m = milestones[i];
-            if (!m.isCompleted && m.isClaimed)
-            {
-                m.isClaimed = false;
-                PlayerPrefs.DeleteKey("ACH_CLAIMED_" + m.id);
-            }
-        }
+        // Cột mốc đã nhận giữ nguyên trạng thái đã nhận kể cả khi đảo đổi sau đó (bán thú, mất ô...),
+        // để không nhận thưởng lại được
 
         OnMilestonesChanged?.Invoke();
         OnAchievementsUpdated?.Invoke();
@@ -534,30 +588,38 @@ public class AchievementManager : MonoBehaviour
     public bool ClaimMilestone(int index, out string rewardInfo)
     {
         rewardInfo = string.Empty;
+        if (!CanGrantRewards())
+        {
+            rewardInfo = "Không thể nhận thưởng lúc này.";
+            return false;
+        }
         EvaluateMilestones();
 
         if (index < 0 || index >= milestones.Count)
         {
-            rewardInfo = "Không tìm thấy cột mốc.";
+            rewardInfo = "Milestone not found.";
             return false;
         }
 
         var m = milestones[index];
         if (m.isClaimed)
         {
-            rewardInfo = "Cột mốc này đã được nhận trước đó!";
+            rewardInfo = "This milestone has already been claimed!";
             return false;
         }
 
         if (!m.isCompleted)
         {
-            rewardInfo = "Chưa hoàn thành điều kiện cột mốc!";
+            rewardInfo = "Milestone requirements not completed!";
             return false;
         }
 
+        // Ghi id đã nhận vào bản lưu tài khoản; Coins và Harmony bên dưới cùng vào bản lưu đó,
+        // rồi SaveNow ghi cả ba trong một lần (không có lúc đã cộng thưởng mà chưa đánh dấu đã nhận)
         m.isClaimed = true;
-        PlayerPrefs.SetInt("ACH_CLAIMED_" + m.id, 1);
-        PlayerPrefs.Save();
+        EconomySaveData progress = SavedProgress;
+        if (progress != null && !progress.claimedMilestoneIds.Contains(m.id))
+            progress.claimedMilestoneIds.Add(m.id);
 
         // 1. Thưởng Coins
         if (m.rewardCoins > 0 && CurrencyWallet.Instance != null)
@@ -574,7 +636,9 @@ public class AchievementManager : MonoBehaviour
         // 3. Cấp thẻ bài / Quà tặng thưởng vào tay người chơi (nếu có CardDeskController)
         TryGrantMilestoneCardReward(index);
 
-        rewardInfo = $"+{m.rewardCoins} Tiền Vàng & +{m.rewardHarmony} Harmony & {m.rewardBonusInfo}!";
+        SaveProgressNow();
+
+        rewardInfo = $"+{m.rewardCoins} Coin & +{m.rewardHarmony} Harmony & {m.rewardBonusInfo}!";
         OnMilestonesChanged?.Invoke();
         OnAchievementsUpdated?.Invoke();
         return true;
@@ -605,13 +669,32 @@ public class AchievementManager : MonoBehaviour
         }
     }
 
+    // Ghi bản lưu kinh tế ngay sau khi trao thưởng (id đã nhận, Coins, Harmony cùng một lần ghi)
+    private static void SaveProgressNow()
+    {
+        EconomySaveSystem saveSystem = EconomySaveSystem.Instance;
+        if (saveSystem == null) return;
+        saveSystem.MarkDirty();
+        if (!saveSystem.SaveNow())
+            Debug.LogWarning("[LumiWorld Save] Chưa ghi được phần thưởng thành tựu; sẽ thử lại ở lần lưu kế tiếp.");
+    }
+
     /// <summary>
     /// Cộng điểm Harmony cột mốc vĩnh viễn
     /// </summary>
     public void AddHarmony(int amount)
     {
-        if (amount <= 0) return;
+        if (amount <= 0 || !CanGrantRewards()) return;
         totalHarmony += amount;
+
+        EconomySaveData progress = SavedProgress;
+        if (progress != null)
+        {
+            progress.totalHarmony = totalHarmony;
+            progress.harmonyInitialized = true;
+            EconomySaveSystem.Instance.MarkDirty();
+        }
+
         OnHarmonyChanged?.Invoke(totalHarmony, nextIslandThreshold);
         OnAchievementsUpdated?.Invoke();
     }
@@ -636,29 +719,37 @@ public class AchievementManager : MonoBehaviour
     public bool ClaimAchievement(string achievementId, out string rewardInfo)
     {
         rewardInfo = string.Empty;
+        if (!CanGrantRewards())
+        {
+            rewardInfo = "Không thể nhận thưởng lúc này.";
+            return false;
+        }
 
         var goal = achievements.Find(a => a.id.Equals(achievementId, StringComparison.OrdinalIgnoreCase));
         if (goal == null)
         {
-            rewardInfo = "Không tìm thấy thành tựu.";
+            rewardInfo = "Achievement not found.";
             return false;
         }
 
         if (goal.isClaimed || claimedIds.Contains(goal.id))
         {
-            rewardInfo = "Thành tựu này đã được nhận trước đó!";
+            rewardInfo = "This achievement has already been claimed!";
             return false;
         }
 
         if (!goal.IsCompleted)
         {
-            rewardInfo = "Chưa hoàn thành điều kiện thành tựu!";
+            rewardInfo = "Achievement requirements not met!";
             return false;
         }
 
         // 1. Đánh dấu đã nhận vĩnh viễn
         goal.isClaimed = true;
         claimedIds.Add(goal.id);
+        EconomySaveData progress = SavedProgress;
+        if (progress != null && !progress.claimedAchievementIds.Contains(goal.id))
+            progress.claimedAchievementIds.Add(goal.id);
 
         // 2. Trao thưởng Coins
         if (goal.rewardCoins > 0 && CurrencyWallet.Instance != null)
@@ -671,6 +762,8 @@ public class AchievementManager : MonoBehaviour
         {
             AddHarmony(goal.harmonyPoints);
         }
+
+        SaveProgressNow();
 
         rewardInfo = $"+{goal.rewardCoins} Coins & +{goal.harmonyPoints} Harmony!";
         OnAchievementsUpdated?.Invoke();

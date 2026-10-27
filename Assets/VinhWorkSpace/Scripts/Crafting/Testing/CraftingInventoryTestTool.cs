@@ -30,9 +30,6 @@ namespace LumiWorld.Economy.Crafting.Testing
         [SerializeField] private string customResourceId = "resource.leafwood.tender_leaves";
         [SerializeField] private int customAmount = 20;
 
-        [Header("Hiển thị Menu Cheat OnGUI (F4)")]
-        [SerializeField] private bool showGui = false;
-
         private static CraftingInventoryTestTool _instance;
 
         public static readonly string[] RawResourceIds = new string[]
@@ -75,6 +72,8 @@ namespace LumiWorld.Economy.Crafting.Testing
             "resource.food.wild_berry_nut_cake"
         };
 
+        // Công cụ test chỉ tự gắn trong Editor, không lọt vào bản build gửi người chơi
+#if UNITY_EDITOR
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoInitialize()
         {
@@ -93,6 +92,7 @@ namespace LumiWorld.Economy.Crafting.Testing
                 }
             }
         }
+#endif
 
         private void Awake()
         {
@@ -104,35 +104,9 @@ namespace LumiWorld.Economy.Crafting.Testing
             _instance = this;
         }
 
+        // Phím tắt và giao diện test đã được hợp nhất vào LumiWorldTestDashboard (Phím F1 hoặc ~)
         private void Update()
         {
-            var kb = Keyboard.current;
-            if (kb == null) return;
-
-            if (kb.f4Key.wasPressedThisFrame)
-            {
-                showGui = !showGui;
-            }
-
-            if (kb.f5Key.wasPressedThisFrame)
-            {
-                AddAllRawMaterials(rawAmount);
-            }
-
-            if (kb.f6Key.wasPressedThisFrame)
-            {
-                AddAllProducts(productAmount);
-            }
-
-            if (kb.f7Key.wasPressedThisFrame)
-            {
-                AddAll(100);
-            }
-
-            if (kb.f8Key.wasPressedThisFrame)
-            {
-                ClearInventory();
-            }
         }
 
         /// <summary>
@@ -226,52 +200,7 @@ namespace LumiWorld.Economy.Crafting.Testing
             AddResource(customResourceId, customAmount);
         }
 
-        // =========================================================
-        // ONGUI MINI CHEAT PANEL (Bật/Tắt bằng F4)
-        // =========================================================
-        private void OnGUI()
-        {
-            if (!showGui) return;
-
-            GUI.color = Color.white;
-            GUILayout.BeginArea(new Rect(16, 80, 250, 310), GUI.skin.box);
-            GUILayout.Label("<b>🛠️ TEST KHO TÀI NGUYÊN</b> (F4 tắt)");
-
-            if (GUILayout.Button($"🌿 +{rawAmount} Mọi Nguyên Liệu Thô (F5)"))
-            {
-                AddAllRawMaterials(rawAmount);
-            }
-
-            if (GUILayout.Button($"🍲 +{productAmount} Mọi Thành Phẩm (F6)"))
-            {
-                AddAllProducts(productAmount);
-            }
-
-            if (GUILayout.Button("⭐ +100 Tất Cả (F7)"))
-            {
-                AddAll(100);
-            }
-
-            if (GUILayout.Button("🗑️ Dọn Sạch Kho (F8)"))
-            {
-                ClearInventory();
-            }
-
-            GUILayout.Space(8);
-            GUILayout.Label("Thêm tùy chỉnh theo ID:");
-            customResourceId = GUILayout.TextField(customResourceId);
-            if (int.TryParse(GUILayout.TextField(customAmount.ToString()), out int amt))
-            {
-                customAmount = amt;
-            }
-            if (GUILayout.Button("Nạp Vào Kho"))
-            {
-                AddResource(customResourceId, customAmount);
-            }
-
-            GUILayout.EndArea();
-        }
-
+        // Giao diện đã được tích hợp tập trung vào LumiWorldTestDashboard (Phím F1 hoặc ~)
 #if UNITY_EDITOR
         [MenuItem("Tools/LumiWorld/Cheats/Thêm 50 Tất Cả Nguyên Liệu Thô (F5)")]
         private static void MenuAddRaw()

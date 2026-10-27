@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,10 +13,8 @@ MonoBehaviour:
   m_Name: WildBerryNutCake
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: resource.food.wild_berry_nut_cake
-  resourceName: "B\xE1nh h\u1EA1t qu\u1EA3 r\u1EEBng"
-  description: "Tuy\u1EC7t ph\u1EA9m \u1EA9m th\u1EF1c k\u1EBFt tinh t\u1EEB c\u1EA3
-    3 sinh c\u1EA3nh: qu\u1EA3 s\u1ED3i ng\xE0o m\u1EADt, h\u1ED7n h\u1EE3p tr\xE1i
-    c\xE2y s\u1EA5y v\xE0 b\u1ED9t m\xEC n\u01B0\u1EDBng v\xE0ng \u01B0\u01A1m."
+  resourceName: "Forest Berry Nut Cake"
+  description: "A masterwork delicacy uniting ingredients from all three biomes: glazed acorns, dried berries, and golden baked flour."
   icon: {fileID: 21300000, guid: 1207a72d0d55473dbb6c198873a9e60d, type: 3}
   resourceColor: {r: 0.9, g: 0.65, b: 0.3, a: 1}
   hexColor: '#E6A64D'

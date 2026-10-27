@@ -239,6 +239,110 @@ namespace LumiWorld.Acs
 
         public HabitatProductionState FindState(string habitatId) => ledger?.Find(habitatId);
 
+        // =========================================================
+        // LƯU / NẠP (world_<id>.json, qua WorldSaveSystem)
+        // =========================================================
+
+        // Hàng vừa chuyển từ buffer (bản lưu đảo) sang kho (bản lưu kinh tế): ghi cả hai ngay trong frame này.
+        // Ghi đảo trước: nếu game tắt giữa hai lần ghi thì chỉ mất lượt hàng đó, không bao giờ nhân đôi.
+        private static void PersistAfterCollect()
+        {
+            WorldSaveSystem world = WorldSaveSystem.Instance;
+            if (world != null) world.SaveNow();
+            EconomySaveSystem economy = EconomySaveSystem.HasInstance ? EconomySaveSystem.Instance : null;
+            if (economy != null) economy.SaveNow();
+        }
+
+        /// <summary>Sản lượng tắt game được cộng tối đa 8 giờ.</summary>
+        public const double MaxOfflineProductionSeconds = 8 * 3600;
+
+        /// <summary>Ghi hàng chưa thu của từng habitat và độ no, thức ăn của từng sinh vật (đã settle tới giờ hiện tại).</summary>
+        public void CaptureForSave(List<ProductionSaveRecord> production, List<CreatureSaveRecord> creatures)
+        {
+            production.Clear();
+            creatures.Clear();
+            if (ledger == null || simulation == null) return;
+            if (Application.isPlaying) simulation.AdvanceTo(ProductionSeconds);
+
+            foreach (var state in ledger.States)
+            {
+                if (state == null || string.IsNullOrEmpty(state.habitatId)) continue;
+                var record = new ProductionSaveRecord { habitatId = state.habitatId, islandId = state.islandId,
+                    natureCardId = state.natureCardId, isRecovery = state.isRecovery,
+                    memberIds = new List<string>(state.memberIds) };
+                foreach (var buffer in state.buffers)
+                    if (buffer != null && (buffer.amount > 0 || buffer.fractionalCarry > 0))
+                        record.buffers.Add(new ProductionBufferRecord { resourceId = buffer.resourceId, tier = (int)buffer.tier,
+                            amount = buffer.amount, fractionalCarry = buffer.fractionalCarry });
+                production.Add(record);
+            }
+
+            if (habitatManager == null) return;
+            foreach (var habitat in habitatManager.Habitats)
+                foreach (var resident in habitat.residents)
+                {
+                    var view = simulation.Care.Read(resident.individualId);
+                    var record = new CreatureSaveRecord { individualId = resident.individualId,
+                        qualityRank = (int)resident.qualityRank,
+                        satiety = view != null ? view.Satiety : 100, status = view != null ? (int)view.Status : 0 };
+                    foreach (var stock in simulation.Food.Read(resident.individualId))
+                        record.foods.Add(new FoodAmountRecord { resourceId = stock.ResourceId, amount = stock.Amount });
+                    creatures.Add(record);
+                }
+        }
+
+        /// <summary>
+        /// Nạp hàng chưa thu, độ no và thức ăn đã lưu trước khi đảo dựng lại thẻ (trước lần đồng bộ habitat đầu tiên),
+        /// để ledger giữ đúng buffer theo id habitat và sinh vật không bị reset về no 100.
+        /// </summary>
+        public void SeedFromSave(List<ProductionSaveRecord> production, List<CreatureSaveRecord> creatures)
+        {
+            if (ledger == null || simulation == null) return;
+            double now = ProductionSeconds;
+            if (production != null)
+                foreach (var record in production)
+                {
+                    if (record == null || string.IsNullOrEmpty(record.habitatId)) continue;
+                    var state = new HabitatProductionState { habitatId = record.habitatId, islandId = record.islandId,
+                        natureCardId = record.natureCardId, isRecovery = record.isRecovery,
+                        memberIds = record.memberIds != null ? new List<string>(record.memberIds) : new List<string>() };
+                    foreach (var buffer in record.buffers)
+                        if (buffer != null && !string.IsNullOrEmpty(buffer.resourceId))
+                            state.buffers.Add(new ResourceProductionBuffer { resourceId = buffer.resourceId,
+                                tier = (ResourceTier)buffer.tier, amount = Math.Max(0, buffer.amount),
+                                fractionalCarry = Math.Max(0, buffer.fractionalCarry) });
+                    ledger.RestoreState(state, now);
+                }
+
+            if (creatures == null || creatureCare == null || !creatureCare.TryGetRules(out var careRules, out _)) return;
+            foreach (var record in creatures)
+            {
+                if (record == null || string.IsNullOrEmpty(record.individualId)) continue;
+                var rank = Enum.IsDefined(typeof(CreatureQualityRank), record.qualityRank)
+                    ? (CreatureQualityRank)record.qualityRank : CreatureQualityRank.RankI;
+                var status = Enum.IsDefined(typeof(CreatureHungerStatus), record.status)
+                    ? (CreatureHungerStatus)record.status : CreatureHungerStatus.Healthy;
+                simulation.Care.RestoreState(record.individualId, rank, careRules, record.satiety, status);
+                foreach (var food in record.foods)
+                    if (food != null) simulation.Food.RestoreAmount(record.individualId, food.resourceId, food.amount);
+            }
+        }
+
+        /// <summary>
+        /// Cộng sản lượng cho quãng tắt game (giờ thật, tối đa 8 giờ) theo tỉ lệ sau khi đảo đã dựng xong.
+        /// Độ no đứng yên khi tắt game, nên chỉ cộng hàng, không trừ no.
+        /// </summary>
+        public void AccrueOffline(double offlineSeconds)
+        {
+            if (ledger == null || simulation == null || !simulation.IsRunning) return;
+            double seconds = Math.Min(MaxOfflineProductionSeconds, Math.Max(0, offlineSeconds));
+            if (seconds <= 0) return;
+            simulation.AdvanceTo(ProductionSeconds);
+            ledger.AccrueOffline(seconds, ProductionSeconds);
+            Debug.Log($"[LumiWorld Production] Đã cộng sản lượng cho {seconds / 60:0} phút tắt game.", this);
+            PublishState();
+        }
+
         public ResourceCollectionReceipt CollectHabitat(string habitatId) => string.IsNullOrWhiteSpace(habitatId) ?
             ResourceCollectionService.Failure(ResourceCollectionStatus.Unavailable, "Thiếu habitat ID.") : Collect(habitatId, null);
         public ResourceCollectionReceipt CollectResource(string habitatId, string resourceId) =>
@@ -283,6 +387,7 @@ namespace LumiWorld.Acs
                         "; còn " + item.Remaining + "; " + item.Reason, this);
                 // Events see both final stock and final source buffers.
                 PublishState();
+                if (LastCollection.TotalTransferred > 0) PersistAfterCollect();
                 var listeners = ResourcesCollected;
                 if (listeners != null)
                     foreach (Action<ResourceCollectionReceipt> listener in listeners.GetInvocationList())
@@ -383,6 +488,12 @@ namespace LumiWorld.Acs
         // Deposit is all-or-nothing; withdrawal returns as much as Warehouse can accept.
         public bool DepositCreatureFood(string habitatId, string individualId, string resourceId, int amount, out string reason)
         {
+            // Đảo đang xem của người khác: không cho thú của họ ăn bằng kho của người xem
+            if (WorldLaunch.IsVisit)
+            {
+                reason = "Không thể cho sinh vật trên đảo người khác ăn.";
+                return false;
+            }
             if (!PrepareFoodCommand(out reason)) return false;
             feeding = true;
             try

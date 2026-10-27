@@ -14,94 +14,117 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: leafwood_001
   cardName: Leafwood
-  cardImage: {fileID: -866576416, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardImage: {fileID: 21300000, guid: 4e791c3ff38b4bedac4d9e58b8448ce4, type: 3}
   cardType: 1
   baseScore: 1
   alwaysBaseScore: 0
   shopPrice: 20
   placementFee: 5
   prefabToPlace: {fileID: 0}
+  useEffectPrefab: {fileID: 0}
+  useEffectOffset: {x: 0, y: 0.1, z: 0}
+  useEffectScale: 1
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
   clearPropsOnTransform: 1
   occupiesTile: 0
+  isRiverCard: 0
   animalSpeciesData: {fileID: 0}
   producedResource: {fileID: 11400000, guid: 35c07cfa06e949298f3f4ee44ccf0a79, type: 2}
   landResourceBonus: 0
   biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
   transformRules: []
-  habitatSpawnMargin: 0.85
+  habitatSpawnMargin: 0.88
   habitatProps:
   - groupName: The Anchor Tree
     prefabs:
-    - {fileID: 9090769712191313742, guid: 3529fb2ea9d50424d87b36bdf24f2c51, type: 3}
-    - {fileID: 6697952919646362868, guid: 5dc9ec9f44504164fa3be21be210bce3, type: 3}
-    - {fileID: 7825668933240199161, guid: 94d6fd8162fbc6e4697f3cd6dbb4256d, type: 3}
-    - {fileID: 5402999771592983055, guid: b4cff5771ce085f45947cb2a3596fd04, type: 3}
+    - {fileID: 4648058555554353504, guid: 06ebe0efce9ccf943bbd246f8d50fdc3, type: 3}
+    - {fileID: 3089851935961000122, guid: 9960329ed4573d742bcd9d5dee730591, type: 3}
+    - {fileID: 6180340084116743078, guid: cf949d19ec05569418275ecff7d42100, type: 3}
+    - {fileID: 7906358471606048171, guid: e53d2a0ed5310cf4194f65c74c264e74, type: 3}
+    - {fileID: 6414526491746573698, guid: 5ac651db7b9abd44498ce965a2103539, type: 3}
     clusterAsPatch: 0
     countRange: {x: 1, y: 1}
     propsPerClusterRange: {x: 0, y: 0}
     clusterRadius: 0.24
-    minDistance: 0.45
+    minDistance: 0.4
     scaleRange: {x: 0.95, y: 1.15}
     maxTiltAngle: 2
     customGroundEmbed: 0
     placeAtCenter: 0
   - groupName: Secondary Trees
     prefabs:
-    - {fileID: 7725487671202935297, guid: 6dc72a3e00dc66749ae5979fc211452b, type: 3}
-    - {fileID: 5009641078510694924, guid: 4e6661a3bb973304399335a979db6d10, type: 3}
-    - {fileID: 8844459215284999857, guid: 7faca4e4857b011438341d4795bbf00a, type: 3}
-    - {fileID: 6530196072172301624, guid: 14b39c8e739b9144f94055a0e1fe45af, type: 3}
-    - {fileID: 136770956400731843, guid: 8f7b6e10f8e99b045aa7a71df252fb21, type: 3}
+    - {fileID: 4648058555554353504, guid: 06ebe0efce9ccf943bbd246f8d50fdc3, type: 3}
+    - {fileID: 3089851935961000122, guid: 9960329ed4573d742bcd9d5dee730591, type: 3}
+    - {fileID: 6180340084116743078, guid: cf949d19ec05569418275ecff7d42100, type: 3}
+    - {fileID: 7906358471606048171, guid: e53d2a0ed5310cf4194f65c74c264e74, type: 3}
+    - {fileID: 7906358471606048171, guid: e53d2a0ed5310cf4194f65c74c264e74, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 1, y: 1}
+    countRange: {x: 1, y: 2}
     propsPerClusterRange: {x: 1, y: 2}
     clusterRadius: 0.24
-    minDistance: 0.38
+    minDistance: 0.32
     scaleRange: {x: 0.85, y: 1.1}
     maxTiltAngle: 3.5
     customGroundEmbed: 0
     placeAtCenter: 0
   - groupName: ' Ground Accents'
     prefabs:
-    - {fileID: 3269547600719880639, guid: cd15fec5e1fd7e345bf7de3e87cd5bc4, type: 3}
-    - {fileID: 3116273956322800707, guid: 152eb451f53b78e41b036cbc9fb10bcf, type: 3}
-    - {fileID: 8903583833861633446, guid: b0fd748eb98b4e8428f06c564f94c61b, type: 3}
-    - {fileID: 8208252577743640696, guid: b1b57b38193651a428e9afcac2d06357, type: 3}
+    - {fileID: 7487622698517635369, guid: 02fb267aafbf11b439fb63bad1aed5f4, type: 3}
+    - {fileID: 7635284738266707294, guid: 409a1dacc86968942b516de3bfb6f3e9, type: 3}
+    - {fileID: 219037479038075208, guid: 64057d33fb21c8b42b1d67c441c14712, type: 3}
+    - {fileID: 1780383137507388936, guid: 9f26869cef47838408c85eff3f03e831, type: 3}
     clusterAsPatch: 0
-    countRange: {x: 1, y: 3}
+    countRange: {x: 7, y: 10}
     propsPerClusterRange: {x: 0, y: 0}
     clusterRadius: 0.24
-    minDistance: 0.36
-    scaleRange: {x: 0.9, y: 1.1}
+    minDistance: 0.2
+    scaleRange: {x: 0.5, y: 0.8}
     maxTiltAngle: 4
     customGroundEmbed: 0
     placeAtCenter: 0
   - groupName: Fern Bush Colony
     prefabs:
-    - {fileID: 3742922503016705380, guid: 3e205721371923c41b17e3f7666325ab, type: 3}
+    - {fileID: 7565035996125527493, guid: 259a2e35e16bee14bb1a7bffe385a1e1, type: 3}
+    - {fileID: 8485480445640914138, guid: 6dcce733c9be4854e9b8a58db6fd8b85, type: 3}
+    - {fileID: 3407653259304558846, guid: 9669f72f660e43a4f9012c62713798d4, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 2, y: 4}
+    countRange: {x: 6, y: 8}
     propsPerClusterRange: {x: 2, y: 4}
     clusterRadius: 0.24
-    minDistance: 0.3
-    scaleRange: {x: 0.75, y: 1.15}
+    minDistance: 0.1
+    scaleRange: {x: 0.5, y: 0.8}
     maxTiltAngle: 4
     customGroundEmbed: 0
     placeAtCenter: 0
   - groupName: Forest Micro Scatter
     prefabs:
-    - {fileID: 2318943337652534195, guid: a7fba08aad0e58a489b6cb1ea5b1e203, type: 3}
-    - {fileID: 7249192773943759499, guid: 52b910eb8a5b7ff41ac403f1647277a0, type: 3}
+    - {fileID: 4160877922841451124, guid: a4c82db780956d340bed69d420cb7427, type: 3}
+    - {fileID: 1297323231917724757, guid: fe08fbcd42754ae42b4681127d9e7d02, type: 3}
+    - {fileID: 7353435016218720678, guid: e52c8f907c3f7284abd7a02000ccb7e5, type: 3}
+    - {fileID: 4928891655432599159, guid: 12512969aa0783e46a56651d5ba108d8, type: 3}
+    - {fileID: 8484535031476926920, guid: 1b2e71ade726e5f48b0a7485664eaeba, type: 3}
+    - {fileID: 8777272390995868863, guid: b81c9af073ab75745a12998a462a50c1, type: 3}
+    - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 2, y: 4}
+    countRange: {x: 8, y: 10}
     propsPerClusterRange: {x: 2, y: 4}
-    clusterRadius: 0.24
-    minDistance: 0.3
-    scaleRange: {x: 0.65, y: 0.95}
+    clusterRadius: 0.28
+    minDistance: 0.1
+    scaleRange: {x: 0.35, y: 0.5}
     maxTiltAngle: 4
     customGroundEmbed: 0
     placeAtCenter: 0
+  groundCoverPrefabs:
+  - {fileID: 4160877922841451124, guid: a4c82db780956d340bed69d420cb7427, type: 3}
+  - {fileID: 1297323231917724757, guid: fe08fbcd42754ae42b4681127d9e7d02, type: 3}
+  - {fileID: 7353435016218720678, guid: e52c8f907c3f7284abd7a02000ccb7e5, type: 3}
+  - {fileID: 4928891655432599159, guid: 12512969aa0783e46a56651d5ba108d8, type: 3}
+  - {fileID: 8484535031476926920, guid: 1b2e71ade726e5f48b0a7485664eaeba, type: 3}
+  - {fileID: 8777272390995868863, guid: b81c9af073ab75745a12998a462a50c1, type: 3}
+  - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+  groundCoverCountRange: {x: 30, y: 40}
+  groundCoverScaleRange: {x: 0.3, y: 0.5}
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: b22edae7b5cb7fa4b8cf5a4d4a7c8e4e, type: 3}
+  - {fileID: 846643552139226012, guid: c10000048a144b6289b7996f34397104, type: 3}

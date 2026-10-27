@@ -59,6 +59,16 @@ public class CardDeskController : MonoBehaviour
     // cardID -> slot đại diện đang có trên tay (gộp các card cùng loại)
     private readonly Dictionary<string, GameObject> slotByCardID = new();
 
+    // Số lá theo cardID: bản gốc để ghi save (không đọc từ UI, vì UI còn đang hiện dần lúc chia bài)
+    private readonly Dictionary<string, int> handCounts = new();
+
+    // Thẻ trong save không tra được trong CardCatalog: không hiện, nhưng giữ nguyên khi ghi lại
+    private readonly List<HandCardStack> unresolvedHand = new();
+
+    // Tay bài đã nạp từ save chưa; trước đó không ghi save, thẻ thưởng tới sớm thì để vào earlyRewards
+    private bool handLoaded;
+    private readonly List<CardData> earlyRewards = new();
+
     /// <summary>
     /// Bỏ qua hiệu ứng nhận card khi spawn hand ban đầu (lúc đó cả bàn tay
     /// xuất hiện cùng lúc nên highlight/tia sáng/banner cho từng lá sẽ rất rối).
@@ -72,13 +82,21 @@ public class CardDeskController : MonoBehaviour
 
     private IEnumerator SpawnCards()
     {
+        // Đang xem đảo người khác: không có bài trên tay
+        if (WorldLaunch.IsVisit) yield break;
+
         suppressRewardFeedback = true;
+
+        // Bài trên tay đọc từ bản lưu của tài khoản; lần đầu (tài khoản mới, New Game, bản lưu cũ)
+        // thì chia bộ bài khởi đầu cardsToSpawn đúng một lần rồi ghi lại
+        bool dealStarterHand;
+        List<CardData> startingCards = LoadSavedHand(out dealStarterHand);
 
         // Gộp các CardData cùng loại (theo cardID) thành 1 slot + đếm số lượng
         List<CardData> uniqueCards = new List<CardData>();
         Dictionary<string, int> countByCardID = new Dictionary<string, int>();
 
-        foreach (CardData data in cardsToSpawn)
+        foreach (CardData data in startingCards)
         {
             if (data == null) continue;
 
@@ -100,15 +118,24 @@ public class CardDeskController : MonoBehaviour
         slotByCardID.Clear();
         cards.Clear();
 
+        handCounts.Clear();
+        foreach (KeyValuePair<string, int> pair in countByCardID) handCounts[pair.Key] = pair.Value;
+        handLoaded = true;
+        if (dealStarterHand) SaveHand();
+
         int cardCount =
             uniqueCards.Count;
 
         if (cardCount == 0)
         {
-            Debug.LogWarning(
-                "CardDeskController: No CardData assigned."
-            );
+            // Đã đặt hết bài từ lần chơi trước: tay trống là đúng
+            if (dealStarterHand)
+                Debug.LogWarning(
+                    "CardDeskController: No CardData assigned."
+                );
 
+            suppressRewardFeedback = false;
+            GrantEarlyRewards();
             yield break;
         }
 
@@ -218,13 +245,16 @@ public class CardDeskController : MonoBehaviour
             }
 
             cards.Add(card);
+        }
 
-            yield return new WaitForSeconds(
-                appearDelay
-            );
+        // Đợi toàn bộ các lá bài hoàn tất hiệu ứng xuất hiện ban đầu
+        if (appearDelay > 0f && cardCount > 0)
+        {
+            yield return new WaitForSeconds(appearDelay * cardCount + 0.35f);
         }
 
         suppressRewardFeedback = false;
+        GrantEarlyRewards();
 
         // KHÔNG hiện banner tóm tắt hand ban đầu.
         // Banner "N LOẠI CARD: ..." che mất bản đồ ngay khi vào game, trong khi
@@ -257,9 +287,10 @@ public class CardDeskController : MonoBehaviour
             CardUI ui = card.GetComponent<CardUI>();
             if (ui == null || ui.CardData == null) continue;
 
-            string name = !string.IsNullOrEmpty(ui.CardData.cardName)
+            string rawName = !string.IsNullOrEmpty(ui.CardData.cardName)
                 ? ui.CardData.cardName
                 : ui.CardData.cardID;
+            string name = CardShop.TranslateToEnglish(rawName, ui.CardData.name);
 
             totalCards += ui.Count;
             parts.Add(ui.Count > 1 ? $"{name} x{ui.Count}" : name);
@@ -270,8 +301,8 @@ public class CardDeskController : MonoBehaviour
             return;
         }
 
-        string title = $"{parts.Count} LOẠI CARD";
-        string body = string.Join("  ·  ", parts) + $"  ({totalCards} LÁ)";
+        string title = $"{parts.Count} CARD TYPES";
+        string body = string.Join("  ·  ", parts) + $"  ({totalCards} CARDS)";
 
         ShowToast(title, body);
     }
@@ -305,6 +336,85 @@ public class CardDeskController : MonoBehaviour
     }
 
     // =========================================
+    // LƯU BÀI TRÊN TAY (economy_<id>.json)
+    // =========================================
+
+    private static EconomySaveData SavedHandData()
+    {
+        EconomySaveSystem saveSystem = EconomySaveSystem.Instance;
+        return saveSystem != null ? saveSystem.Progress : null;
+    }
+
+    // Không ghi khi đang xem đảo người khác, đang tải lại bản server sau xung đột,
+    // hoặc khi phiên này bị chặn ghi vì dựng lại đảo thiếu asset
+    private static bool CanSaveHand()
+    {
+        if (WorldLaunch.IsVisit || SaveSync.SavesSuspended) return false;
+        return WorldSaveSystem.Instance == null || !WorldSaveSystem.Instance.SavesBlocked;
+    }
+
+    /// <summary>
+    /// Danh sách lá cần chia lúc vào game. dealStarter = true khi bản lưu chưa từng có tay bài:
+    /// dùng cardsToSpawn và ghi lại ngay để chỉ chia bộ khởi đầu một lần cho mỗi bản lưu.
+    /// </summary>
+    private List<CardData> LoadSavedHand(out bool dealStarter)
+    {
+        unresolvedHand.Clear();
+        EconomySaveData saved = SavedHandData();
+        if (saved == null || !saved.starterHandGranted)
+        {
+            dealStarter = true;
+            return new List<CardData>(cardsToSpawn);
+        }
+
+        dealStarter = false;
+        var result = new List<CardData>();
+        CardCatalog catalog = WorldSaveSystem.Instance != null ? WorldSaveSystem.Instance.Cards : null;
+        foreach (HandCardStack stack in saved.hand)
+        {
+            if (stack == null || stack.count <= 0 || string.IsNullOrEmpty(stack.cardId)) continue;
+
+            CardData data = catalog != null ? catalog.Find(stack.cardId) : null;
+            if (data == null)
+            {
+                unresolvedHand.Add(stack);
+                Debug.LogWarning($"[LumiWorld Save] Không tìm thấy thẻ '{stack.cardId}' trong CardCatalog; giữ trong bản lưu nhưng chưa hiện trên tay. Chạy Tools > LumiWorld > Xây danh mục save.");
+                continue;
+            }
+            for (int i = 0; i < stack.count; i++) result.Add(data);
+        }
+        return result;
+    }
+
+    // Ghi tay bài hiện tại vào bản lưu kinh tế và ghi file ngay (cùng lần với Coins vừa đổi, nếu có)
+    private void SaveHand()
+    {
+        if (!handLoaded || !CanSaveHand()) return;
+
+        EconomySaveData saved = SavedHandData();
+        if (saved == null) return;
+
+        saved.hand.Clear();
+        foreach (KeyValuePair<string, int> pair in handCounts)
+        {
+            if (pair.Value > 0) saved.hand.Add(new HandCardStack { cardId = pair.Key, count = pair.Value });
+        }
+        foreach (HandCardStack stack in unresolvedHand) saved.hand.Add(stack);
+        saved.starterHandGranted = true;
+
+        EconomySaveSystem.Instance.MarkDirty();
+        EconomySaveSystem.Instance.SaveNow();
+    }
+
+    private void GrantEarlyRewards()
+    {
+        if (earlyRewards.Count == 0) return;
+        var pending = new List<CardData>(earlyRewards);
+        earlyRewards.Clear();
+        foreach (CardData card in pending) AddRewardCard(card);
+    }
+
+    // =========================================
     // REMOVE CARD
     // =========================================
 
@@ -319,6 +429,18 @@ public class CardDeskController : MonoBehaviour
 
         // CardDrag gọi hàm này khi đặt bài thành công -> mỗi lần đặt TIÊU 1 LÁ.
         CardUI cardUI = card.GetComponent<CardUI>();
+
+        // Ghi tay bài ngay trong frame đặt bài (đảo cũng ghi thẻ vừa đặt trong LateUpdate của frame này)
+        if (cardUI != null && cardUI.CardData != null)
+        {
+            string handKey = GetCardKey(cardUI.CardData);
+            if (handCounts.TryGetValue(handKey, out int held))
+            {
+                if (held > 1) handCounts[handKey] = held - 1;
+                else handCounts.Remove(handKey);
+            }
+            SaveHand();
+        }
 
         if (cardUI != null && cardUI.Count > 1)
         {
@@ -488,11 +610,25 @@ public void AddRewardCard(CardData cardData)
         return;
     }
 
+    // Đang xem đảo người khác: không có bài trên tay, không nhận thẻ
+    if (WorldLaunch.IsVisit) return;
+
+    // Thẻ tới trước khi tay bài nạp xong từ save: giữ lại, cộng sau khi nạp (không ghi đè tay đã lưu)
+    if (!handLoaded)
+    {
+        earlyRewards.Add(cardData);
+        return;
+    }
+
     // -------------------------
     // GỘP THEO CARD ID
     // -------------------------
     // Nếu trên tay đã có slot cùng loại -> chỉ tăng số lượng, không tạo card mới.
     string key = GetCardKey(cardData);
+
+    // Ghi tay bài ngay (cùng lần ghi với Coins khi mua ở Shop hoặc nhận thưởng)
+    handCounts[key] = (handCounts.TryGetValue(key, out int heldBefore) ? heldBefore : 0) + 1;
+    SaveHand();
 
     if (slotByCardID.TryGetValue(key, out GameObject existingSlot) && existingSlot != null)
     {
@@ -653,13 +789,14 @@ private void NotifyRewardCard(
         return;
     }
 
-    string displayName = !string.IsNullOrEmpty(cardData.cardName)
+    string rawDisplayName = !string.IsNullOrEmpty(cardData.cardName)
         ? cardData.cardName
         : (!string.IsNullOrEmpty(cardData.cardID) ? cardData.cardID : "Card");
+    string displayName = CardShop.TranslateToEnglish(rawDisplayName, cardData.name);
 
     if (showRewardToast)
     {
-        string title = isNewSlot ? "NHẬN CARD MỚI" : "CỘNG THÊM CARD";
+        string title = isNewSlot ? "NEW CARD RECEIVED" : "CARD ADDED";
         string body = totalCount > 1
             ? $"{displayName} x{totalCount}"
             : displayName;
@@ -734,7 +871,8 @@ private void TryPlayRewardFeedback(
             return 0f;
         }
 
-        float scaledWidth = cardWidth * cardScale;
+        float effectiveWidth = Mathf.Max(120f, cardWidth);
+        float scaledWidth = effectiveWidth * cardScale;
 
         // Dùng vùng thật của khay bài. Giới hạn 640px trước đây khiến card bị dồn
         // chồng lên nhau dù CardContainer và handWidth còn nhiều khoảng trống.
@@ -752,9 +890,9 @@ private void TryPlayRewardFeedback(
         }
 
         // Bài nhiều: cho phép xếp chồng các lá (spacing < scaledWidth).
-        // Càng nhiều lá thì spacing càng co lại (xếp chồng tăng dần) để gọn gàng,
-        // chặn dưới ở mức 50f để các lá vẫn để lộ viền và số nhận diện rõ ràng.
-        return Mathf.Clamp(targetSpacing, 50f, maxSpacing);
+        // Càng nhiều lá thì spacing càng co lại để gọn gàng, nhưng không đè quá mức.
+        float floorSpacing = Mathf.Min(minSpacing, 100f);
+        return Mathf.Clamp(targetSpacing, floorSpacing, maxSpacing);
     }
 
     // =========================================

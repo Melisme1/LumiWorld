@@ -14,13 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: bloomfield_001
   cardName: Bloomfield
-  cardImage: {fileID: -278153563, guid: 01d9e5ab7d3259142bb4ab46c75c4bd1, type: 3}
+  cardImage: {fileID: 21300000, guid: ccf0dd4b987f4c5d912114c285f1f60c, type: 3}
   cardType: 1
   baseScore: 1
   alwaysBaseScore: 0
   shopPrice: 20
   placementFee: 5
   prefabToPlace: {fileID: 0}
+  useEffectPrefab: {fileID: 0}
+  useEffectOffset: {x: 0, y: 0.1, z: 0}
+  useEffectScale: 1
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
   clearPropsOnTransform: 1
@@ -29,6 +32,7 @@ MonoBehaviour:
   producedResource: {fileID: 11400000, guid: c051e312543046fb9e751531a812af52, type: 2}
   landResourceBonus: 0
   biomeCycleDuration: 40
+  maxBiomeTilesOverride: 0
   transformRules: []
   habitatSpawnMargin: 0.95
   habitatProps:
@@ -93,4 +97,4 @@ MonoBehaviour:
     customGroundEmbed: 0
     placeAtCenter: 0
   allowedTilePrefabs:
-  - {fileID: 919132149155446097, guid: d8bdcab2ea9404349a8dc2f292b92790, type: 3}
+  - {fileID: 8492549821474773207, guid: c10000028a144b6289b7996f34397102, type: 3}

@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,10 +13,8 @@ MonoBehaviour:
   m_Name: BarkPaper
   m_EditorClassIdentifier: Assembly-CSharp::ResourceData
   resourceID: resource.leafwood.bark_paper
-  resourceName: "Gi\u1EA5y v\u1ECF c\xE2y"
-  description: "Gi\u1EA5y th\xF4 m\u1ED9c l\xE0m t\u1EEB v\u1ECF c\xE2y r\u1EE5ng
-    v\xE0 g\u1ED7 s\u1ED3i, d\xF9ng l\xE0m gi\u1EA5y vi\u1EBFt th\u01B0 t\xEDn v\xE0
-    s\u1ED5 tay sinh c\u1EA3nh."
+  resourceName: "Bark Paper"
+  description: "Sturdy rustic parchment handcrafted from fallen oak bark and wood fibers."
   icon: {fileID: 21300000, guid: d89c1cca52994c059e4a066d50399016, type: 3}
   resourceColor: {r: 0.8, g: 0.72, b: 0.58, a: 1}
   hexColor: '#CCB894'
