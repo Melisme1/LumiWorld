@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Acs/Materials.meta
 guid: 26700f2b065838449a9f8d92160c6116
+========
+guid: 2c1a383b8e4007e44950aab3c72e8c7c
+>>>>>>>> origin/MapBuilding:Assets/Acs/Materials/forrest_ground_01_4k.blend/Materials.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Acs/Art/Flower.meta
 guid: 3221c524a9b94ad4fadb4dbd3138c422
+========
+guid: 26700f2b065838449a9f8d92160c6116
+>>>>>>>> origin/MapBuilding:Assets/Acs/Materials.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
