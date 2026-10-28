@@ -31,9 +31,9 @@ MonoBehaviour:
     restrictToBiomes: 1
     affectedBiomes: 020000000100000003000000
     spreadRadius: 1
-    spreadIntervalSeconds: 9
+    spreadIntervalSeconds: 8
     maxTiles: 7
-    durationSeconds: 30
+    durationSeconds: 60
     rainToCure: 1
     harvestSpeedMultiplier: 0
   - kind: 3
