@@ -124,20 +124,20 @@ public class RiverNetworkManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Äáº·t má»™t Ä‘oáº¡n suá»‘i lÃªn Ã´ lá»¥c giÃ¡c, tá»± Ä‘á»™ng uá»‘n lÆ°á»£n ná»‘i vá»›i cÃ¡c Ã´ suá»‘i ká» bÃªn vÃ  tÃ­nh Ä‘iá»ƒm
+    /// Đặt một đoạn suối lên ô lục giác, tự động uốn lượn nối với các ô suối kề bên và tính điểm
     /// </summary>
     public PlacedCard PlaceRiver(HexCoordinates coords, GameObject targetTileObj, CardData cardData, Vector3? explicitSpawnPos = null)
     {
         EnsureConfig();
         if (targetTileObj == null) return null;
 
-        // 1. XÃ¡c Ä‘á»‹nh Ä‘á»™ cao bá» máº·t trÃªn cÃ¹ng cá»§a Ã´ (topY) Ä‘á»ƒ suá»‘i khÃ´ng bá»‹ chÃ¬m xuá»‘ng dÆ°á»›i Ä‘áº¥t
+        // 1. Xác định độ cao bề mặt trên cùng của ô (topY)
         float surfaceY = HexBiomeClusterConnector.GetTileHeightLevels(targetTileObj).topY;
         Vector3 baseSurfacePos = explicitSpawnPos.HasValue 
             ? explicitSpawnPos.Value 
             : HexMetrics.HexToWorldPosition(coords, surfaceY);
 
-        // 2. Táº¡o container cho Ä‘oáº¡n suá»‘i
+        // 2. Tạo container cho đoạn suối
         GameObject riverObj = new GameObject($"River_{coords.Q}_{coords.R}");
         riverObj.transform.SetParent(targetTileObj.transform, true);
         riverObj.transform.position = baseSurfacePos;
@@ -145,28 +145,20 @@ public class RiverNetworkManager : MonoBehaviour
         RiverTileSegment segment = riverObj.AddComponent<RiverTileSegment>();
         segment.placedHex = coords;
 
-        // TÃ­nh bÆ°á»›c dÃ²ng cháº£y (flowStep): Äáº§u nguá»“n = 0, Ã´ tiáº¿p theo = neighbor.flowStep + 1
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+
+        // Tính bước dòng chảy (flowStep): Đầu nguồn = 0, ô tiếp theo = neighbor.flowStep + 1
         int minStep = int.MaxValue;
         for (int dir = 0; dir < 6; dir++)
         {
             HexCoordinates neighbor = coords.GetNeighbor(dir);
             if (_riverMap.TryGetValue(neighbor, out RiverTileSegment nSeg) && nSeg != null)
             {
-                // Nếu nSeg là Nguồn và nSeg đã có một láng giềng khác tạo thành tam giác với coords:
-                // Theo yêu cầu dòng chảy 1 làn (A -> B -> C): coords sẽ nhận flowStep từ ô B thay vì từ nguồn A
-                if (nSeg.isOrigin)
+                // LUẬT TRỌNG LỰC: Nước không thể chảy ngược dốc từ ô thấp hơn lên ô mới cao hơn!
+                float nY = GetTileTopY(neighbor, worldGen);
+                if (nY < surfaceY - 0.35f)
                 {
-                    bool sourceAlreadyFeedsTriangle = false;
-                    for (int d2 = 0; d2 < 6; d2++)
-                    {
-                        HexCoordinates other = neighbor.GetNeighbor(d2);
-                        if (other != coords && _riverMap.ContainsKey(other) && coords.DistanceTo(other) == 1)
-                        {
-                            sourceAlreadyFeedsTriangle = true;
-                            break;
-                        }
-                    }
-                    if (sourceAlreadyFeedsTriangle) continue;
+                    continue; // Ô láng giềng thấp hơn không thể cấp nước leo dốc lên ô cao mới đặt!
                 }
 
                 if (nSeg.flowStep < minStep) minStep = nSeg.flowStep;
@@ -175,7 +167,6 @@ public class RiverNetworkManager : MonoBehaviour
         bool isNewOrigin = (minStep == int.MaxValue);
         segment.isOrigin = isNewOrigin;
         segment.flowStep = isNewOrigin ? 0 : (minStep + 1);
-
         _riverMap[coords] = segment;
 
         // 3. Gáº¯n PlacedCard Ä‘á»ƒ há»‡ thá»‘ng Save/Load vÃ  Ä‘iá»ƒm sá»‘ nháº­n diá»‡n
@@ -226,6 +217,18 @@ public class RiverNetworkManager : MonoBehaviour
         {
             if (_riverMap.TryGetValue(hex, out RiverTileSegment seg) && seg != null)
             {
+                // Xác định độ cao bề mặt của ô hiện tại và kiểm tra tầng thấp nhất
+                bool isLowTierTerminal = false;
+                float hexSurfaceY = HexMetrics.TileHeight;
+                GameObject tileObj = null;
+                if (worldGen != null && worldGen.MapTiles != null && worldGen.MapTiles.TryGetValue(hex, out tileObj) && tileObj != null)
+                {
+                    var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
+                    hexSurfaceY = topY;
+                    HexTileInfo tInfo = tileObj.GetComponent<HexTileInfo>();
+                    isLowTierTerminal = (tInfo != null && tInfo.terrainTypeIndex == 0) || (topY < 0.9f);
+                }
+
                 List<int> connectedDirs = new List<int>();
                 int upstreamDir = -1;
                 int outflowDir = -1;
@@ -234,25 +237,57 @@ public class RiverNetworkManager : MonoBehaviour
                     HexCoordinates n = hex.GetNeighbor(d);
                     if (_riverMap.TryGetValue(n, out RiverTileSegment nSeg) && nSeg != null)
                     {
-                        // Kiểm tra ngắt cạnh trực tiếp giữa Nguồn và ô cuối trong tam giác 1 Nguồn + 2 Thường để giữ dòng 1 làn:
-                        if (IsTriangleSourceLoopEdge(hex, seg, n, nSeg))
+                        if (!ShouldConnectRivers(hex, seg, n, nSeg, worldGen))
                         {
                             continue;
                         }
 
                         connectedDirs.Add(d);
-                        if (nSeg.flowStep < seg.flowStep)
+                        float nTopY = GetTileTopY(n, worldGen);
+
+                        // Ưu tiên xác định hướng dòng chảy dựa trên ĐỘ CAO THỰC TẾ:
+                        if (Mathf.Abs(nTopY - hexSurfaceY) > 0.35f)
                         {
-                            upstreamDir = d;
+                            if (nTopY > hexSurfaceY)
+                            {
+                                upstreamDir = d; // Nước từ ô cao hơn đổ xuống ô này
+                            }
+                            else
+                            {
+                                outflowDir = d;  // Nước từ ô này đổ xuống ô thấp hơn
+                            }
                         }
-                        else if (nSeg.flowStep > seg.flowStep)
+                        else
                         {
-                            outflowDir = d;
+                            // Cùng độ cao bằng phẳng: So sánh theo bước dòng chảy flowStep
+                            if (nSeg.flowStep < seg.flowStep)
+                            {
+                                upstreamDir = d;
+                            }
+                            else if (nSeg.flowStep > seg.flowStep)
+                            {
+                                outflowDir = d;
+                            }
                         }
                     }
                 }
 
-                bool isOrigin = seg.isOrigin || (seg.flowStep == 0);
+                // Cập nhật trạng thái nguồn: Một ô chỉ là Đầu nguồn (SpringHead) nếu KHÔNG có nước từ ô khác đổ vào
+                bool isOrigin = (upstreamDir < 0);
+                if (isOrigin)
+                {
+                    seg.isOrigin = true;
+                    seg.flowStep = 0;
+                }
+                else
+                {
+                    seg.isOrigin = false;
+                    HexCoordinates upHex = hex.GetNeighbor(upstreamDir);
+                    if (_riverMap.TryGetValue(upHex, out RiverTileSegment upSeg) && upSeg != null)
+                    {
+                        seg.flowStep = upSeg.flowStep + 1;
+                    }
+                }
 
                 // Tìm hướng dốc xuống cho ô đầu nguồn nếu chưa có kết nối nào
                 int downhillDir = 0;
@@ -271,27 +306,14 @@ public class RiverNetworkManager : MonoBehaviour
                     }
                 }
 
-                // Kiểm tra xem ô này có phải tầng thấp nhất (Tier 0 / Bloomfield / Plain)
-                bool isLowTierTerminal = false;
-                float hexSurfaceY = HexMetrics.TileHeight;
-                GameObject tileObj = null;
-                if (worldGen != null && worldGen.MapTiles != null && worldGen.MapTiles.TryGetValue(hex, out tileObj) && tileObj != null)
-                {
-                    var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
-                    hexSurfaceY = topY;
-                    HexTileInfo tInfo = tileObj.GetComponent<HexTileInfo>();
-                    isLowTierTerminal = (tInfo != null && tInfo.terrainTypeIndex == 0) || (topY < 0.9f);
-                }
-
                 RiverTileSolution solution = RiverAutoTileSolver.Solve(connectedDirs, isOrigin, downhillDir, isLowTierTerminal, upstreamDir, outflowDir);
 
-                Debug.Log($"<color=#38BDF8>[RiverAutoTile]</color> Hex {hex} (isOrigin={isOrigin}, conns={solution.connectionCount}) -> Piece: <b>{solution.pieceType}</b>, RotY: <b>{solution.rotationY:F1}Â°</b>");
+                Debug.Log($"<color=#38BDF8>[RiverAutoTile]</color> Hex {hex} (isOrigin={isOrigin}, conns={solution.connectionCount}) -> Piece: <b>{solution.pieceType}</b>, RotY: <b>{solution.rotationY:F1}°</b>");
 
                 Vector3 hexPos = HexMetrics.HexToWorldPosition(hex, hexSurfaceY);
                 seg.ApplySolution(solution, riverConfig, hexPos, worldGen);
 
-                // KÃ­ch hoáº¡t thuáº­t toÃ¡n ThÃ­ch á»©ng vÃ  TÃ¡i phÃ¢n bá»‘ Props sinh thÃ¡i (RiverPropHarmonizer):
-                // Tá»± Ä‘á»™ng Ä‘áº©y dáº¡t bá»¥i hoa/cÃ¢y con ra hai bÃªn bá» suá»‘i/há»“ vÃ  thu nhá» dá»n sáº¡ch cÃ¢y cáº£n dÃ²ng nÆ°á»›c
+                // Kích hoạt thuật toán Thích ứng và Tái phân bố Props sinh thái (RiverPropHarmonizer):
                 if (tileObj != null)
                 {
                     bool isInitialSpring = isOrigin && (solution.connectionCount == 0);
@@ -299,7 +321,7 @@ public class RiverNetworkManager : MonoBehaviour
                     RiverPropHarmonizer.HarmonizePropsForRiver(tileObj, solution.pieceType, actualRotY, isInitialSpring, this, seg);
                 }
 
-                // LuÃ´n cáº­p nháº­t má»‘i ná»‘i SeamBridge kÃ­n rÃ£nh vá»›i cÃ¡c Ã´ lÃ¡ng giá»ng ká» sÃ¡t
+                // Luôn cập nhật mối nối SeamBridge kín rãnh với các ô láng giềng kề sát
                 if (HexBiomeClusterConnector.Instance != null)
                 {
                     HexBiomeClusterConnector.Instance.ConnectAllNearby(hex);
@@ -309,47 +331,153 @@ public class RiverNetworkManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Kiểm tra xem cạnh giữa h1 và h2 có phải là cạnh cần ngắt trong tam giác 1 Nguồn + 2 Thường không.
-    /// Trường hợp 2: Khi có 1 Nguồn (A) và 2 ô thường (B, C) tạo thành tam giác:
-    /// Dòng chảy đi 1 làn duy nhất (A -> B -> C). Cạnh trực tiếp giữa Nguồn A và C sẽ ngắt kết nối.
+    /// Lấy độ cao bề mặt thực tế của ô lục giác
     /// </summary>
-    private bool IsTriangleSourceLoopEdge(HexCoordinates h1, RiverTileSegment s1, HexCoordinates h2, RiverTileSegment s2)
+    private float GetTileTopY(HexCoordinates coords, HexWorldGenerator worldGen)
     {
-        if (s1 == null || s2 == null) return false;
+        if (worldGen != null && worldGen.MapTiles != null && worldGen.MapTiles.TryGetValue(coords, out GameObject tObj) && tObj != null)
+        {
+            return HexBiomeClusterConnector.GetTileHeightLevels(tObj).topY;
+        }
+        return HexMetrics.TileHeight;
+    }
 
-        int dir1to2 = -1;
+    /// <summary>
+    /// Kiểm tra xem cạnh giữa h1 và h2 có phải là cạnh cần ngắt trong bất kỳ tam giác suối 3 ô nào không.
+    /// Một tam giác suối (3 ô kề nhau) luôn tạo thành vòng lặp / mạng nhện mất tự nhiên,
+    /// do đó bắt buộc phải ngắt 1 cạnh để chỉ giữ lại dòng chảy 1 làn duy nhất (Clean Flow).
+    /// </summary>
+    /// <summary>
+    /// Kiểm tra xem 2 ô lục giác láng giềng kề sát có kết nối suối hợp lệ không.
+    /// Tuân thủ quy luật dòng chảy tự nhiên (Clean Flow & Gravity):
+    /// 1. Nước luôn chảy xuôi dốc từ tầng cao xuống tầng thấp.
+    /// 2. Cùng một tầng phẳng:
+    ///    - Hai ô KHÔNG nối ngang với nhau nếu cả 2 đều đã nhận nước từ tầng trên cao đổ xuống (2 nhánh tẽ riêng biệt).
+    ///    - Hai ô KHÔNG nối ngang với nhau nếu cả 2 đều cùng đổ xuống chung một ô trũng bên dưới (2 nhánh hợp lưu riêng biệt).
+    ///    - Trong tam giác 3 ô cùng tầng: Ngắt cạnh trực tiếp giữa điểm đầu và điểm cuối để dòng suối đi 1 làn A -> B -> C.
+    /// </summary>
+    private bool ShouldConnectRivers(HexCoordinates hA, RiverTileSegment segA, HexCoordinates hB, RiverTileSegment segB, HexWorldGenerator worldGen)
+    {
+        if (segA == null || segB == null) return false;
+
+        float yA = GetTileTopY(hA, worldGen);
+        float yB = GetTileTopY(hB, worldGen);
+
+        // Trường hợp 1: Chênh lệch độ cao giữa 2 tầng (Dốc / Thác nước)
+        if (Mathf.Abs(yA - yB) > 0.35f)
+        {
+            // Ô ở tầng thấp hơn CHỈ ĐƯỢC PHÉP nhận nước từ ĐÚNG 1 Ô ở tầng cao hơn:
+            // Đó là ô gần nguồn nhất (có flowStep nhỏ nhất / isOrigin).
+            // Các ô tầng cao khác tuyệt đối không đổ dồn vào gây loạn nguồn!
+            if (yA > yB + 0.35f)
+            {
+                if (GetBestUpstreamFeeder(hB, worldGen) != hA)
+                {
+                    return false;
+                }
+            }
+            else if (yB > yA + 0.35f)
+            {
+                if (GetBestUpstreamFeeder(hA, worldGen) != hB)
+                {
+                    return false;
+                }
+            }
+
+            // Nếu chênh lệch 2 tầng (ví dụ Windheath 2.6m -> Bloomfield 1.0m)
+            // và tồn tại ô tầng trung (Leafwood 1.8m) kề sát cả 2 ô:
+            // Cắt cạnh "nhảy cóc" để suối đi tuần tự từng bậc thang qua ô trung gian
+            if (Mathf.Abs(yA - yB) > 0.7f)
+            {
+                for (int d = 0; d < 6; d++)
+                {
+                    HexCoordinates mid = hA.GetNeighbor(d);
+                    if (_riverMap.ContainsKey(mid) && hB.DistanceTo(mid) == 1)
+                    {
+                        float yMid = GetTileTopY(mid, worldGen);
+                        if ((yA > yMid + 0.35f && yMid > yB + 0.35f) || (yB > yMid + 0.35f && yMid > yA + 0.35f))
+                        {
+                            return false; // Nhường dòng chảy đi tuần tự qua ô bậc giữa
+                        }
+                    }
+                }
+            }
+
+            return true; // Nước chảy xuôi từ ô cao xuống ô thấp theo nhánh gần nguồn nhất
+        }
+
+        // Trường hợp 2: Hai ô ở CÙNG MỘT TẦNG ĐỘ CAO
+        // Quy tắc A: Cả 2 ô đều nhận nước từ tầng cao hơn đổ xuống -> 2 nhánh tẽ riêng biệt, không nối ngang!
+        bool aHasHigherFeed = HasHigherNeighborFeed(hA, worldGen);
+        bool bHasHigherFeed = HasHigherNeighborFeed(hB, worldGen);
+        if (aHasHigherFeed && bHasHigherFeed)
+        {
+            return false;
+        }
+
+        // Quy tắc C: Tam giác 3 ô cùng tầng phẳng {hA, hB, hC}
+        // Ngắt cạnh trực tiếp giữa ô có flowStep nhỏ nhất và lớn nhất để dòng đi 1 làn A -> B -> C
         for (int d = 0; d < 6; d++)
         {
-            if (h1.GetNeighbor(d) == h2) { dir1to2 = d; break; }
-        }
-        if (dir1to2 == -1) return false;
-
-        HexCoordinates[] thirdCandidates = new HexCoordinates[]
-        {
-            h1.GetNeighbor((dir1to2 + 1) % 6),
-            h1.GetNeighbor((dir1to2 + 5) % 6)
-        };
-
-        foreach (var h3 in thirdCandidates)
-        {
-            if (_riverMap.TryGetValue(h3, out RiverTileSegment s3) && s3 != null)
+            HexCoordinates hC = hA.GetNeighbor(d);
+            if (_riverMap.TryGetValue(hC, out RiverTileSegment segC) && segC != null && hB.DistanceTo(hC) == 1)
             {
-                int originCount = (s1.isOrigin ? 1 : 0) + (s2.isOrigin ? 1 : 0) + (s3.isOrigin ? 1 : 0);
-                if (originCount == 1)
+                float yC = GetTileTopY(hC, worldGen);
+                if (Mathf.Abs(yC - yA) <= 0.35f)
                 {
-                    if (s1.isOrigin)
+                    int rA = segA.isOrigin ? -1 : segA.flowStep;
+                    int rB = segB.isOrigin ? -1 : segB.flowStep;
+                    int rC = segC.isOrigin ? -1 : segC.flowStep;
+
+                    int minR = Mathf.Min(rA, Mathf.Min(rB, rC));
+                    int maxR = Mathf.Max(rA, Mathf.Max(rB, rC));
+
+                    if ((rA == minR && rB == maxR) || (rB == minR && rA == maxR))
                     {
-                        if (s3.flowStep <= s2.flowStep) return true;
-                    }
-                    else if (s2.isOrigin)
-                    {
-                        if (s3.flowStep <= s1.flowStep) return true;
+                        return false;
                     }
                 }
             }
         }
 
-        return false;
+        return true;
+    }
+
+    /// <summary>
+    /// Tìm ô thượng nguồn tốt nhất (gần nguồn nhất - min flowStep) trong số các ô láng giềng ở tầng cao hơn.
+    /// Giúp ô tầng dưới chỉ nhận đúng 1 nguồn cấp nước từ ô gần nguồn nhất ở tầng trên.
+    /// </summary>
+    private HexCoordinates GetBestUpstreamFeeder(HexCoordinates hex, HexWorldGenerator worldGen)
+    {
+        float myY = GetTileTopY(hex, worldGen);
+        HexCoordinates bestFeeder = hex;
+        int bestRank = int.MaxValue;
+
+        for (int d = 0; d < 6; d++)
+        {
+            HexCoordinates nHex = hex.GetNeighbor(d);
+            if (_riverMap.TryGetValue(nHex, out RiverTileSegment nSeg) && nSeg != null)
+            {
+                float nY = GetTileTopY(nHex, worldGen);
+                if (nY > myY + 0.35f)
+                {
+                    // isOrigin ưu tiên cao nhất (-1), sau đó đến flowStep nhỏ nhất
+                    int rank = nSeg.isOrigin ? -1 : nSeg.flowStep;
+                    if (rank < bestRank)
+                    {
+                        bestRank = rank;
+                        bestFeeder = nHex;
+                    }
+                }
+            }
+        }
+
+        return bestFeeder;
+    }
+
+    private bool HasHigherNeighborFeed(HexCoordinates hex, HexWorldGenerator worldGen)
+    {
+        return GetBestUpstreamFeeder(hex, worldGen) != hex;
     }
 
     // =========================================================================
@@ -376,6 +504,12 @@ public class RiverNetworkManager : MonoBehaviour
             if (HasBiomeOnTile(centerTileObj))
             {
                 score += riverConfig != null ? riverConfig.pointsPerCoLocatedBiome : 2;
+            }
+
+            // ThÆ°á»Ÿng Báº¿n nÆ°á»›c náº¿u suá»‘i cháº£y qua Ã´ Ä‘ang cÃ³ thÃº sinh sá»‘ng
+            if (HasCreatureOnTile(centerTileObj, riverHex))
+            {
+                score += riverConfig != null ? riverConfig.pointsPerAdjacentCreature : 5;
             }
         }
 
@@ -419,6 +553,7 @@ public class RiverNetworkManager : MonoBehaviour
         // TRÆ¯á»œNG Há»¢P 1: Äáº¶T THáºº THÃš (CREATURE) SÃT Bá»œ SUá»I
         if (placedCard.cardType == CardType.Creature)
         {
+            bool isOnRiver = _riverMap.ContainsKey(placedHex);
             int touchingRiverCount = 0;
             for (int dir = 0; dir < 6; dir++)
             {
@@ -429,7 +564,7 @@ public class RiverNetworkManager : MonoBehaviour
                 }
             }
 
-            if (touchingRiverCount > 0)
+            if (isOnRiver || touchingRiverCount > 0)
             {
                 // Äiá»ƒm báº¿n nÆ°á»›c muÃ´n loÃ i
                 bonusScore += riverConfig.pointsPerAdjacentCreature;
@@ -539,6 +674,7 @@ public class RiverNetworkManager : MonoBehaviour
         {
             if (card == null || card.cardData == null || card.cardData.cardType != CardType.Creature)
                 continue;
+            bool isOnRiver = _riverMap.ContainsKey(card.placedHex);
 
             int touchingRivers = 0;
             for (int dir = 0; dir < 6; dir++)
@@ -550,7 +686,7 @@ public class RiverNetworkManager : MonoBehaviour
                 }
             }
 
-            if (touchingRivers > 0)
+            if (isOnRiver || touchingRivers > 0)
             {
                 totalScore += riverConfig.pointsPerAdjacentCreature;
                 if (touchingRivers >= 2)
@@ -579,7 +715,7 @@ public class RiverNetworkManager : MonoBehaviour
         return false;
     }
 
-    private bool HasCreatureOnTile(GameObject tileObj)
+    private bool HasCreatureOnTile(GameObject tileObj, HexCoordinates? hex = null)
     {
         if (tileObj == null) return false;
         PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>();
@@ -587,6 +723,11 @@ public class RiverNetworkManager : MonoBehaviour
         {
             if (c != null && c.cardData != null && c.cardData.cardType == CardType.Creature)
                 return true;
+        }
+
+        if (hex.HasValue && LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var hm))
+        {
+            if (hm.HasCreatureAtHome(hex.Value)) return true;
         }
         return false;
     }

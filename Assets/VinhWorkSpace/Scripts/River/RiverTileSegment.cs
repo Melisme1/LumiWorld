@@ -20,6 +20,7 @@ public class RiverTileSegment : MonoBehaviour
     [SerializeField] private GameObject visualInstance;
 
     private readonly Dictionary<int, GameObject> _waterfallInstances = new Dictionary<int, GameObject>();
+    private readonly HashSet<int> _doubleTierWaterfalls = new HashSet<int>();
     private readonly List<List<RiverWaypoint>> _cachedPaths = new List<List<RiverWaypoint>>();
 
     public GameObject VisualInstance => visualInstance;
@@ -112,7 +113,8 @@ public class RiverTileSegment : MonoBehaviour
     }
 
     /// <summary>
-    /// Tự động sinh máng đá Thác nước (Waterfall Ramp) ở các mép dốc xuống hạ lưu khi giật cấp tầng địa hình (>0.5m)
+    /// Tự động sinh máng đá Thác nước (Waterfall Ramp) ở các mép dốc xuống hạ lưu khi giật cấp tầng địa hình (>0.45m).
+    /// Khi vượt 2 tầng (Cao -> Thấp trực tiếp, chênh lệch >= 1.2m), tự động spawn thêm máng thác thứ 2 xếp chồng lên trên.
     /// </summary>
     private void UpdateWaterfalls(RiverConfig config, Vector3 scale, HexWorldGenerator worldGen)
     {
@@ -141,6 +143,9 @@ public class RiverTileSegment : MonoBehaviour
 
             if (needsWaterfall)
             {
+                float heightDiff = topY_this - topY_n;
+                bool isDoubleTier = config != null && config.IsDoubleTierWaterfall(heightDiff);
+
                 Vector3 posThis = HexMetrics.HexToWorldPosition(placedHex, 0f);
                 Vector3 posN = HexMetrics.HexToWorldPosition(nCoords, 0f);
                 Vector3 edgePos = (posThis + posN) * 0.5f;
@@ -176,9 +181,46 @@ public class RiverTileSegment : MonoBehaviour
                 }
 
                 wf.transform.localScale = Vector3.Scale(config.waterfallPrefab.transform.localScale, wfScale);
+
+                // Quản lý máng thác thứ 2 (tầng trên) khi vượt tầng (Cao -> Thấp)
+                const string upperWfName = "WaterfallCascadeRamp (1)";
+                Transform upperTr = wf.transform.Find(upperWfName);
+
+                if (isDoubleTier)
+                {
+                    _doubleTierWaterfalls.Add(d);
+                    GameObject upperObj;
+                    if (upperTr == null)
+                    {
+                        upperObj = Instantiate(config.waterfallPrefab, wf.transform);
+                        upperObj.name = upperWfName;
+                    }
+                    else
+                    {
+                        upperObj = upperTr.gameObject;
+                    }
+
+                    Vector3 upPos = config != null ? config.upperWaterfallPosition : new Vector3(0f, 0.186f, -0.668f);
+                    Vector3 upRot = config != null ? config.upperWaterfallRotation : new Vector3(-29.556f, 0f, 0f);
+                    Vector3 upScale = config != null ? config.upperWaterfallScale : Vector3.one;
+
+                    upperObj.transform.localPosition = upPos;
+                    upperObj.transform.localRotation = Quaternion.Euler(upRot);
+                    upperObj.transform.localScale = upScale;
+                }
+                else
+                {
+                    _doubleTierWaterfalls.Remove(d);
+                    if (upperTr != null)
+                    {
+                        if (Application.isPlaying) Destroy(upperTr.gameObject);
+                        else DestroyImmediate(upperTr.gameObject);
+                    }
+                }
             }
             else
             {
+                _doubleTierWaterfalls.Remove(d);
                 if (_waterfallInstances.TryGetValue(d, out GameObject oldWf))
                 {
                     if (oldWf != null)
@@ -323,7 +365,7 @@ public class RiverTileSegment : MonoBehaviour
                 {
                     Vector3 mouthLocal = RiverSplinePath.GetEdgeNormalLocal(outDir) * mouthDist;
                     Vector3 edgeNormal = RiverSplinePath.GetEdgeNormalLocal(outDir);
-                    float inward = _waterfallInstances.ContainsKey(outDir) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    float inward = GetWaterfallInwardOffset(outDir, config);
                     Vector3 edgeLocal = RiverSplinePath.GetEdgeMidpointLocal(outDir) - edgeNormal * inward;
 
                     SpawnTrenchLine(mouthLocal, edgeLocal, _trenchContainer, config, baseWorldPos);
@@ -333,23 +375,22 @@ public class RiverTileSegment : MonoBehaviour
 
             case RiverPieceType.PondBasin:
             {
-                // Hồ chứa PondBasin:
-                // Có 2 trường hợp:
-                // 1. TỪ TRÊN XUỐNG (Thác nước giật cấp): Chân thác nước và máng của hồ đã khớp trực tiếp, KHÔNG spawn thêm mương nối!
-                // 2. NGANG (Cùng tầng bằng phẳng): Mương nối chạy thẳng tắp trên trục nối tâm từ mép ô tới miệng cổ máng hồ (~0.48m),
-                //    không cộng pondOffset để tránh lệch trục và không đi sâu quá 0.48m để tránh đè vào lòng hồ.
-                int inDir = connectedPorts[0];
-                if (IsWaterfallInflow(inDir, worldGen))
-                {
-                    break;
-                }
-
-                Vector3 edgeNormal = RiverSplinePath.GetEdgeNormalLocal(inDir);
-                Vector3 edgeLocal = RiverSplinePath.GetEdgeMidpointLocal(inDir);
-
+                // Hồ chứa PondBasin (hồ cuối nguồn hoặc hồ hội tụ đón nhiều nhánh suối đổ về):
+                // Duyệt qua TẤT CẢ các cổng kết nối (connectedPorts)
                 float inletDist = config != null ? config.pondInletDistance : 0.48f;
-                Vector3 pondInletLocal = edgeNormal * inletDist;
-                SpawnTrenchLine(edgeLocal, pondInletLocal, _trenchContainer, config, baseWorldPos);
+                foreach (int inDir in connectedPorts)
+                {
+                    if (IsWaterfallInflow(inDir, worldGen))
+                    {
+                        // Thác nước từ trên cao đổ trực tiếp vào hồ (UpdateWaterfalls đã xử lý thác)
+                        continue;
+                    }
+
+                    Vector3 edgeNormal = RiverSplinePath.GetEdgeNormalLocal(inDir);
+                    Vector3 edgeLocal = RiverSplinePath.GetEdgeMidpointLocal(inDir);
+                    Vector3 pondInletLocal = edgeNormal * inletDist;
+                    SpawnTrenchLine(edgeLocal, pondInletLocal, _trenchContainer, config, baseWorldPos);
+                }
                 break;
             }
 
@@ -362,11 +403,11 @@ public class RiverTileSegment : MonoBehaviour
                     int p1 = connectedPorts[1];
 
                     Vector3 norm0 = RiverSplinePath.GetEdgeNormalLocal(p0);
-                    float in0 = _waterfallInstances.ContainsKey(p0) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    float in0 = GetWaterfallInwardOffset(p0, config);
                     Vector3 edgeA = RiverSplinePath.GetEdgeMidpointLocal(p0) - norm0 * in0;
 
                     Vector3 norm1 = RiverSplinePath.GetEdgeNormalLocal(p1);
-                    float in1 = _waterfallInstances.ContainsKey(p1) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    float in1 = GetWaterfallInwardOffset(p1, config);
                     Vector3 edgeB = RiverSplinePath.GetEdgeMidpointLocal(p1) - norm1 * in1;
 
                     SpawnTrenchLine(edgeA, edgeB, _trenchContainer, config, baseWorldPos);
@@ -422,7 +463,7 @@ public class RiverTileSegment : MonoBehaviour
                 // Nhanh 1: Cong vao (Inflow) -> Muong thang tu mep o VAO mieng Curved60
                 {
                     Vector3 normIn = RiverSplinePath.GetEdgeNormalLocal(inPort);
-                    float inwIn = _waterfallInstances.ContainsKey(inPort) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    float inwIn = GetWaterfallInwardOffset(inPort, config);
                     Vector3 edgeIn = RiverSplinePath.GetEdgeMidpointLocal(inPort) - normIn * inwIn;
                     Vector3 mouthIn = normIn * mouthDist;
                     SpawnTrenchLine(edgeIn, mouthIn, _trenchContainer, config, baseWorldPos);
@@ -432,7 +473,7 @@ public class RiverTileSegment : MonoBehaviour
                 if (connectedPorts.Count >= 2)
                 {
                     Vector3 normOut = RiverSplinePath.GetEdgeNormalLocal(outPort);
-                    float inwOut = _waterfallInstances.ContainsKey(outPort) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    float inwOut = GetWaterfallInwardOffset(outPort, config);
                     Vector3 edgeOut = RiverSplinePath.GetEdgeMidpointLocal(outPort) - normOut * inwOut;
                     Vector3 mouthOut = normOut * mouthDist;
                     SpawnTrenchLine(mouthOut, edgeOut, _trenchContainer, config, baseWorldPos);
@@ -441,13 +482,14 @@ public class RiverTileSegment : MonoBehaviour
             }
 
             case RiverPieceType.Fork3Way:
+            case RiverPieceType.Fork3WayAsymmetric:
             {
-                // Ngã ba: Model ở tâm ô xử lý giao lộ (bán kính ~0.35m)
-                // Rải mương nối từ mỗi mép ô kết nối vào tâm ngã ba
+                // Ngã ba hoặc giao lộ nhiều nhánh: Model ở tâm ô xử lý giao lộ (bán kính ~0.35m)
+                // Rải mương nối từ mỗi mép ô kết nối vào tâm ngã ba (kể cả cổng thứ 4, thứ 5 nếu có)
                 foreach (int p in connectedPorts)
                 {
                     Vector3 norm = RiverSplinePath.GetEdgeNormalLocal(p);
-                    float inw = _waterfallInstances.ContainsKey(p) ? (config != null ? config.waterfallInwardOffset : 0.04f) : 0f;
+                    float inw = GetWaterfallInwardOffset(p, config);
                     Vector3 edgeMid = RiverSplinePath.GetEdgeMidpointLocal(p) - norm * inw;
                     Vector3 forkEnd = norm * 0.35f;
                     SpawnTrenchLine(edgeMid, forkEnd, _trenchContainer, config, baseWorldPos);
@@ -633,5 +675,17 @@ public class RiverTileSegment : MonoBehaviour
             if (kvp.Value != null) Destroy(kvp.Value);
         }
         _waterfallInstances.Clear();
+        _doubleTierWaterfalls.Clear();
+    }
+
+    /// <summary>
+    /// Lấy độ thụt lùi mương nối tại đỉnh thác nước theo loại thác (1 tầng hay 2 tầng vượt tầng)
+    /// </summary>
+    private float GetWaterfallInwardOffset(int dir, RiverConfig config)
+    {
+        if (!_waterfallInstances.ContainsKey(dir) || config == null) return 0f;
+        return _doubleTierWaterfalls.Contains(dir) 
+            ? config.doubleWaterfallInwardOffset 
+            : config.waterfallInwardOffset;
     }
 }

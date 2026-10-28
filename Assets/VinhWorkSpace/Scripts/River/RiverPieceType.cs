@@ -17,10 +17,13 @@ public enum RiverPieceType
     /// <summary>Đầu nguồn suối / Cụt dòng (chỉ mở 1 cổng nối - ví dụ hang đá non bộ hay suối cạn)</summary>
     SpringHead,
 
-    /// <summary>Ngã ba hợp lưu suối hình chữ Y (nối 3 cổng - ví dụ hướng 0, 2, 4)</summary>
+    /// <summary>Ngã ba hợp lưu suối hình chữ Y (nối 3 cổng cách đều 120°)</summary>
     Fork3Way,
 
-    /// <summary>Hồ / Ao nước cuối nguồn (1 cổng vào hồ hoặc hồ độc lập giữa lòng ô)</summary>
+    /// <summary>Ngã ba hợp lưu suối bất đối xứng dạng mũi tên (nối 3 cổng góc 60°-120°-180°)</summary>
+    Fork3WayAsymmetric,
+
+    /// <summary>Hồ / Ao nước cuối nguồn hoặc hồ hội tụ đón nhiều nhánh đổ về</summary>
     PondBasin,
 
     /// <summary>Thác nước bậc thang kết nối chênh lệch độ cao giữa 2 tầng hex</summary>

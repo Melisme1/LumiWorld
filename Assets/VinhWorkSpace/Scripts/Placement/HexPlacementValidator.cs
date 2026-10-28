@@ -119,12 +119,7 @@ public class HexPlacementValidator : MonoBehaviour
                 return false;
             }
 
-            // Ô đang có thú sinh sống trực tiếp -> Không cho đặt trực tiếp lên thú
-            if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
-            {
-                lastValidationError = "Ô này đang có thú sinh sống. Hãy đặt suối ở ô lân cận để tạo bến nước!";
-                return false;
-            }
+            // Cho phep dat suoi chay qua o co thu sinh song (huong diem ben nuoc)
 
             // BẮT BUỘC: Ô này phải ĐÃ ĐẶT thẻ Môi trường (Biome / Terrain card)
             if (!HasPlacedTerrain(tileObj))

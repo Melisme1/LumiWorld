@@ -35,6 +35,8 @@ public static class RiverSetupUtility
         // 3. Quét tự động các file FBX trong Assets/VinhWorkSpace/Props/Waterfall
         config.straightPrefab = FindFbx("Stream_Path");
         config.fork3WayPrefab = FindFbx("Stone_Crossroad");
+        config.fork3WayAsymmetricPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/VinhWorkSpace/Prefabs/Waterfall/Fork3waysame.prefab");
+        if (config.fork3WayAsymmetricPrefab == null) config.fork3WayAsymmetricPrefab = FindFbx("three_way_stone_stream");
         config.springHeadPrefab = FindFbx("Stone_Hollow");
         config.pondBasinPrefab = FindFbx("Meadow_Pond");
         config.waterfallPrefab = FindFbx("Stone_Stairw");
@@ -47,12 +49,18 @@ public static class RiverSetupUtility
         config.pondOffset = Vector3.zero;
         config.pondTextureOffset = Vector2.zero;
         config.straightYOffset = 0.095f;
-        config.curve120YOffset = 0.135f;
         config.curve60YOffset = 0.135f;
         config.fork3WayYOffset = 0.080f;
         config.waterfallYOffset = 0.477f;
         config.waterfallOffset = new Vector3(0f, 0f, 0.18f);
         config.waterfallRotationOffset = 0f;
+
+        config.doubleWaterfallHeightThreshold = 1.2f;
+        config.upperWaterfallPosition = new Vector3(0f, 0.186f, -0.668f);
+        config.upperWaterfallRotation = new Vector3(-29.556f, 0f, 0f);
+        config.upperWaterfallScale = Vector3.one;
+        config.doubleWaterfallInwardOffset = 0.04f;
+
         config.globalRotationOffset = 0f;
 
         config.pointsPerRiverTile = 3;

@@ -65,7 +65,7 @@ public static class RiverAutoTileSolver
         }
 
         // 1. Trường hợp Ô Thượng Nguồn (isOrigin == true):
-        // Luôn luôn giữ nguyên bản chất là Hang Nguồn (SpringHead), không bao giờ bị biến dạng thành khúc cua hay suối thẳng!
+        // Luôn luôn giữ nguyên bản chất là Hang Nguồn (SpringHead), TUYỆT ĐỐI không bao giờ bị biến dạng thành khúc cua hay suối thẳng!
         if (isOrigin)
         {
             solution.pieceType = RiverPieceType.SpringHead;
@@ -80,15 +80,24 @@ public static class RiverAutoTileSolver
             }
             else
             {
-                // Khi có 2+ nhánh hạ lưu kề bên: quay miệng hang theo hướng phân giác trung bình
-                float a0 = GetDirectionAngle(connectedDirections[0]);
-                float a1 = GetDirectionAngle(connectedDirections[1]);
-                solution.rotationY = Mathf.LerpAngle(a0, a1, 0.5f);
+                // Khi có 2+ nhánh hạ lưu kề bên:
+                // Nếu có hướng đổ dốc xuống (outflowDir), ưu tiên quay theo hướng dốc/hạ lưu đó
+                if (outflowDir >= 0 && connectedDirections.Contains(outflowDir))
+                {
+                    solution.rotationY = GetDirectionAngle(outflowDir);
+                }
+                else
+                {
+                    float a0 = GetDirectionAngle(connectedDirections[0]);
+                    float a1 = GetDirectionAngle(connectedDirections[1]);
+                    solution.rotationY = Mathf.LerpAngle(a0, a1, 0.5f);
+                }
             }
             return solution;
         }
 
-        // 2. Trường hợp 0 kết nối (ô suối đơn lẻ): Quay theo hướng dốc
+        // 2. Trường hợp 0 kết nối (ô suối đơn lẻ đứng biệt lập không phải origin):
+        // BẤT ĐẮC DĨ KHÔNG CÓ ĐƯỜNG NỐI -> Sinh Hang Nguồn (SpringHead) quay miệng theo hướng dốc
         if (solution.connectionCount == 0)
         {
             solution.pieceType = RiverPieceType.SpringHead;
@@ -96,16 +105,17 @@ public static class RiverAutoTileSolver
             return solution;
         }
 
-        // 3. Trường hợp 1 kết nối: Cuối nhánh dòng suối tụ lại thành hồ nhỏ (PondBasin)
+        // 3. Trường hợp 1 kết nối:
         if (solution.connectionCount == 1)
         {
             int dir = connectedDirections[0];
+            // Là điểm cuối của dòng suối: Đọng thành HỒ (PondBasin)
             solution.pieceType = RiverPieceType.PondBasin;
             solution.rotationY = GetDirectionAngle(dir);
             return solution;
         }
 
-        // 3. Trường hợp 2 kết nối: Suối Thẳng (180°) hoặc Ngã ba hợp lưu (Fork)
+        // 4. Trường hợp 2 kết nối: ƯU TIÊN NỐI DÒNG CHẢY (Straight hoặc Curve)
         if (solution.connectionCount == 2)
         {
             int d0 = connectedDirections[0];
@@ -130,7 +140,7 @@ public static class RiverAutoTileSolver
             }
             else
             {
-                // Rẽ góc sang ô khác (120° hoặc 60°)
+                // Rẽ góc sang ô khác (120° mềm Bézier hoặc 60° cua gắt)
                 solution.pieceType = (diff == 2) ? RiverPieceType.Curve120 : RiverPieceType.Curve60;
                 float a0 = GetDirectionAngle(d0);
                 float a1 = GetDirectionAngle(d1);
@@ -139,8 +149,48 @@ public static class RiverAutoTileSolver
             }
         }
 
-        // 4. Trường hợp 3+ kết nối: Ngã ba chữ Y (Fork)
-        // Cổng xả của Fork sẽ hướng thẳng về phía hạ lưu (outflowDir) để xả vào hồ đọng PondBasin hoặc ô tiếp theo
+        // 5. ĐIỂM HỘI TỤ 3+ NHÁNH KHÔNG CÓ ĐƯỜNG RA:
+        // CHỈ KHI ở tầng trũng thấp nhất (isLowTierTerminal) VÀ không có nhánh thoát (outflowDir < 0) mới là HỒ HỘI TỤ
+        if (outflowDir < 0 && isLowTierTerminal)
+        {
+            solution.pieceType = RiverPieceType.PondBasin;
+            int primaryInlet = (upstreamDir >= 0) ? upstreamDir : connectedDirections[0];
+            solution.rotationY = GetDirectionAngle(primaryInlet);
+            return solution;
+        }
+
+        // 6. GIAO LỘ HỢP LƯU (3 kết nối):
+        if (solution.connectionCount == 3)
+        {
+            List<int> sorted = new List<int>(connectedDirections);
+            sorted.Sort();
+
+            int step0 = sorted[1] - sorted[0];
+            int step1 = sorted[2] - sorted[1];
+            int step2 = 6 - (sorted[2] - sorted[0]);
+
+            int[] steps = new int[] { step0, step1, step2 };
+            Array.Sort(steps);
+
+            int targetDir = (outflowDir >= 0) ? outflowDir : connectedDirections[0];
+
+            if (steps[0] == 2 && steps[1] == 2 && steps[2] == 2)
+            {
+                // Dạng đối xứng đều 120° - 120° - 120° (HexFork3WayCrossroad)
+                solution.pieceType = RiverPieceType.Fork3Way;
+                solution.rotationY = GetDirectionAngle(targetDir);
+                return solution;
+            }
+            else
+            {
+                // Mọi dạng 3 nhánh bất đối xứng: Ưu tiên Fork3waysame (Fork3WayAsymmetric)
+                solution.pieceType = RiverPieceType.Fork3WayAsymmetric;
+                solution.rotationY = GetDirectionAngle(targetDir);
+                return solution;
+            }
+        }
+
+        // 6. Giao lộ 4+ kết nối: Dùng cơ chế Hub-and-Spoke với Fork3Way, rải mương nối tới mọi cổng kết nối
         solution.pieceType = RiverPieceType.Fork3Way;
         int targetForkDir = (outflowDir >= 0) ? outflowDir : connectedDirections[0];
         solution.rotationY = GetDirectionAngle(targetForkDir);
