@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9c4be7421668f4f8878200d5b2c96d, type: 3}
   m_Name: DisasterBalance
   m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.DisasterBalance
-  minSpawnIntervalMinutes: 1
-  maxSpawnIntervalMinutes: 2
+  minSpawnIntervalMinutes: 2
+  maxSpawnIntervalMinutes: 3
   enableAutoSpawn: 1
   maxConcurrentDisasters: 1
   obstacleWeight: 1
@@ -31,9 +31,9 @@ MonoBehaviour:
     restrictToBiomes: 1
     affectedBiomes: 020000000100000003000000
     spreadRadius: 1
-    spreadIntervalSeconds: 7
+    spreadIntervalSeconds: 9
     maxTiles: 7
-    durationSeconds: 45
+    durationSeconds: 30
     rainToCure: 1
     harvestSpeedMultiplier: 0
   - kind: 3
@@ -46,7 +46,7 @@ MonoBehaviour:
     spreadRadius: 2
     spreadIntervalSeconds: 1
     maxTiles: 6
-    durationSeconds: 60
+    durationSeconds: 30
     rainToCure: 1
     harvestSpeedMultiplier: 0.469
   cycloneRainThreshold: 6
