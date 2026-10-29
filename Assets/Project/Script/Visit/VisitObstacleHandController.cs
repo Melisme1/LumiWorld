@@ -25,6 +25,8 @@ public sealed class VisitObstacleHandController : MonoBehaviour
     private Canvas rootCanvas;
     private HexWorldGenerator visitedWorld;
     private HexCameraController cameraController;
+    private LineRenderer targetHighlight;
+    private Material targetHighlightMaterial;
     private string[] allowedKinds = DefaultKinds;
     private int feeCoins = 20;
     private bool sending;
@@ -66,7 +68,17 @@ public sealed class VisitObstacleHandController : MonoBehaviour
         foreach (var pair in new List<KeyValuePair<GameObject, DragOrigin>>(draggingCards))
             RestoreCard(pair.Key, pair.Value);
         draggingCards.Clear();
+        HideTargetHighlight();
         SetCameraDragging(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (targetHighlightMaterial != null)
+        {
+            if (Application.isPlaying) Destroy(targetHighlightMaterial);
+            else DestroyImmediate(targetHighlightMaterial);
+        }
     }
 
     private void Update()
@@ -76,6 +88,7 @@ public sealed class VisitObstacleHandController : MonoBehaviour
             foreach (var pair in new List<KeyValuePair<GameObject, DragOrigin>>(draggingCards))
                 RestoreCard(pair.Key, pair.Value);
             draggingCards.Clear();
+            HideTargetHighlight();
             SetCameraDragging(false);
         }
     }
@@ -246,6 +259,8 @@ public sealed class VisitObstacleHandController : MonoBehaviour
         if (canvasRect != null && cardRect != null &&
             RectTransformUtility.ScreenPointToWorldPointInRectangle(canvasRect, screenPosition, eventCamera, out Vector3 world))
             cardRect.position = world;
+
+        UpdateTargetHighlight(screenPosition);
     }
 
     private void EndDragCard(GameObject card, PointerEventData eventData)
@@ -255,6 +270,7 @@ public sealed class VisitObstacleHandController : MonoBehaviour
         bool hasTarget = TryGetTargetTile(eventData.position, out HexCoordinates target);
         RestoreCard(card, origin);
         draggingCards.Remove(card);
+        HideTargetHighlight();
         if (draggingCards.Count == 0) SetCameraDragging(false);
 
         if (!hasTarget)
@@ -263,6 +279,62 @@ public sealed class VisitObstacleHandController : MonoBehaviour
             return;
         }
         SendObstacleToTarget(kind, target);
+    }
+
+    private void UpdateTargetHighlight(Vector2 screenPosition)
+    {
+        if (!TryGetTargetTile(screenPosition, out HexCoordinates coordinates) ||
+            !visitedWorld.MapTiles.TryGetValue(coordinates, out GameObject tile) || tile == null)
+        {
+            HideTargetHighlight();
+            return;
+        }
+
+        EnsureTargetHighlight();
+        if (targetHighlight == null) return;
+
+        var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tile);
+        Vector3 center = tile.transform.position;
+        center.y = topY + 0.08f;
+        float radius = HexMetrics.OuterRadius * 0.88f;
+        const int cornerCount = 6;
+        const float angleOffset = 30f;
+        for (int i = 0; i <= cornerCount; i++)
+        {
+            float angle = (angleOffset + i * 60f) * Mathf.Deg2Rad;
+            targetHighlight.SetPosition(i, center + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius));
+        }
+        targetHighlight.enabled = true;
+    }
+
+    private void EnsureTargetHighlight()
+    {
+        if (targetHighlight != null) return;
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null) shader = Shader.Find("Unlit/Color");
+        if (shader == null) return;
+
+        targetHighlightMaterial = new Material(shader) { name = "VisitObstacleTargetHighlightMaterial" };
+        targetHighlightMaterial.color = new Color(0.25f, 1f, 0.65f, 1f);
+        GameObject ring = new GameObject("VisitObstacleTargetHighlight", typeof(LineRenderer));
+        targetHighlight = ring.GetComponent<LineRenderer>();
+        targetHighlight.useWorldSpace = true;
+        targetHighlight.loop = false;
+        targetHighlight.positionCount = 7;
+        targetHighlight.startWidth = 0.09f;
+        targetHighlight.endWidth = 0.09f;
+        targetHighlight.startColor = targetHighlightMaterial.color;
+        targetHighlight.endColor = targetHighlightMaterial.color;
+        targetHighlight.sharedMaterial = targetHighlightMaterial;
+        targetHighlight.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        targetHighlight.receiveShadows = false;
+        targetHighlight.enabled = false;
+    }
+
+    private void HideTargetHighlight()
+    {
+        if (targetHighlight != null) targetHighlight.enabled = false;
     }
 
     private void RestoreCard(GameObject card, DragOrigin origin)
