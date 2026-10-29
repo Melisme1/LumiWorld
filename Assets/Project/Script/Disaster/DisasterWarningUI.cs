@@ -33,7 +33,7 @@ namespace LumiWorld.Acs
         [Header("Thẻ nổi tại chỗ (dán trên vùng thiên tai)")]
         [Tooltip("Độ nâng của thẻ so với tâm ô (mét) để thẻ không đè lên khối hex.")]
         [SerializeField] private float worldTagHeightOffset = 1.6f;
-        [SerializeField] private float worldTagWidth = 420f;
+        [SerializeField] private float worldTagWidth = 300f;
         [SerializeField] private float worldTagHeight = 64f;
 
         [Header("Chỉ hướng khi nằm ngoài camera")]
@@ -272,7 +272,7 @@ namespace LumiWorld.Acs
                     canvasRect.rect.width * 0.5f - halfW - edgePadding);
                 tagTargetPosition.y = Mathf.Clamp(tagTargetPosition.y, -canvasRect.rect.height * 0.5f + halfH + edgePadding,
                     canvasRect.rect.height * 0.5f - halfH - edgePadding);
-                tagTargetWidth = Mathf.Min(worldTagWidth, 330f);
+                tagTargetWidth = worldTagWidth;
 
                 arrowRoot.gameObject.SetActive(showDirectionArrow);
                 arrowRoot.anchoredPosition = direction * (halfH + 18f);

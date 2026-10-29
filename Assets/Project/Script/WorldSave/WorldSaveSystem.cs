@@ -573,6 +573,8 @@ public class WorldSaveSystem : MonoBehaviour
             model = model,
             objectName = tileObject.name,
             terrainTypeIndex = info.terrainTypeIndex,
+            terrainDataVersion = 1,
+            hasLushEnvironment = info.hasLushEnvironment,
             rotationStep = RotationStep(tileObject.transform.rotation),
             isOccupied = info.isOccupied,
         };
