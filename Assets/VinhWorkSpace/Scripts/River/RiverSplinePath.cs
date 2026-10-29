@@ -69,7 +69,6 @@ public static class RiverSplinePath
         for (int i = 0; i < steps; i++)
         {
             float t = (float)i / (steps - 1);
-            // Nội suy tuyến tính hoặc uốn lượn nhẹ từ miệng grotto ra mép
             Vector3 pos = Vector3.Lerp(mouthPos, edgeMid, t);
             rawPoints.Add(pos);
         }
@@ -79,22 +78,30 @@ public static class RiverSplinePath
 
     /// <summary>
     /// Tạo đường suối xuyên ô: Nối từ cổng vào inDir sang cổng ra outDir với độ cong uốn lượn tự nhiên (Bézier Curve)
+    /// Hỗ trợ inOffset và outOffset để lùi điểm xuất phát/kết thúc (ví dụ tránh cắm sâu vào chân thác nước).
     /// </summary>
-    public static List<RiverWaypoint> BuildThroughPath(int inDir, int outDir, float meanderOffset = 0.06f, int steps = 16)
+    public static List<RiverWaypoint> BuildThroughPath(
+        int inDir, 
+        int outDir, 
+        float meanderOffset = 0.06f, 
+        int steps = 16,
+        float inOffset = 0f,
+        float outOffset = 0f)
     {
-        Vector3 pIn = GetEdgeMidpointLocal(inDir);
-        Vector3 pOut = GetEdgeMidpointLocal(outDir);
+        Vector3 normIn = GetEdgeNormalLocal(inDir);
+        Vector3 normOut = GetEdgeNormalLocal(outDir);
+        Vector3 pIn = GetEdgeMidpointLocal(inDir) - normIn * inOffset;
+        Vector3 pOut = GetEdgeMidpointLocal(outDir) - normOut * outOffset;
 
-        Vector3 tanIn = -GetEdgeNormalLocal(inDir); // Hướng dòng chảy đi VÀO ô
-        Vector3 tanOut = GetEdgeNormalLocal(outDir); // Hướng dòng chảy đi RA khỏi ô
+        Vector3 tanIn = -normIn; // Hướng dòng chảy đi VÀO ô
+        Vector3 tanOut = normOut; // Hướng dòng chảy đi RA khỏi ô
 
         // Điểm điều khiển trung tâm:
         int diff = ((outDir - inDir) % 6 + 6) % 6;
         if (diff > 3) diff = 6 - diff;
 
-        // Cua gắt 60° (diff == 1): Hai cổng kề nhau (ví dụ hướng 3 sang hướng 2)
-        // Nối trực tiếp từ cổng vào sang cổng ra bằng một đường cong Bézier bậc 3 (Cubic Bézier)
-        // Ôm quanh góc chung giữa 2 cạnh, KHÔNG đi qua tâm ô (0,0,0) vì sẽ tạo góc nhọn đâm vào giữa ô rồi giật ngược ra
+        // Cua gắt 60° (diff == 1): Hai cổng kề nhau
+        // Nối trực tiếp từ cổng vào sang cổng ra bằng Cubic Bézier ôm sát góc chung
         if (diff == 1)
         {
             float handleLength = 0.38f;
@@ -111,23 +118,39 @@ public static class RiverSplinePath
             return GenerateWaypointsFromPoints(arcPoints);
         }
 
+        // Cua cong 120° (diff == 2): Dùng Cubic Bézier đơn mượt mà ôm vòng mềm mại
+        if (diff == 2)
+        {
+            float dist = Vector3.Distance(pIn, pOut);
+            float handleLen = Mathf.Min(0.48f, dist * 0.40f);
+            Vector3 cp1 = pIn + tanIn * handleLen;
+            Vector3 cp2 = pOut - tanOut * handleLen;
+
+            List<Vector3> arcPoints = new List<Vector3>(steps + 1);
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = (float)i / steps;
+                Vector3 pos = EvaluateCubicBezier(pIn, cp1, cp2, pOut, t);
+                arcPoints.Add(pos);
+            }
+            return GenerateWaypointsFromPoints(arcPoints);
+        }
+
         Vector3 centerPos = Vector3.zero;
 
         if (diff == 3)
         {
             // Suối thẳng 180 độ: Thêm độ võng uốn lượn tự nhiên hình chữ S nhỏ (Meandering S-curve)
-            // Vector ngang vuông góc với trục dòng chảy
             Vector3 streamAxis = (pOut - pIn).normalized;
             Vector3 lateralDir = new Vector3(-streamAxis.z, 0f, streamAxis.x);
             centerPos += lateralDir * meanderOffset;
         }
 
         // Tạo 4 điểm điều khiển cho Cubic Bézier:
-        float handleLen = 0.38f;
-        Vector3 cpA = pIn + tanIn * handleLen;
-        Vector3 cpB = pOut - tanOut * handleLen;
+        float handleL = 0.38f;
+        Vector3 cpA = pIn + tanIn * handleL;
+        Vector3 cpB = pOut - tanOut * handleL;
 
-        // Nếu có độ võng trung tâm, ta kết hợp 2 đoạn Bézier (In -> Center -> Out) để uốn lượn mềm như dải lụa
         List<Vector3> rawPoints = new List<Vector3>(steps);
         int halfSteps = steps / 2;
 
@@ -149,6 +172,20 @@ public static class RiverSplinePath
         }
 
         return GenerateWaypointsFromPoints(rawPoints);
+    }
+
+    /// <summary>
+    /// Tạo đường suối thẳng hoặc nhánh nối giữa 2 điểm bất kỳ trong hệ tọa độ cục bộ
+    /// </summary>
+    public static List<RiverWaypoint> BuildLinePath(Vector3 start, Vector3 end, int steps = 8)
+    {
+        List<Vector3> pts = new List<Vector3>(steps);
+        for (int i = 0; i < steps; i++)
+        {
+            float t = (steps > 1) ? (float)i / (steps - 1) : 0f;
+            pts.Add(Vector3.Lerp(start, end, t));
+        }
+        return GenerateWaypointsFromPoints(pts);
     }
 
     /// <summary>

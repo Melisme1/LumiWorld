@@ -12,16 +12,18 @@ public class RiverTileSegment : MonoBehaviour
     public HexCoordinates placedHex;
     public bool isOrigin = false; // true = Đầu nguồn nước (luôn giữ mô hình SpringHead)
     public int flowStep = 0; // 0 = Đầu nguồn trên đỉnh núi cao nhất
+    public int placementOrder = 0; // Thứ tự đặt ô (ô đặt trước có giá trị nhỏ hơn, ưu tiên giữ thác nước)
     public RiverPieceType pieceType = RiverPieceType.PondBasin;
     public float currentRotationY = 0f;
     public int connectedPortsMask = 0;
-    public int primaryPortA = -1; // Cổng dòng chính A
-    public int primaryPortB = -1; // Cổng dòng chính B
+    public int primaryPortA = -1; // Cổng dòng chính A (Thượng nguồn / Inflow)
+    public int primaryPortB = -1; // Cổng dòng chính B (Hạ lưu / Outflow)
 
     [Header("3D Bed & Accent Elements")]
     [SerializeField] private GameObject visualInstance;
 
     private readonly Dictionary<int, GameObject> _waterfallInstances = new Dictionary<int, GameObject>();
+    private readonly Dictionary<int, GameObject> _upperWaterfallInstances = new Dictionary<int, GameObject>();
     private readonly HashSet<int> _doubleTierWaterfalls = new HashSet<int>();
     private readonly List<List<RiverWaypoint>> _cachedPaths = new List<List<RiverWaypoint>>();
 
@@ -52,7 +54,7 @@ public class RiverTileSegment : MonoBehaviour
         UpdateWaterfalls(config, scale, worldGen);
 
         // 3. Cập nhật đường corridor để RiverPropHarmonizer dọn cây cản dòng nước
-        UpdateCorridorPath(config);
+        UpdateCorridorPath(config, worldGen);
 
         // 4. Tự động sinh các đoạn prefab mương nối (straightPrefab) lấp kín các khoảng hở giữa các ô
         UpdateConnectingTrenches(config, baseWorldPos, worldGen);
@@ -119,6 +121,42 @@ public class RiverTileSegment : MonoBehaviour
     /// Tự động sinh máng đá Thác nước (Waterfall Ramp) ở các mép dốc xuống hạ lưu khi giật cấp tầng địa hình (>0.45m).
     /// Khi vượt 2 tầng (Cao -> Thấp trực tiếp, chênh lệch >= 1.2m), tự động spawn thêm máng thác thứ 2 xếp chồng lên trên.
     /// </summary>
+    /// <summary>
+    /// NƠI DUY NHẤT TÍNH TOÁN TOÀN BỘ VỊ TRÍ & GÓC XOAY CHO CẢ 2 MÁNG THÁC NƯỚC:
+    /// Đọc trực tiếp 100% từ RiverConfig, tập trung tuyệt đối tại 1 chỗ, không phân mảnh, không cộng trừ ẩn.
+    /// </summary>
+    private void ComputeWaterfallTransforms(
+        Vector3 edgePos, Vector3 forwardVec, Vector3 rightVec, float topY_n,
+        RiverConfig config,
+        out Vector3 lowerPos, out Quaternion lowerRot,
+        out Vector3 upperPos, out Quaternion upperRot)
+    {
+        float angleY = Mathf.Atan2(forwardVec.x, forwardVec.z) * Mathf.Rad2Deg + 180f;
+        Vector3 lowerOffset = new Vector3(0f, 0.427f, 0.15f);
+        float lowerRotOffset = 0f;
+        Vector3 upperOffset = new Vector3(0f, 0.8f, -0.16f);
+        Vector3 upperRotEuler = new Vector3(-36.5f, 0f, 0f);
+
+        if (config != null)
+        {
+            config.GetWaterfallTransformOffsets(
+                out lowerOffset, out lowerRotOffset,
+                out upperOffset, out upperRotEuler);
+        }
+
+        // 1. Máng chân vách (Lower Waterfall):
+        lowerPos = edgePos + rightVec * lowerOffset.x + forwardVec * lowerOffset.z;
+        lowerPos.y = topY_n + lowerOffset.y;
+        Quaternion baseRot = config != null && config.waterfallPrefab != null 
+            ? config.waterfallPrefab.transform.localRotation 
+            : Quaternion.identity;
+        lowerRot = Quaternion.Euler(0f, angleY + lowerRotOffset, 0f) * baseRot;
+
+        // 2. Máng đỉnh vách (Upper Waterfall):
+        upperPos = lowerPos + Vector3.up * upperOffset.y + forwardVec * upperOffset.z + rightVec * upperOffset.x;
+        upperRot = lowerRot * Quaternion.Euler(upperRotEuler);
+    }
+
     private void UpdateWaterfalls(RiverConfig config, Vector3 scale, HexWorldGenerator worldGen)
     {
         if (config == null || config.waterfallPrefab == null || worldGen == null || worldGen.MapTiles == null) return;
@@ -156,68 +194,66 @@ public class RiverTileSegment : MonoBehaviour
                 Vector3 forwardVec = (posN - posThis).normalized;
                 Vector3 rightVec = Vector3.Cross(Vector3.up, forwardVec).normalized;
 
-                Vector3 wfOffset = config != null ? config.waterfallOffset : new Vector3(0f, 0f, 0.18f);
-                // wfOffset.y trá»±c tiáº¿p gá»™p toÃ n bá»™ cao Ä‘á»™ so vá»›i sÃ n háº¡ lÆ°u topY_n
-                float rotOffset = config != null ? (config.waterfallRotationOffset + config.globalRotationOffset) : 0f;
+                // 1 NƠI DUY NHẤT TÍNH TOÁN TỌA ĐỘ & GÓC XOAY CHO CẢ 2 MÁNG THÁC NƯỚC
+                ComputeWaterfallTransforms(
+                    edgePos, forwardVec, rightVec, topY_n, config,
+                    out Vector3 lowerPos, out Quaternion lowerRot,
+                    out Vector3 upperPos, out Quaternion upperRot);
 
-                // Tinh chỉnh vị trí theo hệ trục dòng chảy:
-                // - X: Dịch ngang trái/phải vuông góc dòng chảy
-                // - Y: Nâng/hạ cao độ (cộng dồn wfElev + wfOffset.y)
-                // - Z: Đẩy tiến ra phía hạ lưu (Z > 0: đẩy ra xa vách núi, tránh bị đâm sâu vào vách núi/lòng đất)
-                Vector3 finalPos = edgePos + rightVec * wfOffset.x + forwardVec * wfOffset.z;
-                finalPos.y = topY_n + wfOffset.y;
-
-                float angleY = Mathf.Atan2(forwardVec.x, forwardVec.z) * Mathf.Rad2Deg + 180f + rotOffset;
-                Quaternion rot = Quaternion.Euler(0f, angleY, 0f) * config.waterfallPrefab.transform.localRotation;
                 Vector3 wfScale = config != null ? config.GetScaleForPiece(RiverPieceType.Waterfall) : scale;
 
+                // Máng tầng dưới (Chân vách):
                 if (!_waterfallInstances.TryGetValue(d, out GameObject wf) || wf == null)
                 {
-                    wf = Instantiate(config.waterfallPrefab, finalPos, rot, transform);
+                    wf = Instantiate(config.waterfallPrefab, lowerPos, lowerRot, transform);
                     wf.name = $"Waterfall_Dir{d}";
                     _waterfallInstances[d] = wf;
                 }
                 else
                 {
-                    wf.transform.position = finalPos;
-                    wf.transform.rotation = rot;
+                    wf.transform.position = lowerPos;
+                    wf.transform.rotation = lowerRot;
                 }
-
                 wf.transform.localScale = Vector3.Scale(config.waterfallPrefab.transform.localScale, wfScale);
 
-                // Quản lý máng thác thứ 2 (tầng trên) khi vượt tầng (Cao -> Thấp)
-                const string upperWfName = "WaterfallCascadeRamp (1)";
-                Transform upperTr = wf.transform.Find(upperWfName);
+                // Dọn dẹp child cũ nếu còn sót từ phiên bản trước
+                Transform oldChildUpper = wf.transform.Find("WaterfallCascadeRamp (1)");
+                if (oldChildUpper != null)
+                {
+                    if (Application.isPlaying) Destroy(oldChildUpper.gameObject);
+                    else DestroyImmediate(oldChildUpper.gameObject);
+                }
 
+                // Máng tầng trên (Đỉnh vách 2 tầng) - Độc lập, không làm con của wf:
                 if (isDoubleTier)
                 {
                     _doubleTierWaterfalls.Add(d);
-                    GameObject upperObj;
-                    if (upperTr == null)
+
+                    if (!_upperWaterfallInstances.TryGetValue(d, out GameObject upperObj) || upperObj == null)
                     {
-                        upperObj = Instantiate(config.waterfallPrefab, wf.transform);
-                        upperObj.name = upperWfName;
+                        upperObj = Instantiate(config.waterfallPrefab, upperPos, upperRot, transform);
+                        upperObj.name = $"Waterfall_Upper_Dir{d}";
+                        _upperWaterfallInstances[d] = upperObj;
                     }
                     else
                     {
-                        upperObj = upperTr.gameObject;
+                        upperObj.transform.position = upperPos;
+                        upperObj.transform.rotation = upperRot;
                     }
 
-                    Vector3 upPos = config != null ? config.upperWaterfallPosition : new Vector3(0f, 0.186f, -0.668f);
-                    Vector3 upRot = config != null ? config.upperWaterfallRotation : new Vector3(-29.556f, 0f, 0f);
-                    Vector3 upScale = config != null ? config.upperWaterfallScale : Vector3.one;
-
-                    upperObj.transform.localPosition = upPos;
-                    upperObj.transform.localRotation = Quaternion.Euler(upRot);
-                    upperObj.transform.localScale = upScale;
-                }
-                else
+                    upperObj.transform.localScale = Vector3.Scale(config.waterfallPrefab.transform.localScale, wfScale);
+                    upperObj.SetActive(true);
+                }                else
                 {
                     _doubleTierWaterfalls.Remove(d);
-                    if (upperTr != null)
+                    if (_upperWaterfallInstances.TryGetValue(d, out GameObject oldUpper))
                     {
-                        if (Application.isPlaying) Destroy(upperTr.gameObject);
-                        else DestroyImmediate(upperTr.gameObject);
+                        if (oldUpper != null)
+                        {
+                            if (Application.isPlaying) Destroy(oldUpper);
+                            else DestroyImmediate(oldUpper);
+                        }
+                        _upperWaterfallInstances.Remove(d);
                     }
                 }
             }
@@ -233,6 +269,15 @@ public class RiverTileSegment : MonoBehaviour
                     }
                     _waterfallInstances.Remove(d);
                 }
+                if (_upperWaterfallInstances.TryGetValue(d, out GameObject oldUpper))
+                {
+                    if (oldUpper != null)
+                    {
+                        if (Application.isPlaying) Destroy(oldUpper);
+                        else DestroyImmediate(oldUpper);
+                    }
+                    _upperWaterfallInstances.Remove(d);
+                }
             }
         }
     }
@@ -245,11 +290,10 @@ public class RiverTileSegment : MonoBehaviour
         return (config != null) ? config.pondOffset : Vector3.zero;
     }
 
-
     /// <summary>
     /// Cập nhật đường corridor để các hệ thống phụ trợ (Prop Harmonizer) nhận diện luồng suối để dọn cây
     /// </summary>
-    private void UpdateCorridorPath(RiverConfig config)
+    private void UpdateCorridorPath(RiverConfig config, HexWorldGenerator worldGen = null)
     {
         _cachedPaths.Clear();
 
@@ -274,24 +318,23 @@ public class RiverTileSegment : MonoBehaviour
             {
                 int inPort = primaryPortA >= 0 ? primaryPortA : ports[0];
                 int outPort = primaryPortB >= 0 ? primaryPortB : ports[1];
-                if (RiverNetworkManager.Instance != null && primaryPortA < 0)
-                {
-                    var n0 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(ports[0]));
-                    var n1 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(ports[1]));
-                    if (n0 != null && n1 != null && n1.flowStep < n0.flowStep)
-                    {
-                        inPort = ports[1];
-                        outPort = ports[0];
-                    }
-                }
-                var path = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 10);
+                EnsureUpstreamDownstreamOrder(ref inPort, ref outPort, worldGen);
+
+                float inOffset = IsWaterfallInflow(inPort, worldGen) 
+                    ? (config != null ? config.waterfallBottomOffset : 0.38f) 
+                    : 0f;
+                float outOffset = GetWaterfallInwardOffset(outPort, config);
+
+                var path = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 10, inOffset, outOffset);
                 if (path.Count > 0) _cachedPaths.Add(path);
 
                 // Bổ sung corridor cho các nhánh rẽ phụ (Tributaries):
                 foreach (int p in ports)
                 {
                     if (p == inPort || p == outPort) continue;
-                    var branchPath = RiverSplinePath.BuildSpringHeadPath(p, 0f, 8);
+                    Vector3 edgeMid = RiverSplinePath.GetEdgeMidpointLocal(p);
+                    Vector3 confluencePoint = GetClosestPointOnPath(path, edgeMid);
+                    var branchPath = RiverSplinePath.BuildLinePath(edgeMid, confluencePoint, 8);
                     if (branchPath.Count > 0) _cachedPaths.Add(branchPath);
                 }
             }
@@ -387,7 +430,6 @@ public class RiverTileSegment : MonoBehaviour
             case RiverPieceType.PondBasin:
             {
                 // Hồ chứa PondBasin (hồ cuối nguồn hoặc hồ hội tụ đón nhiều nhánh suối đổ về):
-                // Duyệt qua TẤT CẢ các cổng kết nối (connectedPorts)
                 float inletDist = config != null ? config.pondInletDistance : 0.48f;
                 foreach (int inDir in connectedPorts)
                 {
@@ -412,9 +454,12 @@ public class RiverTileSegment : MonoBehaviour
                 {
                     int p0 = primaryPortA >= 0 ? primaryPortA : connectedPorts[0];
                     int p1 = primaryPortB >= 0 ? primaryPortB : connectedPorts[1];
+                    EnsureUpstreamDownstreamOrder(ref p0, ref p1, worldGen);
 
                     Vector3 norm0 = RiverSplinePath.GetEdgeNormalLocal(p0);
-                    float in0 = GetWaterfallInwardOffset(p0, config);
+                    float in0 = IsWaterfallInflow(p0, worldGen) 
+                        ? (config != null ? config.waterfallBottomOffset : 0.38f) 
+                        : GetWaterfallInwardOffset(p0, config);
                     Vector3 edgeA = RiverSplinePath.GetEdgeMidpointLocal(p0) - norm0 * in0;
 
                     Vector3 norm1 = RiverSplinePath.GetEdgeNormalLocal(p1);
@@ -429,29 +474,23 @@ public class RiverTileSegment : MonoBehaviour
             case RiverPieceType.Curve120:
             case RiverPieceType.Curve60:
             {
-                // Khúc cua cong 120 độ: Uốn lượn mượt mà theo đường cong Bezier
+                // Khúc cua cong 120 độ hoặc 60 độ: Uốn lượn mượt mà theo đường cong Bezier
                 if (connectedPorts.Count >= 2)
                 {
                     int inPort = primaryPortA >= 0 ? primaryPortA : connectedPorts[0];
                     int outPort = primaryPortB >= 0 ? primaryPortB : connectedPorts[1];
-                    if (RiverNetworkManager.Instance != null && primaryPortA < 0)
-                    {
-                        var n0 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(inPort));
-                        var n1 = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(outPort));
-                        if (n0 != null && n1 != null && n1.flowStep < n0.flowStep)
-                        {
-                            int temp = inPort;
-                            inPort = outPort;
-                            outPort = temp;
-                        }
-                    }
+                    EnsureUpstreamDownstreamOrder(ref inPort, ref outPort, worldGen);
 
-                    var curvePath = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 20);
+                    float inOffset = IsWaterfallInflow(inPort, worldGen) 
+                        ? (config != null ? config.waterfallBottomOffset : 0.38f) 
+                        : 0f;
+                    float outOffset = GetWaterfallInwardOffset(outPort, config);
+
+                    var curvePath = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 20, inOffset, outOffset);
                     SpawnTrenchCurve(curvePath, _trenchContainer, config, baseWorldPos, pieceType);
                 }
                 break;
             }
-
         }
 
         // TỰ ĐỘNG SINH CÁC NHÁNH RẼ PHỤ (Tributary Branches):
@@ -462,16 +501,36 @@ public class RiverTileSegment : MonoBehaviour
             int pMainA = primaryPortA >= 0 ? primaryPortA : (connectedPorts.Count > 0 ? connectedPorts[0] : -1);
             int pMainB = primaryPortB >= 0 ? primaryPortB : (connectedPorts.Count > 1 ? connectedPorts[1] : -1);
 
+            List<RiverWaypoint> mainPath = (_cachedPaths != null && _cachedPaths.Count > 0) ? _cachedPaths[0] : null;
+
             foreach (int p in connectedPorts)
             {
                 if (p == pMainA || p == pMainB) continue;
 
                 Vector3 norm = RiverSplinePath.GetEdgeNormalLocal(p);
-                float inw = GetWaterfallInwardOffset(p, config);
+                float inw = IsWaterfallInflow(p, worldGen) 
+                    ? (config != null ? config.waterfallBottomOffset : 0.38f) 
+                    : GetWaterfallInwardOffset(p, config);
                 Vector3 edgeMid = RiverSplinePath.GetEdgeMidpointLocal(p) - norm * inw;
-                Vector3 centerJunction = Vector3.zero;
+                Vector3 junctionPoint = Vector3.zero;
+                if (mainPath != null && mainPath.Count > 0)
+                {
+                    junctionPoint = GetClosestPointOnPath(mainPath, edgeMid);
+                }
+                else
+                {
+                    Vector3 midA = RiverSplinePath.GetEdgeMidpointLocal(pMainA);
+                    Vector3 midB = RiverSplinePath.GetEdgeMidpointLocal(pMainB);
+                    junctionPoint = ProjectPointOnSegment(edgeMid, midA, midB);
+                }
 
-                // Xác định chiều dòng chảy của nhánh phụ để định hướng mương đá
+                Vector3 toJunction = junctionPoint - edgeMid;
+                float branchDist = toJunction.magnitude;
+                float bankOffset = 0.16f;
+                Vector3 branchEnd = (branchDist > bankOffset + 0.05f)
+                    ? edgeMid + toJunction.normalized * (branchDist - bankOffset)
+                    : junctionPoint;
+
                 bool isBranchInflow = false;
                 if (RiverNetworkManager.Instance != null)
                 {
@@ -484,13 +543,50 @@ public class RiverTileSegment : MonoBehaviour
 
                 if (isBranchInflow)
                 {
-                    SpawnTrenchLine(edgeMid, centerJunction, _trenchContainer, config, baseWorldPos);
+                    SpawnTrenchLine(edgeMid, branchEnd, _trenchContainer, config, baseWorldPos);
                 }
                 else
                 {
-                    SpawnTrenchLine(centerJunction, edgeMid, _trenchContainer, config, baseWorldPos);
+                    SpawnTrenchLine(branchEnd, edgeMid, _trenchContainer, config, baseWorldPos);
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Luôn đảm bảo inPort là cổng thượng nguồn (nhận nước từ ô có flowStep nhỏ hơn hoặc tầng cao hơn)
+    /// và outPort là cổng hạ lưu thoát nước.
+    /// </summary>
+    private void EnsureUpstreamDownstreamOrder(ref int inPort, ref int outPort, HexWorldGenerator worldGen)
+    {
+        if (RiverNetworkManager.Instance == null) return;
+        if (worldGen == null) worldGen = FindAnyObjectByType<HexWorldGenerator>();
+
+        var nIn = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(inPort));
+        var nOut = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(outPort));
+
+        float yIn = (nIn != null && worldGen != null && worldGen.MapTiles != null && worldGen.MapTiles.TryGetValue(nIn.placedHex, out var tIn) && tIn != null)
+            ? HexBiomeClusterConnector.GetTileHeightLevels(tIn).topY : float.MinValue;
+        float yOut = (nOut != null && worldGen != null && worldGen.MapTiles != null && worldGen.MapTiles.TryGetValue(nOut.placedHex, out var tOut) && tOut != null)
+            ? HexBiomeClusterConnector.GetTileHeightLevels(tOut).topY : float.MinValue;
+
+        bool shouldSwap = false;
+        // Nếu cổng out nằm ở tầng cao hơn cổng in (nước chảy ngược dốc):
+        if (yOut > yIn + 0.35f)
+        {
+            shouldSwap = true;
+        }
+        // Nếu cùng tầng cao, cổng nào có flowStep nhỏ hơn (gần nguồn hơn) là cổng in:
+        else if (Mathf.Abs(yOut - yIn) <= 0.35f && nIn != null && nOut != null && nOut.flowStep < nIn.flowStep)
+        {
+            shouldSwap = true;
+        }
+
+        if (shouldSwap)
+        {
+            int temp = inPort;
+            inPort = outPort;
+            outPort = temp;
         }
     }
 
@@ -593,8 +689,6 @@ public class RiverTileSegment : MonoBehaviour
 
             Vector3 worldPos = baseWorldPos + posLocal;
             // Bù độ cao gò đất ở tâm ô hex:
-            // Mép ngoài (r ~ InnerRadius): mặt đất ở baseWorldPos.y -> bù 0 để khớp mép phẳng và đỉnh thác
-            // Tâm ô (r ~ 0): gò đất lồi cao hơn mép viền +0.10m -> nâng mương lên để không bị đất cỏ nuốt chìm
             float distFromCenter = new Vector2(posLocal.x, posLocal.z).magnitude;
             float domeLift = Mathf.Clamp01(1f - (distFromCenter / HexMetrics.InnerRadius)) * 0.08f;
             worldPos.y = baseWorldPos.y + yOffset + domeLift;
@@ -669,6 +763,11 @@ public class RiverTileSegment : MonoBehaviour
         {
             if (kvp.Value != null) Destroy(kvp.Value);
         }
+        foreach (var kvp in _upperWaterfallInstances)
+        {
+            if (kvp.Value != null) Destroy(kvp.Value);
+        }
+        _upperWaterfallInstances.Clear();
         _waterfallInstances.Clear();
         _doubleTierWaterfalls.Clear();
     }
@@ -682,5 +781,43 @@ public class RiverTileSegment : MonoBehaviour
         return _doubleTierWaterfalls.Contains(dir) 
             ? config.doubleWaterfallInwardOffset 
             : config.waterfallInwardOffset;
+    }
+
+    /// <summary>
+    /// TÃ¬m Ä‘iá»ƒm trÃªn Ä‘Æ°á»ng cong dÃ²ng suá»‘i gáº§n nháº¥t vá»›i Ä‘iá»ƒm cho trÆ°á»›c (dÃ¹ng tÃ­nh Ä‘iá»ƒm hÃ²a dÃ²ng)
+    /// </summary>
+    private static Vector3 GetClosestPointOnPath(List<RiverWaypoint> path, Vector3 point)
+    {
+        if (path == null || path.Count == 0) return Vector3.zero;
+        if (path.Count == 1) return path[0].position;
+
+        Vector3 closest = path[0].position;
+        float minDistSq = float.MaxValue;
+
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            Vector3 segA = path[i].position;
+            Vector3 segB = path[i + 1].position;
+            Vector3 p = ProjectPointOnSegment(point, segA, segB);
+            float dSq = (point - p).sqrMagnitude;
+            if (dSq < minDistSq)
+            {
+                minDistSq = dSq;
+                closest = p;
+            }
+        }
+        return closest;
+    }
+
+    /// <summary>
+    /// HÃ¬nh chiáº¿u vuÃ´ng gÃ³c cá»§a má»™t Ä‘iá»ƒm lÃªn má»™t Ä‘oáº¡n tháº³ng trong khÃ´ng gian XZ
+    /// </summary>
+    private static Vector3 ProjectPointOnSegment(Vector3 p, Vector3 a, Vector3 b)
+    {
+        Vector3 ab = b - a;
+        float abSqr = ab.sqrMagnitude;
+        if (abSqr < 0.0001f) return a;
+        float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / abSqr);
+        return a + ab * t;
     }
 }

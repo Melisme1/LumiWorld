@@ -26,17 +26,18 @@ MonoBehaviour:
   springHeadRotationOffset: 180
   pondBasinRotationOffset: -103.5
   waterfallRotationOffset: 0
+  waterfallOffset: {x: 0, y: 0.427, z: 0.15}
+  upperWaterfallPosition: {x: 0, y: 0.8, z: -0.15}
+  upperWaterfallRotation: {x: -25, y: 0, z: 0}
+  upperWaterfallScale: {x: 1, y: 1, z: 1}
+  doubleWaterfallHeightThreshold: 1.2
+  waterfallInwardOffset: 0.04
+  waterfallBottomOffset: 0.38
+  doubleWaterfallInwardOffset: 0.04
   springHeadOffset: {x: 0, y: 0.1, z: 0}
   pondOffset: {x: 0, y: 0.07, z: 0.17}
   pondTextureOffset: {x: 0, y: 0}
   straightYOffset: 0.056
-  waterfallOffset: {x: 0, y: 0.427, z: 0.15}
-  waterfallInwardOffset: 0.04
-  doubleWaterfallHeightThreshold: 1.2
-  upperWaterfallPosition: {x: 0, y: 0.186, z: -0.668}
-  upperWaterfallRotation: {x: -29.556, y: 0, z: 0}
-  upperWaterfallScale: {x: 1, y: 1, z: 1}
-  doubleWaterfallInwardOffset: 0.04
   springHeadMouthDistance: 0.2
   pondInletDistance: 0.48
   globalRotationOffset: 0

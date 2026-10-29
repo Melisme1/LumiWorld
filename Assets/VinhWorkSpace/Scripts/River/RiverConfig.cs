@@ -95,46 +95,69 @@ public class RiverConfig : ScriptableObject
         }
     }
 
-    [Header("Piece Position Offsets (Vị trí bù X, Y, Z cho từng mô hình)")]
+    // =========================================================================
+    // TRUNG TÂM CẤU HÌNH BÙ TRỪ TỌA ĐỘ VÀ GÓC XOAY (ALL OFFSET SETTINGS)
+    // Toàn bộ các thông số bù trừ vị trí của hệ thống sông suối được tập trung tại đây.
+    // =========================================================================
+
+    [Header("1. Waterfall Offsets (Thác Nước Tầng Dưới & Tầng Trên)")]
+    [Tooltip("Độ bù vị trí (X, Y, Z) cho Thác nước chân vách (Máng 1):\n" +
+             "• X: Dịch ngang trái/phải vuông góc dòng chảy\n" +
+             "• Y: Cao độ đặt máng thác so với nền tầng dưới (mặc định ~0.427m)\n" +
+             "• Z: Đẩy tiến/lùi theo hướng dòng chảy (Z > 0: đẩy ra xa vách núi). Mặc định 0.15m.")]
+    public Vector3 waterfallOffset = new Vector3(0f, 0.427f, 0.15f);
+
+    [Tooltip("Vị trí thế giới bù trừ (X, Y, Z) của máng thác thứ 2 (tầng trên) so với máng thác thứ 1:\n" +
+             "• X = 0 (giữa lòng thác)\n" +
+             "• Y = 0.8m (nâng đúng 1 tầng địa hình)\n" +
+             "• Z = -0.16m (lùi áp sát vách đá tầng trên)")]
+    public Vector3 upperWaterfallPosition = new Vector3(0f, 0.8f, -0.16f);
+
+    [Tooltip("Góc xoay bù trừ Euler (X, Y, Z) của máng thác thứ 2 (tầng trên):\n" +
+             "Mặc định: (-36.5, 0, 0) ngả ngang thoải theo độ dốc vách đá.")]
+    public Vector3 upperWaterfallRotation = new Vector3(-36.5f, 0f, 0f);
+
+    [Tooltip("Tỉ lệ co giãn cục bộ Local Scale của máng thác thứ 2 (tầng trên). Mặc định (1, 1, 1).")]
+    public Vector3 upperWaterfallScale = Vector3.one;
+
+    [Tooltip("Ngưỡng chênh lệch cao độ (m) để kích hoạt thác 2 tầng (mặc định 1.2m: chênh 1 tầng ~0.8m, chênh 2 tầng Cao -> Thấp ~1.6m).")]
+    public float doubleWaterfallHeightThreshold = 1.2f;
+
+    [Header("2. Trench Connection Insets (Thụt Lùi Mép Mương Khe Vách)")]
+    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác thường (~0.04m).")]
+    public float waterfallInwardOffset = 0.04f;
+
+    [Tooltip("Độ thụt lùi của mương suối tại chân thác nước ở tầng dưới (~0.38m) để mương xuất phát ngay chân máng.")]
+    public float waterfallBottomOffset = 0.38f;
+
+    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác 2 tầng (~0.04m).")]
+    public float doubleWaterfallInwardOffset = 0.04f;
+
+    [Header("3. Ground Pieces Offsets (Hồ Đọng, Đầu Nguồn, Mương Nông)")]
     [Tooltip("Vị trí bù (X, Y, Z) cho Thượng Nguồn Grotto. (Y là độ nâng tránh chìm đất, mặc định ~0.194m).")]
     public Vector3 springHeadOffset = new Vector3(0f, 0.194f, 0f);
 
     [Tooltip("Vị trí bù (X, Y, Z) cho Hồ đọng cuối nguồn Pond Basin (Mặc định X=0, Y=0.07, Z=0.17).")]
     public Vector3 pondOffset = new Vector3(0f, 0.07f, 0.17f);
 
-    [Tooltip("Độ bù UV Texture (X, Y) cho mặt nước hồ Pond Basin (hoàn toàn độc lập, không ảnh hưởng vị trí hồ hay dòng chảy suối).")]
+    [Tooltip("Độ bù UV Texture (X, Y) cho mặt nước hồ Pond Basin.")]
     public Vector2 pondTextureOffset = Vector2.zero;
 
     [Tooltip("Độ nâng trục Y cho mương suối thẳng / cua (mặc định ~0.056m)")]
     public float straightYOffset = 0.056f;
 
-    [Header("1. Single-Tier Waterfall (Thác thường 1 tầng)")]
-    [Tooltip("Độ bù vị trí (X, Y, Z) cho Thác nước thường:\n" +
-             "• X: Dịch ngang trái/phải vuông góc dòng chảy\n" +
-             "• Y: Cao độ đặt máng thác so với nền tầng dưới (mặc định ~0.427m)\n" +
-             "• Z: Đẩy tiến/lùi theo hướng dòng chảy (Z > 0: đẩy ra xa vách núi). Mặc định 0.15m.")]
-    public Vector3 waterfallOffset = new Vector3(0f, 0.427f, 0.15f);
-
-    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác thường (~0.04m) để mương vươn sát mép vách dốc mà không thò lơ lửng.")]
-    public float waterfallInwardOffset = 0.04f;
-
-    [Header("2. Double-Tier Waterfall (Thác vượt 2 tầng Cao -> Thấp)")]
-    [Tooltip("Ngưỡng chênh lệch cao độ (m) để kích hoạt thác 2 tầng (mặc định 1.2m: chênh 1 tầng ~0.8m, chênh 2 tầng Cao -> Thấp ~1.6m).")]
-    public float doubleWaterfallHeightThreshold = 1.2f;
-
-    [Tooltip("Vị trí cục bộ Local Position (X, Y, Z) của máng thác thứ 2 (tầng trên) so với máng thác thứ 1.\n" +
-             "Mặc định theo thông số kiểm nghiệm: X = 0, Y = 0.186, Z = -0.668.")]
-    public Vector3 upperWaterfallPosition = new Vector3(0f, 0.186f, -0.668f);
-
-    [Tooltip("Góc xoay cục bộ Local Rotation Euler (X, Y, Z) của máng thác thứ 2 (tầng trên).\n" +
-             "Mặc định theo thông số kiểm nghiệm: X = -29.556, Y = 0, Z = 0.")]
-    public Vector3 upperWaterfallRotation = new Vector3(-29.556f, 0f, 0f);
-
-    [Tooltip("Tỉ lệ co giãn cục bộ Local Scale của máng thác thứ 2 (tầng trên). Mặc định (1, 1, 1).")]
-    public Vector3 upperWaterfallScale = Vector3.one;
-
-    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác 2 tầng (~0.04m - 0.08m). Mặc định 0.04m.")]
-    public float doubleWaterfallInwardOffset = 0.04f;
+    /// <summary>
+    /// Lấy toàn bộ bộ thông số bù trừ vị trí và góc xoay thác nước tại 1 hàm duy nhất
+    /// </summary>
+    public void GetWaterfallTransformOffsets(
+        out Vector3 lowerOffset, out float lowerRotOffset,
+        out Vector3 upperOffset, out Vector3 upperRotEuler)
+    {
+        lowerOffset = waterfallOffset;
+        lowerRotOffset = waterfallRotationOffset + globalRotationOffset;
+        upperOffset = upperWaterfallPosition;
+        upperRotEuler = upperWaterfallRotation;
+    }
 
     /// <summary>
     /// Kiểm tra xem độ chênh cao giữa 2 ô có phải là vượt tầng (Cao -> Thấp) hay không

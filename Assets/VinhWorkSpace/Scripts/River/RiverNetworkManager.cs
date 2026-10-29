@@ -43,6 +43,7 @@ public class RiverNetworkManager : MonoBehaviour
 
     // Quáº£n lÃ½ cÃ¡c tuyáº¿n sÃ´ng liÃªn tá»¥c tá»« nguá»“n báº±ng Unity Splines
     private readonly Dictionary<HexCoordinates, GameObject> _continuousRiverObjects = new Dictionary<HexCoordinates, GameObject>();
+    private int _placementCounter = 0;
 
     public IReadOnlyDictionary<HexCoordinates, RiverTileSegment> RiverMap => _riverMap;
     public IReadOnlyDictionary<HexCoordinates, GameObject> ContinuousRiverObjects => _continuousRiverObjects;
@@ -162,12 +163,19 @@ public class RiverNetworkManager : MonoBehaviour
                     continue; // Ô láng giềng thấp hơn không thể cấp nước leo dốc lên ô cao mới đặt!
                 }
 
+                // Không nhận flowStep từ ô láng giềng nếu vi phạm luật nối suối/thác
+                if (!ShouldConnectRivers(coords, segment, neighbor, nSeg, worldGen))
+                {
+                    continue;
+                }
+
                 if (nSeg.flowStep < minStep) minStep = nSeg.flowStep;
             }
         }
         bool isNewOrigin = (minStep == int.MaxValue) && (surfaceY >= 1.35f);
         segment.isOrigin = isNewOrigin;
         segment.flowStep = isNewOrigin ? 0 : (minStep + 1);
+        segment.placementOrder = ++_placementCounter;
         _riverMap[coords] = segment;
 
         // 3. Gáº¯n PlacedCard Ä‘á»ƒ há»‡ thá»‘ng Save/Load vÃ  Ä‘iá»ƒm sá»‘ nháº­n diá»‡n
@@ -254,11 +262,11 @@ public class RiverNetworkManager : MonoBehaviour
                         {
                             if (nTopY > hexSurfaceY)
                             {
-                                upstreamDir = d; // Nước từ ô cao hơn đổ xuống ô này
+                                if (upstreamDir < 0 || d == seg.primaryPortA) upstreamDir = d; // Nước từ ô cao hơn đổ xuống ô này
                             }
                             else
                             {
-                                outflowDir = d;  // Nước từ ô này đổ xuống ô thấp hơn
+                                if (outflowDir < 0 || d == seg.primaryPortB) outflowDir = d;  // Nước từ ô này đổ xuống ô thấp hơn
                             }
                         }
                         else
@@ -266,11 +274,33 @@ public class RiverNetworkManager : MonoBehaviour
                             // Cùng độ cao bằng phẳng: So sánh theo bước dòng chảy flowStep
                             if (nSeg.flowStep < seg.flowStep)
                             {
-                                upstreamDir = d;
+                                if (upstreamDir < 0 || d == seg.primaryPortA)
+                                {
+                                    upstreamDir = d;
+                                }
+                                else if (upstreamDir != seg.primaryPortA)
+                                {
+                                    var curSeg = _riverMap.TryGetValue(hex.GetNeighbor(upstreamDir), out var curUp) ? curUp : null;
+                                    if (curSeg != null && nSeg.placementOrder < curSeg.placementOrder)
+                                    {
+                                        upstreamDir = d;
+                                    }
+                                }
                             }
                             else if (nSeg.flowStep > seg.flowStep)
                             {
-                                outflowDir = d;
+                                if (outflowDir < 0 || d == seg.primaryPortB)
+                                {
+                                    outflowDir = d;
+                                }
+                                else if (outflowDir != seg.primaryPortB)
+                                {
+                                    var curSeg = _riverMap.TryGetValue(hex.GetNeighbor(outflowDir), out var curOut) ? curOut : null;
+                                    if (curSeg != null && nSeg.placementOrder < curSeg.placementOrder)
+                                    {
+                                        outflowDir = d;
+                                    }
+                                }
                             }
                         }
                     }
@@ -317,7 +347,7 @@ public class RiverNetworkManager : MonoBehaviour
                     }
                 }
 
-                RiverTileSolution solution = RiverAutoTileSolver.Solve(connectedDirs, isOrigin, downhillDir, isLowTierTerminal, upstreamDir, outflowDir);
+                RiverTileSolution solution = RiverAutoTileSolver.Solve(connectedDirs, isOrigin, downhillDir, isLowTierTerminal, upstreamDir, outflowDir, seg.primaryPortA, seg.primaryPortB);
 
                 Debug.Log($"<color=#38BDF8>[RiverAutoTile]</color> Hex {hex} (isOrigin={isOrigin}, conns={solution.connectionCount}) -> Piece: <b>{solution.pieceType}</b>, RotY: <b>{solution.rotationY:F1}°</b>");
 
@@ -362,6 +392,7 @@ public class RiverNetworkManager : MonoBehaviour
         segment.placedHex = coords;
         segment.flowStep = savedFlowStep;
         segment.isOrigin = savedIsOrigin;
+        segment.placementOrder = ++_placementCounter;
         _riverMap[coords] = segment;
 
         PlacedCard placedCard = riverObj.AddComponent<PlacedCard>();
@@ -373,6 +404,7 @@ public class RiverNetworkManager : MonoBehaviour
     /// <summary>
     /// Chọn lại hình và góc xoay cho mọi ô sông, mỗi ô một lần, đi từ đầu nguồn xuống (flowStep tăng dần).
     /// </summary>
+    [ContextMenu("Refresh All Rivers")]
     public void RefreshAllRivers()
     {
         List<RiverTileSegment> segments = new List<RiverTileSegment>();
@@ -449,6 +481,11 @@ public class RiverNetworkManager : MonoBehaviour
                     float yC = GetTileTopY(hC, worldGen);
                     if (Mathf.Abs(yC - lowerY) <= 0.35f)
                     {
+                        // Báº¢O Vá»† Lá»ŠCH Sá»¬ Äáº¶T Ã”: Ã” Ä‘áº·t trÆ°á»›c (placementOrder nhá» hÆ¡n) LUÃ”N GIá»® NGUYÃŠN THÃC!
+                        // Ã” má»›i Ä‘áº·t sau tuyá»‡t Ä‘á»‘i khÃ´ng Ä‘Æ°á»£c cÆ°á»›p thÃ¡c cá»§a Ã´ Ä‘Ã£ tá»“n táº¡i!
+                        if (segC.placementOrder < lowerSeg.placementOrder) return false;
+                        if (segC.placementOrder > lowerSeg.placementOrder) continue;
+
                         int rankLower = lowerSeg.isOrigin ? -1 : lowerSeg.flowStep;
                         int rankC = segC.isOrigin ? -1 : segC.flowStep;
 
@@ -459,6 +496,8 @@ public class RiverNetworkManager : MonoBehaviour
                         else if (rankC == rankLower)
                         {
                             // HÃ²a Ä‘iá»ƒm: DÃ¹ng tá»a Ä‘á»™ phÃ¡ vá»¡ tháº¿ hÃ²a Ä‘á»ƒ chá»‰ duy nháº¥t 1 Ã´ nháº­n thÃ¡c
+                            if (segC.placementOrder < lowerSeg.placementOrder) return false;
+                            if (segC.placementOrder > lowerSeg.placementOrder) continue;
                             long idLower = ((long)lowerHex.Q << 32) ^ (long)lowerHex.R;
                             long idC = ((long)hC.Q << 32) ^ (long)hC.R;
                             if (idC < idLower)
@@ -512,6 +551,15 @@ public class RiverNetworkManager : MonoBehaviour
                     int rB = segB.isOrigin ? -1 : segB.flowStep;
                     int rC = segC.isOrigin ? -1 : segC.flowStep;
 
+                    if (!segA.isOrigin && segA.flowStep == 0 && segA.placementOrder > segC.placementOrder)
+                    {
+                        rA = segC.flowStep + 1;
+                    }
+                    if (!segB.isOrigin && segB.flowStep == 0 && segB.placementOrder > segC.placementOrder)
+                    {
+                        rB = segC.flowStep + 1;
+                    }
+
                     int minR = Mathf.Min(rA, Mathf.Min(rB, rC));
                     int maxR = Mathf.Max(rA, Mathf.Max(rB, rC));
 
@@ -535,6 +583,7 @@ public class RiverNetworkManager : MonoBehaviour
         float myY = GetTileTopY(hex, worldGen);
         HexCoordinates bestFeeder = hex;
         int bestRank = int.MaxValue;
+        int bestOrder = int.MaxValue;
 
         for (int d = 0; d < 6; d++)
         {
@@ -546,9 +595,9 @@ public class RiverNetworkManager : MonoBehaviour
                 {
                     // isOrigin ưu tiên cao nhất (-1), sau đó đến flowStep nhỏ nhất
                     int rank = nSeg.isOrigin ? -1 : nSeg.flowStep;
-                    if (rank < bestRank)
+                    if (rank < bestRank || (rank == bestRank && nSeg.placementOrder < bestOrder))
                     {
-                        bestRank = rank;
+                        bestRank = rank; bestOrder = nSeg.placementOrder;
                         bestFeeder = nHex;
                     }
                 }

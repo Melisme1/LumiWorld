@@ -44,13 +44,17 @@ public static class RiverAutoTileSolver
     /// <param name="downhillDir">Hướng nghiêng dốc xuống về thung lũng (khi chưa có nhánh kết nối)</param>
     /// <param name="isLowTierTerminal">Ô này có phải tầng thấp nhất (Tier 0) cuối dòng suối để đọng thành hồ không</param>
     /// <param name="upstreamDir">Hướng kề bên (0..5) dẫn về ô thượng nguồn (flowStep nhỏ hơn), giúp suối thẳng luôn quay đúng chiều dòng chảy</param>
+    /// <param name="existingPortA">Cổng dòng chính A đã thiết lập trước đó (nếu có, để bảo toàn dòng chính khi phân nhánh)</param>
+    /// <param name="existingPortB">Cổng dòng chính B đã thiết lập trước đó (nếu có, để bảo toàn dòng chính khi phân nhánh)</param>
     public static RiverTileSolution Solve(
         List<int> connectedDirections, 
         bool isOrigin = false, 
         int downhillDir = 0, 
         bool isLowTierTerminal = false,
         int upstreamDir = -1,
-        int outflowDir = -1)
+        int outflowDir = -1,
+        int existingPortA = -1,
+        int existingPortB = -1)
     {
         RiverTileSolution solution = new RiverTileSolution
         {
@@ -152,14 +156,46 @@ public static class RiverAutoTileSolver
 
             if (solution.connectionCount == 2)
             {
-                pA = connectedDirections[0];
-                pB = connectedDirections[1];
+                // Ưu tiên bảo tồn cổng chính đã có trước đó:
+                if (existingPortA >= 0 && existingPortB >= 0 &&
+                    connectedDirections.Contains(existingPortA) && connectedDirections.Contains(existingPortB))
+                {
+                    pA = existingPortA;
+                    pB = existingPortB;
+                }
+                // Đảm bảo pA là cổng thượng nguồn (upstream / inlet) và pB là cổng hạ lưu (outflow)
+                else if (upstreamDir >= 0 && connectedDirections.Contains(upstreamDir))
+                {
+                    pA = upstreamDir;
+                    pB = (connectedDirections[0] == upstreamDir) ? connectedDirections[1] : connectedDirections[0];
+                }
+                else if (outflowDir >= 0 && connectedDirections.Contains(outflowDir))
+                {
+                    pB = outflowDir;
+                    pA = (connectedDirections[0] == outflowDir) ? connectedDirections[1] : connectedDirections[0];
+                }
+                else
+                {
+                    pA = connectedDirections[0];
+                    pB = connectedDirections[1];
+                }
             }
             else
             {
                 // Chọn 2 cổng tạo nên DÒNG CHÍNH (Main Trunk):
+                // ƯU TIÊN 0: BẢO TOÀN DÒNG CHÍNH ĐÃ CÓ (Preserve Existing Main River)
+                // Khi người chơi muốn tạo nhánh rẽ từ một dòng suối đã tồn tại,
+                // dòng chính cũ (existingPortA -> existingPortB) luôn được giữ nguyên 100%.
+                // Cổng mới thêm vào sẽ tự động là NHÁNH PHỤ (Tributary Branch),
+                // không bao giờ bẻ dòng chính sang ô mới rồi biến ô cũ thành nhánh!
+                if (existingPortA >= 0 && existingPortB >= 0 &&
+                    connectedDirections.Contains(existingPortA) && connectedDirections.Contains(existingPortB))
+                {
+                    pA = existingPortA;
+                    pB = existingPortB;
+                }
                 // Ưu tiên 1: Cặp upstreamDir và outflowDir nếu cả 2 đều thuộc connectedDirections
-                if (upstreamDir >= 0 && outflowDir >= 0 &&
+                else if (upstreamDir >= 0 && outflowDir >= 0 &&
                     connectedDirections.Contains(upstreamDir) && connectedDirections.Contains(outflowDir))
                 {
                     pA = upstreamDir;
