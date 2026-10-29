@@ -162,6 +162,7 @@ public class EconomySaveSystem : MonoBehaviour
 
         // Phần đã cộng vào ví hoặc kho. Nếu không ghi được file thì hoàn tác để lần sau áp lại đúng một lần
         Action undo = null;
+        string appliedObstacleNotice = null;
 
         switch (kind)
         {
@@ -230,6 +231,13 @@ public class EconomySaveSystem : MonoBehaviour
                 {
                     return false;
                 }
+
+                string obstacleName = System.Enum.TryParse(obstacle.kind, true, out LumiWorld.Acs.DisasterKind obstacleKind) &&
+                                      System.Enum.IsDefined(typeof(LumiWorld.Acs.DisasterKind), obstacleKind)
+                    ? LumiWorld.Acs.DisasterCatalog.DisplayName(obstacleKind)
+                    : obstacle.kind;
+                string senderName = string.IsNullOrWhiteSpace(obstacle.senderName) ? "Another player" : obstacle.senderName;
+                appliedObstacleNotice = $"{senderName} sent {obstacleName} to your island at [{obstacle.q}:{obstacle.r}].";
                 break;
             }
 
@@ -242,7 +250,15 @@ public class EconomySaveSystem : MonoBehaviour
         data.appliedInboxIds.Add(itemId);
         MarkDirty();
 
-        if (SaveNow()) return true;
+        if (SaveNow())
+        {
+            if (!string.IsNullOrEmpty(appliedObstacleNotice))
+            {
+                Debug.Log($"[LumiWorld Inbox] {appliedObstacleNotice}");
+                GameDialogUI.ShowNotice(appliedObstacleNotice, title: "OBSTACLE APPLIED");
+            }
+            return true;
+        }
 
         // Không ghi được thì bỏ id và hoàn tác, để lần sau áp lại đúng một lần
         data.appliedInboxIds.Remove(itemId);

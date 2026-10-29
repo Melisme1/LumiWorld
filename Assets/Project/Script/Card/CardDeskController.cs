@@ -69,6 +69,23 @@ public class CardDeskController : MonoBehaviour
     private bool handLoaded;
     private readonly List<CardData> earlyRewards = new();
 
+    /// <summary>References used by visit-only temporary cards. These cards never enter the saved hand.</summary>
+    public GameObject HandCardPrefab => cardPrefab;
+    public RectTransform HandCardContainer => cardContainer as RectTransform;
+
+    public Vector2[] CalculateHandLayout(int cardCount, out float scale)
+    {
+        scale = CalculateCardScale(cardCount);
+        var positions = new Vector2[Mathf.Max(0, cardCount)];
+        if (cardCount <= 0) return positions;
+
+        float spacing = CalculateSpacing(cardCount, scale);
+        float totalWidth = (cardCount - 1) * spacing;
+        for (int i = 0; i < cardCount; i++)
+            positions[i] = new Vector2(i * spacing - totalWidth / 2f, 0f);
+        return positions;
+    }
+
     /// <summary>
     /// Bỏ qua hiệu ứng nhận card khi spawn hand ban đầu (lúc đó cả bàn tay
     /// xuất hiện cùng lúc nên highlight/tia sáng/banner cho từng lá sẽ rất rối).

@@ -17,7 +17,9 @@ public enum CoinReason
     DevCheat,
     MarketPurchase,
     MarketSale,
-    MarketRefund
+    MarketRefund,
+    ObstacleSend,
+    ObstacleRefund
 }
 
 /// <summary>
@@ -132,7 +134,8 @@ public class CurrencyWallet : MonoBehaviour
     private static bool IsBlockedByVisit(CoinReason reason)
     {
         if (!WorldLaunch.IsVisit) return false;
-        return reason != CoinReason.MarketPurchase && reason != CoinReason.MarketSale && reason != CoinReason.MarketRefund;
+        return reason != CoinReason.MarketPurchase && reason != CoinReason.MarketSale && reason != CoinReason.MarketRefund &&
+               reason != CoinReason.ObstacleSend && reason != CoinReason.ObstacleRefund;
     }
 
     public void Add(int amount, CoinReason reason)

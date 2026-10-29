@@ -42,6 +42,9 @@ public class ObstacleInboxPayload
     public int q;
     public int r;
     public double durationSeconds;
+    public string senderName;
+    public string senderId;
+    public int feeCoins;
 }
 
 /// <summary>
@@ -52,8 +55,7 @@ public class GameConfigDto
 {
     public int syncInboxSeconds;
 
-    public ObstacleConfigDto obstacle;
-    // Flat fallback for server versions that expose obstacleFeeCoins directly.
+    public string[] obstacleAllowedKinds;
     public int obstacleFeeCoins;
 
     // Chợ (xem MarketSync). Server trả đủ; client dùng để kiểm tra giá trước khi gửi.
@@ -62,10 +64,4 @@ public class GameConfigDto
     public int marketListingHours;
     public float marketMinPriceFactor;
     public float marketMaxPriceFactor;
-}
-
-[Serializable]
-public class ObstacleConfigDto
-{
-    public int feeCoins = 20;
 }
