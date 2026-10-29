@@ -403,7 +403,88 @@ public class CardDeskController : MonoBehaviour
         saved.starterHandGranted = true;
 
         EconomySaveSystem.Instance.MarkDirty();
-        EconomySaveSystem.Instance.SaveNow();
+        if (!deferHandFileWrite) EconomySaveSystem.Instance.SaveNow();
+    }
+
+    // =========================================
+    // THẺ RỜI TAY / VỀ TAY QUA CHỢ
+    // =========================================
+
+    // true: SaveHand chỉ chép tay bài vào bản lưu, người gọi ghi file một lần cùng thao tác chợ hoặc mục hộp thư
+    private bool deferHandFileWrite;
+
+    /// <summary>Tay bài đã nạp từ save và đang ở đảo của mình: chỉ lúc này mới được cộng hoặc trừ thẻ.</summary>
+    public bool HandReady => handLoaded && !WorldLaunch.IsVisit;
+
+    public int GetHeldCount(string cardId) => handCounts.TryGetValue(cardId, out int held) ? held : 0;
+
+    /// <summary>Các loại thẻ đang có trên tay (đã hiện) cùng số lá.</summary>
+    public List<KeyValuePair<CardData, int>> GetHeldCards()
+    {
+        var result = new List<KeyValuePair<CardData, int>>();
+        foreach (KeyValuePair<string, GameObject> pair in slotByCardID)
+        {
+            CardUI ui = pair.Value != null ? pair.Value.GetComponent<CardUI>() : null;
+            int held = GetHeldCount(pair.Key);
+            if (ui != null && ui.CardData != null && held > 0) result.Add(new KeyValuePair<CardData, int>(ui.CardData, held));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Bỏ count lá khỏi tay và chép vào bản lưu nhưng KHÔNG ghi file: người gọi ghi cùng thao tác chợ.
+    /// Trả false khi tay chưa sẵn sàng hoặc không đủ lá.
+    /// </summary>
+    public bool TakeCardsWithoutSaving(string cardId, int count)
+    {
+        if (!HandReady || count <= 0 || GetHeldCount(cardId) < count) return false;
+
+        int left = GetHeldCount(cardId) - count;
+        if (left > 0) handCounts[cardId] = left;
+        else handCounts.Remove(cardId);
+
+        deferHandFileWrite = true;
+        try { SaveHand(); }
+        finally { deferHandFileWrite = false; }
+
+        if (slotByCardID.TryGetValue(cardId, out GameObject slot) && slot != null)
+        {
+            if (left > 0)
+            {
+                CardUI ui = slot.GetComponent<CardUI>();
+                if (ui != null) ui.SetCount(left);
+            }
+            else
+            {
+                slotByCardID.Remove(cardId);
+                cards.Remove(slot);
+                Destroy(slot);
+                RearrangeCards();
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Cộng count lá về tay, không hiệu ứng nhận thưởng, chép vào bản lưu nhưng KHÔNG ghi file.
+    /// Gọi khi HandReady; người gọi tự ghi file.
+    /// </summary>
+    public void AddCardsWithoutSaving(CardData cardData, int count)
+    {
+        if (!HandReady || cardData == null || count <= 0) return;
+
+        bool wasSuppressed = suppressRewardFeedback;
+        suppressRewardFeedback = true;
+        deferHandFileWrite = true;
+        try
+        {
+            for (int i = 0; i < count; i++) AddRewardCard(cardData);
+        }
+        finally
+        {
+            deferHandFileWrite = false;
+            suppressRewardFeedback = wasSuppressed;
+        }
     }
 
     private void GrantEarlyRewards()

@@ -16,6 +16,8 @@ public class CardCatalog : ScriptableObject
         byId = null;
     }
 
+    public IReadOnlyList<CardData> All => cards;
+
     public CardData Find(string cardId)
     {
         if (string.IsNullOrEmpty(cardId)) return null;

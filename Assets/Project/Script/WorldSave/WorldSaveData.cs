@@ -201,4 +201,6 @@ public class PlacementRecord
     public int animalTrait;
     public string connectionCooldownEndUtc; // ISO 8601 UTC lúc thú hết hồi combo; trống = không hồi
     public float connectionCooldownSeconds; // số giây còn lại lúc lưu, dùng khi đồng hồ máy bị lùi
+    public int riverFlowStep = -1;   // chỉ thẻ sông: bước dòng chảy lúc lưu; -1 = không phải sông hoặc bản lưu cũ, tính lại khi nạp
+    public bool riverIsOrigin;       // chỉ thẻ sông: ô đầu nguồn
 }
