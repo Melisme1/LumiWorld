@@ -48,6 +48,7 @@ public class DisasterSaveData
     public bool saved;
     public int instanceCounter;
     public double nextSpawnInSeconds = -1;   // -1: chưa có lịch
+    public List<string> appliedInboxObstacleIds = new List<string>();
     public List<DisasterTileRecord> tiles = new List<DisasterTileRecord>();
     public List<DisasterRecord> active = new List<DisasterRecord>();
 }

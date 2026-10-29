@@ -91,6 +91,21 @@ public class WorldVisitResponse
     public WorldSnapshot snapshot;
 }
 
+[Serializable]
+public class ObstacleSendRequest
+{
+    public string kind;
+    public int q;
+    public int r;
+}
+
+[Serializable]
+public class ObstacleSendResponse
+{
+    public string obstacleId;
+    public int feeCoins;
+}
+
 /// <summary>Một đảo trên bản đồ thế giới, ô [x:y] cố định (toạ độ bắt đầu từ 1).</summary>
 [Serializable]
 public class WorldMapIsland

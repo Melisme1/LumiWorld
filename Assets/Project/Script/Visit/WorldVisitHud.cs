@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -33,7 +34,16 @@ public class WorldVisitHud : MonoBehaviour
     private Vector2 fittedCanvasSize;
 
     private TextMeshProUGUI statusText;
+    private TextMeshProUGUI visitStatusText;
+    private TextMeshProUGUI obstacleButtonLabel;
+    private Button obstacleButton;
     private ListingsWindow listings;
+    private HexWorldGenerator visitedWorld;
+    private int obstacleFeeCoins = 20;
+    private bool selectingObstacleTarget;
+    private bool sendingObstacle;
+    private ObstacleSendRequest pendingObstacle;
+    private string pendingObstacleKey;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void InstallAutoSpawn()
@@ -72,6 +82,40 @@ public class WorldVisitHud : MonoBehaviour
         FitToCanvas();
     }
 
+    private void Start()
+    {
+        if (VisitSession.Active) StartCoroutine(LoadObstacleFee());
+    }
+
+    private void Update()
+    {
+        if (!VisitSession.Active || !selectingObstacleTarget || sendingObstacle) return;
+
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            selectingObstacleTarget = false;
+            SetObstacleButtonLabel($"Use Obstacle · {obstacleFeeCoins} Coins");
+            SetVisitStatus("Obstacle targeting cancelled.");
+            return;
+        }
+
+        Pointer pointer = Pointer.current;
+        if (pointer == null || !pointer.press.wasPressedThisFrame) return;
+        Vector2 screenPosition = pointer.position.ReadValue();
+        if (EconomyHUD.IsWindowOpen || EconomyHUD.IsPointerOverInteractiveUI(screenPosition)) return;
+
+        if (!TryGetTargetTile(screenPosition, out HexCoordinates target))
+        {
+            SetVisitStatus("Click a hex on the island to target the obstacle.");
+            return;
+        }
+
+        pendingObstacle = new ObstacleSendRequest { kind = "Obstacle", q = target.Q, r = target.R };
+        pendingObstacleKey = System.Guid.NewGuid().ToString("N");
+        selectingObstacleTarget = false;
+        SendPendingObstacle();
+    }
+
     // =========================================================
     // ĐẢO CỦA MÌNH: CHỈ CÒN NÚT WORLD MAP
     // =========================================================
@@ -104,7 +148,7 @@ public class WorldVisitHud : MonoBehaviour
 
     private void BuildVisitPanel()
     {
-        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 210f));
+        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 308f));
 
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 22f, TextColor, TextAlignmentOptions.Left);
         SetTopLeft(title.rectTransform, new Vector2(14f, -10f), new Vector2(ColumnWidth - 28f, 30f));
@@ -114,7 +158,7 @@ public class WorldVisitHud : MonoBehaviour
 
         TextMeshProUGUI line = CreateLine(panel, new Vector2(14f, -42f), new Vector2(ColumnWidth - 28f, 48f));
         line.text = "Score " + VisitSession.OwnerScore + " pts  ·  [" + VisitSession.OwnerX + ":" + VisitSession.OwnerY + "]"
-            + "\nLooking only: nothing here can be changed.";
+            + "\nSend an obstacle to this island.";
 
         float half = (ColumnWidth - 36f) / 2f;
         bool backToMap = VisitSession.FromWorldMap && MapAvailable;
@@ -122,6 +166,132 @@ public class WorldVisitHud : MonoBehaviour
         AddButton(panel, "Home", new Vector2(24f + half, -98f), new Vector2(half, 42f), DangerColor, GoHome);
         AddButton(panel, "Listings", new Vector2(12f, -150f), new Vector2(ColumnWidth - 24f, 42f), NeutralColor,
             () => listings = ListingsWindow.Open(listings, transform, VisitSession.OwnerId, VisitSession.OwnerName));
+
+        obstacleButton = AddButton(panel, $"Use Obstacle · {obstacleFeeCoins} Coins",
+            new Vector2(12f, -202f), new Vector2(ColumnWidth - 24f, 42f), DangerColor, OnObstacleButton);
+        obstacleButtonLabel = obstacleButton.GetComponentInChildren<TextMeshProUGUI>();
+        visitStatusText = CreateLine(panel, new Vector2(14f, -254f), new Vector2(ColumnWidth - 28f, 42f));
+        visitStatusText.text = "Choose an obstacle, then click a target hex.";
+    }
+
+    private System.Collections.IEnumerator LoadObstacleFee()
+    {
+        GameConfigDto config = null;
+        ApiError error = null;
+        yield return ApiClient.Get<GameConfigDto>("/api/v1/config", false, value => config = value, value => error = value);
+        if (config != null)
+        {
+            if (config.obstacle != null) obstacleFeeCoins = Mathf.Max(0, config.obstacle.feeCoins);
+            else if (config.obstacleFeeCoins > 0) obstacleFeeCoins = config.obstacleFeeCoins;
+            SetObstacleButtonLabel($"Use Obstacle · {obstacleFeeCoins} Coins");
+        }
+        else if (error != null && !error.IsNetworkError)
+        {
+            SetVisitStatus("Could not load obstacle price: " + MarketSync.Describe(error));
+        }
+    }
+
+    private void OnObstacleButton()
+    {
+        if (sendingObstacle) return;
+        if (pendingObstacle != null)
+        {
+            SendPendingObstacle();
+            return;
+        }
+
+        selectingObstacleTarget = !selectingObstacleTarget;
+        SetObstacleButtonLabel(selectingObstacleTarget
+            ? "Cancel Obstacle Targeting"
+            : $"Use Obstacle · {obstacleFeeCoins} Coins");
+        SetVisitStatus(selectingObstacleTarget
+            ? "Click a hex to send an obstacle there. Press Esc to cancel."
+            : "Obstacle targeting cancelled.");
+    }
+
+    private bool TryGetTargetTile(Vector2 screenPosition, out HexCoordinates target)
+    {
+        target = default;
+        if (visitedWorld == null) visitedWorld = FindAnyObjectByType<HexWorldGenerator>();
+        Camera camera = Camera.main;
+        if (visitedWorld == null || camera == null) return false;
+
+        Ray ray = camera.ScreenPointToRay(screenPosition);
+        RaycastHit[] hits = Physics.RaycastAll(ray, 1000f);
+        float closest = float.PositiveInfinity;
+        bool found = false;
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (hits[i].distance >= closest) continue;
+            Transform current = hits[i].collider != null ? hits[i].collider.transform : null;
+            while (current != null)
+            {
+                HexTileInfo info = current.GetComponent<HexTileInfo>();
+                if (info != null && visitedWorld.MapTiles.TryGetValue(info.coordinates, out GameObject tile) && tile != null)
+                {
+                    closest = hits[i].distance;
+                    target = info.coordinates;
+                    found = true;
+                    break;
+                }
+                current = current.parent;
+            }
+        }
+        return found;
+    }
+
+    private void SendPendingObstacle()
+    {
+        if (pendingObstacle == null || sendingObstacle) return;
+        ObstacleSendRequest sentObstacle = pendingObstacle;
+        string idempotencyKey = pendingObstacleKey;
+        sendingObstacle = true;
+        if (obstacleButton != null) obstacleButton.interactable = false;
+        SetVisitStatus($"Sending obstacle to [{sentObstacle.q}:{sentObstacle.r}]...");
+        StartCoroutine(WorldShareService.SendObstacle(
+            VisitSession.OwnerId,
+            sentObstacle.kind,
+            sentObstacle.q,
+            sentObstacle.r,
+            idempotencyKey,
+            response =>
+            {
+                sendingObstacle = false;
+                pendingObstacle = null;
+                pendingObstacleKey = null;
+                if (obstacleButton != null) obstacleButton.interactable = true;
+                SetObstacleButtonLabel($"Use Obstacle · {obstacleFeeCoins} Coins");
+                string id = response != null ? response.obstacleId : null;
+                SetVisitStatus(string.IsNullOrEmpty(id)
+                    ? $"Obstacle sent to {VisitSession.OwnerName}'s island at [{sentObstacle.q}:{sentObstacle.r}]."
+                    : $"Obstacle {id} sent to {VisitSession.OwnerName}'s inbox.");
+            },
+            error =>
+            {
+                sendingObstacle = false;
+                if (obstacleButton != null) obstacleButton.interactable = true;
+                if (error != null && error.IsNetworkError)
+                {
+                    SetObstacleButtonLabel("Retry Obstacle");
+                    SetVisitStatus("Connection uncertain. Retry to safely resend the same request.");
+                    return;
+                }
+
+                pendingObstacle = null;
+                pendingObstacleKey = null;
+                SetObstacleButtonLabel($"Use Obstacle · {obstacleFeeCoins} Coins");
+                SetVisitStatus(MarketSync.Describe(error));
+            }));
+    }
+
+    private void SetObstacleButtonLabel(string value)
+    {
+        if (obstacleButtonLabel != null) obstacleButtonLabel.text = value;
+    }
+
+    private void SetVisitStatus(string value)
+    {
+        if (visitStatusText != null) visitStatusText.text = value;
     }
 
     private static void GoHome()
@@ -151,7 +321,7 @@ public class WorldVisitHud : MonoBehaviour
         return line;
     }
 
-    private static void AddButton(RectTransform parent, string text, Vector2 position, Vector2 size, Color color, UnityEngine.Events.UnityAction onClick)
+    private static Button AddButton(RectTransform parent, string text, Vector2 position, Vector2 size, Color color, UnityEngine.Events.UnityAction onClick)
     {
         RectTransform rect = EconomyHUD.CreateRect(text + "Button", parent);
         SetTopLeft(rect, position, size);
@@ -161,6 +331,7 @@ public class WorldVisitHud : MonoBehaviour
         TextMeshProUGUI label = EconomyHUD.CreateText("Label", rect, 18f, TextColor, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(label.rectTransform);
         label.text = text;
+        return button;
     }
 
     private static void SetTopLeft(RectTransform rect, Vector2 position, Vector2 size)

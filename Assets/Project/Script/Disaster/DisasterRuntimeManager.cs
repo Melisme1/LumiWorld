@@ -95,6 +95,8 @@ namespace LumiWorld.Acs
         private System.Random rng;
         private double nextSpawnAt;
         private int instanceCounter;
+        private bool runtimeReady;
+        private readonly HashSet<string> appliedInboxObstacleIds = new HashSet<string>();
 
         public event Action<DisasterInstance> DisasterStarted;
         public event Action<DisasterInstance> DisasterEnded;
@@ -161,6 +163,8 @@ namespace LumiWorld.Acs
             // minSpawnIntervalMinutes..maxSpawnIntervalMinutes, không còn nổ ngay frame 1.
             if (WorldLaunch.IsVisit) ApplyVisitBurnedTiles();
             else if (!TryRestoreFromSave()) ScheduleNextSpawn();
+
+            runtimeReady = true;
         }
 
         /// <summary>
@@ -198,6 +202,10 @@ namespace LumiWorld.Acs
             data.active.Clear();
             data.saved = true;
             data.instanceCounter = instanceCounter;
+            if (data.appliedInboxObstacleIds == null)
+                data.appliedInboxObstacleIds = new List<string>();
+            data.appliedInboxObstacleIds.Clear();
+            data.appliedInboxObstacleIds.AddRange(appliedInboxObstacleIds);
             double now = clock.NowSeconds;
             data.nextSpawnInSeconds = nextSpawnAt >= double.MaxValue / 2 ? -1 : Math.Max(0, nextSpawnAt - now);
 
@@ -247,6 +255,12 @@ namespace LumiWorld.Acs
             if (world == null || world.SavesBlocked || world.RestoredData == null) return false;
             DisasterSaveData data = world.RestoredData.disasters;
             if (data == null || !data.saved) return false;
+            appliedInboxObstacleIds.Clear();
+            if (data.appliedInboxObstacleIds != null)
+            {
+                foreach (string inboxId in data.appliedInboxObstacleIds)
+                    if (!string.IsNullOrWhiteSpace(inboxId)) appliedInboxObstacleIds.Add(inboxId);
+            }
 
             // Disaster time advances only while the owner's island is open. Remaining durations
             // and relative timers were captured when leaving, so menu/map/visit/offline time is excluded.
@@ -345,6 +359,64 @@ namespace LumiWorld.Acs
 
             Debug.Log($"[LumiWorld Disaster] Đã dựng lại {activeList.Count} thiên tai và {data.tiles.Count} ô có dấu; đồng hồ được tiếp tục từ lúc rời đảo.", this);
             return true;
+        }
+
+        /// <summary>
+        /// Applies an inbox obstacle on the owner's loaded island and commits both the effect
+        /// and its deduplication id to the world save before the caller acknowledges the inbox.
+        /// </summary>
+        public bool ApplyInboxObstacle(ObstacleInboxPayload payload, string inboxItemId)
+        {
+            if (!runtimeReady || WorldLaunch.IsVisit || payload == null || string.IsNullOrWhiteSpace(inboxItemId))
+                return false;
+
+            string obstacleId = string.IsNullOrWhiteSpace(payload.obstacleId) ? inboxItemId : payload.obstacleId;
+            if (appliedInboxObstacleIds.Contains(obstacleId)) return true;
+
+            if (!Enum.TryParse(payload.kind, true, out DisasterKind kind) || !Enum.IsDefined(typeof(DisasterKind), kind))
+            {
+                Debug.LogWarning($"[LumiWorld Inbox] Obstacle {inboxItemId} có kind không hỗ trợ: '{payload.kind}'.");
+                return false;
+            }
+
+            var target = new HexCoordinates(payload.q, payload.r);
+            if (worldGenerator == null || !worldGenerator.MapTiles.TryGetValue(target, out GameObject tile) || tile == null)
+            {
+                Debug.LogWarning($"[LumiWorld Inbox] Không tìm thấy ô ({payload.q}, {payload.r}) cho obstacle {inboxItemId}.");
+                return false;
+            }
+
+            var tileState = TileDisasterState.Ensure(tile);
+            bool alreadyHasKind = tileState != null &&
+                (kind == DisasterKind.Obstacle ? tileState.hasObstacle : tileState.Has(kind));
+            if (tileState == null || alreadyHasKind || tileState.isBurned)
+            {
+                Debug.LogWarning($"[LumiWorld Inbox] Ô ({payload.q}, {payload.r}) đã có cùng loại tác động hoặc đã cháy; giữ obstacle {inboxItemId} trên server.");
+                return false;
+            }
+
+            DisasterInstance instance = SpawnDisaster(kind, target);
+            if (instance == null) return false;
+
+            double duration = payload.durationSeconds > 0
+                ? payload.durationSeconds
+                : balance.ResolveDuration(kind);
+            instance.totalSeconds = duration;
+            instance.remainingSeconds = duration;
+            lastTick[instance.instanceId] = clock.NowSeconds;
+
+            appliedInboxObstacleIds.Add(obstacleId);
+            WorldSaveSystem world = WorldSaveSystem.Instance;
+            if (world != null && world.SaveNow())
+            {
+                Debug.Log($"[LumiWorld Inbox] Đã áp dụng obstacle {obstacleId} ({kind}) tại {target} trong {duration:0.#} giây và lưu world.");
+                return true;
+            }
+
+            appliedInboxObstacleIds.Remove(obstacleId);
+            EndDisaster(instance);
+            Debug.LogWarning($"[LumiWorld Inbox] Không lưu được obstacle {obstacleId}; đã hoàn tác để inbox được thử lại.");
+            return false;
         }
 
         // "ForestFire_0007" -> 7

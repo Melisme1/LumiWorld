@@ -212,6 +212,27 @@ public class EconomySaveSystem : MonoBehaviour
                 break;
             }
 
+            case "Obstacle":
+            {
+                // World effects must be applied on the owner's loaded island. The disaster
+                // manager writes the effect and its inbox ID into the world save first.
+                ObstacleInboxPayload obstacle;
+                try { obstacle = JsonUtility.FromJson<ObstacleInboxPayload>(payload); }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[LumiWorld Inbox] Obstacle {itemId} sai JSON: {ex.Message}. Giữ lại trên server.");
+                    return false;
+                }
+
+                if (obstacle == null || string.IsNullOrWhiteSpace(obstacle.kind) ||
+                    !LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var disasterManager) ||
+                    !disasterManager.ApplyInboxObstacle(obstacle, itemId))
+                {
+                    return false;
+                }
+                break;
+            }
+
             default:
                 // Loại mới hơn bản client này: giữ lại trên server cho tới khi cập nhật
                 Debug.LogWarning($"[LumiWorld Inbox] Loại mục chưa hỗ trợ: {kind}. Giữ lại trên server.");
