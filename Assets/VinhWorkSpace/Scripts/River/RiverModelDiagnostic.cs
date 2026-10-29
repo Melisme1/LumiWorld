@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Script chẩn đoán kích thước, bounds và hướng xoay của các model sông hồ trong runtime
@@ -29,8 +29,6 @@ public class RiverModelDiagnostic : MonoBehaviour
         CheckPrefab("SpringHead (Thượng nguồn)", config.springHeadPrefab);
         CheckPrefab("PondBasin (Hồ đọng)", config.pondBasinPrefab);
         CheckPrefab("Straight (Suối thẳng)", config.straightPrefab);
-        CheckPrefab("Curve60 (Suối cua 60)", config.curve60Prefab);
-        CheckPrefab("Fork3Way (Ngã ba)", config.fork3WayPrefab);
         CheckPrefab("Waterfall (Thác nước)", config.waterfallPrefab);
     }
 

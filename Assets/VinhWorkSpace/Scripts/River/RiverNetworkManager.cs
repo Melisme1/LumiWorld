@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -164,7 +164,7 @@ public class RiverNetworkManager : MonoBehaviour
                 if (nSeg.flowStep < minStep) minStep = nSeg.flowStep;
             }
         }
-        bool isNewOrigin = (minStep == int.MaxValue);
+        bool isNewOrigin = (minStep == int.MaxValue) && (surfaceY >= 1.35f);
         segment.isOrigin = isNewOrigin;
         segment.flowStep = isNewOrigin ? 0 : (minStep + 1);
         _riverMap[coords] = segment;
@@ -273,7 +273,7 @@ public class RiverNetworkManager : MonoBehaviour
                 }
 
                 // Cập nhật trạng thái nguồn: Một ô chỉ là Đầu nguồn (SpringHead) nếu KHÔNG có nước từ ô khác đổ vào
-                bool isOrigin = (upstreamDir < 0);
+                bool isOrigin = (upstreamDir < 0) && (hexSurfaceY >= 1.35f) && !isLowTierTerminal;
                 if (isOrigin)
                 {
                     seg.isOrigin = true;
@@ -282,10 +282,17 @@ public class RiverNetworkManager : MonoBehaviour
                 else
                 {
                     seg.isOrigin = false;
-                    HexCoordinates upHex = hex.GetNeighbor(upstreamDir);
-                    if (_riverMap.TryGetValue(upHex, out RiverTileSegment upSeg) && upSeg != null)
+                    if (upstreamDir >= 0)
                     {
-                        seg.flowStep = upSeg.flowStep + 1;
+                        HexCoordinates upHex = hex.GetNeighbor(upstreamDir);
+                        if (_riverMap.TryGetValue(upHex, out RiverTileSegment upSeg) && upSeg != null)
+                        {
+                            seg.flowStep = upSeg.flowStep + 1;
+                        }
+                    }
+                    else
+                    {
+                        seg.flowStep = 10;
                     }
                 }
 
@@ -363,60 +370,84 @@ public class RiverNetworkManager : MonoBehaviour
         float yA = GetTileTopY(hA, worldGen);
         float yB = GetTileTopY(hB, worldGen);
 
-        // Trường hợp 1: Chênh lệch độ cao giữa 2 tầng (Dốc / Thác nước)
+        // TrÆ°á»ng há»£p 1: ChÃªnh lá»‡ch Ä‘á»™ cao giá»¯a 2 táº§ng (Dá»‘c / ThÃ¡c nÆ°á»›c)
         if (Mathf.Abs(yA - yB) > 0.35f)
         {
-            // Ô ở tầng thấp hơn CHỈ ĐƯỢC PHÉP nhận nước từ ĐÚNG 1 Ô ở tầng cao hơn:
-            // Đó là ô gần nguồn nhất (có flowStep nhỏ nhất / isOrigin).
-            // Các ô tầng cao khác tuyệt đối không đổ dồn vào gây loạn nguồn!
-            if (yA > yB + 0.35f)
+            HexCoordinates upperHex = (yA > yB) ? hA : hB;
+            HexCoordinates lowerHex = (yA > yB) ? hB : hA;
+            RiverTileSegment upperSeg = (yA > yB) ? segA : segB;
+            RiverTileSegment lowerSeg = (yA > yB) ? segB : segA;
+            float lowerY = Mathf.Min(yA, yB);
+
+            // Ã” á»Ÿ táº§ng tháº¥p hÆ¡n CHá»ˆ ÄÆ¯á»¢C PHÃ‰P nháº­n nÆ°á»›c tá»« ÄÃšNG 1 Ã” á»Ÿ táº§ng cao hÆ¡n:
+            if (GetBestUpstreamFeeder(lowerHex, worldGen) != upperHex)
             {
-                if (GetBestUpstreamFeeder(hB, worldGen) != hA)
-                {
-                    return false;
-                }
-            }
-            else if (yB > yA + 0.35f)
-            {
-                if (GetBestUpstreamFeeder(hA, worldGen) != hB)
-                {
-                    return false;
-                }
+                return false;
             }
 
-            // Nếu chênh lệch 2 tầng (ví dụ Windheath 2.6m -> Bloomfield 1.0m)
-            // và tồn tại ô tầng trung (Leafwood 1.8m) kề sát cả 2 ô:
-            // Cắt cạnh "nhảy cóc" để suối đi tuần tự từng bậc thang qua ô trung gian
-            if (Mathf.Abs(yA - yB) > 0.7f)
+            // QUY Táº®C CHá»NG THÃC NÆ¯á»šC KÃ‰P Cáº NH NHAU (Anti-Parallel Waterfalls):
+            // Trong tam giÃ¡c {upperHex, lowerHex, hC}: Náº¿u tá»“n táº¡i Ã´ hC á»Ÿ cÃ¹ng táº§ng vá»›i lowerHex,
+            // cÅ©ng ká» vá»›i upperHex vÃ  lowerHex: upperHex CHá»ˆ ÄÆ¯á»¢C Ä‘á»• 1 thÃ¡c nÆ°á»›c duy nháº¥t xuá»‘ng 1 trong 2 Ã´!
+            // Ã” cÃ²n láº¡i sáº½ nháº­n dÃ²ng nÆ°á»›c cháº£y ngang tá»« Ã´ nháº­n thÃ¡c Ä‘á»ƒ suá»‘i Ä‘i tuáº§n tá»±, khÃ´ng táº¡o vÃ²ng láº·p.
+            for (int d = 0; d < 6; d++)
             {
-                for (int d = 0; d < 6; d++)
+                HexCoordinates hC = lowerHex.GetNeighbor(d);
+                if (_riverMap.TryGetValue(hC, out RiverTileSegment segC) && segC != null && upperHex.DistanceTo(hC) == 1)
                 {
-                    HexCoordinates mid = hA.GetNeighbor(d);
-                    if (_riverMap.ContainsKey(mid) && hB.DistanceTo(mid) == 1)
+                    float yC = GetTileTopY(hC, worldGen);
+                    if (Mathf.Abs(yC - lowerY) <= 0.35f)
                     {
-                        float yMid = GetTileTopY(mid, worldGen);
-                        if ((yA > yMid + 0.35f && yMid > yB + 0.35f) || (yB > yMid + 0.35f && yMid > yA + 0.35f))
+                        int rankLower = lowerSeg.isOrigin ? -1 : lowerSeg.flowStep;
+                        int rankC = segC.isOrigin ? -1 : segC.flowStep;
+
+                        if (rankC < rankLower)
                         {
-                            return false; // Nhường dòng chảy đi tuần tự qua ô bậc giữa
+                            return false; // NhÆ°á»ng thÃ¡c nÆ°á»›c cho hC; lowerHex sáº½ nháº­n suá»‘i cháº£y ngang tá»« hC
+                        }
+                        else if (rankC == rankLower)
+                        {
+                            // HÃ²a Ä‘iá»ƒm: DÃ¹ng tá»a Ä‘á»™ phÃ¡ vá»¡ tháº¿ hÃ²a Ä‘á»ƒ chá»‰ duy nháº¥t 1 Ã´ nháº­n thÃ¡c
+                            long idLower = ((long)lowerHex.Q << 32) ^ (long)lowerHex.R;
+                            long idC = ((long)hC.Q << 32) ^ (long)hC.R;
+                            if (idC < idLower)
+                            {
+                                return false;
+                            }
                         }
                     }
                 }
             }
 
-            return true; // Nước chảy xuôi từ ô cao xuống ô thấp theo nhánh gần nguồn nhất
+            return true; // NÆ°á»›c cháº£y xuÃ´i tá»« Ã´ cao xuá»‘ng Ã´ tháº¥p theo nhÃ¡nh há»£p lá»‡ duy nháº¥t
         }
 
-        // Trường hợp 2: Hai ô ở CÙNG MỘT TẦNG ĐỘ CAO
-        // Quy tắc A: Cả 2 ô đều nhận nước từ tầng cao hơn đổ xuống -> 2 nhánh tẽ riêng biệt, không nối ngang!
-        bool aHasHigherFeed = HasHigherNeighborFeed(hA, worldGen);
-        bool bHasHigherFeed = HasHigherNeighborFeed(hB, worldGen);
-        if (aHasHigherFeed && bHasHigherFeed)
+        // TrÆ°á»ng há»£p 2: Hai Ã´ á»Ÿ CÃ™NG Má»˜T Táº¦NG Äá»˜ CAO
+        // Quy táº¯c A: Tam giÃ¡c vá»›i Ã´ trÃªn cao {hUpper, hA, hB}:
+        // Náº¿u cáº£ 2 Ã´ Ä‘á»u Ä‘ang nháº­n thÃ¡c nÆ°á»›c tá»« táº§ng trÃªn Ä‘á»• xuá»‘ng, KHÃ”NG ná»‘i ngang Ä‘á»ƒ trÃ¡nh táº¡o vÃ²ng láº·p tam giÃ¡c!
+        for (int d = 0; d < 6; d++)
         {
-            return false;
+            HexCoordinates hUpper = hA.GetNeighbor(d);
+            if (_riverMap.TryGetValue(hUpper, out RiverTileSegment segUp) && segUp != null && hB.DistanceTo(hUpper) == 1)
+            {
+                float yUp = GetTileTopY(hUpper, worldGen);
+                if (yUp > yA + 0.35f)
+                {
+                    if (segA.HasPort(d))
+                    {
+                        for (int d2 = 0; d2 < 6; d2++)
+                        {
+                            if (hB.GetNeighbor(d2) == hUpper && segB.HasPort(d2))
+                            {
+                                return false; // Cáº£ hai Ä‘á»u cÃ³ thÃ¡c tá»« hUpper Ä‘á»• xuá»‘ng -> Tuyá»‡t Ä‘á»‘i khÃ´ng ná»‘i ngang!
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        // Quy tắc C: Tam giác 3 ô cùng tầng phẳng {hA, hB, hC}
-        // Ngắt cạnh trực tiếp giữa ô có flowStep nhỏ nhất và lớn nhất để dòng đi 1 làn A -> B -> C
+        // Quy táº¯c C: Tam giÃ¡c 3 Ã´ cÃ¹ng táº§ng pháº³ng {hA, hB, hC}
+        // Ngáº¯t cáº¡nh trá»±c tiáº¿p giá»¯a Ã´ cÃ³ flowStep nhá» nháº¥t vÃ  lá»›n nháº¥t Ä‘á»ƒ dÃ²ng Ä‘i 1 lÃ n A -> B -> C
         for (int d = 0; d < 6; d++)
         {
             HexCoordinates hC = hA.GetNeighbor(d);

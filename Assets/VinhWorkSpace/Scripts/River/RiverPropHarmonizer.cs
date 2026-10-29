@@ -477,7 +477,7 @@ public static class RiverPropHarmonizer
             return;
         }
 
-        // 4. SUỐI CUA (Curve60, Curve120) VÀ NGÃ BA (Fork3Way)
+        // 4. SUỐI CUA (Curve60, Curve120) VÀ GIAO LỘ PHÂN NHÁNH
         {
             float centerDist = localPos.magnitude;
             float clearR = isHeavy ? 0.45f : 0.35f;

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -115,7 +115,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Ô đã có dòng suối từ trước -> Không cho đặt đè
             if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
             {
-                lastValidationError = "Ô này đã có dòng suối";
+                lastValidationError = "This tile already has a river segment.";
                 return false;
             }
 
@@ -152,7 +152,7 @@ public class HexPlacementValidator : MonoBehaviour
                 // Không cho phép đặt nguồn ở vùng thung lũng trũng thấp nhất (Tier 0)
                 if (targetTopY < 1.35f)
                 {
-                    lastValidationError = "Thượng nguồn suối phải bắt đầu từ Tầng trung (đồi) hoặc Tầng cao (núi) để có độ dốc dòng chảy!";
+                    lastValidationError = "River spring head must start on highland or hill to flow downward!";
                     return false;
                 }
             }
@@ -176,7 +176,7 @@ public class HexPlacementValidator : MonoBehaviour
 
                 if (!canFlowDownhill)
                 {
-                    lastValidationError = "Nước không thể chảy ngược lên dốc cao hơn!";
+                    lastValidationError = "Water cannot flow uphill!";
                     return false;
                 }
             }

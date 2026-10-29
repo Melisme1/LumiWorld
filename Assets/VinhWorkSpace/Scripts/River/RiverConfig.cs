@@ -11,17 +11,8 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Dải suối thẳng 180° (Variant A / C)")]
     public GameObject straightPrefab;
 
-    [Tooltip("Dải suối cua gắt 60° (Prefab mô hình uốn cong riêng)")]
-    public GameObject curve60Prefab;
-
     [Tooltip("Đầu nguồn suối / Hang đá rỗng cạn (Variant D)")]
     public GameObject springHeadPrefab;
-
-    [Tooltip("Ngã ba hợp lưu suối hình chữ Y / Giao lộ đối xứng 120° (Variant E - HexFork3WayCrossroad)")]
-    public GameObject fork3WayPrefab;
-
-    [Tooltip("Ngã ba hợp lưu suối bất đối xứng / Dạng mũi tên (Variant E2 - Fork3waysame)")]
-    public GameObject fork3WayAsymmetricPrefab;
 
     [Tooltip("Lòng hồ ao nước tròn tĩnh lặng (Variant F)")]
     public GameObject pondBasinPrefab;
@@ -37,12 +28,6 @@ public class RiverConfig : ScriptableObject
     [Header("Per-Piece Scale Settings (Tỉ lệ co giãn vừa vặn thẩm mỹ với ô lục giác)")]
     [Tooltip("Scale suối thẳng Straight (chiều rộng 0.85, chiều cao 0.85, chiều dài 1.25 vừa vặn kết nối mép ô)")]
     public Vector3 straightScale = new Vector3(0.85f, 0.85f, 1.25f);
-
-    [Tooltip("Scale suối cua 60° (mặc định ~1.6, 0.9, 1.6)")]
-    public Vector3 curve60Scale = new Vector3(1.6f, 0.9f, 1.6f);
-
-    [Tooltip("Scale ngã ba Fork 3-Way để 3 nhánh vươn tới 3 mép ô lục giác (mặc định ~1.6, 0.9, 1.6)")]
-    public Vector3 fork3WayScale = new Vector3(1.6f, 0.9f, 1.6f);
 
     [Tooltip("Scale Thượng Nguồn Spring Head Grotto (mặc định 1.0, 1.0, 1.0 vừa vặn ô)")]
     public Vector3 springHeadScale = new Vector3(1.0f, 1.0f, 1.0f);
@@ -65,12 +50,8 @@ public class RiverConfig : ScriptableObject
         {
             case RiverPieceType.Straight:
             case RiverPieceType.Curve120:
-                return (straightScale.sqrMagnitude > 0.01f) ? straightScale : new Vector3(0.32f, 0.3f, 0.28f);
             case RiverPieceType.Curve60:
-                return (curve60Scale.sqrMagnitude > 0.01f) ? curve60Scale : Vector3.one;
-            case RiverPieceType.Fork3Way:
-            case RiverPieceType.Fork3WayAsymmetric:
-                return (fork3WayScale.sqrMagnitude > 0.01f) ? fork3WayScale : straightScale;
+                return (straightScale.sqrMagnitude > 0.01f) ? straightScale : new Vector3(0.32f, 0.3f, 0.28f);
             case RiverPieceType.SpringHead:
                 return (springHeadScale.sqrMagnitude > 0.01f) ? springHeadScale : new Vector3(1.0f, 1.0f, 1.0f);
             case RiverPieceType.PondBasin:
@@ -89,15 +70,6 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Độ bù góc xoay cho Thượng Nguồn Grotto (180° để xoay đầu miệng tràn quay chuẩn xác hướng thẳng vào lòng suối nối)")]
     public float springHeadRotationOffset = 180f;
 
-    [Tooltip("Độ bù góc xoay cho Suối cua 60°")]
-    public float curve60RotationOffset = 0f;
-
-    [Tooltip("Độ bù góc xoay cho Ngã ba Fork 3-Way")]
-    public float fork3WayRotationOffset = 0f;
-
-    [Tooltip("Độ bù góc xoay cho Ngã ba bất đối xứng Fork 3-Way Asymmetric (Fork3waysame)")]
-    public float fork3WayAsymmetricRotationOffset = 0f;
-
     [Tooltip("Độ bù góc xoay cho Hồ đọng Pond Basin")]
     public float pondBasinRotationOffset = 0f;
 
@@ -110,45 +82,43 @@ public class RiverConfig : ScriptableObject
         {
             case RiverPieceType.Straight:
             case RiverPieceType.Curve120:
+            case RiverPieceType.Curve60:
                 return straightRotationOffset;
-            case RiverPieceType.SpringHead: return springHeadRotationOffset;
-            case RiverPieceType.Curve60: return curve60RotationOffset;
-            case RiverPieceType.Fork3Way: return fork3WayRotationOffset;
-            case RiverPieceType.Fork3WayAsymmetric: return fork3WayAsymmetricRotationOffset;
-            case RiverPieceType.PondBasin: return pondBasinRotationOffset;
-            case RiverPieceType.Waterfall: return waterfallRotationOffset;
-            default: return 0f;
+            case RiverPieceType.SpringHead:
+                return springHeadRotationOffset;
+            case RiverPieceType.PondBasin:
+                return pondBasinRotationOffset;
+            case RiverPieceType.Waterfall:
+                return waterfallRotationOffset;
+            default:
+                return 0f;
         }
     }
 
-    [Header("Per-Piece Vertical Elevation Offsets (Bù cao độ tránh chìm mô hình)")]
-    [Tooltip("Độ nâng trục Y cho Thượng Nguồn Grotto (mặc định ~0.29m vì pivot nằm ở tâm khối)")]
-    public float springHeadYOffset = 0.285f;
+    [Header("Piece Position Offsets (Vị trí bù X, Y, Z cho từng mô hình)")]
+    [Tooltip("Vị trí bù (X, Y, Z) cho Thượng Nguồn Grotto. (Y là độ nâng tránh chìm đất, mặc định ~0.194m).")]
+    public Vector3 springHeadOffset = new Vector3(0f, 0.194f, 0f);
 
-    [Tooltip("Độ bù vị trí (X, Y, Z) cho Thượng Nguồn Grotto (Transform Position cục bộ của prefab trong ô).")]
-    public Vector3 springHeadOffset = Vector3.zero;
-
-    [Tooltip("Độ bù vị trí (X, Y, Z) cho Suối cua 60° (Transform Position cục bộ của prefab trong ô).")]
-    public Vector3 curve60Offset = Vector3.zero;
-
-    [Tooltip("Độ nâng trục Y cho Hồ đọng cuối nguồn Pond Basin (mặc định ~0.12m)")]
-    public float pondBasinYOffset = 0.125f;
-
-    [Header("Pond Offsets (Nơi duy nhất tinh chỉnh vị trí Hồ và Texture Hồ)")]
-    [Tooltip("Độ bù vị trí (X, Y, Z) cho mô hình hồ Pond Basin (Transform Position cục bộ của prefab trong ô).")]
-    public Vector3 pondOffset = Vector3.zero;
+    [Tooltip("Vị trí bù (X, Y, Z) cho Hồ đọng cuối nguồn Pond Basin (Mặc định X=0, Y=0.07, Z=0.17).")]
+    public Vector3 pondOffset = new Vector3(0f, 0.07f, 0.17f);
 
     [Tooltip("Độ bù UV Texture (X, Y) cho mặt nước hồ Pond Basin (hoàn toàn độc lập, không ảnh hưởng vị trí hồ hay dòng chảy suối).")]
     public Vector2 pondTextureOffset = Vector2.zero;
 
-    [Header("Waterfall Offsets (Nơi tinh chỉnh vị trí Thác Nước / Cầu nối vách tầng)")]
-    [Tooltip("Độ bù vị trí (X, Y, Z) cho mô hình Thác nước Waterfall Ramp:\n" +
-             "• X: Dịch ngang trái/phải vuông góc dòng chảy\n" +
-             "• Y: Nâng/hạ cao độ (cộng dồn với waterfallYOffset)\n" +
-             "• Z: Đẩy tiến/lùi theo hướng dòng chảy (Z > 0: đẩy ra xa vách núi về phía hạ lưu, tránh bị đâm sâu vào vách núi/lòng đất). Mặc định ~0.18m.")]
-    public Vector3 waterfallOffset = new Vector3(0f, 0f, 0.18f);
+    [Tooltip("Độ nâng trục Y cho mương suối thẳng / cua (mặc định ~0.056m)")]
+    public float straightYOffset = 0.056f;
 
-    [Header("Double-Tier Waterfall (Ghép 2 máng thác khi vượt tầng Cao -> Thấp)")]
+    [Header("1. Single-Tier Waterfall (Thác thường 1 tầng)")]
+    [Tooltip("Độ bù vị trí (X, Y, Z) cho Thác nước thường:\n" +
+             "• X: Dịch ngang trái/phải vuông góc dòng chảy\n" +
+             "• Y: Cao độ đặt máng thác so với nền tầng dưới (mặc định ~0.427m)\n" +
+             "• Z: Đẩy tiến/lùi theo hướng dòng chảy (Z > 0: đẩy ra xa vách núi). Mặc định 0.15m.")]
+    public Vector3 waterfallOffset = new Vector3(0f, 0.427f, 0.15f);
+
+    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác thường (~0.04m) để mương vươn sát mép vách dốc mà không thò lơ lửng.")]
+    public float waterfallInwardOffset = 0.04f;
+
+    [Header("2. Double-Tier Waterfall (Thác vượt 2 tầng Cao -> Thấp)")]
     [Tooltip("Ngưỡng chênh lệch cao độ (m) để kích hoạt thác 2 tầng (mặc định 1.2m: chênh 1 tầng ~0.8m, chênh 2 tầng Cao -> Thấp ~1.6m).")]
     public float doubleWaterfallHeightThreshold = 1.2f;
 
@@ -163,7 +133,7 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Tỉ lệ co giãn cục bộ Local Scale của máng thác thứ 2 (tầng trên). Mặc định (1, 1, 1).")]
     public Vector3 upperWaterfallScale = Vector3.one;
 
-    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác nước khi vượt 2 tầng (~0.04m - 0.08m). Mặc định 0.04m.")]
+    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác 2 tầng (~0.04m - 0.08m). Mặc định 0.04m.")]
     public float doubleWaterfallInwardOffset = 0.04f;
 
     /// <summary>
@@ -182,24 +152,6 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Khoảng cách từ tâm hồ tới điểm kết thúc của mương nối (~0.45m - 0.52m) để mương nối dừng đúng tại đầu ngoài của cổ máng hồ, không đè lên mặt nước hồ. Mặc định 0.48m.")]
     public float pondInletDistance = 0.48f;
 
-    [Tooltip("Độ thụt lùi vào trong của mương tại đỉnh thác nước / vách dốc (~0.04m - 0.08m) để mương vươn dài sát mép đỉnh vách dốc mà không bị thò lơ lửng. Mặc định 0.04m.")]
-    public float waterfallInwardOffset = 0.04f;
-
-    [Tooltip("Khoang cach tu tam o toi diem noi muong cua Curved60 (~0.28m - 0.35m) de muong noi khop vao mieng muong cua model Curved60. Mac dinh 0.35m.")]
-    public float curve60MouthDistance = 0.35f;
-
-    [Tooltip("Độ nâng trục Y cho Suối thẳng Straight (mặc định ~0.10m)")]
-    public float straightYOffset = 0.095f;
-
-    [Tooltip("Độ nâng trục Y cho Suối cua 60° (mặc định ~0.13m)")]
-    public float curve60YOffset = 0.135f;
-
-    [Tooltip("Độ nâng trục Y cho Ngã ba Fork 3-Way (mặc định ~0.08m)")]
-    public float fork3WayYOffset = 0.080f;
-
-    [Tooltip("Độ nâng trục Y cho Thác nước Waterfall Ramp (mặc định ~0.48m)")]
-    public float waterfallYOffset = 0.477f;
-
     [Tooltip("Độ bù góc xoay Y mặc định nếu mô hình FBX xuất khẩu lệch hướng trong Blender")]
     public float globalRotationOffset = 0f;
 
@@ -211,19 +163,15 @@ public class RiverConfig : ScriptableObject
         switch (pieceType)
         {
             case RiverPieceType.SpringHead:
-                return springHeadYOffset;
+                return springHeadOffset.y;
             case RiverPieceType.PondBasin:
-                return pondBasinYOffset;
+                return pondOffset.y;
             case RiverPieceType.Straight:
             case RiverPieceType.Curve120:
-                return straightYOffset;
             case RiverPieceType.Curve60:
-                return curve60YOffset;
-            case RiverPieceType.Fork3Way:
-            case RiverPieceType.Fork3WayAsymmetric:
-                return fork3WayYOffset;
+                return straightYOffset;
             case RiverPieceType.Waterfall:
-                return waterfallYOffset;
+                return waterfallOffset.y;
             default:
                 return yElevationOffset;
         }
@@ -253,17 +201,11 @@ public class RiverConfig : ScriptableObject
         switch (pieceType)
         {
             case RiverPieceType.Straight:
-                return straightPrefab;
             case RiverPieceType.Curve120:
-                return straightPrefab;
             case RiverPieceType.Curve60:
-                return curve60Prefab;
+                return straightPrefab;
             case RiverPieceType.SpringHead:
                 return springHeadPrefab;
-            case RiverPieceType.Fork3Way:
-                return fork3WayPrefab;
-            case RiverPieceType.Fork3WayAsymmetric:
-                return fork3WayAsymmetricPrefab != null ? fork3WayAsymmetricPrefab : fork3WayPrefab;
             case RiverPieceType.PondBasin:
                 return pondBasinPrefab != null ? pondBasinPrefab : springHeadPrefab;
             case RiverPieceType.Waterfall:
@@ -272,5 +214,4 @@ public class RiverConfig : ScriptableObject
                 return straightPrefab != null ? straightPrefab : springHeadPrefab;
         }
     }
-
 }

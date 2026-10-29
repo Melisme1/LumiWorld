@@ -34,26 +34,19 @@ public static class RiverSetupUtility
 
         // 3. Quét tự động các file FBX trong Assets/VinhWorkSpace/Props/Waterfall
         config.straightPrefab = FindFbx("Stream_Path");
-        config.fork3WayPrefab = FindFbx("Stone_Crossroad");
-        config.fork3WayAsymmetricPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/VinhWorkSpace/Prefabs/Waterfall/Fork3waysame.prefab");
-        if (config.fork3WayAsymmetricPrefab == null) config.fork3WayAsymmetricPrefab = FindFbx("three_way_stone_stream");
         config.springHeadPrefab = FindFbx("Stone_Hollow");
         config.pondBasinPrefab = FindFbx("Meadow_Pond");
         config.waterfallPrefab = FindFbx("Stone_Stairw");
 
         config.modelScale = Vector3.one;
         config.yElevationOffset = 0.02f;
-        config.springHeadYOffset = 0.285f;
-        config.springHeadOffset = Vector3.zero;
-        config.pondBasinYOffset = 0.125f;
-        config.pondOffset = Vector3.zero;
+        config.springHeadOffset = new Vector3(0f, 0.194f, 0f);
+        config.pondOffset = new Vector3(0f, 0.07f, 0.17f);
         config.pondTextureOffset = Vector2.zero;
-        config.straightYOffset = 0.095f;
-        config.curve60YOffset = 0.135f;
-        config.fork3WayYOffset = 0.080f;
-        config.waterfallYOffset = 0.477f;
-        config.waterfallOffset = new Vector3(0f, 0f, 0.18f);
+        config.straightYOffset = 0.056f;
+        config.waterfallOffset = new Vector3(0f, 0.427f, 0.15f);
         config.waterfallRotationOffset = 0f;
+        config.waterfallInwardOffset = 0.04f;
 
         config.doubleWaterfallHeightThreshold = 1.2f;
         config.upperWaterfallPosition = new Vector3(0f, 0.186f, -0.668f);
@@ -97,8 +90,8 @@ public static class RiverSetupUtility
         riverCard.replacesTile = false;
         riverCard.baseScore = 3;
         riverCard.alwaysBaseScore = false;
-        riverCard.shopPrice = 30;
-        riverCard.placementFee = 5;
+        riverCard.shopPrice = 80;
+        riverCard.placementFee = 15;
 
         // Gán sprite đại diện nếu tìm thấy Streamstone hoặc Lilywater
         Sprite riverSprite = FindSprite("Streamstone");
