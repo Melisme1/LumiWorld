@@ -126,7 +126,8 @@ public class RiverNetworkManager : MonoBehaviour
     /// <summary>
     /// Đặt một đoạn suối lên ô lục giác, tự động uốn lượn nối với các ô suối kề bên và tính điểm
     /// </summary>
-    public PlacedCard PlaceRiver(HexCoordinates coords, GameObject targetTileObj, CardData cardData, Vector3? explicitSpawnPos = null)
+    /// <param name="restoring">true khi WorldSaveSystem dựng lại từ bản lưu: không tính điểm thưởng tức thì, không hiện popup, không tính lại tổng điểm.</param>
+    public PlacedCard PlaceRiver(HexCoordinates coords, GameObject targetTileObj, CardData cardData, Vector3? explicitSpawnPos = null, bool restoring = false)
     {
         EnsureConfig();
         if (targetTileObj == null) return null;
@@ -177,6 +178,9 @@ public class RiverNetworkManager : MonoBehaviour
         // 4. Cáº­p nháº­t Auto-Tiling cho Ã´ nÃ y vÃ  toÃ n bá»™ cÃ¡c Ã´ lÃ¡ng giá»ng ká» sÃ¡t
         RefreshTileAndNeighbors(coords, baseSurfacePos);
 
+        // Đang nạp bản lưu: điểm hiển thị lấy từ record, tổng điểm WorldSaveSystem tính lại một lần ở cuối
+        if (restoring) return placedCard;
+
         // 5. TÃ­nh toÃ¡n Ä‘iá»ƒm thÆ°á»Ÿng ná»• tá»©c thÃ¬ khi Ä‘áº·t suá»‘i (Burst Score)
         int burstScore = CalculateBurstScoreForNewRiver(coords);
         if (burstScore > 0)
@@ -198,11 +202,11 @@ public class RiverNetworkManager : MonoBehaviour
     /// <summary>
     /// LÃ m má»›i loáº¡i hÃ¬nh há»c (Straight, Curve, Fork...) vÃ  gÃ³c xoay cá»§a Ã´ chá»‰ Ä‘á»‹nh vÃ  cÃ¡c Ã´ suá»‘i ká» bÃªn
     /// </summary>
-    public void RefreshTileAndNeighbors(HexCoordinates centerCoords, Vector3 centerWorldPos)
+    public void RefreshTileAndNeighbors(HexCoordinates centerCoords, Vector3 centerWorldPos, bool includeNeighbors = true)
     {
         List<HexCoordinates> toRefresh = new List<HexCoordinates> { centerCoords };
 
-        for (int dir = 0; dir < 6; dir++)
+        for (int dir = 0; dir < 6 && includeNeighbors; dir++)
         {
             HexCoordinates neighbor = centerCoords.GetNeighbor(dir);
             if (_riverMap.ContainsKey(neighbor))
@@ -328,6 +332,54 @@ public class RiverNetworkManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Dựng lại một ô sông từ bản lưu. Có flowStep đã lưu (>= 0) thì chỉ gắn dữ liệu, chưa chọn hình:
+    /// gọi RefreshAllRivers sau khi nạp xong mọi ô để kết quả không phụ thuộc thứ tự nạp.
+    /// Bản lưu cũ (savedFlowStep = -1) thì đặt lại như lúc chơi, không tính điểm.
+    /// </summary>
+    public PlacedCard RestoreRiver(HexCoordinates coords, GameObject targetTileObj, CardData cardData, int savedFlowStep, bool savedIsOrigin)
+    {
+        if (savedFlowStep < 0) return PlaceRiver(coords, targetTileObj, cardData, null, restoring: true);
+
+        EnsureConfig();
+        if (targetTileObj == null) return null;
+
+        float surfaceY = HexBiomeClusterConnector.GetTileHeightLevels(targetTileObj).topY;
+        GameObject riverObj = new GameObject($"River_{coords.Q}_{coords.R}");
+        riverObj.transform.SetParent(targetTileObj.transform, true);
+        riverObj.transform.position = HexMetrics.HexToWorldPosition(coords, surfaceY);
+
+        RiverTileSegment segment = riverObj.AddComponent<RiverTileSegment>();
+        segment.placedHex = coords;
+        segment.flowStep = savedFlowStep;
+        segment.isOrigin = savedIsOrigin;
+        _riverMap[coords] = segment;
+
+        PlacedCard placedCard = riverObj.AddComponent<PlacedCard>();
+        placedCard.cardData = cardData;
+        placedCard.placedHex = coords;
+        return placedCard;
+    }
+
+    /// <summary>
+    /// Chọn lại hình và góc xoay cho mọi ô sông, mỗi ô một lần, đi từ đầu nguồn xuống (flowStep tăng dần).
+    /// </summary>
+    public void RefreshAllRivers()
+    {
+        List<RiverTileSegment> segments = new List<RiverTileSegment>();
+        foreach (RiverTileSegment seg in _riverMap.Values)
+            if (seg != null) segments.Add(seg);
+        segments.Sort((a, b) =>
+        {
+            int byStep = a.flowStep.CompareTo(b.flowStep);
+            if (byStep != 0) return byStep;
+            int byQ = a.placedHex.Q.CompareTo(b.placedHex.Q);
+            return byQ != 0 ? byQ : a.placedHex.R.CompareTo(b.placedHex.R);
+        });
+        foreach (RiverTileSegment seg in segments)
+            RefreshTileAndNeighbors(seg.placedHex, seg.transform.position, includeNeighbors: false);
     }
 
     /// <summary>

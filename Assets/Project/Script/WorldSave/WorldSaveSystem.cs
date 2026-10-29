@@ -245,6 +245,7 @@ public class WorldSaveSystem : MonoBehaviour
             foreach (PlacementRecord record in keptPlacements)
             {
                 CardData card = cardCatalog.Find(record.cardID);
+                if (card.IsRiverCard()) continue;
                 if ((card.cardType == CardType.Creature) != (phase == 1)) continue;
                 try
                 {
@@ -277,6 +278,41 @@ public class WorldSaveSystem : MonoBehaviour
             {
                 Debug.LogException(exception, this);
                 BlockSaves("Không nối được các cụm Nature sau khi khôi phục.");
+                return;
+            }
+        }
+
+        // Sông dựng sau khi các cụm Nature đã nối, giống lúc chơi: sông đặt lên địa hình có sẵn.
+        // Giữ đúng thứ tự đã lưu để bản lưu cũ (chưa có riverFlowStep) tính ra đầu nguồn như lúc đặt.
+        bool hasSavedRiverFlow = false;
+        foreach (PlacementRecord record in keptPlacements)
+        {
+            CardData card = cardCatalog.Find(record.cardID);
+            if (!card.IsRiverCard()) continue;
+            try
+            {
+                placedCards.Add(RestorePlacement(record, card, generator));
+                restored++;
+                if (record.riverFlowStep >= 0) hasSavedRiverFlow = true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                BlockSaves($"Không dựng được sông tại ({record.q}, {record.r}).");
+                return;
+            }
+        }
+        // Ô sông có flowStep đã lưu chưa chọn hình: chọn một lần cho cả mạng sau khi đủ mọi ô
+        if (hasSavedRiverFlow)
+        {
+            try
+            {
+                RiverNetworkManager.Instance.RefreshAllRivers();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                BlockSaves("Không dựng được hình sông sau khi khôi phục.");
                 return;
             }
         }
@@ -333,7 +369,12 @@ public class WorldSaveSystem : MonoBehaviour
         var (surfaceY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tile);
         Vector3 position = HexMetrics.HexToWorldPosition(coords, surfaceY) + card.placementOffset;
         GameObject objectToPlace;
-        if (card.IsTileTransformCard())
+        if (card.IsRiverCard())
+        {
+            // Sông phải dựng lại qua RiverNetworkManager để có RiverTileSegment và tự nối hình với các ô sông đã nạp trước.
+            objectToPlace = RiverNetworkManager.Instance.RestoreRiver(coords, tile, card, record.riverFlowStep, record.riverIsOrigin).gameObject;
+        }
+        else if (card.IsTileTransformCard())
         {
             // TileRecord already stores the transformed tile. Replaying Rain would replace it twice.
             objectToPlace = new GameObject($"PlacedCard_{card.cardName}");
@@ -499,6 +540,7 @@ public class WorldSaveSystem : MonoBehaviour
             var animal = card.GetComponent<AnimalIndividual>();
             var ai = card.GetComponentInChildren<FarmAnimalAI>(true);
             float cooldown = ai != null ? Mathf.Max(0f, ai.cooldownRemainingSeconds) : 0f;
+            var river = card.GetComponent<RiverTileSegment>();
             data.placements.Add(new PlacementRecord
             {
                 connectionCooldownSeconds = cooldown,
@@ -516,6 +558,8 @@ public class WorldSaveSystem : MonoBehaviour
                 animalName = animal != null ? animal.IndividualName : null,
                 animalStar = animal != null ? animal.StarLevel : 0,
                 animalTrait = animal != null ? (int)animal.Trait : 0,
+                riverFlowStep = river != null ? river.flowStep : -1,
+                riverIsOrigin = river != null && river.isOrigin,
             });
         }
 

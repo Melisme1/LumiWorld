@@ -191,6 +191,29 @@ public class EconomySaveSystem : MonoBehaviour
             {
                 // Hàng vừa mua hoặc hàng trả lại: cất đủ vào kho, không cất một phần
                 var goods = JsonUtility.FromJson<ItemsPayload>(payload);
+
+                // Thẻ thú mua được hoặc lô thẻ bị hủy/hết hạn: về tay bài
+                if (goods != null && CardTradeIds.IsCardId(goods.resourceId))
+                {
+                    CardData card = CardTradeIds.Find(goods.resourceId);
+                    if (card == null || goods.amount <= 0)
+                    {
+                        Debug.LogWarning($"[LumiWorld Inbox] Mục {kind} {itemId} có thẻ không tra được ({goods.resourceId}). Giữ lại trên server.");
+                        return false;
+                    }
+
+                    // Đang thăm đảo người khác hoặc tay bài chưa nạp: giữ mục, về đảo mình mới nhận
+                    CardDeskController desk = CardDeskController.Instance;
+                    if (desk == null || !desk.HandReady) return false;
+
+                    // Thẻ và id mục nằm trong cùng một lần ghi file bên dưới, nên không bao giờ cộng hai lần
+                    desk.AddCardsWithoutSaving(card, goods.amount);
+                    string cardId = card.cardID;
+                    int cardCount = goods.amount;
+                    undo = () => desk.TakeCardsWithoutSaving(cardId, cardCount);
+                    break;
+                }
+
                 ResourceData resource = goods != null ? ResourceCatalog.Find(goods.resourceId) : null;
                 if (resource == null || goods.amount <= 0)
                 {
