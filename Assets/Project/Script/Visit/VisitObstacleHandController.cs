@@ -1,0 +1,428 @@
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
+
+/// <summary>
+/// Temporary obstacle hand used only while visiting another player's island.
+/// It is separate from the saved player hand and never invokes normal card placement.
+/// </summary>
+public sealed class VisitObstacleHandController : MonoBehaviour
+{
+    private static readonly string[] DefaultKinds =
+        { "Obstacle", "BarrenLand", "Drought", "Cyclone", "ForestFire" };
+
+    [SerializeField] private GameObject cardPrefab;
+
+    private readonly Dictionary<GameObject, string> cardKinds = new();
+    private readonly Dictionary<GameObject, DragOrigin> draggingCards = new();
+    private RectTransform handRoot;
+    private TextMeshProUGUI statusText;
+    private Button retryButton;
+    private Canvas rootCanvas;
+    private HexWorldGenerator visitedWorld;
+    private HexCameraController cameraController;
+    private string[] allowedKinds = DefaultKinds;
+    private int feeCoins = 20;
+    private bool sending;
+    private bool feePaid;
+    private ObstacleSendRequest pendingRequest;
+    private string pendingIdempotencyKey;
+
+    private sealed class DragOrigin
+    {
+        public Transform parent;
+        public int siblingIndex;
+        public Vector2 anchoredPosition;
+        public Vector3 localScale;
+    }
+
+    private void Start()
+    {
+        if (!VisitSession.Active || UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != VisitSession.VisitScene)
+        {
+            enabled = false;
+            return;
+        }
+
+        Canvas canvas = GetComponent<Canvas>();
+        rootCanvas = canvas != null ? canvas.rootCanvas : GetComponentInParent<Canvas>()?.rootCanvas;
+        if (rootCanvas == null || cardPrefab == null)
+        {
+            Debug.LogError("[LumiWorld Visit] Obstacle hand needs a Canvas and card prefab.", this);
+            enabled = false;
+            return;
+        }
+
+        BuildHandRoot();
+        StartCoroutine(LoadConfigAndBuildCards());
+    }
+
+    private void OnDisable()
+    {
+        foreach (var pair in new List<KeyValuePair<GameObject, DragOrigin>>(draggingCards))
+            RestoreCard(pair.Key, pair.Value);
+        draggingCards.Clear();
+        SetCameraDragging(false);
+    }
+
+    private void Update()
+    {
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame && draggingCards.Count > 0)
+        {
+            foreach (var pair in new List<KeyValuePair<GameObject, DragOrigin>>(draggingCards))
+                RestoreCard(pair.Key, pair.Value);
+            draggingCards.Clear();
+            SetCameraDragging(false);
+        }
+    }
+
+    private void BuildHandRoot()
+    {
+        handRoot = EconomyHUD.CreateRect("VisitObstacleHand", transform);
+        RectTransform root = handRoot;
+        root.anchorMin = root.anchorMax = new Vector2(0.5f, 0f);
+        root.pivot = new Vector2(0.5f, 0f);
+        root.anchoredPosition = new Vector2(0f, 10f);
+        root.sizeDelta = new Vector2(900f, 280f);
+
+        statusText = EconomyHUD.CreateText("ObstacleStatus", root, 15f,
+            new Color(0.9f, 0.93f, 1f), TextAlignmentOptions.Center);
+        SetBottomCenter(statusText.rectTransform, new Vector2(0f, 232f), new Vector2(760f, 32f));
+        statusText.text = "Loading obstacle cards...";
+        statusText.raycastTarget = false;
+
+        RectTransform retryRect = EconomyHUD.CreateRect("RetryObstacleButton", root);
+        SetBottomCenter(retryRect, new Vector2(390f, 232f), new Vector2(86f, 30f));
+        retryButton = EconomyHUD.AddButton(retryRect, new Color(0.26f, 0.30f, 0.38f, 1f));
+        retryButton.onClick.AddListener(SendPendingObstacle);
+        TextMeshProUGUI retryLabel = EconomyHUD.CreateText("Label", retryRect, 14f,
+            Color.white, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(retryLabel.rectTransform);
+        retryLabel.text = "Retry";
+        retryButton.gameObject.SetActive(false);
+    }
+
+    private IEnumerator LoadConfigAndBuildCards()
+    {
+        GameConfigDto config = null;
+        ApiError error = null;
+        yield return ApiClient.Get<GameConfigDto>("/api/v1/config", false,
+            value => config = value, value => error = value);
+
+        if (config != null)
+        {
+            feeCoins = Mathf.Max(0, config.obstacleFeeCoins);
+            if (config.obstacleAllowedKinds != null)
+                allowedKinds = config.obstacleAllowedKinds;
+            BuildCards();
+            SetStatus(allowedKinds.Length == 0 ? "No obstacle cards are enabled." : "Drag an obstacle card onto an island hex.");
+            yield break;
+        }
+
+        BuildCards();
+        SetStatus(error != null && error.IsNetworkError
+            ? "Could not load obstacle settings. Showing the default cards."
+            : "Could not load obstacle settings: " + MarketSync.Describe(error));
+    }
+
+    private void BuildCards()
+    {
+        ClearCards();
+        if (allowedKinds == null || allowedKinds.Length == 0) return;
+
+        const float cardWidth = 150f;
+        const float maxHandWidth = 780f;
+        float scale = Mathf.Min(0.9f, maxHandWidth / (allowedKinds.Length * cardWidth));
+        float spacing = allowedKinds.Length <= 1
+            ? 0f
+            : Mathf.Min(165f * scale, (maxHandWidth - cardWidth * scale) / (allowedKinds.Length - 1));
+        float firstX = -(allowedKinds.Length - 1) * spacing * 0.5f;
+
+        for (int i = 0; i < allowedKinds.Length; i++)
+        {
+            string kind = allowedKinds[i];
+            if (string.IsNullOrWhiteSpace(kind)) continue;
+
+            GameObject card = Instantiate(cardPrefab, handRoot, false);
+            card.name = "VisitObstacleCard_" + kind;
+
+            RectTransform rect = card.GetComponent<RectTransform>();
+            if (rect == null)
+            {
+                Destroy(card);
+                continue;
+            }
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(firstX + i * spacing, 22f);
+            rect.localScale = Vector3.one * scale;
+
+            Image face = card.GetComponent<Image>();
+            if (face != null)
+            {
+                face.color = CardColor(kind);
+            }
+
+            TextMeshProUGUI title = EconomyHUD.CreateText("ObstacleName", rect, 18f,
+                Color.white, TextAlignmentOptions.Center);
+            SetTopCenter(title.rectTransform, new Vector2(0f, -46f), new Vector2(136f, 64f));
+            title.text = DisplayName(kind);
+            title.textWrappingMode = TextWrappingModes.Normal;
+            title.raycastTarget = false;
+
+            TextMeshProUGUI fee = EconomyHUD.CreateText("ObstacleFee", rect, 14f,
+                new Color(1f, 0.84f, 0.35f), TextAlignmentOptions.Center);
+            SetBottomCenter(fee.rectTransform, new Vector2(0f, 16f), new Vector2(140f, 24f));
+            fee.text = $"{feeCoins} Coins";
+            fee.raycastTarget = false;
+
+            CanvasGroup group = card.GetComponent<CanvasGroup>();
+            if (group == null) group = card.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = true;
+            cardKinds[card] = kind;
+            AddDragEvents(card);
+        }
+    }
+
+    private void ClearCards()
+    {
+        foreach (GameObject card in cardKinds.Keys)
+            if (card != null) Destroy(card);
+        cardKinds.Clear();
+    }
+
+    private void AddDragEvents(GameObject card)
+    {
+        EventTrigger trigger = card.AddComponent<EventTrigger>();
+        trigger.triggers = new List<EventTrigger.Entry>();
+        AddEventTrigger(trigger, EventTriggerType.BeginDrag, data => BeginDragCard(card, (PointerEventData)data));
+        AddEventTrigger(trigger, EventTriggerType.Drag, data => MoveDraggedCard(card, ((PointerEventData)data).position));
+        AddEventTrigger(trigger, EventTriggerType.EndDrag, data => EndDragCard(card, (PointerEventData)data));
+    }
+
+    private void AddEventTrigger(EventTrigger trigger, EventTriggerType type,
+        UnityEngine.Events.UnityAction<BaseEventData> callback)
+    {
+        EventTrigger.Entry entry = new EventTrigger.Entry { eventID = type };
+        entry.callback.AddListener(callback);
+        trigger.triggers.Add(entry);
+    }
+
+    private void BeginDragCard(GameObject card, PointerEventData eventData)
+    {
+        if (!VisitSession.Active || sending || pendingRequest != null ||
+            eventData.button != PointerEventData.InputButton.Left || !cardKinds.ContainsKey(card)) return;
+
+        RectTransform rect = card.GetComponent<RectTransform>();
+        CanvasGroup group = card.GetComponent<CanvasGroup>();
+        if (rect == null || group == null) return;
+
+        draggingCards[card] = new DragOrigin
+        {
+            parent = card.transform.parent,
+            siblingIndex = card.transform.GetSiblingIndex(),
+            anchoredPosition = rect.anchoredPosition,
+            localScale = rect.localScale
+        };
+        SetCameraDragging(true);
+        card.transform.SetParent(rootCanvas.transform, true);
+        card.transform.SetAsLastSibling();
+        group.blocksRaycasts = false;
+        rect.localScale = Vector3.one * 1.05f;
+        MoveDraggedCard(card, eventData.position);
+        SetStatus($"Dragging {DisplayName(cardKinds[card])}. Drop it on a hex.");
+    }
+
+    private void MoveDraggedCard(GameObject card, Vector2 screenPosition)
+    {
+        if (!draggingCards.ContainsKey(card)) return;
+        RectTransform canvasRect = rootCanvas.transform as RectTransform;
+        RectTransform cardRect = card.GetComponent<RectTransform>();
+        Camera eventCamera = rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : rootCanvas.worldCamera;
+        if (canvasRect != null && cardRect != null &&
+            RectTransformUtility.ScreenPointToWorldPointInRectangle(canvasRect, screenPosition, eventCamera, out Vector3 world))
+            cardRect.position = world;
+    }
+
+    private void EndDragCard(GameObject card, PointerEventData eventData)
+    {
+        if (!draggingCards.TryGetValue(card, out DragOrigin origin)) return;
+        string kind = cardKinds.TryGetValue(card, out string value) ? value : "Obstacle";
+        bool hasTarget = TryGetTargetTile(eventData.position, out HexCoordinates target);
+        RestoreCard(card, origin);
+        draggingCards.Remove(card);
+        if (draggingCards.Count == 0) SetCameraDragging(false);
+
+        if (!hasTarget)
+        {
+            SetStatus("Drop the obstacle card directly onto an island hex.");
+            return;
+        }
+        SendObstacleToTarget(kind, target);
+    }
+
+    private void RestoreCard(GameObject card, DragOrigin origin)
+    {
+        if (card == null || origin == null || origin.parent == null) return;
+        card.transform.SetParent(origin.parent, false);
+        card.transform.SetSiblingIndex(Mathf.Clamp(origin.siblingIndex, 0, origin.parent.childCount - 1));
+        RectTransform rect = card.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchoredPosition = origin.anchoredPosition;
+            rect.localScale = origin.localScale;
+        }
+        CanvasGroup group = card.GetComponent<CanvasGroup>();
+        if (group != null) group.blocksRaycasts = true;
+    }
+
+    private bool TryGetTargetTile(Vector2 screenPosition, out HexCoordinates target)
+    {
+        target = default;
+        if (visitedWorld == null) visitedWorld = FindAnyObjectByType<HexWorldGenerator>();
+        Camera camera = Camera.main;
+        if (visitedWorld == null || camera == null) return false;
+
+        RaycastHit[] hits = Physics.RaycastAll(camera.ScreenPointToRay(screenPosition), 1000f);
+        float closest = float.PositiveInfinity;
+        bool found = false;
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.distance >= closest) continue;
+            Transform current = hit.collider != null ? hit.collider.transform : null;
+            while (current != null)
+            {
+                HexTileInfo info = current.GetComponent<HexTileInfo>();
+                if (info != null && visitedWorld.MapTiles.TryGetValue(info.coordinates, out GameObject tile) && tile != null)
+                {
+                    closest = hit.distance;
+                    target = info.coordinates;
+                    found = true;
+                    break;
+                }
+                current = current.parent;
+            }
+        }
+        return found;
+    }
+
+    private void SendObstacleToTarget(string kind, HexCoordinates target)
+    {
+        CurrencyWallet wallet = CurrencyWallet.Instance;
+        if (wallet == null || !wallet.CanAfford(feeCoins))
+        {
+            SetStatus($"Not enough Coins. Sending {DisplayName(kind)} costs {feeCoins} Coins.");
+            return;
+        }
+
+        pendingRequest = new ObstacleSendRequest { kind = kind, q = target.Q, r = target.R };
+        pendingIdempotencyKey = System.Guid.NewGuid().ToString("N");
+        if (!wallet.TrySpend(feeCoins, CoinReason.ObstacleSend))
+        {
+            pendingRequest = null;
+            pendingIdempotencyKey = null;
+            SetStatus($"Could not spend {feeCoins} Coins for {DisplayName(kind)}.");
+            return;
+        }
+        feePaid = true;
+        SendPendingObstacle();
+    }
+
+    private void SendPendingObstacle()
+    {
+        if (pendingRequest == null || sending) return;
+        ObstacleSendRequest sent = pendingRequest;
+        string idempotencyKey = pendingIdempotencyKey;
+        sending = true;
+        retryButton.interactable = false;
+        string name = DisplayName(sent.kind);
+        SetStatus($"Sending {name} to [{sent.q}:{sent.r}]...");
+
+        StartCoroutine(WorldShareService.SendObstacle(VisitSession.OwnerId, sent.kind, sent.q, sent.r,
+            idempotencyKey,
+            response =>
+            {
+                sending = false;
+                pendingRequest = null;
+                pendingIdempotencyKey = null;
+                feePaid = false;
+                retryButton.interactable = true;
+                retryButton.gameObject.SetActive(false);
+                string id = response != null ? response.obstacleId : null;
+                SetStatus(string.IsNullOrEmpty(id)
+                    ? $"{name} sent to {VisitSession.OwnerName}'s island at [{sent.q}:{sent.r}]. Charged {feeCoins} Coins."
+                    : $"{name} #{id} sent to {VisitSession.OwnerName}'s inbox. Charged {feeCoins} Coins.");
+            },
+            error =>
+            {
+                sending = false;
+                retryButton.interactable = true;
+                if (error != null && error.IsNetworkError)
+                {
+                    retryButton.gameObject.SetActive(true);
+                    SetStatus("Connection uncertain. Retry to safely resend the same request.");
+                    return;
+                }
+                RefundFee();
+                pendingRequest = null;
+                pendingIdempotencyKey = null;
+                retryButton.gameObject.SetActive(false);
+                SetStatus(MarketSync.Describe(error));
+            }));
+    }
+
+    private void RefundFee()
+    {
+        if (!feePaid) return;
+        CurrencyWallet.Instance?.Add(feeCoins, CoinReason.ObstacleRefund);
+        feePaid = false;
+    }
+
+    private void SetCameraDragging(bool dragging)
+    {
+        if (cameraController == null) cameraController = FindAnyObjectByType<HexCameraController>();
+        if (cameraController != null) cameraController.SetCardDragging(dragging);
+    }
+
+    private void SetStatus(string message)
+    {
+        if (statusText != null) statusText.text = message;
+    }
+
+    private static string DisplayName(string kind)
+    {
+        if (System.Enum.TryParse(kind, true, out LumiWorld.Acs.DisasterKind disasterKind) &&
+            System.Enum.IsDefined(typeof(LumiWorld.Acs.DisasterKind), disasterKind))
+            return LumiWorld.Acs.DisasterCatalog.DisplayName(disasterKind);
+        return string.IsNullOrWhiteSpace(kind) ? "Obstacle" : kind;
+    }
+
+    private static Color CardColor(string kind)
+    {
+        if (kind == "ForestFire") return new Color(1f, 0.55f, 0.34f);
+        if (kind == "Cyclone") return new Color(0.48f, 0.75f, 1f);
+        if (kind == "Drought") return new Color(1f, 0.83f, 0.40f);
+        if (kind == "BarrenLand") return new Color(0.77f, 0.61f, 0.43f);
+        return new Color(0.75f, 0.79f, 0.86f);
+    }
+
+    private static void SetTopCenter(RectTransform rect, Vector2 position, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+    }
+
+    private static void SetBottomCenter(RectTransform rect, Vector2 position, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+    }
+}
