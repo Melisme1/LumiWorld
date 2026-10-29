@@ -245,10 +245,12 @@ public class CardDeskController : MonoBehaviour
             }
 
             cards.Add(card);
+        }
 
-            yield return new WaitForSeconds(
-                appearDelay
-            );
+        // Đợi toàn bộ các lá bài hoàn tất hiệu ứng xuất hiện ban đầu
+        if (appearDelay > 0f && cardCount > 0)
+        {
+            yield return new WaitForSeconds(appearDelay * cardCount + 0.35f);
         }
 
         suppressRewardFeedback = false;
@@ -869,7 +871,8 @@ private void TryPlayRewardFeedback(
             return 0f;
         }
 
-        float scaledWidth = cardWidth * cardScale;
+        float effectiveWidth = Mathf.Max(120f, cardWidth);
+        float scaledWidth = effectiveWidth * cardScale;
 
         // Dùng vùng thật của khay bài. Giới hạn 640px trước đây khiến card bị dồn
         // chồng lên nhau dù CardContainer và handWidth còn nhiều khoảng trống.
@@ -887,9 +890,9 @@ private void TryPlayRewardFeedback(
         }
 
         // Bài nhiều: cho phép xếp chồng các lá (spacing < scaledWidth).
-        // Càng nhiều lá thì spacing càng co lại (xếp chồng tăng dần) để gọn gàng,
-        // chặn dưới ở mức 50f để các lá vẫn để lộ viền và số nhận diện rõ ràng.
-        return Mathf.Clamp(targetSpacing, 50f, maxSpacing);
+        // Càng nhiều lá thì spacing càng co lại để gọn gàng, nhưng không đè quá mức.
+        float floorSpacing = Mathf.Min(minSpacing, 100f);
+        return Mathf.Clamp(targetSpacing, floorSpacing, maxSpacing);
     }
 
     // =========================================

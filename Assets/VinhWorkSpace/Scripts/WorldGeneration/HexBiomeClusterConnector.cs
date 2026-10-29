@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using PropArchetype = HexClusterPropResolver.PropArchetype;
+using NearbyPropEntry = HexClusterPropResolver.NearbyPropEntry;
 
 /// <summary>
 /// Quản lý việc kết nối các khối lục giác cùng Biome thành một cụm hoàn chỉnh (Preserve-style)
@@ -129,9 +131,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
     // Quản lý các cầu nối và nắp góc đã tạo để không tạo trùng lặp
     private readonly HashSet<string> _createdEdgeBridges = new HashSet<string>();
-
-    // Bộ số ngẫu nhiên có seed cho props/cỏ của cạnh hoặc ngã ba đang dựng (các hàm spawn chạy liền, không yield)
-    private DecorRandom decorRandom = new DecorRandom(0);
     private readonly HashSet<string> _createdCornerFillers = new HashSet<string>();
     private readonly HashSet<string> _celebratedClusters = new HashSet<string>();
 
@@ -181,14 +180,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
 #endif
     }
 
-    // TUYỆT ĐỐI KHÔNG tự động quét toàn map trong Start() để tránh sinh dải nối trên các ô đất thô chưa đặt bài!
-
-    /// <summary>
-    /// Gán hoặc sáp nhập Cụm Biome cho một lá bài PlacedCard vừa đặt xuống.
-    /// Đảm bảo một cụm không bao giờ vượt quá maxTilesPerCluster (mặc định 9 ô).
-    /// Nếu đặt thêm ô thứ 10, ô đó sẽ được tách thành một cụm độc lập (clusterId mới),
-    /// không tạo bất kỳ viền nối nào với cụm 9 ô trước đó.
-    /// </summary>
     public int AssignCluster(PlacedCard placedCard)
     {
         if (placedCard == null || placedCard.cardData == null) return -1;
@@ -213,7 +204,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager) &&
             habitatManager.Catalog.TryGetHabitat(placedCard.CardID, out _)) limit = LumiWorld.Acs.HabitatTopologyService.MaximumHexCount;
 
-        // 1. Quét tìm kích thước hiện tại của tất cả các cụm cùng loại habitat
         PlacedCard[] allCards = FindObjectsByType<PlacedCard>(FindObjectsInactive.Include);
         Dictionary<int, int> clusterSizes = new Dictionary<int, int>();
         foreach (var c in allCards)
@@ -225,7 +215,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             }
         }
 
-        // 2. Quét 6 hướng tìm các ô láng giềng hợp lệ
         Dictionary<int, List<PlacedCard>> eligibleNeighborClusters = new Dictionary<int, List<PlacedCard>>();
 
         for (int dir = 0; dir < 6; dir++)
@@ -236,7 +225,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 PlacedCard neighborCard = GetHabitatCardOnTile(neighborTile);
                 if (neighborCard != null && neighborCard != placedCard && AreNatureCardsMatching(placedCard.cardData, neighborCard.cardData))
                 {
-                    // Nếu ô láng giềng chưa có clusterId, khởi tạo cho nó
                     if (neighborCard.clusterId <= 0)
                     {
                         neighborCard.clusterId = _nextClusterId++;
@@ -246,7 +234,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     int cId = neighborCard.clusterId;
                     int curSize = clusterSizes.ContainsKey(cId) ? clusterSizes[cId] : 1;
 
-                    // Chỉ coi là hợp lệ để kết nối nếu cụm đó CHƯA ĐẦY (< limit)
                     if (curSize < limit)
                     {
                         if (!eligibleNeighborClusters.ContainsKey(cId))
@@ -259,16 +246,12 @@ public class HexBiomeClusterConnector : MonoBehaviour
             }
         }
 
-        // 3. Xử lý gán cluster:
         if (eligibleNeighborClusters.Count == 0)
         {
-            // Không có cụm láng giềng nào còn chỗ (hoặc tất cả cụm kề bên đã đạt tối đa 6 ô)!
-            // Tách thành CỤM MỚI ĐỘC LẬP
             placedCard.clusterId = _nextClusterId++;
         }
         else if (eligibleNeighborClusters.Count == 1)
         {
-            // Có đúng 1 cụm kề bên còn chỗ -> Gia nhập cụm đó
             foreach (var kvp in eligibleNeighborClusters)
             {
                 placedCard.clusterId = kvp.Key;
@@ -277,12 +260,10 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
         else
         {
-            // Kề cận nhiều hơn 1 cụm còn chỗ:
-            // Kiểm tra xem có thể gộp (merge) các cụm lại mà không vượt quá limit không?
             List<int> candidateClusterIds = new List<int>(eligibleNeighborClusters.Keys);
             candidateClusterIds.Sort();
             int primaryClusterId = candidateClusterIds[0];
-            int totalMergedSize = 1; // bản thân ô mới
+            int totalMergedSize = 1;
 
             foreach (var cId in candidateClusterIds)
             {
@@ -291,7 +272,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
             if (totalMergedSize <= limit)
             {
-                // Tổng số ô sau khi gộp vẫn <= limit -> Cho phép gộp thành 1 cụm duy nhất!
                 placedCard.clusterId = primaryClusterId;
                 for (int i = 1; i < candidateClusterIds.Count; i++)
                 {
@@ -307,8 +287,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             }
             else
             {
-                // Nếu gộp tất cả sẽ vượt quá limit:
-                // Chỉ gia nhập Cụm có nhiều cạnh kề nhất, KHÔNG gộp các cụm còn lại!
                 int bestClusterId = primaryClusterId;
                 int maxAdjCount = -1;
 
@@ -329,9 +307,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return placedCard.clusterId;
     }
 
-    /// <summary>
-    /// Kích hoạt kết nối khi một lá bài Habitat vừa được người chơi đặt xuống thành công
-    /// </summary>
     public void ConnectCluster(PlacedCard placedCard)
     {
         if (placedCard == null || placedCard.cardData == null) return;
@@ -341,21 +316,15 @@ public class HexBiomeClusterConnector : MonoBehaviour
             worldGen.MapTiles.TryGetValue(placedCard.placedHex, out GameObject placedTile) && IsBurnedTile(placedTile))
             return;
 
-        // Chỉ xử lý nếu lá bài này là thẻ Habitat (có hệ sinh thái props) hoặc Terrain
         if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain) return;
 
-        // 1. Phân bổ Cụm Biome cho thẻ bài (tối đa maxTilesPerCluster ô)
         AssignCluster(placedCard);
 
         if (!placedCard.cardData.HasHabitatProps()) return;
 
-        // 2. Quét và kết nối viền với các ô láng giềng cùng loại VÀ cùng Cụm
         ConnectAllNearby(placedCard.placedHex, placedCard.cardData);
     }
 
-    /// <summary>
-    /// Quét và kết nối ô tại centerHex với tất cả các ô láng giềng kề nó THỎA MÃN CÙNG HABITAT VÀ CÙNG CỤM
-    /// </summary>
     public void ConnectAllNearby(HexCoordinates centerHex, CardData centerHabitatData = null)
     {
         HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
@@ -365,14 +334,18 @@ public class HexBiomeClusterConnector : MonoBehaviour
             return;
         if (IsBurnedTile(centerTile)) return;
 
-        // Xác định thẻ Habitat trên ô trung tâm (duyệt qua toàn bộ PlacedCard trên ô, không bị che bởi thẻ Rain)
         PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
+        bool centerHasRiver = (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(centerHex));
         if (centerHabitatData == null || !centerHabitatData.HasHabitatProps())
         {
-            if (centerCard == null || centerCard.cardData == null || !centerCard.cardData.HasHabitatProps())
+            if (centerCard != null && centerCard.cardData != null && centerCard.cardData.HasHabitatProps())
+            {
+                centerHabitatData = centerCard.cardData;
+            }
+            else if (!centerHasRiver)
+            {
                 return;
-
-            centerHabitatData = centerCard.cardData;
+            }
         }
 
         if (centerCard != null && centerCard.clusterId <= 0)
@@ -380,7 +353,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             AssignCluster(centerCard);
         }
 
-        // 1. Quét tìm tất cả các ngã ba 3 ô (Corner Junctions) MỚI ĐƯỢC TẠO THÀNH bởi ô centerHex này
         List<(HexCoordinates hB, GameObject tileB, HexCoordinates hC, GameObject tileC, string cornerKey)> newCorners =
             new List<(HexCoordinates, GameObject, HexCoordinates, GameObject, string)>();
         HashSet<string> clusterEdgeKeys = new HashSet<string>();
@@ -400,7 +372,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     AreHabitatsMatching(centerHabitatData, cardB.cardData) &&
                     AreHabitatsMatching(centerHabitatData, cardC.cardData))
                 {
-                    // NẾU BẬT GIỚI HẠN BIOME: Cả 3 ô center, B, C PHẢI THUỘC CÙNG 1 CỤM CLUSTER ID THÌ MỚI HÀN NGÃ BA!
                     if (enableBiomeSizeLimit)
                     {
                         if (centerCard == null || centerCard.clusterId <= 0 ||
@@ -408,7 +379,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
                             cardB.clusterId != centerCard.clusterId ||
                             cardC.clusterId != centerCard.clusterId)
                         {
-                            continue; // Khác cụm -> BỎ QUA, không hàn ngã ba giữa các ô khác cụm!
+                            continue;
                         }
                     }
 
@@ -416,7 +387,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     if (!_createdCornerFillers.Contains(cornerKey))
                     {
                         newCorners.Add((hB, tileB, hC, tileC, cornerKey));
-                        // 2 cạnh mới nối từ centerHex sang 2 ô láng giềng thuộc cụm 3 ô này:
                         clusterEdgeKeys.Add(GetEdgeKey(centerHex, hB));
                         clusterEdgeKeys.Add(GetEdgeKey(centerHex, hC));
                     }
@@ -424,7 +394,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             }
         }
 
-        // 2. Quét 6 hướng xung quanh centerHex để hàn rãnh mesh và sinh props viền
         for (int dir = 0; dir < 6; dir++)
         {
             HexCoordinates neighborHex = centerHex.GetNeighbor(dir);
@@ -434,16 +403,30 @@ public class HexBiomeClusterConnector : MonoBehaviour
             {
                 PlacedCard neighborCard = GetHabitatCardOnTile(neighborTile);
 
-                if (neighborCard != null && AreHabitatsMatching(centerHabitatData, neighborCard.cardData))
+                bool riverCrossesEdge = false;
+                if (RiverNetworkManager.Instance != null)
                 {
-                    // NẾU BẬT GIỚI HẠN BIOME: Cả 2 ô center và neighbor PHẢI THUỘC CÙNG 1 CỤM CLUSTER ID THÌ MỚI TẠO VIỀN NỐI!
-                    if (enableBiomeSizeLimit)
+                    RiverTileSegment segCenter = RiverNetworkManager.Instance.GetRiver(centerHex);
+                    RiverTileSegment segNeighbor = RiverNetworkManager.Instance.GetRiver(neighborHex);
+                    if (segCenter != null && segCenter.HasPort(dir)) riverCrossesEdge = true;
+                    if (segNeighbor != null)
+                    {
+                        int oppositeDir = (dir + 3) % 6;
+                        if (segNeighbor.HasPort(oppositeDir)) riverCrossesEdge = true;
+                    }
+                }
+
+                bool habitatsMatch = (neighborCard != null && AreHabitatsMatching(centerHabitatData, neighborCard.cardData));
+
+                if (habitatsMatch || riverCrossesEdge)
+                {
+                    if (!riverCrossesEdge && enableBiomeSizeLimit)
                     {
                         if (centerCard == null || centerCard.clusterId <= 0 ||
-                            neighborCard.clusterId <= 0 ||
+                            neighborCard == null || neighborCard.clusterId <= 0 ||
                             neighborCard.clusterId != centerCard.clusterId)
                         {
-                            continue; // Khác cụm -> BỎ QUA, không tạo viền nối giữa các ô khác cụm!
+                            continue;
                         }
                     }
 
@@ -451,23 +434,18 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     if (!_createdEdgeBridges.Contains(edgeKey))
                     {
                         _createdEdgeBridges.Add(edgeKey);
-                        CreateEdgeSeamBridge(centerHex, centerTile, neighborHex, neighborTile, edgeKey, centerHabitatData, worldGen);
+                        CardData bridgeHabitatData = centerHabitatData != null ? centerHabitatData : (neighborCard != null ? neighborCard.cardData : null);
+                        CreateEdgeSeamBridge(centerHex, centerTile, neighborHex, neighborTile, edgeKey, bridgeHabitatData, worldGen);
 
-                        // CHỈ sinh props theo quy tắc 2 ô liền nhau nếu cạnh này KHÔNG thuộc cụm 3 ô vừa tạo.
-                        // (Cụm 3 ô sẽ sinh 1 cây trung ở tâm và tán props ra 2 cạnh viền này)
-                        if (spawnConnectorProps && !clusterEdgeKeys.Contains(edgeKey))
+                        if (!riverCrossesEdge && spawnConnectorProps && !clusterEdgeKeys.Contains(edgeKey))
                         {
-                            SeedDecor("edgeprops", edgeKey, centerHabitatData);
-                            SpawnEdgeConnectorProps(centerTile, neighborTile, centerHabitatData);
+                            HexClusterVegetationSpawner.SpawnEdgeConnectorProps(this, ConnectionsContainer, centerTile, neighborTile, bridgeHabitatData, GetVegetationConfig());
                         }
                     }
                 }
             }
         }
 
-        // 3. Xử lý các ngã ba 3 ô mới tạo thành:
-        // - Tạo nắp phẳng hàn ngã ba
-        // - Sinh 1 cây trung ở giữa tâm ngã ba và tán props ra 2 cạnh viền còn lại
         for (int i = 0; i < newCorners.Count; i++)
         {
             var corner = newCorners[i];
@@ -476,18 +454,13 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
             if (spawnCornerProps)
             {
-                SeedDecor("cornerprops", corner.cornerKey, centerHabitatData);
-                SpawnClusterCornerProps(centerTile, corner.tileB, corner.tileC, centerHabitatData);
+                HexClusterVegetationSpawner.SpawnClusterCornerProps(this, ConnectionsContainer, centerTile, corner.tileB, corner.tileC, centerHabitatData, GetVegetationConfig());
             }
         }
 
-        // 4. Kiểm tra ăn mừng cụm hoàn thành (>= 3 ô Habitat cùng loại kề nhau)
         CheckAndCelebrateCluster(centerHex, centerHabitatData, worldGen);
     }
 
-    /// <summary>
-    /// Tìm PlacedCard chứa Habitat Props trên một GameObject Tile (hỗ trợ trường hợp có cả PlacedCard của Rain)
-    /// </summary>
     public static PlacedCard GetHabitatCardOnTile(GameObject tileObj)
     {
         if (tileObj == null) return null;
@@ -514,10 +487,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return LumiWorld.Acs.TileDisasterState.TryGet(tileObj, out var state) && state.isBurned;
     }
 
-    /// <summary>
-    /// So khớp xem 2 thẻ bài có cùng loại Habitat hay không
-    /// </summary>
-    // Gameplay grouping key; biome-family names are reserved for visual presentation.
     public static bool AreNatureCardsMatching(CardData a, CardData b)
     {
         return a != null && b != null && a.cardType == CardType.Terrain && b.cardType == CardType.Terrain &&
@@ -529,11 +498,9 @@ public class HexBiomeClusterConnector : MonoBehaviour
         if (a == null || b == null) return false;
         if (!a.HasHabitatProps() || !b.HasHabitatProps()) return false;
 
-        // 1. So khớp trực tiếp ID hoặc Name
         if (a.cardID == b.cardID) return true;
         if (a.cardName == b.cardName) return true;
 
-        // 2. So khớp nhóm Biome tương đương (ví dụ Forest và Leafwood đều là Rừng cây Leafwood)
         string gA = GetHabitatFamily(a.cardName);
         string gB = GetHabitatFamily(b.cardName);
 
@@ -542,7 +509,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return false;
     }
 
-    private static string GetHabitatFamily(string cardName)
+    public static string GetHabitatFamily(string cardName)
     {
         if (string.IsNullOrEmpty(cardName)) return "";
         if (cardName.IndexOf("Forest", StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -561,12 +528,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return cardName;
     }
 
-    /// <summary>
-    /// Tạo cầu nối Seam Bridge khớp 100% hình học:
-    /// - Mặt phẳng đỉnh (Top Flat Cap): chườm kín rãnh giữa 2 ô
-    /// - Sườn dốc mép ngoài (Outer Bevel Skirts): vát dốc nối khít mép vát của 2 ô (xóa bỏ 100% góc khuyết chữ V)
-    /// - Thành đứng bên ngoài (Vertical Wall Skirts): bịt kín khe nứt thành bên xuống đáy nước biển
-    /// </summary>
     private void CreateEdgeSeamBridge(
         HexCoordinates hexA, GameObject tileA,
         HexCoordinates hexB, GameObject tileB,
@@ -581,21 +542,18 @@ public class HexBiomeClusterConnector : MonoBehaviour
         float distXZ = dirXZ.magnitude;
         if (distXZ < 0.001f) return;
 
-        Vector3 u = dirXZ / distXZ;                 // Vector đơn vị từ A sang B
-        Vector3 v = new Vector3(-u.z, 0f, u.x);     // Vector tiếp tuyến dọc theo cạnh chung
-        Vector3 midPoint = (posA + posB) * 0.5f;    // Trung điểm cạnh chung
+        Vector3 u = dirXZ / distXZ;
+        Vector3 v = new Vector3(-u.z, 0f, u.x);
+        Vector3 midPoint = (posA + posB) * 0.5f;
 
-        float halfEdge = HexMetrics.OuterRadius * 0.5f; // 0.5773503f
+        float halfEdge = HexMetrics.OuterRadius * 0.5f;
 
-        // Hai đỉnh đầu mút của cạnh tiếp giáp (tại tầng Rim của lục giác)
         Vector3 V1_world = midPoint - v * halfEdge;
         Vector3 V2_world = midPoint + v * halfEdge;
 
-        // Lấy thông số độ cao chuẩn xác theo khối Tile thực tế (không dựa vào cardData)
         var (topYA, rimYA, bottomYA) = GetTileHeightLevels(tileA);
         var (topYB, rimYB, bottomYB) = GetTileHeightLevels(tileB);
 
-        // Nếu 2 ô ở 2 tầng độ cao khác nhau (vách núi bậc thang), giữ nguyên bậc thang tự nhiên, không tạo cầu nối phẳng
         if (Mathf.Abs(topYA - topYB) > 0.15f) return;
 
         float topY = (topYA + topYB) * 0.5f;
@@ -603,16 +561,13 @@ public class HexBiomeClusterConnector : MonoBehaviour
         float bottomY = Mathf.Min(bottomYA, bottomYB);
         float elevatedTopY = topY + bridgeYOffset;
 
-        // Kiểm tra xem đầu mút V1 và V2 có phải là mép ngoài (Outer Rim) hay ngã ba nội bộ (Internal Corner)
         bool v1IsOuter = !HasThirdHabitatNeighbor(hexA, hexB, V1_world, habitatData, worldGen);
         bool v2IsOuter = !HasThirdHabitatNeighbor(hexA, hexB, V2_world, habitatData, worldGen);
 
-        // Lấy UV tương ứng cho từng bề mặt
         var (topGrassUV, bevelUV, wallUV) = GetTilePaletteUVs(tileA, habitatData);
         Material tileMat = GetTileMaterial(tileA);
 
-        // Xây dựng Mesh hoàn chỉnh trong Local Space quanh midPoint
-        Mesh bridgeMesh = BuildSeamBridgeMeshLocal(
+        Mesh bridgeMesh = HexClusterMeshBuilder.BuildSeamBridgeMeshLocal(
             u, v, halfEdge,
             elevatedTopY - midPoint.y,
             rimY - midPoint.y,
@@ -621,7 +576,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             topGrassUV, bevelUV, wallUV
         );
 
-        // Tạo GameObject đại diện đặt đúng tại midPoint
         GameObject bridgeGo = new GameObject($"SeamBridge_{edgeKey}");
         bridgeGo.transform.SetParent(ConnectionsContainer, false);
         bridgeGo.transform.position = new Vector3(midPoint.x, midPoint.y, midPoint.z);
@@ -636,173 +590,12 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         StartCoroutine(AnimateBridgePopIn(bridgeGo.transform));
 
-        if (spawnSeamMicroGrass)
+        if (spawnSeamMicroGrass && !IsPositionNearRiver(midPoint, 0.40f))
         {
-            SeedDecor("seamgrass", edgeKey, habitatData);
-            SpawnBorderMicroGrass(midPoint, u, v, halfEdge, elevatedTopY, habitatData);
+            HexClusterVegetationSpawner.SpawnBorderMicroGrass(this, ConnectionsContainer, midPoint, u, v, halfEdge, elevatedTopY, habitatData, GetVegetationConfig());
         }
     }
 
-    /// <summary>
-    /// Xây dựng Mesh hình học chuẩn xác của Seam Bridge trong Local Space của midPoint:
-    /// - Đoạn phẳng trên đỉnh kết thúc tại: 0.93 * halfEdge = 0.5369f
-    /// - Sườn vát ngoài nghiêng từ 0.5369f ra 0.5774f, độ cao dốc từ localTopY xuống localRimY
-    /// </summary>
-    private Mesh BuildSeamBridgeMeshLocal(
-        Vector3 u, Vector3 v, float halfEdge,
-        float localTopY, float localRimY, float localBottomY,
-        bool v1IsOuter, bool v2IsOuter,
-        Vector2 topGrassUV, Vector2 bevelUV, Vector2 wallUV)
-    {
-        List<Vector3> vertices = new List<Vector3>();
-        List<int> triangles = new List<int>();
-        List<Vector3> normals = new List<Vector3>();
-        List<Vector2> uvs = new List<Vector2>();
-
-        Vector3 V1_loc = -v * halfEdge;
-        Vector3 V2_loc = v * halfEdge;
-
-        float flatHalfEdge = halfEdge * 0.93f; // 0.5369f
-        float wTop = 0.10f;
-
-        Vector3 startFlatV = -v * flatHalfEdge;
-        Vector3 endFlatV = v * flatHalfEdge;
-
-        // -------------------------------------------------------------
-        // PHẦN 1: MẶT ĐỈNH PHẲNG (TOP FLAT CAP)
-        // -------------------------------------------------------------
-        int topStartIdx = vertices.Count;
-
-        Vector3 t0 = startFlatV - u * wTop; t0.y = localTopY;
-        Vector3 t1 = endFlatV - u * wTop;   t1.y = localTopY;
-        Vector3 t2 = endFlatV + u * wTop;   t2.y = localTopY;
-        Vector3 t3 = startFlatV + u * wTop; t3.y = localTopY;
-
-        vertices.Add(t0); normals.Add(Vector3.up); uvs.Add(topGrassUV);
-        vertices.Add(t1); normals.Add(Vector3.up); uvs.Add(topGrassUV);
-        vertices.Add(t2); normals.Add(Vector3.up); uvs.Add(topGrassUV);
-        vertices.Add(t3); normals.Add(Vector3.up); uvs.Add(topGrassUV);
-
-        triangles.Add(topStartIdx + 0); triangles.Add(topStartIdx + 1); triangles.Add(topStartIdx + 2);
-        triangles.Add(topStartIdx + 0); triangles.Add(topStartIdx + 2); triangles.Add(topStartIdx + 3);
-
-        // -------------------------------------------------------------
-        // PHẦN 2: SƯỜN VÁT MÉP NGOÀI TẠI V1 (OUTER BEVEL SKIRT V1)
-        // Tam giác vát dốc nối trực tiếp từ cạnh (t0, t3) xuống đỉnh ngoài cùng V1_loc (tại localRimY)
-        // -------------------------------------------------------------
-        if (v1IsOuter)
-        {
-            Vector3 v1Rim = V1_loc; v1Rim.y = localRimY;
-            Vector3 normBevel1 = (-v * 0.707f + Vector3.up * 0.707f).normalized;
-
-            int bev1Idx = vertices.Count;
-            vertices.Add(t0);       normals.Add(normBevel1); uvs.Add(bevelUV); // 0
-            vertices.Add(t3);       normals.Add(normBevel1); uvs.Add(bevelUV); // 1
-            vertices.Add(v1Rim);    normals.Add(normBevel1); uvs.Add(bevelUV); // 2
-
-            // Tam giác dốc nghiêng từ t0, t3 xuống v1Rim (thuận kim đồng hồ khi nhìn từ ngoài)
-            triangles.Add(bev1Idx + 0); triangles.Add(bev1Idx + 1); triangles.Add(bev1Idx + 2);
-
-            // Bịt kín khe nứt thành bên từ v1Rim xuống localBottomY
-            int wall1Idx = vertices.Count;
-            Vector3 w0 = t0; w0.y = localRimY;
-            Vector3 w1 = t3; w1.y = localRimY;
-            Vector3 wBot0 = t0; wBot0.y = localBottomY;
-            Vector3 wBot1 = t3; wBot1.y = localBottomY;
-
-            vertices.Add(w0);    normals.Add(-v); uvs.Add(wallUV); // 0
-            vertices.Add(w1);    normals.Add(-v); uvs.Add(wallUV); // 1
-            vertices.Add(wBot1); normals.Add(-v); uvs.Add(wallUV); // 2
-            vertices.Add(wBot0); normals.Add(-v); uvs.Add(wallUV); // 3
-
-            triangles.Add(wall1Idx + 0); triangles.Add(wall1Idx + 1); triangles.Add(wall1Idx + 2);
-            triangles.Add(wall1Idx + 0); triangles.Add(wall1Idx + 2); triangles.Add(wall1Idx + 3);
-        }
-
-        // -------------------------------------------------------------
-        // PHẦN 3: SƯỜN VÁT MÉP NGOÀI TẠI V2 (OUTER BEVEL SKIRT V2)
-        // -------------------------------------------------------------
-        if (v2IsOuter)
-        {
-            Vector3 v2Rim = V2_loc; v2Rim.y = localRimY;
-            Vector3 normBevel2 = (v * 0.707f + Vector3.up * 0.707f).normalized;
-
-            int bev2Idx = vertices.Count;
-            vertices.Add(t2);       normals.Add(normBevel2); uvs.Add(bevelUV); // 0
-            vertices.Add(t1);       normals.Add(normBevel2); uvs.Add(bevelUV); // 1
-            vertices.Add(v2Rim);    normals.Add(normBevel2); uvs.Add(bevelUV); // 2
-
-            triangles.Add(bev2Idx + 0); triangles.Add(bev2Idx + 1); triangles.Add(bev2Idx + 2);
-
-            // Bịt kín khe nứt thành bên từ v2Rim xuống localBottomY
-            int wall2Idx = vertices.Count;
-            Vector3 w2_0 = t2; w2_0.y = localRimY;
-            Vector3 w2_1 = t1; w2_1.y = localRimY;
-            Vector3 w2Bot0 = t2; w2Bot0.y = localBottomY;
-            Vector3 w2Bot1 = t1; w2Bot1.y = localBottomY;
-
-            vertices.Add(w2_0);    normals.Add(v); uvs.Add(wallUV); // 0
-            vertices.Add(w2_1);    normals.Add(v); uvs.Add(wallUV); // 1
-            vertices.Add(w2Bot1);  normals.Add(v); uvs.Add(wallUV); // 2
-            vertices.Add(w2Bot0);  normals.Add(v); uvs.Add(wallUV); // 3
-
-            triangles.Add(wall2Idx + 0); triangles.Add(wall2Idx + 1); triangles.Add(wall2Idx + 2);
-            triangles.Add(wall2Idx + 0); triangles.Add(wall2Idx + 2); triangles.Add(wall2Idx + 3);
-        }
-
-        Mesh m = new Mesh();
-        m.name = "Proc_SeamBridge";
-        m.vertices = vertices.ToArray();
-        m.triangles = triangles.ToArray();
-        m.normals = normals.ToArray();
-        m.uv = uvs.ToArray();
-        m.RecalculateBounds();
-
-        return m;
-    }
-
-    /// <summary>
-    /// Quét các ngã ba 3 ô lục giác cùng Habitat tiếp giáp nhau để lấp phẳng tâm ngã ba
-    /// </summary>
-    private void ScanCornerJunctionsAround(
-        HexCoordinates centerHex, GameObject centerTile, CardData centerHabitatData, HexWorldGenerator worldGen)
-    {
-        for (int dir = 0; dir < 6; dir++)
-        {
-            HexCoordinates hB = centerHex.GetNeighbor(dir);
-            HexCoordinates hC = centerHex.GetNeighbor((dir + 1) % 6);
-
-            if (worldGen.MapTiles.TryGetValue(hB, out GameObject tileB) && tileB != null &&
-                worldGen.MapTiles.TryGetValue(hC, out GameObject tileC) && tileC != null)
-            {
-                PlacedCard cardB = GetHabitatCardOnTile(tileB);
-                PlacedCard cardC = GetHabitatCardOnTile(tileC);
-
-                // CẢ 3 Ô BẮT BUỘC ĐỀU PHẢI ĐÃ ĐẶT THẺ HABITAT CÙNG LOẠI
-                if (cardB != null && cardC != null &&
-                    AreHabitatsMatching(centerHabitatData, cardB.cardData) &&
-                    AreHabitatsMatching(centerHabitatData, cardC.cardData))
-                {
-                    string cornerKey = GetCornerKey(centerHex, hB, hC);
-                    if (!_createdCornerFillers.Contains(cornerKey))
-                    {
-                        _createdCornerFillers.Add(cornerKey);
-                        CreateCornerFiller(centerTile, tileB, tileC, cornerKey, centerHabitatData);
-
-                        if (spawnCornerProps)
-                        {
-                            SeedDecor("cornerprops", cornerKey, centerHabitatData);
-                            SpawnCornerConnectorProp(centerTile, tileB, tileC, centerHabitatData);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Tạo nắp mesh đa giác lấp phẳng điểm trũng ở ngã ba giao điểm giữa 3 ô
-    /// </summary>
     private void CreateCornerFiller(
         GameObject tileA, GameObject tileB, GameObject tileC, string cornerKey, CardData habitatData)
     {
@@ -827,37 +620,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         var (topGrassUV, _, _) = GetTilePaletteUVs(tileA, habitatData);
         Material tileMat = GetTileMaterial(tileA);
 
-        int segments = 6;
-        Vector3[] vertices = new Vector3[segments + 1];
-        int[] triangles = new int[segments * 3];
-        Vector3[] normals = new Vector3[segments + 1];
-        Vector2[] uv = new Vector2[segments + 1];
-
-        vertices[0] = Vector3.zero;
-        normals[0] = Vector3.up;
-        uv[0] = topGrassUV;
-
-        float angleStep = 360f / segments;
-        for (int i = 0; i < segments; i++)
-        {
-            float rad = (i * angleStep) * Mathf.Deg2Rad;
-            vertices[i + 1] = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * cornerFillerRadius;
-            normals[i + 1] = Vector3.up;
-            uv[i + 1] = topGrassUV;
-
-            int next = (i + 1) % segments + 1;
-            triangles[i * 3 + 0] = 0;
-            triangles[i * 3 + 1] = i + 1;
-            triangles[i * 3 + 2] = next;
-        }
-
-        Mesh cornerMesh = new Mesh();
-        cornerMesh.name = $"Mesh_{cornerKey}";
-        cornerMesh.vertices = vertices;
-        cornerMesh.triangles = triangles;
-        cornerMesh.normals = normals;
-        cornerMesh.uv = uv;
-        cornerMesh.RecalculateBounds();
+        Mesh cornerMesh = HexClusterMeshBuilder.BuildCornerFillerMeshLocal(cornerFillerRadius, topGrassUV, cornerKey);
 
         GameObject cornerGo = new GameObject($"CornerFiller_{cornerKey}");
         cornerGo.transform.SetParent(ConnectionsContainer, false);
@@ -875,14 +638,10 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         if (spawnSeamMicroGrass)
         {
-            SeedDecor("cornergrass", cornerKey, habitatData);
-            SpawnCornerMicroGrass(center, surfaceY, habitatData);
+            HexClusterVegetationSpawner.SpawnCornerMicroGrass(this, ConnectionsContainer, center, surfaceY, habitatData, GetVegetationConfig());
         }
     }
 
-    /// <summary>
-    /// Kiểm tra xem tại đỉnh V có ô Habitat thứ 3 cùng loại tiếp giáp không
-    /// </summary>
     private bool HasThirdHabitatNeighbor(
         HexCoordinates hexA, HexCoordinates hexB,
         Vector3 V_world, CardData habitatData, HexWorldGenerator worldGen)
@@ -898,7 +657,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             {
                 if (worldGen.MapTiles.TryGetValue(cand, out GameObject candTile) && candTile != null)
                 {
-                    // Ô thứ 3 BẮT BUỘC phải là ô đã đặt thẻ Habitat cùng loại
                     PlacedCard candCard = GetHabitatCardOnTile(candTile);
                     if (candCard != null && AreHabitatsMatching(habitatData, candCard.cardData))
                     {
@@ -919,12 +677,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Lấy độ cao chuẩn xác 100% của từng khối Tile thực tế trên Scene.
-    /// Độ cao này BẮT BUỘC phải lấy từ bản thân khối đất (Mesh/Prefab của Tile),
-    /// TUYỆT ĐỐI KHÔNG dùng tên lá bài (cardData) vì một lá bài (ví dụ Leafwood)
-    /// có thể được đặt lên cả tầng thấp (1.0f), tầng trung (1.8f) hoặc tầng cao (2.6f).
-    /// </summary>
     public static (float topY, float rimY, float bottomY) GetTileHeightLevels(GameObject tileObj, CardData cardData = null)
     {
         if (tileObj == null)
@@ -933,19 +685,14 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
 
         float baseY = tileObj.transform.position.y;
-        float localTop = 1.0f; // Mặc định tầng thấp
+        float localTop = 1.0f;
 
-        // 1. Ưu tiên 1: Đo từ MeshFilter gốc của khối lục giác
         MeshFilter tileMf = GetTileMeshFilter(tileObj);
         if (tileMf != null && tileMf.sharedMesh != null)
         {
             float scaleY = tileMf.transform.lossyScale.y;
             float meshMaxY = tileMf.sharedMesh.bounds.max.y * scaleY;
 
-            // Mesh lục giác gốc luôn có gò nhô ở tâm cao hơn mép viền ngoài đúng ~0.10f:
-            // - Tầng cao (Windheath): bounds.max.y ~ 2.716f -> mép viền phẳng chuẩn là 2.60f, rim là 2.51f
-            // - Tầng trung (Leafwood): bounds.max.y ~ 1.90f  -> mép viền phẳng chuẩn là 1.80f, rim là 1.71f
-            // - Tầng thấp (Bloomfield): bounds.max.y ~ 1.10f -> mép viền phẳng chuẩn là 1.00f, rim là 0.91f
             if (meshMaxY > 2.3f * scaleY)
             {
                 localTop = 2.60f * scaleY;
@@ -965,7 +712,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
         else
         {
-            // 2. Ưu tiên 2: Xác định theo tên prefab hoặc thông số HexTileInfo của khối đất
             string tileName = tileObj.name;
             HexTileInfo tileInfo = tileObj.GetComponent<HexTileInfo>();
             if (tileInfo != null && tileInfo.sourcePrefab != null)
@@ -986,7 +732,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
             }
             else
             {
-                localTop = 1.00f; // Bloomfield / Tầng thấp
+                localTop = 1.00f;
             }
         }
 
@@ -997,9 +743,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return (worldTop, worldRim, worldBottom);
     }
 
-    /// <summary>
-    /// Tìm MeshFilter thuộc về khối đất nền (bỏ qua các MeshFilter thuộc về cây cối, props, cầu nối)
-    /// </summary>
     public static MeshFilter GetTileMeshFilter(GameObject tileObj)
     {
         if (tileObj == null) return null;
@@ -1039,16 +782,10 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Lấy tọa độ UV màu cỏ đỉnh, sườn vát và thành đá từ Preserve_Palette.png.
-    /// BẮT BUỘC DỰA TRÊN BẢN THÂN KHỐI TILE THỰC TẾ (Mesh / Prefab của Tile)
-    /// để màu sắc của cầu nối đồng nhất 100% với màu nền cỏ của khối lục giác bên dưới!
-    /// </summary>
     public static (Vector2 topGrassUV, Vector2 bevelUV, Vector2 wallUV) GetTilePaletteUVs(GameObject tileObj, CardData cardData = null)
     {
-        float grassY = 0.8125f; // Mặc định Bloomfield (tầng thấp)
+        float grassY = 0.8125f;
 
-        // 1. Ưu tiên 1: Đọc trực tiếp tọa độ UV từ đỉnh cao nhất của Mesh khối lục giác (nếu mesh cho phép Read/Write)
         MeshFilter tileMf = GetTileMeshFilter(tileObj);
         if (tileMf != null && tileMf.sharedMesh != null && tileMf.sharedMesh.isReadable)
         {
@@ -1077,7 +814,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             }
         }
 
-        // 2. Ưu tiên 2: Xác định theo tên prefab hoặc thông số HexTileInfo của khối lục giác
         string tileName = tileObj != null ? tileObj.name : "";
         HexTileInfo tileInfo = tileObj != null ? tileObj.GetComponent<HexTileInfo>() : null;
         if (tileInfo != null && tileInfo.sourcePrefab != null)
@@ -1088,17 +824,17 @@ public class HexBiomeClusterConnector : MonoBehaviour
         if (tileName.IndexOf("Windheath", StringComparison.OrdinalIgnoreCase) >= 0 ||
             (tileInfo != null && tileInfo.terrainTypeIndex == 2))
         {
-            grassY = 0.5625f; // Windheath (tầng cao)
+            grassY = 0.5625f;
         }
         else if (tileName.IndexOf("Leafwood", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  tileName.IndexOf("Forest", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  (tileInfo != null && tileInfo.terrainTypeIndex == 1))
         {
-            grassY = 0.6875f; // Leafwood (tầng trung)
+            grassY = 0.6875f;
         }
         else
         {
-            grassY = 0.8125f; // Bloomfield (tầng thấp)
+            grassY = 0.8125f;
         }
 
         Vector2 topGrassUV = new Vector2(0.4375f, grassY);
@@ -1108,7 +844,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return (topGrassUV, bevelUV, wallUV);
     }
 
-    private static Material GetTileMaterial(GameObject tileObj)
+    public static Material GetTileMaterial(GameObject tileObj)
     {
         if (tileObj != null)
         {
@@ -1127,169 +863,17 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Thu thập tọa độ XZ của tất cả các prop trang trí đã tồn tại gần tâm kiểm tra
-    /// (bao gồm prop trên tileA, tileB, tileC và các prop viền đã sinh trước đó)
-    /// </summary>
-    public enum PropArchetype
+    // Forwarding helpers to HexClusterPropResolver for 100% backward compatibility
+    public static PropArchetype GetArchetypeFromName(string name) => HexClusterPropResolver.GetArchetypeFromName(name);
+    public static PropArchetype GetPropArchetype(GameObject prefab, CardData.HabitatPropRule rule) => HexClusterPropResolver.GetPropArchetype(prefab, rule);
+    public static int CountArchetypeNearby(List<NearbyPropEntry> entries, PropArchetype arch) => HexClusterPropResolver.CountArchetypeNearby(entries, arch);
+
+    public List<NearbyPropEntry> GetNearbyPropEntries(Vector3 checkCenter, float radius)
     {
-        FernBush,    // Dương xỉ, bụi lá, bụi oải hương, thạch nam
-        Flower,      // Hoa chuông, hoa cúc, hoa dại
-        Mushroom,    // Nấm rừng đốm đỏ
-        RockAccent,  // Tảng đá rêu, phiến đá, sỏi hoa
-        WoodAccent,  // Khúc gỗ mục, gốc cây rêu
-        Tree,        // Cây thân gỗ phụ (birch, willow)
-        Grass        // Cỏ khóm, thảm cỏ
+        return HexClusterPropResolver.GetNearbyPropEntries(_connectionsContainer, checkCenter, radius);
     }
 
-    public struct NearbyPropEntry
-    {
-        public Vector3 position;
-        public string name;
-        public PropArchetype archetype;
-    }
-
-    /// <summary>
-    /// Phân loại hình thái của một prop dựa vào tên (hỗ trợ cả tên GameObject đã sinh và Prefab/Rule)
-    /// </summary>
-    public static PropArchetype GetArchetypeFromName(string name)
-    {
-        if (string.IsNullOrEmpty(name)) return PropArchetype.FernBush;
-
-        if (name.IndexOf("Log", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Stump", StringComparison.OrdinalIgnoreCase) >= 0)
-            return PropArchetype.WoodAccent;
-
-        if (name.IndexOf("Toadstool", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Mushroom", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Fungi", StringComparison.OrdinalIgnoreCase) >= 0)
-            return PropArchetype.Mushroom;
-
-        if (name.IndexOf("Bluebell", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Bellflower", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Flower", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Daisy", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Blossom", StringComparison.OrdinalIgnoreCase) >= 0)
-            return PropArchetype.Flower;
-
-        if (name.IndexOf("Boulder", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Slab", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Rock", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Pebble", StringComparison.OrdinalIgnoreCase) >= 0)
-            return PropArchetype.RockAccent;
-
-        if (name.IndexOf("Grass", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Tussock", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Carpet", StringComparison.OrdinalIgnoreCase) >= 0)
-            return PropArchetype.Grass;
-
-        if (name.IndexOf("Tree", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Birch", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Willow", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Oak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Pine", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Sentinel", StringComparison.OrdinalIgnoreCase) >= 0)
-            return PropArchetype.Tree;
-
-        if (name.IndexOf("Fern", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Bush", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Hazel", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Shrub", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Lavender", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("Heather", StringComparison.OrdinalIgnoreCase) >= 0)
-            return PropArchetype.FernBush;
-
-        return PropArchetype.FernBush;
-    }
-
-    public static PropArchetype GetPropArchetype(GameObject prefab, CardData.HabitatPropRule rule)
-    {
-        string combined = (prefab != null ? prefab.name : "") + " " + (rule != null ? rule.groupName : "");
-        return GetArchetypeFromName(combined);
-    }
-
-    private static int CountArchetypeNearby(List<NearbyPropEntry> entries, PropArchetype arch)
-    {
-        if (entries == null) return 0;
-        int count = 0;
-        for (int i = 0; i < entries.Count; i++)
-        {
-            if (entries[i].archetype == arch) count++;
-        }
-        return count;
-    }
-
-    /// <summary>
-    /// Thu thập danh sách prop đã tồn tại gần tâm kiểm tra kèm theo tên và chủng loại để phân tích đa dạng sinh thái
-    /// </summary>
-    private List<NearbyPropEntry> GetNearbyPropEntries(Vector3 checkCenter, float radius)
-    {
-        List<NearbyPropEntry> entries = new List<NearbyPropEntry>();
-        float sqrRadius = radius * radius;
-
-        if (_connectionsContainer != null)
-        {
-            for (int i = 0; i < _connectionsContainer.childCount; i++)
-            {
-                Transform child = _connectionsContainer.GetChild(i);
-                if (child.name.StartsWith("Connector") || child.name.StartsWith("Corner"))
-                {
-                    Vector3 p = child.position;
-                    float d2 = (p.x - checkCenter.x) * (p.x - checkCenter.x) + (p.z - checkCenter.z) * (p.z - checkCenter.z);
-                    if (d2 <= sqrRadius)
-                    {
-                        entries.Add(new NearbyPropEntry
-                        {
-                            position = p,
-                            name = child.name,
-                            archetype = GetArchetypeFromName(child.name)
-                        });
-                    }
-                }
-            }
-        }
-
-        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
-        if (worldGen != null && worldGen.MapTiles != null)
-        {
-            foreach (var pair in worldGen.MapTiles)
-            {
-                GameObject tile = pair.Value;
-                if (tile == null) continue;
-
-                Vector3 tPos = tile.transform.position;
-                float tileDist2 = (tPos.x - checkCenter.x) * (tPos.x - checkCenter.x) + (tPos.z - checkCenter.z) * (tPos.z - checkCenter.z);
-                if (tileDist2 > 4.5f) continue;
-
-                for (int i = 0; i < tile.transform.childCount; i++)
-                {
-                    Transform child = tile.transform.GetChild(i);
-                    if (child.name.StartsWith("Habitat_") || child.name.StartsWith("PlacedCard_"))
-                    {
-                        for (int j = 0; j < child.childCount; j++)
-                        {
-                            Transform propTransform = child.GetChild(j);
-                            Vector3 propPos = propTransform.position;
-                            float d2 = (propPos.x - checkCenter.x) * (propPos.x - checkCenter.x) + (propPos.z - checkCenter.z) * (propPos.z - checkCenter.z);
-                            if (d2 <= sqrRadius)
-                            {
-                                entries.Add(new NearbyPropEntry
-                                {
-                                    position = propPos,
-                                    name = propTransform.name,
-                                    archetype = GetArchetypeFromName(propTransform.name)
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return entries;
-    }
-
-    private List<Vector3> GetNearbyPropPositions(Vector3 checkCenter, float radius)
+    public List<Vector3> GetNearbyPropPositions(Vector3 checkCenter, float radius)
     {
         var entries = GetNearbyPropEntries(checkCenter, radius);
         List<Vector3> pos = new List<Vector3>(entries.Count);
@@ -1297,999 +881,48 @@ public class HexBiomeClusterConnector : MonoBehaviour
         return pos;
     }
 
-    /// <summary>
-    /// Helper thống nhất khởi tạo prop nối ranh giới, tự động xử lý độ cắm đất tiếp giáp cỏ Y,
-    /// xoay ngẫu nhiên bảo toàn rotation gốc, tắt collider và bật/tắt bóng đổ.
-    /// </summary>
-    private GameObject SpawnConnectorPropInstance(
-        GameObject prefab,
-        Vector3 spawnPos,
-        CardData.HabitatPropRule rule,
-        float scaleMultiplier,
-        bool isMedium,
-        float animDelay,
-        string namePrefix)
+    public HexClusterVegetationConfig GetVegetationConfig() => new HexClusterVegetationConfig
     {
-        if (prefab == null) return null;
-
-        float randomScale = (rule != null)
-            ? decorRandom.Range(rule.scaleRange.x, rule.scaleRange.y) * scaleMultiplier
-            : scaleMultiplier;
-
-        float customEmbed = (rule != null) ? rule.customGroundEmbed : 0f;
-        float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(prefab, customEmbed) * randomScale;
-        spawnPos.y += yOffset;
-
-        Quaternion rot = Quaternion.Euler(0f, decorRandom.Range(0f, 360f), 0f) * prefab.transform.rotation;
-
-        GameObject propObj = Instantiate(prefab, spawnPos, rot, ConnectionsContainer);
-        propObj.name = $"{namePrefix}_{prefab.name}";
-        propObj.transform.localScale = Vector3.zero;
-
-        Collider[] colliders = propObj.GetComponentsInChildren<Collider>();
-        for (int c = 0; c < colliders.Length; c++) colliders[c].enabled = false;
-
-        Renderer[] renderers = propObj.GetComponentsInChildren<Renderer>();
-        for (int r = 0; r < renderers.Length; r++)
-        {
-            renderers[r].shadowCastingMode = isMedium ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
-        }
-
-        Vector3 targetScale = prefab.transform.localScale * randomScale;
-        StartCoroutine(AnimatePropPopIn(propObj.transform, targetScale, animDelay));
-        return propObj;
-    }
-
-    /// <summary>
-    /// Lấy Prefab mầm cỏ nhỏ (MicroGrassTuft) cho viền nối.
-    /// Tự động fallback sang HexFilledGroundSpawner hoặc LoadAsset từ thư mục 05_FilledGround.
-    /// </summary>
-    public GameObject GetMicroGrassPrefab(CardData cardData = null)
-    {
-        if (seamMicroGrassPrefab != null) return seamMicroGrassPrefab;
-
-        if (HexFilledGroundSpawner.Instance != null && HexFilledGroundSpawner.Instance.MicroGrassTuftPrefab != null)
-        {
-            seamMicroGrassPrefab = HexFilledGroundSpawner.Instance.MicroGrassTuftPrefab;
-            return seamMicroGrassPrefab;
-        }
-
-        if (cardData != null && cardData.habitatProps != null)
-        {
-            foreach (var rule in cardData.habitatProps)
-            {
-                if (rule == null || rule.prefabs == null) continue;
-                foreach (var p in rule.prefabs)
-                {
-                    if (p != null && p.name.IndexOf("MicroGrass", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        seamMicroGrassPrefab = p;
-                        return seamMicroGrassPrefab;
-                    }
-                }
-            }
-        }
-
-#if UNITY_EDITOR
-        if (seamMicroGrassPrefab == null)
-        {
-            seamMicroGrassPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/VinhWorkSpace/Prefabs/Leafwood/05_FilledGround/MicroGrassTuft.prefab"
-            );
-        }
-#endif
-
-        return seamMicroGrassPrefab;
-    }
-
-    /// <summary>
-    /// Kiểm tra xem Biome này có phù hợp để sinh mầm cỏ nhỏ ở viền nối không
-    /// </summary>
-    private bool ShouldSpawnSeamGrassForHabitat(CardData cardData)
-    {
-        if (!spawnSeamMicroGrass) return false;
-        if (cardData == null) return false;
-
-        if (HexFilledGroundSpawner.Instance != null && HexFilledGroundSpawner.Instance.HasFilledGround(cardData))
-            return true;
-
-        string family = GetHabitatFamily(cardData.cardName);
-        if (string.Equals(family, "Leafwood", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(family, "Bloomfield", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (cardData.habitatProps != null)
-        {
-            foreach (var rule in cardData.habitatProps)
-            {
-                if (rule != null && !string.IsNullOrEmpty(rule.groupName))
-                {
-                    if (rule.groupName.IndexOf("FilledGround", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        rule.groupName.IndexOf("Grass", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Sinh một dải mầm cỏ nhỏ (MicroGrassTuft) vắt ngang viền nối giữa 2 ô cùng loại.
-    /// Giúp che rãnh nối và liên kết thảm cỏ của 2 ô liền mạch như một cánh rừng tự nhiên.
-    /// </summary>
-    private void SpawnBorderMicroGrass(
-        Vector3 midPoint, Vector3 u, Vector3 v, float halfEdge, float surfaceY, CardData habitatData)
-    {
-        if (!ShouldSpawnSeamGrassForHabitat(habitatData)) return;
-
-        GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
-        if (sproutPrefab == null) return;
-
-        int count = decorRandom.Range(seamMicroGrassCountRange.x, seamMicroGrassCountRange.y + 1);
-        if (count <= 0) return;
-
-        // Đoạn phẳng trên đỉnh viền nối: ~0.42m mỗi bên (tổng chiều dài ~0.85m)
-        float usableSpan = halfEdge * 0.75f;
-        float step = (usableSpan * 2f) / count;
-        float startV = -usableSpan + step * 0.5f;
-
-        for (int i = 0; i < count; i++)
-        {
-            // Vị trí dọc theo viền tiếp giáp (v)
-            float vOffset = startV + i * step + decorRandom.Range(-step * 0.35f, step * 0.35f);
-
-            // Vị trí ngang viền tiếp giáp (u) - đan xen nhẹ sang 2 bên sườn ô
-            float uOffset = decorRandom.Range(-0.065f, 0.065f);
-
-            Vector3 spawnPos = midPoint + v * vOffset + u * uOffset;
-            spawnPos.y = surfaceY;
-
-            // Tính scale ngẫu nhiên
-            float scale = decorRandom.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
-
-            // Cắm sâu Y chuẩn xác dựa vào bounds của prefab
-            float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(sproutPrefab, seamMicroGrassGroundEmbed) * scale;
-            spawnPos.y += yOffset;
-
-            // Xoay ngẫu nhiên 360 độ và nghiêng nhẹ tự nhiên
-            Quaternion rot = Quaternion.Euler(
-                decorRandom.Range(-3f, 3f),
-                decorRandom.Range(0f, 360f),
-                decorRandom.Range(-3f, 3f)
-            ) * sproutPrefab.transform.rotation;
-
-            GameObject sproutObj = Instantiate(sproutPrefab, spawnPos, rot, ConnectionsContainer);
-            sproutObj.name = $"SeamSprout_{sproutPrefab.name}_{i}";
-            sproutObj.transform.localScale = Vector3.zero;
-
-            // Tắt collider để không cản trở raycast / chuột
-            Collider[] colliders = sproutObj.GetComponentsInChildren<Collider>();
-            for (int c = 0; c < colliders.Length; c++) colliders[c].enabled = false;
-
-            // Tắt shadow casting mode để tối ưu hiệu năng
-            Renderer[] renderers = sproutObj.GetComponentsInChildren<Renderer>();
-            for (int r = 0; r < renderers.Length; r++)
-            {
-                renderers[r].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                renderers[r].receiveShadows = true;
-            }
-
-            // Diễn hoạt nảy mầm theo làn sóng nhẹ
-            float delay = 0.04f + (float)i / count * 0.16f;
-            Vector3 targetScale = sproutPrefab.transform.localScale * scale;
-            StartCoroutine(AnimatePropPopIn(sproutObj.transform, targetScale, delay));
-        }
-    }
-
-    /// <summary>
-    /// Sinh cụm mầm cỏ nhỏ xoay quanh nắp ngã ba 3 ô (Corner Filler),
-    /// tạo điểm xuyết mầm xanh ở tâm giao thoa giữa 3 khối lục giác.
-    /// </summary>
-    private void SpawnCornerMicroGrass(Vector3 center, float surfaceY, CardData habitatData)
-    {
-        if (!ShouldSpawnSeamGrassForHabitat(habitatData)) return;
-
-        GameObject sproutPrefab = GetMicroGrassPrefab(habitatData);
-        if (sproutPrefab == null) return;
-
-        int count = decorRandom.Range(cornerMicroGrassCountRange.x, cornerMicroGrassCountRange.y + 1);
-        if (count <= 0) return;
-
-        float angleStep = 360f / count;
-
-        for (int i = 0; i < count; i++)
-        {
-            float baseAngle = i * angleStep + decorRandom.Range(-15f, 15f);
-            float rad = baseAngle * Mathf.Deg2Rad;
-            float r = decorRandom.Range(0.04f, cornerFillerRadius * 1.15f);
-
-            Vector3 spawnPos = center + new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * r;
-            spawnPos.y = surfaceY;
-
-            float scale = decorRandom.Range(seamMicroGrassScaleRange.x, seamMicroGrassScaleRange.y);
-            float yOffset = HexHabitatSpawner.GetPrefabBottomYOffset(sproutPrefab, seamMicroGrassGroundEmbed) * scale;
-            spawnPos.y += yOffset;
-
-            Quaternion rot = Quaternion.Euler(
-                decorRandom.Range(-3f, 3f),
-                decorRandom.Range(0f, 360f),
-                decorRandom.Range(-3f, 3f)
-            ) * sproutPrefab.transform.rotation;
-
-            GameObject sproutObj = Instantiate(sproutPrefab, spawnPos, rot, ConnectionsContainer);
-            sproutObj.name = $"CornerSprout_{sproutPrefab.name}_{i}";
-            sproutObj.transform.localScale = Vector3.zero;
-
-            Collider[] colliders = sproutObj.GetComponentsInChildren<Collider>();
-            for (int c = 0; c < colliders.Length; c++) colliders[c].enabled = false;
-
-            Renderer[] renderers = sproutObj.GetComponentsInChildren<Renderer>();
-            for (int rend = 0; rend < renderers.Length; rend++)
-            {
-                renderers[rend].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                renderers[rend].receiveShadows = true;
-            }
-
-            float delay = 0.06f + (float)i / count * 0.16f;
-            Vector3 targetScale = sproutPrefab.transform.localScale * scale;
-            StartCoroutine(AnimatePropPopIn(sproutObj.transform, targetScale, delay));
-        }
-    }
-
-    /// <summary>
-    /// Sinh CỤM THẢM THỰC VẬT LIÊN KẾT ĐA DẠNG (Diversity-Driven Ecological Vignette):
-    /// - Không bỏ hoàn toàn thân gỗ/khúc gỗ, nhưng ưu tiên các nhóm thực vật xanh, hoa và đá rêu
-    /// - Thuật toán chấm điểm đa dạng (Dynamic Diversity Scoring): luân chuyển chủng loại, tuyệt đối không lặp lại prefab trên cùng đường biên
-    /// - Phân tích tần suất xung quanh: Tự động kích hoạt các chủng loại đang hiếm trong cụm
-    /// </summary>
-    private void SpawnEdgeConnectorProps(GameObject tileA, GameObject tileB, CardData cardData)
-    {
-        if (cardData == null || !cardData.HasHabitatProps()) return;
-
-        Vector3 posA = tileA.transform.position;
-        Vector3 posB = tileB.transform.position;
-
-        Vector3 dirXZ = new Vector3(posB.x - posA.x, 0f, posB.z - posA.z);
-        Vector3 u = dirXZ.normalized;
-        Vector3 v = new Vector3(-u.z, 0f, u.x);
-        Vector3 midPoint = (posA + posB) * 0.5f;
-
-        var (topYA, _, _) = GetTileHeightLevels(tileA);
-        var (topYB, _, _) = GetTileHeightLevels(tileB);
-        if (Mathf.Abs(topYA - topYB) > 0.15f) return;
-
-        float topY = (topYA + topYB) * 0.5f;
-
-        // Quét tất cả các prop đã có trên 2 đảo và xung quanh kèm theo tên và chủng loại để phân tích đa dạng
-        List<NearbyPropEntry> nearbyEntries = GetNearbyPropEntries(midPoint, 1.25f);
-
-        bool hasSpawnedMedium = false;
-        Vector3 medSpawnPos = midPoint;
-        float chosenMedV = 0f;
-        GameObject spawnedMedPrefab = null;
-        PropArchetype spawnedMedArchetype = PropArchetype.FernBush;
-
-        // 1. THỬ SINH 1 PROP TRUNG ƯU TIÊN ĐỘ ĐA DẠNG VẮT QUA ĐƯỜNG BIÊN
-        bool tryMedium = (decorRandom.value < mediumPropChance);
-        if (tryMedium)
-        {
-            GameObject medPrefab = GetMediumPropPrefab(cardData, nearbyEntries, midPoint, out CardData.HabitatPropRule medRule, out PropArchetype medArch);
-            if (medPrefab != null)
-            {
-                float[] candidateVOffsets = new float[] { -0.18f, 0.18f, -0.09f, 0.09f, 0f, -0.24f, 0.24f };
-                float bestDist = -1f;
-                Vector3 bestPos = midPoint;
-                float bestV = 0f;
-
-                for (int i = 0; i < candidateVOffsets.Length; i++)
-                {
-                    float candV = candidateVOffsets[i] + decorRandom.Range(-0.03f, 0.03f);
-                    float candU = decorRandom.Range(-0.06f, 0.06f);
-                    Vector3 testPos = midPoint + v * candV + u * candU;
-                    testPos.y = topY;
-
-                    float minDist = float.MaxValue;
-                    for (int p = 0; p < nearbyEntries.Count; p++)
-                    {
-                        float d = Vector2.Distance(new Vector2(testPos.x, testPos.z), new Vector2(nearbyEntries[p].position.x, nearbyEntries[p].position.z));
-                        if (d < minDist) minDist = d;
-                    }
-
-                    if (minDist > bestDist)
-                    {
-                        bestDist = minDist;
-                        bestPos = testPos;
-                        bestV = candV;
-                    }
-                }
-
-                if (bestDist >= minMediumClearance)
-                {
-                    SpawnConnectorPropInstance(medPrefab, bestPos, medRule, 0.90f, true, 0.03f, "ConnectorMedProp");
-                    medSpawnPos = bestPos;
-                    chosenMedV = bestV;
-                    hasSpawnedMedium = true;
-                    spawnedMedPrefab = medPrefab;
-                    spawnedMedArchetype = medArch;
-                    nearbyEntries.Add(new NearbyPropEntry { position = bestPos, name = medPrefab.name, archetype = medArch });
-                }
-            }
-        }
-
-        // 2. SINH CÁC PROP NHỎ ĐA DẠNG (Hoa, Nấm, Dương xỉ, Đá rêu, Thân gỗ điểm xuyết, Cỏ)
-        var eligibleSmall = GetEligibleSmallPropsList(cardData);
-        if (eligibleSmall.Count == 0) return;
-
-        int smallCount = decorRandom.Range(propsPerEdgeRange.x, propsPerEdgeRange.y + 1);
-        HashSet<GameObject> usedPrefabsOnEdge = new HashSet<GameObject>();
-        HashSet<PropArchetype> usedArchetypesOnEdge = new HashSet<PropArchetype>();
-
-        if (hasSpawnedMedium && spawnedMedPrefab != null)
-        {
-            usedPrefabsOnEdge.Add(spawnedMedPrefab);
-            usedArchetypesOnEdge.Add(spawnedMedArchetype);
-        }
-
-        for (int i = 0; i < smallCount; i++)
-        {
-            // THUẬT TOÁN ĐA DẠNG HÓA VƯỢT TRỘI CHO CÁC PROP NHỎ:
-            // 1. Tuyệt đối không lặp lại Prefab đã dùng trên cùng một đường nối
-            // 2. Luân chuyển chủng loại (Archetype) để không trùng loại cũ chừng nào còn chủng loại khác
-            // 3. Đánh giá mật độ xung quanh: Ưu tiên tối đa các chủng loại đang hiếm trong cụm
-            List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype arch, float score)> scoredCandidates =
-                new List<(GameObject, CardData.HabitatPropRule, PropArchetype, float)>();
-
-            for (int c = 0; c < eligibleSmall.Count; c++)
-            {
-                var item = eligibleSmall[c];
-                if (usedPrefabsOnEdge.Contains(item.prefab)) continue;
-
-                float baseScore;
-                switch (item.archetype)
-                {
-                    case PropArchetype.Flower: baseScore = 28f; break;
-                    case PropArchetype.Mushroom: baseScore = 26f; break;
-                    case PropArchetype.FernBush: baseScore = 24f; break;
-                    case PropArchetype.RockAccent: baseScore = 22f; break;
-                    case PropArchetype.Grass: baseScore = 20f; break;
-                    case PropArchetype.WoodAccent: baseScore = 14f; break; // Không bỏ, cho phép xuất hiện làm điểm xuyết
-                    default: baseScore = 20f; break;
-                }
-
-                // Nếu chủng loại này ĐÃ xuất hiện trên cạnh nối này -> phạt nặng trọng số để ép luân chuyển sang chủng loại khác
-                if (usedArchetypesOnEdge.Contains(item.archetype))
-                {
-                    baseScore *= 0.05f;
-                }
-
-                // Đa dạng hóa theo mật độ xung quanh
-                int archCount = CountArchetypeNearby(nearbyEntries, item.archetype);
-                float diversityMult = 1.0f / (1.0f + archCount * 1.25f);
-                if (archCount == 0) diversityMult *= 1.35f;
-
-                float finalScore = baseScore * diversityMult;
-                scoredCandidates.Add((item.prefab, item.rule, item.archetype, finalScore));
-            }
-
-            if (scoredCandidates.Count == 0)
-            {
-                // Fallback nếu đã hết ứng viên độc nhất
-                for (int c = 0; c < eligibleSmall.Count; c++)
-                {
-                    var item = eligibleSmall[c];
-                    scoredCandidates.Add((item.prefab, item.rule, item.archetype, 10f));
-                }
-            }
-
-            // Chọn ngẫu nhiên theo phân phối trọng số đa dạng
-            float totalScore = 0f;
-            for (int s = 0; s < scoredCandidates.Count; s++) totalScore += scoredCandidates[s].score;
-
-            float rVal = decorRandom.Range(0f, totalScore);
-            float acc = 0f;
-            var picked = scoredCandidates[scoredCandidates.Count - 1];
-            for (int s = 0; s < scoredCandidates.Count; s++)
-            {
-                acc += scoredCandidates[s].score;
-                if (rVal <= acc)
-                {
-                    picked = scoredCandidates[s];
-                    break;
-                }
-            }
-
-            GameObject smallPrefab = picked.prefab;
-            CardData.HabitatPropRule smallRule = picked.rule;
-
-            usedPrefabsOnEdge.Add(picked.prefab);
-            usedArchetypesOnEdge.Add(picked.arch);
-
-            Vector3 smallPos = midPoint;
-            bool foundSpot = false;
-
-            if (hasSpawnedMedium && i == 0)
-            {
-                // Prop nhỏ thứ nhất: Vệ tinh tự nhiên ôm chân Prop Trung
-                for (int t = 0; t < 12; t++)
-                {
-                    float angle = decorRandom.Range(0f, Mathf.PI * 2f);
-                    float satDist = decorRandom.Range(0.12f, 0.20f);
-                    Vector3 candSat = medSpawnPos + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * satDist;
-                    candSat.y = topY;
-
-                    float dToMed = Vector2.Distance(new Vector2(candSat.x, candSat.z), new Vector2(medSpawnPos.x, medSpawnPos.z));
-                    if (dToMed >= 0.10f)
-                    {
-                        smallPos = candSat;
-                        foundSpot = true;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // Các prop nhỏ còn lại: Rải ở phía thoáng dọc theo cạnh ranh giới
-                float bestDist = -1f;
-                Vector3 bestCandidate = midPoint;
-
-                for (int t = 0; t < 10; t++)
-                {
-                    float offsetV = (hasSpawnedMedium)
-                        ? ((chosenMedV > 0f ? -1f : 1f) * decorRandom.Range(0.10f, 0.28f))
-                        : decorRandom.Range(-0.25f, 0.25f);
-
-                    float offsetU = decorRandom.Range(-0.05f, 0.05f);
-                    Vector3 cand = midPoint + v * offsetV + u * offsetU;
-                    cand.y = topY;
-
-                    float minDist = float.MaxValue;
-                    for (int p = 0; p < nearbyEntries.Count; p++)
-                    {
-                        float d = Vector2.Distance(new Vector2(cand.x, cand.z), new Vector2(nearbyEntries[p].position.x, nearbyEntries[p].position.z));
-                        if (d < minDist) minDist = d;
-                    }
-
-                    if (minDist > bestDist)
-                    {
-                        bestDist = minDist;
-                        bestCandidate = cand;
-                    }
-                }
-
-                if (bestDist >= minSmallClearance)
-                {
-                    smallPos = bestCandidate;
-                    foundSpot = true;
-                }
-            }
-
-            if (foundSpot)
-            {
-                SpawnConnectorPropInstance(smallPrefab, smallPos, smallRule, 0.88f, false, 0.04f * (i + 1), $"ConnectorProp_{i}");
-                nearbyEntries.Add(new NearbyPropEntry { position = smallPos, name = smallPrefab.name, archetype = picked.arch });
-            }
-        }
-    }
-
-    /// <summary>
-    /// Sinh cụm sinh thái thực vật tại ngã ba khi đặt miếng thứ 3 tạo thành một cụm:
-    /// - Sinh 1 cây trung (hoặc prop trung tâm) ngay tại tâm ngã ba 3 ô.
-    /// - Từ cây trung, tán props nhỏ đa dạng ra 2 cạnh viền mới tạo (cạnh nối giữa ô thứ 3 với 2 ô trước).
-    /// - Cạnh đầu tiên (nối 2 ô trước đó) đã được sinh ở trường hợp 2 khối liền nhau trước đó nên giữ nguyên, không can thiệp.
-    /// </summary>
-    private void SpawnClusterCornerProps(GameObject centerTile, GameObject tileB, GameObject tileC, CardData cardData)
-    {
-        if (cardData == null || !cardData.HasHabitatProps()) return;
-        if (centerTile == null || tileB == null || tileC == null) return;
-
-        Vector3 posA = centerTile.transform.position;
-        Vector3 posB = tileB.transform.position;
-        Vector3 posC = tileC.transform.position;
-
-        var (topYA, _, _) = GetTileHeightLevels(centerTile);
-        var (topYB, _, _) = GetTileHeightLevels(tileB);
-        var (topYC, _, _) = GetTileHeightLevels(tileC);
-        if (Mathf.Abs(topYA - topYB) > 0.15f || Mathf.Abs(topYA - topYC) > 0.15f) return;
-
-        float topY = (topYA + topYB + topYC) / 3f;
-        Vector3 center = (posA + posB + posC) / 3f;
-        center.y = topY;
-
-        List<NearbyPropEntry> nearbyEntries = GetNearbyPropEntries(center, 1.25f);
-
-        // 1. SINH 1 CÂY TRUNG Ở GIỮA TÂM NGÃ BA
-        GameObject centerTreePrefab = GetMediumTreeOrCenterpiecePrefab(cardData, nearbyEntries, center, out CardData.HabitatPropRule centerRule, out PropArchetype centerArch);
-
-        if (centerTreePrefab != null)
-        {
-            SpawnConnectorPropInstance(centerTreePrefab, center, centerRule, 0.95f, true, 0.03f, "ClusterCenterTree");
-            nearbyEntries.Add(new NearbyPropEntry { position = center, name = centerTreePrefab.name, archetype = centerArch });
-        }
-
-        // 2. TÁN PROPS RA 2 CẠNH VIỀN CÒN LẠI (Cạnh A-B và Cạnh A-C)
-        var eligibleSmall = GetEligibleSmallPropsList(cardData);
-        if (eligibleSmall.Count == 0) return;
-
-        HashSet<GameObject> usedPrefabsInCluster = new HashSet<GameObject>();
-        HashSet<PropArchetype> usedArchetypesInCluster = new HashSet<PropArchetype>();
-
-        if (centerTreePrefab != null)
-        {
-            usedPrefabsInCluster.Add(centerTreePrefab);
-            usedArchetypesInCluster.Add(centerArch);
-        }
-
-        // Định nghĩa 2 cạnh viền mới tạo:
-        // Cạnh 1: từ tâm ngã ba hướng ra trung điểm A - B
-        // Cạnh 2: từ tâm ngã ba hướng ra trung điểm A - C
-        // (Cạnh B - C là cạnh đầu tiên đã sinh ở giai đoạn 2 khối liền nhau trước đó nên bỏ qua)
-        Vector3[] edgeMidpoints = new Vector3[]
-        {
-            (posA + posB) * 0.5f,
-            (posA + posC) * 0.5f
-        };
-
-        float delayTracker = 0.07f;
-
-        for (int e = 0; e < edgeMidpoints.Length; e++)
-        {
-            Vector3 mid = edgeMidpoints[e];
-            Vector3 dir = mid - center;
-            dir.y = 0f;
-            float edgeDist = dir.magnitude;
-            if (edgeDist < 0.05f) continue;
-            dir = dir.normalized;
-            Vector3 perp = new Vector3(-dir.z, 0f, dir.x);
-
-            // Mỗi cạnh viền tán ra từ 1 đến 2 prop nhỏ
-            int propsOnThisEdge = decorRandom.Range(1, 3);
-
-            for (int pIdx = 0; pIdx < propsOnThisEdge; pIdx++)
-            {
-                var picked = PickDiverseSmallProp(eligibleSmall, usedPrefabsInCluster, usedArchetypesInCluster, nearbyEntries);
-                if (picked.prefab == null) continue;
-
-                usedPrefabsInCluster.Add(picked.prefab);
-                usedArchetypesInCluster.Add(picked.arch);
-
-                // Vị trí tỏa ra dọc theo cạnh viền:
-                // Prop thứ nhất ở gần chân cây trung (0.24m - 0.32m)
-                // Prop thứ hai ở xa hơn dọc theo mép (0.42m - 0.52m)
-                float dFromCenter = (pIdx == 0)
-                    ? decorRandom.Range(0.24f, 0.32f)
-                    : decorRandom.Range(0.42f, 0.52f);
-
-                float lateralJitter = decorRandom.Range(-0.045f, 0.045f);
-                Vector3 spawnPos = center + dir * dFromCenter + perp * lateralJitter;
-                spawnPos.y = topY;
-
-                // Kiểm tra khoảng cách vật lý với các prop đã có
-                float minDist = float.MaxValue;
-                for (int n = 0; n < nearbyEntries.Count; n++)
-                {
-                    float d = Vector2.Distance(
-                        new Vector2(spawnPos.x, spawnPos.z),
-                        new Vector2(nearbyEntries[n].position.x, nearbyEntries[n].position.z)
-                    );
-                    if (d < minDist) minDist = d;
-                }
-
-                if (minDist >= 0.12f)
-                {
-                    SpawnConnectorPropInstance(picked.prefab, spawnPos, picked.rule, 0.88f, false, delayTracker, $"ClusterEdgeProp_{e}_{pIdx}");
-                    nearbyEntries.Add(new NearbyPropEntry { position = spawnPos, name = picked.prefab.name, archetype = picked.arch });
-                    delayTracker += 0.04f;
-                }
-            }
-        }
-    }
-
-    private void SpawnCornerConnectorProp(GameObject tileA, GameObject tileB, GameObject tileC, CardData cardData)
-    {
-        SpawnClusterCornerProps(tileA, tileB, tileC, cardData);
-    }
-
-    /// <summary>
-    /// Tìm Cây Thân Gỗ Tầm Trung (Secondary/Supporting Tree) trong CardData để làm tâm điểm cho cụm 3 ô.
-    /// Nếu Biome không có cây (như cánh đồng hoa Bloomfield), fallback sang Prop Trung (bụi cây lớn, tảng đá rêu).
-    /// </summary>
-    private GameObject GetMediumTreeOrCenterpiecePrefab(
+        spawnConnectorProps = spawnConnectorProps,
+        mediumPropChance = mediumPropChance,
+        propsPerEdgeRange = propsPerEdgeRange,
+        minMediumClearance = minMediumClearance,
+        minSmallClearance = minSmallClearance,
+        spawnSeamMicroGrass = spawnSeamMicroGrass,
+        seamMicroGrassPrefab = seamMicroGrassPrefab,
+        seamMicroGrassCountRange = seamMicroGrassCountRange,
+        cornerMicroGrassCountRange = cornerMicroGrassCountRange,
+        seamMicroGrassScaleRange = seamMicroGrassScaleRange,
+        seamMicroGrassGroundEmbed = seamMicroGrassGroundEmbed,
+        cornerFillerRadius = cornerFillerRadius
+    };
+
+    // Forwarding helpers for 100% backward compatibility
+    public GameObject GetMicroGrassPrefab(CardData cardData = null) =>
+        HexClusterVegetationSpawner.GetMicroGrassPrefab(cardData, ref seamMicroGrassPrefab);
+
+    public GameObject GetMediumTreeOrCenterpiecePrefab(
         CardData cardData,
         List<NearbyPropEntry> nearbyEntries,
         Vector3 spawnTarget,
         out CardData.HabitatPropRule matchedRule,
-        out PropArchetype chosenArchetype)
-    {
-        matchedRule = null;
-        chosenArchetype = PropArchetype.Tree;
+        out PropArchetype chosenArchetype) =>
+        HexClusterPropResolver.GetMediumTreeOrCenterpiecePrefab(cardData, nearbyEntries, spawnTarget, out matchedRule, out chosenArchetype);
 
-        if (cardData == null || cardData.habitatProps == null || cardData.habitatProps.Count == 0)
-            return null;
-
-        // 1. ƯU TIÊN 1: Tìm cây thân gỗ tầm trung (Secondary Trees / Supporting Trees) trong CardData
-        List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype arch)> treeCandidates =
-            new List<(GameObject, CardData.HabitatPropRule, PropArchetype)>();
-
-        foreach (var rule in cardData.habitatProps)
-        {
-            if (rule == null || rule.prefabs == null || rule.prefabs.Count == 0) continue;
-            string gName = rule.groupName ?? "";
-
-            // Bỏ qua Landmark đại thụ khổng lồ
-            if (gName.IndexOf("Anchor", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Peak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Colossus", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                continue;
-            }
-
-            foreach (var p in rule.prefabs)
-            {
-                if (p == null) continue;
-                string pName = p.name;
-
-                if (pName.IndexOf("Anchor", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Peak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Micro", StringComparison.OrdinalIgnoreCase) >= 0)
-                    continue;
-
-                PropArchetype arch = GetPropArchetype(p, rule);
-                if (arch == PropArchetype.Tree ||
-                    gName.IndexOf("Tree", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Tree", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Oak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Pine", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Birch", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Willow", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    treeCandidates.Add((p, rule, PropArchetype.Tree));
-                }
-            }
-        }
-
-        // Nếu tìm thấy cây tầm trung trong Biome:
-        if (treeCandidates.Count > 0)
-        {
-            var bestCandidate = treeCandidates[0];
-            float bestScore = -999f;
-
-            for (int i = 0; i < treeCandidates.Count; i++)
-            {
-                var cand = treeCandidates[i];
-                float score = 10f;
-                if (nearbyEntries != null)
-                {
-                    for (int e = 0; e < nearbyEntries.Count; e++)
-                    {
-                        if (nearbyEntries[e].name.IndexOf(cand.prefab.name, StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            score -= 6f;
-                        }
-                    }
-                }
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestCandidate = cand;
-                }
-            }
-
-            matchedRule = bestCandidate.rule;
-            chosenArchetype = PropArchetype.Tree;
-            return bestCandidate.prefab;
-        }
-
-        // 2. ƯU TIÊN 2: Nếu Biome không có cây, fallback sang Prop Trung (bụi cây lớn, tảng đá rêu)
-        GameObject medPrefab = GetMediumPropPrefab(cardData, nearbyEntries, spawnTarget, out matchedRule, out chosenArchetype);
-        if (medPrefab != null)
-        {
-            return medPrefab;
-        }
-
-        // 3. Fallback sang prop nhỏ bất kỳ để không bao giờ bị hổng
-        return GetSmallPropPrefab(cardData, out matchedRule);
-    }
-
-    /// <summary>
-    /// Chọn Prop nhỏ đa dạng dựa trên Inverse-Frequency và luân chuyển Archetype
-    /// </summary>
-    private (GameObject prefab, CardData.HabitatPropRule rule, PropArchetype arch) PickDiverseSmallProp(
-        List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype archetype)> eligibleSmall,
-        HashSet<GameObject> usedPrefabs,
-        HashSet<PropArchetype> usedArchetypes,
-        List<NearbyPropEntry> nearbyEntries)
-    {
-        if (eligibleSmall == null || eligibleSmall.Count == 0)
-            return (null, null, PropArchetype.FernBush);
-
-        List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype arch, float score)> scored =
-            new List<(GameObject, CardData.HabitatPropRule, PropArchetype, float)>();
-
-        for (int c = 0; c < eligibleSmall.Count; c++)
-        {
-            var item = eligibleSmall[c];
-            if (usedPrefabs != null && usedPrefabs.Contains(item.prefab)) continue;
-
-            float baseScore;
-            switch (item.archetype)
-            {
-                case PropArchetype.Flower: baseScore = 28f; break;
-                case PropArchetype.Mushroom: baseScore = 26f; break;
-                case PropArchetype.FernBush: baseScore = 24f; break;
-                case PropArchetype.RockAccent: baseScore = 22f; break;
-                case PropArchetype.Grass: baseScore = 20f; break;
-                case PropArchetype.WoodAccent: baseScore = 14f; break;
-                default: baseScore = 20f; break;
-            }
-
-            if (usedArchetypes != null && usedArchetypes.Contains(item.archetype))
-            {
-                baseScore *= 0.08f;
-            }
-
-            int archCount = CountArchetypeNearby(nearbyEntries, item.archetype);
-            float diversityMult = 1.0f / (1.0f + archCount * 1.25f);
-            if (archCount == 0) diversityMult *= 1.35f;
-
-            scored.Add((item.prefab, item.rule, item.archetype, baseScore * diversityMult));
-        }
-
-        if (scored.Count == 0)
-        {
-            for (int c = 0; c < eligibleSmall.Count; c++)
-            {
-                var item = eligibleSmall[c];
-                scored.Add((item.prefab, item.rule, item.archetype, 10f));
-            }
-        }
-
-        float totalScore = 0f;
-        for (int s = 0; s < scored.Count; s++) totalScore += scored[s].score;
-
-        float rVal = decorRandom.Range(0f, totalScore);
-        float acc = 0f;
-        var picked = scored[scored.Count - 1];
-        for (int s = 0; s < scored.Count; s++)
-        {
-            acc += scored[s].score;
-            if (rVal <= acc)
-            {
-                picked = scored[s];
-                break;
-            }
-        }
-
-        return (picked.prefab, picked.rule, picked.arch);
-    }
-
-    /// <summary>
-    /// Chọn Prop tầm trung theo THUẬT TOÁN ĐA DẠNG HÓA SINH THÁI:
-    /// - Không bỏ hoàn toàn thân gỗ (khúc gỗ, gốc cây, cây non phụ), nhưng ưu tiên các nhóm thực vật xanh và đá rêu.
-    /// - Không hard-ban: Dùng trọng số nghịch đảo tần suất (Inverse-Frequency) để tự động ưu tiên các chủng loại đang hiếm trong khu vực.
-    /// - Kiểm tra cự ly vật lý: Tránh sinh 2 khúc gỗ/thân cây sát sườn (< 0.55m) nhau.
-    /// </summary>
     public GameObject GetMediumPropPrefab(
         CardData cardData,
         List<NearbyPropEntry> nearbyEntries,
         Vector3 spawnTarget,
         out CardData.HabitatPropRule matchedRule,
-        out PropArchetype chosenArchetype)
-    {
-        matchedRule = null;
-        chosenArchetype = PropArchetype.FernBush;
-        if (cardData == null || cardData.habitatProps == null || cardData.habitatProps.Count == 0)
-            return null;
+        out PropArchetype chosenArchetype) =>
+        HexClusterPropResolver.GetMediumPropPrefab(cardData, nearbyEntries, spawnTarget, out matchedRule, out chosenArchetype);
 
-        List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype arch, float weight)> candidates =
-            new List<(GameObject, CardData.HabitatPropRule, PropArchetype, float)>();
+    public List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype archetype)> GetEligibleSmallPropsList(CardData cardData) =>
+        HexClusterPropResolver.GetEligibleSmallPropsList(cardData);
 
-        foreach (var rule in cardData.habitatProps)
-        {
-            if (rule == null || rule.prefabs == null || rule.prefabs.Count == 0) continue;
-            string gName = rule.groupName ?? "";
+    public GameObject GetSmallPropPrefab(CardData cardData, out CardData.HabitatPropRule matchedRule) =>
+        HexClusterPropResolver.GetSmallPropPrefab(cardData, out matchedRule);
 
-            // Loại trừ Landmark đại thụ trung tâm
-            if (gName.IndexOf("Anchor", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Peak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Colossus", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                continue;
-            }
-
-            foreach (var p in rule.prefabs)
-            {
-                if (p == null) continue;
-                string pName = p.name;
-                if (pName.IndexOf("Anchor", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Peak", StringComparison.OrdinalIgnoreCase) >= 0)
-                    continue;
-
-                // Bỏ qua các prop quá nhỏ (nhỏ thì dành cho tầng thảm hoa cỏ)
-                if (pName.IndexOf("Micro", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Toadstool", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Bluebell", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Daisy", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Pebble", StringComparison.OrdinalIgnoreCase) >= 0)
-                    continue;
-
-                PropArchetype arch = GetPropArchetype(p, rule);
-
-                // 1. Trọng số cơ sở: Ưu tiên thực vật hoa lá, đá rêu; thân gỗ/cây vẫn có cơ hội xuất hiện tự nhiên (KHÔNG BỎ HOÀN TOÀN)
-                float baseWeight;
-                switch (arch)
-                {
-                    case PropArchetype.FernBush: baseWeight = 30f; break;
-                    case PropArchetype.RockAccent: baseWeight = 26f; break;
-                    case PropArchetype.Flower: baseWeight = 22f; break;
-                    case PropArchetype.Grass: baseWeight = 18f; break;
-                    case PropArchetype.WoodAccent: baseWeight = 15f; break; // Khúc gỗ, gốc cây điểm xuyết tự nhiên
-                    case PropArchetype.Tree: baseWeight = 12f; break; // Cây phụ / cây non kết nối
-                    default: baseWeight = 15f; break;
-                }
-
-                // 2. Chống đè lấn / chụm cục:
-                // Nếu đúng Prefab này đã có trong cự ly gần (< 0.50m) -> bỏ qua để không lặp lại 2 prop giống hệt nhau
-                bool duplicateTooClose = false;
-                if (nearbyEntries != null)
-                {
-                    for (int e = 0; e < nearbyEntries.Count; e++)
-                    {
-                        float d = Vector2.Distance(
-                            new Vector2(spawnTarget.x, spawnTarget.z),
-                            new Vector2(nearbyEntries[e].position.x, nearbyEntries[e].position.z)
-                        );
-
-                        if (d < 0.50f && nearbyEntries[e].name.IndexOf(p.name, StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            duplicateTooClose = true;
-                            break;
-                        }
-
-                        // Nếu là WoodAccent hoặc Tree, không đặt sát sườn (< 0.55m) một thân gỗ/cây khác
-                        if (d < 0.55f && (arch == PropArchetype.WoodAccent || arch == PropArchetype.Tree))
-                        {
-                            if (nearbyEntries[e].archetype == PropArchetype.WoodAccent || nearbyEntries[e].archetype == PropArchetype.Tree)
-                            {
-                                duplicateTooClose = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (duplicateTooClose) continue;
-
-                // 3. THUẬT TOÁN ĐA DẠNG HÓA SINH THÁI (Dynamic Inverse-Frequency):
-                // Chủng loại nào càng ít xuất hiện xung quanh thì xác suất được chọn càng cao vượt trội
-                int archetypeCount = CountArchetypeNearby(nearbyEntries, arch);
-                float diversityFactor = 1.0f / (1.0f + archetypeCount * 1.35f);
-
-                // Thưởng xác suất cho chủng loại chưa từng có mặt trong bán kính lân cận
-                if (archetypeCount == 0)
-                {
-                    diversityFactor *= 1.30f;
-                }
-
-                float finalWeight = baseWeight * diversityFactor;
-                if (finalWeight > 0.01f)
-                {
-                    candidates.Add((p, rule, arch, finalWeight));
-                }
-            }
-        }
-
-        if (candidates.Count > 0)
-        {
-            float totalWeight = 0f;
-            for (int i = 0; i < candidates.Count; i++) totalWeight += candidates[i].weight;
-
-            float r = decorRandom.Range(0f, totalWeight);
-            float accum = 0f;
-            for (int i = 0; i < candidates.Count; i++)
-            {
-                accum += candidates[i].weight;
-                if (r <= accum)
-                {
-                    matchedRule = candidates[i].rule;
-                    chosenArchetype = candidates[i].arch;
-                    return candidates[i].prefab;
-                }
-            }
-
-            matchedRule = candidates[candidates.Count - 1].rule;
-            chosenArchetype = candidates[candidates.Count - 1].arch;
-            return candidates[candidates.Count - 1].prefab;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Thu thập danh sách toàn bộ các prop nhỏ tầng thấp trong Biome, kèm theo phân loại chủng loại
-    /// </summary>
-    public List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype archetype)> GetEligibleSmallPropsList(CardData cardData)
-    {
-        List<(GameObject prefab, CardData.HabitatPropRule rule, PropArchetype archetype)> list =
-            new List<(GameObject, CardData.HabitatPropRule, PropArchetype)>();
-
-        if (cardData == null || cardData.habitatProps == null) return list;
-
-        foreach (var rule in cardData.habitatProps)
-        {
-            if (rule == null || rule.prefabs == null || rule.prefabs.Count == 0) continue;
-            string gName = rule.groupName ?? "";
-
-            if (gName.IndexOf("Anchor", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Peak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                gName.IndexOf("Colossus", StringComparison.OrdinalIgnoreCase) >= 0)
-                continue;
-
-            foreach (var p in rule.prefabs)
-            {
-                if (p == null) continue;
-                string pName = p.name;
-
-                // Bỏ qua các cây thân gỗ cao lớn
-                if (pName.IndexOf("Tree", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Oak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Pine", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Birch", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Willow", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Peak", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Anchor", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    pName.IndexOf("Sentinel", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    continue;
-                }
-
-                PropArchetype arch = GetPropArchetype(p, rule);
-                // Prop nhỏ bao gồm: FernBush, Flower, Mushroom, RockAccent, WoodAccent, Grass
-                // (Thân gỗ dạng khúc gỗ/gốc cây nhỏ vẫn có thể xuất hiện điểm xuyết, không bị loại bỏ hoàn toàn)
-                if (arch == PropArchetype.FernBush ||
-                    arch == PropArchetype.Flower ||
-                    arch == PropArchetype.Mushroom ||
-                    arch == PropArchetype.RockAccent ||
-                    arch == PropArchetype.WoodAccent ||
-                    arch == PropArchetype.Grass)
-                {
-                    list.Add((p, rule, arch));
-                }
-            }
-        }
-
-        return list;
-    }
-
-    /// <summary>
-    /// Lọc prop nhỏ ngẫu nhiên (dùng làm fallback)
-    /// </summary>
-    public GameObject GetSmallPropPrefab(CardData cardData, out CardData.HabitatPropRule matchedRule)
-    {
-        matchedRule = null;
-        var list = GetEligibleSmallPropsList(cardData);
-        if (list.Count > 0)
-        {
-            var item = list[decorRandom.Range(0, list.Count)];
-            matchedRule = item.rule;
-            return item.prefab;
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Kiểm tra nếu cụm đạt chuẩn 3+ ô Habitat cùng loại thì nảy ăn mừng
-    /// </summary>
     private void CheckAndCelebrateCluster(HexCoordinates centerHex, CardData centerHabitatData, HexWorldGenerator worldGen)
     {
         if (!enableCelebration) return;
@@ -2343,9 +976,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Quét lại toàn bộ các ô Habitat trong Scene để kết nối lại
-    /// </summary>
     [ContextMenu("Scan And Connect All Habitat Clusters In Scene")]
     public void ScanAndConnectExisting()
     {
@@ -2373,9 +1003,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Xóa toàn bộ các kết nối khi reset bản đồ
-    /// </summary>
     [ContextMenu("Clear All Connections")]
     public void ClearAllConnections()
     {
@@ -2395,10 +1022,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Xóa chính xác các mesh nối cạnh và nắp ngã ba có chạm vào hex bị phá hủy.
-    /// Props thực vật được dọn riêng theo footprint trong DisasterRuntimeManager.
-    /// </summary>
     public void RemoveConnectionsForHex(HexCoordinates hex)
     {
         if (_connectionsContainer == null) return;
@@ -2417,8 +1040,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
             _createdCornerFillers.Remove(cornerKey);
             DestroyConnectionObject($"CornerFiller_{cornerKey}");
 
-            // Flower/grass props are separate children of the shared container, so remove
-            // the complete vignette around this exact 3-hex junction as well.
             if (worldGen != null && worldGen.MapTiles != null &&
                 worldGen.MapTiles.TryGetValue(hex, out GameObject tileA) && tileA != null &&
                 worldGen.MapTiles.TryGetValue(neighbor, out GameObject tileB) && tileB != null &&
@@ -2428,6 +1049,138 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 DestroyConnectionObjectsNear(junction, 0.68f);
             }
         }
+    }
+
+    public void ClearPropsNearRiver(Vector3 center, float radius)
+    {
+        if (_connectionsContainer == null) return;
+        float radiusSqr = radius * radius;
+        for (int i = _connectionsContainer.childCount - 1; i >= 0; i--)
+        {
+            Transform child = _connectionsContainer.GetChild(i);
+            if (child == null) continue;
+
+            string cName = child.name;
+            if (cName.StartsWith("SeamBridge_") || 
+                cName.StartsWith("CornerFiller_") || 
+                cName.StartsWith("EdgeBridge_"))
+            {
+                continue;
+            }
+
+            Vector3 delta = child.position - center;
+            if (delta.x * delta.x + delta.z * delta.z > radiusSqr) continue;
+            DestroyConnectionObject(child);
+        }
+    }
+
+    public void RestoreMissingBridges()
+    {
+        if (ConnectionsContainer == null) return;
+        _createdEdgeBridges.RemoveWhere(k => _connectionsContainer.Find($"SeamBridge_{k}") == null);
+        _createdCornerFillers.RemoveWhere(k => _connectionsContainer.Find($"CornerFiller_{k}") == null);
+
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen == null || worldGen.MapTiles == null) return;
+
+        if (_connectionsContainer != null)
+        {
+            for (int i = _connectionsContainer.childCount - 1; i >= 0; i--)
+            {
+                Transform child = _connectionsContainer.GetChild(i);
+                if (child == null) continue;
+                string n = child.name;
+                if (n.StartsWith("SeamBridge_"))
+                {
+                    string key = n.Substring("SeamBridge_".Length);
+                    string[] parts = key.Split('_');
+                    if (parts.Length == 4 &&
+                        int.TryParse(parts[0], out int q1) && int.TryParse(parts[1], out int r1) &&
+                        int.TryParse(parts[2], out int q2) && int.TryParse(parts[3], out int r2))
+                    {
+                        HexCoordinates hA = new HexCoordinates(q1, r1);
+                        HexCoordinates hB = new HexCoordinates(q2, r2);
+                        PlacedCard cA = worldGen.MapTiles.TryGetValue(hA, out GameObject tA) ? GetHabitatCardOnTile(tA) : null;
+                        PlacedCard cB = worldGen.MapTiles.TryGetValue(hB, out GameObject tB) ? GetHabitatCardOnTile(tB) : null;
+
+                        bool riverCrosses = false;
+                        if (RiverNetworkManager.Instance != null)
+                        {
+                            RiverTileSegment segA = RiverNetworkManager.Instance.GetRiver(hA);
+                            RiverTileSegment segB = RiverNetworkManager.Instance.GetRiver(hB);
+                            for (int d = 0; d < 6; d++)
+                            {
+                                if (segA != null && hA.GetNeighbor(d) == hB && segA.HasPort(d)) riverCrosses = true;
+                                if (segB != null && hB.GetNeighbor(d) == hA && segB.HasPort(d)) riverCrosses = true;
+                            }
+                        }
+
+                        if (!riverCrosses && (cA == null || cB == null || !AreNatureCardsMatching(cA.cardData, cB.cardData)))
+                        {
+                            _createdEdgeBridges.Remove(key);
+                            DestroyConnectionObject(child);
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (var pair in worldGen.MapTiles)
+        {
+            PlacedCard card = GetHabitatCardOnTile(pair.Value);
+            bool hasRiver = RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(pair.Key);
+            if ((card != null && card.cardData != null && card.cardData.HasHabitatProps()) || hasRiver)
+            {
+                ConnectAllNearby(pair.Key, card != null ? card.cardData : null);
+            }
+        }
+    }
+
+    public static bool IsPositionNearRiver(Vector3 worldPos, float radius)
+    {
+        if (RiverNetworkManager.Instance == null || RiverNetworkManager.Instance.RiverMap == null) return false;
+        float radiusSqr = radius * radius;
+
+        foreach (var pair in RiverNetworkManager.Instance.RiverMap)
+        {
+            RiverTileSegment seg = pair.Value;
+            if (seg == null) continue;
+
+            Vector3 segPos = seg.transform.position;
+
+            if (seg.CachedPaths != null && seg.CachedPaths.Count > 0)
+            {
+                for (int p = 0; p < seg.CachedPaths.Count; p++)
+                {
+                    var path = seg.CachedPaths[p];
+                    for (int w = 0; w < path.Count; w++)
+                    {
+                        Vector3 wpWorld = segPos + path[w].position;
+                        float dx = worldPos.x - wpWorld.x;
+                        float dz = worldPos.z - wpWorld.z;
+                        if (dx * dx + dz * dz < radiusSqr) return true;
+                    }
+                }
+            }
+            else
+            {
+                for (int d = 0; d < 6; d++)
+                {
+                    if (seg.HasPort(d))
+                    {
+                        Vector3 portWorld = segPos + RiverSplinePath.GetEdgeMidpointLocal(d);
+                        float dx = worldPos.x - portWorld.x;
+                        float dz = worldPos.z - portWorld.z;
+                        if (dx * dx + dz * dz < radiusSqr) return true;
+                    }
+                }
+
+                float dxCenter = worldPos.x - segPos.x;
+                float dzCenter = worldPos.z - segPos.z;
+                if (dxCenter * dxCenter + dzCenter * dzCenter < radiusSqr) return true;
+            }
+        }
+        return false;
     }
 
     private void DestroyConnectionObjectsNear(Vector3 center, float radius)
@@ -2469,10 +1222,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
         else DestroyImmediate(connection.gameObject);
     }
 
-    // =========================================================================
-    // HIỆU ỨNG DIỄN HOẠT (ANIMATIONS - EASEOUTBACK POP-IN & CELEBRATION BOUNCE)
-    // =========================================================================
-
     private IEnumerator AnimateBridgePopIn(Transform target)
     {
         if (target == null) yield break;
@@ -2511,29 +1260,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
     private IEnumerator AnimatePropPopIn(Transform target, Vector3 finalScale, float delay)
     {
-        if (target == null) yield break;
-
-        if (delay > 0f) yield return new WaitForSeconds(delay);
-
-        float duration = 0.25f;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            if (target == null) yield break;
-
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-
-            const float c1 = 1.70158f;
-            const float c3 = c1 + 1f;
-            float overshoot = 1f + c3 * Mathf.Pow(t - 1f, 3) + c1 * Mathf.Pow(t - 1f, 2);
-
-            target.localScale = finalScale * overshoot;
-            yield return null;
-        }
-
-        if (target != null) target.localScale = finalScale;
+        return HexClusterVegetationSpawner.AnimatePropPopIn(target, finalScale, delay);
     }
 
     private IEnumerator CelebrateClusterRoutine(List<GameObject> tiles)
@@ -2580,15 +1307,6 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 tileTransforms[i].position = initialPositions[i];
             }
         }
-    }
-
-    /// <summary>
-    /// Seed theo khóa cạnh/ngã ba (đã sắp thứ tự tọa độ, không phụ thuộc ô nào đặt trước) + thẻ habitat:
-    /// props nối mọc y hệt mỗi lần vào game và khi người khác thăm đảo.
-    /// </summary>
-    private void SeedDecor(string salt, string key, CardData habitatData)
-    {
-        decorRandom = DecorRandom.ForKey($"{salt}|{key}|{(habitatData != null ? habitatData.cardID : string.Empty)}");
     }
 
     private string GetEdgeKey(HexCoordinates a, HexCoordinates b)

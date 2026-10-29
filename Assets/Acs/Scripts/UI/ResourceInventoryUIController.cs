@@ -208,10 +208,22 @@ namespace LumiWorld.Acs
             {
                 var identity = hit.collider.GetComponentInParent<HabitatPlacementIdentity>();
                 var tile = hit.collider.GetComponentInParent<HexTileInfo>();
+
+                // Chỉ chấp nhận khi chuột trỏ trên bề mặt trên cùng của ô lục giác (không nhận khi bấm vào sườn vách/cạnh bên)
+                if (identity == null && tile != null && !HexMetrics.IsTopSurfaceHit(hit))
+                {
+                    break;
+                }
+
                 foreach (var habitat in manager.Habitats)
                     if (identity != null && (habitat.members.Exists(m => m.placementId == identity.PlacementId) || habitat.residents.Exists(r => r.individualId == identity.PlacementId)) ||
                         tile != null && habitat.ContainsHex(tile.coordinates))
                     { Select(habitat); return; }
+
+                if (tile != null)
+                {
+                    break;
+                }
             }
         }
         private void ShowModal(RectTransform modal)

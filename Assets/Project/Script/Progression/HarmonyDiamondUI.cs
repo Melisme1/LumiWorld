@@ -31,7 +31,7 @@ public class HarmonyDiamondUI : MonoBehaviour
     private TextMeshProUGUI subtitleText;
     private Button openAchievementButton;
 
-    private int currentHarmony = 29;
+    private int currentHarmony = 0;
     private int targetHarmony = 50;
 
     private void Awake()

@@ -416,8 +416,17 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
             }
 
+            // TRƯỜNG HỢP 0: THẺ SÔNG SUỐI (RIVER CARD)
+            if (cardData.IsRiverCard())
+            {
+                if (RiverNetworkManager.Instance != null)
+                {
+                    placedCardInstance = RiverNetworkManager.Instance.PlaceRiver(currentHoverHex, targetTileObj, cardData, spawnWorldPos);
+                }
+                PlayCardUseEffect(cardData, spawnWorldPos);
+            }
             // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN TRÊN ĐẤT KHÔ ARID)
-            if (cardData.IsTileTransformCard())
+            else if (cardData.IsTileTransformCard())
             {
                 placedCardInstance = TransformTile(targetTileObj, currentHoverHex, cardData);
                 if (placedCardInstance != null)
@@ -499,7 +508,21 @@ public class HexSinglePlacementController : MonoBehaviour
             // 1. Phân bổ Cụm Biome & Kết nối các khối trong cụm (Preserve-style seamless cluster connection)
             if (HexBiomeClusterConnector.Instance != null && placedCardInstance != null)
             {
-                HexBiomeClusterConnector.Instance.ConnectCluster(placedCardInstance);
+                if (!cardData.IsRiverCard())
+                {
+                    HexBiomeClusterConnector.Instance.ConnectCluster(placedCardInstance);
+                }
+                else
+                {
+                    // Khi đặt thẻ River: luôn tạo mối nối SeamBridge với các ô xung quanh (không sinh props trên dòng suối)
+                    HexBiomeClusterConnector.Instance.ConnectAllNearby(currentHoverHex);
+                }
+            }
+
+            // 1.5 Kích hoạt phản ứng điểm bến nước / ven suối nếu đặt gần suối
+            if (RiverNetworkManager.Instance != null && !cardData.IsRiverCard())
+            {
+                RiverNetworkManager.Instance.OnNeighborCardPlaced(currentHoverHex, cardData);
             }
 
             // 2. Tính toán lại điểm số
@@ -508,8 +531,11 @@ public class HexSinglePlacementController : MonoBehaviour
                 ScoreCalculator.Instance.RecalculateScore();
             }
 
-            // 3. Hiệu ứng cộng điểm "+X" (Preserve style)
-            ShowPlacementScorePopup(placedCardInstance);
+            // 3. Hiệu ứng cộng điểm "+X" (Preserve style) - River đã tự hiện popup burst score
+            if (!cardData.IsRiverCard())
+            {
+                ShowPlacementScorePopup(placedCardInstance);
+            }
 
             // 4. Cập nhật hệ thống Habitat theo dõi sản xuất
             LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();

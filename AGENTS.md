@@ -21,6 +21,7 @@ Các quy tắc dưới đây do chủ dự án yêu cầu ngày 10/10/2026.
 
 ## Skill hỗ trợ dự án
 
+- Khi phân tích ảnh tham chiếu/ý tưởng, phản biện game design hoặc so sánh và thử UI/visual trước khi chốt, dùng `lumiworld-design-lab`. Bản nguồn: `D:/Dev/LumiWorld/docs/codex-skills/lumiworld-design-lab/SKILL.md`; phân biệt quan sát, suy luận, đề xuất và quyết định đã xác nhận; chỉ đọc hướng dẫn prototype khi cần dựng bản thử.
 - Khi cần tra quyết định hoặc đối chiếu tài liệu với code LumiWorld, dùng `lumiworld-context`. Bản nguồn: `D:/Dev/LumiWorld/docs/codex-skills/lumiworld-context/SKILL.md`; chỉ đọc các nguồn liên quan theo bản đồ trong skill.
 - Khi dựng hoặc chỉnh demo 3D tương tác trên trình duyệt để thử hex, bố cục Nature hoặc môi trường, dùng `lumiworld-3d-lab`. Bản nguồn: `D:/Dev/LumiWorld/docs/codex-skills/lumiworld-3d-lab/SKILL.md`. Các demo không tự xác nhận art cuối cùng hoặc cho phép triển khai gameplay.
 - Khi sửa, debug hoặc review code Unity và tích hợp scene/Inspector, dùng `lumiworld-unity-workflow`. Bản nguồn: `D:/Dev/LumiWorld/docs/codex-skills/lumiworld-unity-workflow/SKILL.md`; chọn kiểm tra theo phần thay đổi và báo riêng kết quả compile, managed checks, Play Mode và hiển thị.
