@@ -191,18 +191,17 @@ public class MarketSync : MonoBehaviour
     private static void SellCards(string marketId, int amount, int priceCoins, Action<bool, string> done)
     {
         CardData card = CardTradeIds.Find(marketId);
-        CardDeskController desk = CardDeskController.Instance;
         if (card == null)
         {
             done?.Invoke(false, "Only creature cards can be sold.");
             return;
         }
-        if (desk == null || !desk.HandReady)
+        if (!HandCards.Available)
         {
-            done?.Invoke(false, "Cards can only be listed from your own island.");
+            done?.Invoke(false, "Your hand is not ready yet. Try again in a moment.");
             return;
         }
-        if (!desk.TakeCardsWithoutSaving(card.cardID, amount))
+        if (!HandCards.TakeWithoutSaving(card.cardID, amount))
         {
             done?.Invoke(false, "Not enough " + card.cardName + " cards in your hand.");
             return;
@@ -216,8 +215,7 @@ public class MarketSync : MonoBehaviour
         // Không ghi được file thì trả thẻ lại tay (lần ghi sau sẽ lưu đúng tay bài), không để thẻ mất
         if (!EconomySaveSystem.Instance.AddPendingMarketOp(op))
         {
-            desk.AddCardsWithoutSaving(card, amount);
-            EconomySaveSystem.Instance.MarkDirty();
+            HandCards.AddWithoutSaving(card, amount);
             done?.Invoke(false, "Could not save. Nothing was listed.");
             return;
         }
@@ -324,7 +322,7 @@ public class MarketSync : MonoBehaviour
                     true,
                     purchase => Ok("Bought " + purchase.amount + " " + NameOf(purchase.resourceId) +
                         (CardTradeIds.IsCardId(purchase.resourceId)
-                            ? ". The cards will arrive in your hand on your island."
+                            ? ". The cards will arrive in your hand."
                             : ". It will arrive in your inventory.")),
                     Err,
                     op.opKey));
@@ -372,8 +370,7 @@ public class MarketSync : MonoBehaviour
 
         // Lô thẻ bị từ chối khi đang thăm đảo khác: chưa trả thẻ về tay được, giữ thao tác.
         // Lần gửi lại ở đảo mình server từ chối lần nữa và thẻ được trả lúc đó.
-        if (op.kind == CreateKind && CardTradeIds.IsCardId(op.resourceId)
-            && (CardDeskController.Instance == null || !CardDeskController.Instance.HandReady))
+        if (op.kind == CreateKind && CardTradeIds.IsCardId(op.resourceId) && !HandCards.Available)
         {
             done?.Invoke(false, message);
             return;
@@ -393,7 +390,7 @@ public class MarketSync : MonoBehaviour
             {
                 // Thẻ về tay; RemovePendingMarketOp sau đó ghi file cùng tay bài
                 CardData card = CardTradeIds.Find(op.resourceId);
-                if (card != null) CardDeskController.Instance.AddCardsWithoutSaving(card, op.amount);
+                if (card != null) HandCards.AddWithoutSaving(card, op.amount);
                 else Debug.LogWarning($"[LumiWorld Chợ] Không tra được thẻ {op.resourceId} khi trả lại {op.amount} lá.");
                 break;
             }

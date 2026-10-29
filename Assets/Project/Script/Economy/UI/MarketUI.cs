@@ -330,13 +330,8 @@ public class MarketUI : MonoBehaviour
         foreach (ResourceData resource in Catalog())
             options.Add(new SellOption { resource = resource, held = inventory.GetAmount(resource) });
 
-        CardDeskController desk = CardDeskController.Instance;
-        if (desk != null && desk.HandReady)
-        {
-            foreach (KeyValuePair<CardData, int> pair in desk.GetHeldCards())
-                if (CardTradeIds.IsTradable(pair.Key))
-                    options.Add(new SellOption { card = pair.Key, held = pair.Value });
-        }
+        foreach (KeyValuePair<CardData, int> pair in HandCards.Creatures())
+            options.Add(new SellOption { card = pair.Key, held = pair.Value });
         return options;
     }
 

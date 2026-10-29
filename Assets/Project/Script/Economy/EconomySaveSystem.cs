@@ -186,13 +186,23 @@ public class EconomySaveSystem : MonoBehaviour
                 break;
             }
 
+            case "TradeOffered":
+            {
+                // Chỉ báo có đề nghị đổi thẻ mới, không mang thẻ
+                var offer = JsonUtility.FromJson<TradeOfferedPayload>(payload);
+                TradeSync.NotifyOffered(offer);
+                break;
+            }
+
             case "ItemsBought":
             case "ItemsReturned":
+            case "TradeReceived":
+            case "TradeReturned":
             {
                 // Hàng vừa mua hoặc hàng trả lại: cất đủ vào kho, không cất một phần
                 var goods = JsonUtility.FromJson<ItemsPayload>(payload);
 
-                // Thẻ thú mua được hoặc lô thẻ bị hủy/hết hạn: về tay bài
+                // Thẻ thú (mua được, lô bị hủy/hết hạn, đổi xong, đề nghị bị trả): về tay bài
                 if (goods != null && CardTradeIds.IsCardId(goods.resourceId))
                 {
                     CardData card = CardTradeIds.Find(goods.resourceId);
@@ -202,15 +212,14 @@ public class EconomySaveSystem : MonoBehaviour
                         return false;
                     }
 
-                    // Đang thăm đảo người khác hoặc tay bài chưa nạp: giữ mục, về đảo mình mới nhận
-                    CardDeskController desk = CardDeskController.Instance;
-                    if (desk == null || !desk.HandReady) return false;
+                    // Tay bài chưa nạp xong ở đảo mình: giữ mục, lần đồng bộ sau mới nhận
+                    if (!HandCards.Available) return false;
 
                     // Thẻ và id mục nằm trong cùng một lần ghi file bên dưới, nên không bao giờ cộng hai lần
-                    desk.AddCardsWithoutSaving(card, goods.amount);
+                    HandCards.AddWithoutSaving(card, goods.amount);
                     string cardId = card.cardID;
                     int cardCount = goods.amount;
-                    undo = () => desk.TakeCardsWithoutSaving(cardId, cardCount);
+                    undo = () => HandCards.TakeWithoutSaving(cardId, cardCount);
                     break;
                 }
 
@@ -292,6 +301,97 @@ public class EconomySaveSystem : MonoBehaviour
         SaveNow();
     }
 
+    // =========================================================
+    // ĐỔI THẺ THÚ (TradeSync)
+    // =========================================================
+
+    /// <summary>Các thao tác đổi thẻ đang chờ server (bản sao).</summary>
+    public List<PendingTradeOp> PendingTradeOps
+    {
+        get
+        {
+            EnsureLoaded();
+            return new List<PendingTradeOp>(data.pendingTradeOps);
+        }
+    }
+
+    /// <summary>Ghi thao tác đổi thẻ (cùng thẻ vừa rời tay) xuống file ngay. false: bên gọi trả thẻ lại.</summary>
+    public bool AddPendingTradeOp(PendingTradeOp op)
+    {
+        EnsureLoaded();
+        data.pendingTradeOps.Add(op);
+        MarkDirty();
+
+        if (SaveNow()) return true;
+
+        data.pendingTradeOps.Remove(op);
+        return false;
+    }
+
+    public void RemovePendingTradeOp(string opKey)
+    {
+        EnsureLoaded();
+        if (data.pendingTradeOps.RemoveAll(op => op.opKey == opKey) == 0) return;
+
+        MarkDirty();
+        SaveNow();
+    }
+
+    // =========================================================
+    // BÀI TRÊN TAY TRONG BẢN LƯU (khi đang thăm đảo khác, tay bài không nạp)
+    // =========================================================
+
+    /// <summary>Tay bài đã từng được chia và lưu; trước đó CardDeskController sẽ chia bộ khởi đầu và bỏ qua hand.</summary>
+    public bool SavedHandReady
+    {
+        get
+        {
+            EnsureLoaded();
+            return data.starterHandGranted;
+        }
+    }
+
+    public List<HandCardStack> SavedHand
+    {
+        get
+        {
+            EnsureLoaded();
+            return new List<HandCardStack>(data.hand);
+        }
+    }
+
+    public int GetSavedHandCount(string cardId)
+    {
+        EnsureLoaded();
+        HandCardStack stack = data.hand.Find(s => s.cardId == cardId);
+        return stack != null ? stack.count : 0;
+    }
+
+    /// <summary>Trừ lá trong bản lưu, không ghi file. false khi không đủ lá.</summary>
+    public bool TakeSavedHandCards(string cardId, int count)
+    {
+        EnsureLoaded();
+        HandCardStack stack = data.hand.Find(s => s.cardId == cardId);
+        if (count <= 0 || stack == null || stack.count < count) return false;
+
+        stack.count -= count;
+        if (stack.count == 0) data.hand.Remove(stack);
+        MarkDirty();
+        return true;
+    }
+
+    /// <summary>Cộng lá vào bản lưu, không ghi file.</summary>
+    public void AddSavedHandCards(string cardId, int count)
+    {
+        EnsureLoaded();
+        if (count <= 0) return;
+
+        HandCardStack stack = data.hand.Find(s => s.cardId == cardId);
+        if (stack == null) data.hand.Add(new HandCardStack { cardId = cardId, count = count });
+        else stack.count += count;
+        MarkDirty();
+    }
+
     /// <summary>
     /// Ghi xuống file ngay, không đợi cuối frame. Trả về false nếu ghi lỗi.
     /// </summary>
@@ -322,6 +422,7 @@ public class EconomySaveSystem : MonoBehaviour
         if (data.orderRefills == null) data.orderRefills = new List<OrderSlotRefill>();
         if (data.appliedInboxIds == null) data.appliedInboxIds = new List<string>();
         if (data.pendingMarketOps == null) data.pendingMarketOps = new List<PendingMarketOp>();
+        if (data.pendingTradeOps == null) data.pendingTradeOps = new List<PendingTradeOp>();
         if (data.claimedMilestoneIds == null) data.claimedMilestoneIds = new List<string>();
         if (data.claimedAchievementIds == null) data.claimedAchievementIds = new List<string>();
         if (data.hand == null) data.hand = new List<HandCardStack>();
