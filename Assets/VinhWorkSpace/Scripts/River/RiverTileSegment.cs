@@ -205,8 +205,16 @@ public class RiverTileSegment : MonoBehaviour
                 // Máng tầng dưới (Chân vách):
                 if (!_waterfallInstances.TryGetValue(d, out GameObject wf) || wf == null)
                 {
-                    wf = Instantiate(config.waterfallPrefab, lowerPos, lowerRot, transform);
-                    wf.name = $"Waterfall_Dir{d}";
+                    Transform existingWf = transform.Find($"Waterfall_Dir{d}");
+                    if (existingWf != null)
+                    {
+                        wf = existingWf.gameObject;
+                    }
+                    else
+                    {
+                        wf = Instantiate(config.waterfallPrefab, lowerPos, lowerRot, transform);
+                        wf.name = $"Waterfall_Dir{d}";
+                    }
                     _waterfallInstances[d] = wf;
                 }
                 else
@@ -216,7 +224,13 @@ public class RiverTileSegment : MonoBehaviour
                 }
                 wf.transform.localScale = Vector3.Scale(config.waterfallPrefab.transform.localScale, wfScale);
 
-                // Dọn dẹp child cũ nếu còn sót từ phiên bản trước
+                // Dọn dẹp triệt để nếu có máng trên bị kẹt làm con của máng dưới từ phiên bản cũ:
+                Transform stuckUpper = wf.transform.Find($"Waterfall_Upper_Dir{d}");
+                if (stuckUpper != null)
+                {
+                    if (Application.isPlaying) Destroy(stuckUpper.gameObject);
+                    else DestroyImmediate(stuckUpper.gameObject);
+                }
                 Transform oldChildUpper = wf.transform.Find("WaterfallCascadeRamp (1)");
                 if (oldChildUpper != null)
                 {
@@ -224,26 +238,40 @@ public class RiverTileSegment : MonoBehaviour
                     else DestroyImmediate(oldChildUpper.gameObject);
                 }
 
-                // Máng tầng trên (Đỉnh vách 2 tầng) - Độc lập, không làm con của wf:
+                EnsureCleanWaterfallInstance(wf);
+
+                // Máng tầng trên (Đỉnh vách 2 tầng) - Độc lập ngang hàng với wf (đều là con của RiverTile):
                 if (isDoubleTier)
                 {
                     _doubleTierWaterfalls.Add(d);
 
                     if (!_upperWaterfallInstances.TryGetValue(d, out GameObject upperObj) || upperObj == null)
                     {
-                        upperObj = Instantiate(config.waterfallPrefab, upperPos, upperRot, transform);
-                        upperObj.name = $"Waterfall_Upper_Dir{d}";
+                        Transform existingUpper = transform.Find($"Waterfall_Upper_Dir{d}");
+                        if (existingUpper != null)
+                        {
+                            upperObj = existingUpper.gameObject;
+                        }
+                        else
+                        {
+                            upperObj = Instantiate(config.waterfallPrefab, upperPos, upperRot, transform);
+                            upperObj.name = $"Waterfall_Upper_Dir{d}";
+                        }
                         _upperWaterfallInstances[d] = upperObj;
                     }
                     else
                     {
+                        upperObj.transform.SetParent(transform, true);
                         upperObj.transform.position = upperPos;
                         upperObj.transform.rotation = upperRot;
                     }
 
                     upperObj.transform.localScale = Vector3.Scale(config.waterfallPrefab.transform.localScale, wfScale);
                     upperObj.SetActive(true);
-                }                else
+
+                    EnsureCleanWaterfallInstance(upperObj);
+                }
+                else
                 {
                     _doubleTierWaterfalls.Remove(d);
                     if (_upperWaterfallInstances.TryGetValue(d, out GameObject oldUpper))
@@ -254,6 +282,12 @@ public class RiverTileSegment : MonoBehaviour
                             else DestroyImmediate(oldUpper);
                         }
                         _upperWaterfallInstances.Remove(d);
+                    }
+                    Transform orphanUpper = transform.Find($"Waterfall_Upper_Dir{d}");
+                    if (orphanUpper != null)
+                    {
+                        if (Application.isPlaying) Destroy(orphanUpper.gameObject);
+                        else DestroyImmediate(orphanUpper.gameObject);
                     }
                 }
             }
@@ -819,5 +853,36 @@ public class RiverTileSegment : MonoBehaviour
         if (abSqr < 0.0001f) return a;
         float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / abSqr);
         return a + ab * t;
+    }
+    /// <summary>
+    /// Đảm bảo mỗi máng thác nước hiển thị chuẩn xác sau khi Prefab đã được tinh chỉnh sạch sẽ:
+    /// 1. Giữ nguyên và bảo đảm MeshRenderer ở Root luôn được bật để hiển thị máng đá thác nước.
+    /// 2. Tự động dọn dẹp các child WaterfallCascadeRamp hoặc máng thừa còn sót từ các phiên bản trước trong Scene.
+    /// </summary>
+    private static void EnsureCleanWaterfallInstance(GameObject go)
+    {
+        if (go == null) return;
+
+        // Bật MeshRenderer của Root (máng đá thác nước)
+        MeshRenderer rootMr = go.GetComponent<MeshRenderer>();
+        if (rootMr != null)
+        {
+            rootMr.enabled = true;
+        }
+
+        // Xóa child WaterfallCascadeRamp cũ nếu còn sót từ phiên bản prefab trước trong Scene đang chạy
+        Transform oldChildRamp = go.transform.Find("WaterfallCascadeRamp");
+        if (oldChildRamp != null)
+        {
+            if (Application.isPlaying) Destroy(oldChildRamp.gameObject);
+            else DestroyImmediate(oldChildRamp.gameObject);
+        }
+
+        Transform oldChildUpper = go.transform.Find("WaterfallCascadeRamp (1)");
+        if (oldChildUpper != null)
+        {
+            if (Application.isPlaying) Destroy(oldChildUpper.gameObject);
+            else DestroyImmediate(oldChildUpper.gameObject);
+        }
     }
 }
