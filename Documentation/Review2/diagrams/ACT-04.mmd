@@ -1,0 +1,30 @@
+flowchart TD
+    subgraph Seller["Actor: seller"]
+      A["Submit resource lot or one creature ID with stable operation key"]
+      N["Receive sale result while online or later"]
+    end
+    subgraph Buyer["Actor: buyer"]
+      G["Inspect listing and request whole-lot purchase"]
+      M["Receive lot or same creature ID with retained rank and Care Progress"]
+    end
+    subgraph Server["System: target asset authority and market"]
+      B{"Duplicate operation?"}
+      B1["Return previously recorded outcome"]
+      C{"Asset, ownership, price bounds, listing limit and incompatible locks valid?"}
+      X["Reject without asset changes"]
+      D["Reserve resource quantity or lock owned creature; create Active listing"]
+      H{"Under transaction: listing Active, buyer eligible and funded?"}
+      HX["Reject stale or invalid purchase without charge"]
+      I["Debit buyer, transfer lot or creature ownership, apply fee and mark Sold once"]
+      J["Record durable delivery outcomes and operation receipt"]
+      K["Deliver each result with duplicate-safe handling"]
+    end
+    A --> B
+    B -->|"Yes"| B1
+    B -->|"No"| C
+    C -->|"No"| X
+    C -->|"Yes"| D --> G --> H
+    H -->|"No"| HX
+    H -->|"Yes"| I --> J --> K
+    K --> M
+    K --> N

@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> Preview
+    Preview --> Preview: Invalid footprint / no charge
+    Preview --> Established: Valid matching Nature, island and height / commit
+    Established --> Established: Valid 3 to 6 to 10 upgrade or supported move
+    Established --> Damaged: Destructive incident damages habitat content
+    Damaged --> Established: Applicable recovery restores valid habitat
+    Established --> Removed: Confirmed allowed revert / preserve owned contents
+    Damaged --> Removed: Allowed revert / preserve owned contents
+    Removed --> [*]
+    note right of Established
+      Capacity 2 / 4 / 6 follows footprint 3 / 6 / 10.
+      Residents, buffers and active blockers are separate.
+    end note

@@ -1,0 +1,17 @@
+stateDiagram-v2
+    [*] --> Active: Valid create / reserve lot or identified creature once
+    Active --> Sold: Valid funded purchase wins transaction
+    Active --> Cancelled: Seller cancellation wins transaction
+    Active --> Expired: Expiry worker wins transaction
+    Sold --> Sold: Duplicate purchase operation / prior result only
+    Cancelled --> Cancelled: Duplicate cancel operation / prior result only
+    Expired --> Expired: Repeated expiry scan / no second return
+    note right of Active
+      Concurrent buy, cancel and expiry have one winner.
+      A new purchase against a closed listing is rejected.
+    end note
+    note right of Sold
+      Buyer asset and seller net proceeds are durable.
+      Cancel / expiry returns the same reserved asset once.
+      Creature prices are bounded by species and Quality Rank.
+    end note

@@ -1,0 +1,19 @@
+stateDiagram-v2
+    state Incident {
+      [*] --> Active: Eligible local spawn or valid owner delivery
+      Active --> Active: Active-world tick / type-specific effects and spread
+      Active --> Frozen: Leave owner world or close game
+      Frozen --> Active: Restore remaining duration without offline catch-up
+      Active --> Ended: Expiry or applicable resolution
+      Ended --> [*]
+    }
+    state BiomeDamage {
+      [*] --> Intact
+      Intact --> Burned: ForestFire effect / rescue creatures before suppression
+      Burned --> Burned: Incident timer ends / damage remains
+      Burned --> Intact: Applicable Rain recovery
+    }
+    note right of Incident
+      Non-destructive types do not cause Burned.
+      Enum support does not imply all types are enabled.
+    end note

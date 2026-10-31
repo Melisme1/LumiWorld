@@ -1,0 +1,23 @@
+flowchart LR
+    P["Player / visitor"] --> C["Unity Windows client"]
+    A["Administrator"] --> U["Admin interface - planned"]
+    subgraph Client["Client boundary"]
+      C --> G["World, placement, care, production and encounters"]
+      G <--> L["Local world save and pending operations"]
+      C --> N["Authenticated network adapter"]
+    end
+    subgraph Service["Service authority boundary"]
+      API["ASP.NET Core API: identity, saves, sharing, market, inbox, leaderboard"]
+      AS["Authoritative assets, creature ownership, locks and receipts - planned"]
+      ADM["Admin config / stats; suspension and log access planned"]
+      DB[("PostgreSQL")]
+      JOB["Listing expiry worker"]
+      API --> AS
+      API <--> DB
+      AS <--> DB
+      ADM <--> DB
+      JOB <--> DB
+    end
+    N <-->|"Commands, revisions, snapshots and inbox results"| API
+    U -->|"Authorized admin requests"| ADM
+    DB -->|"Public snapshot only"| API

@@ -1,0 +1,30 @@
+flowchart TD
+    subgraph Owner["Actor: world owner"]
+      A["Publish a compact island snapshot"]
+      H["Open own world and retrieve pending inbox results"]
+      L["Inspect incident and apply suitable treatment"]
+    end
+    subgraph Visitor["Actor: visitor"]
+      D["Find and inspect the shared island"]
+      E["Request a permitted obstacle"]
+    end
+    subgraph System["System: sharing, delivery and owner game"]
+      B{"Snapshot and publication valid?"}
+      BX["Explain failure; preserve owner world"]
+      C["Publish to fixed map position"]
+      F{"Kind, fee, daily limit, pending limit and protection valid?"}
+      FX["Reject without charging or changing snapshot"]
+      G["Record authorized charge and durable pending effect"]
+      I{"Result unhandled and target still valid?"}
+      IX["Duplicate: retain recorded result; invalid target: approved fallback required"]
+      J["Persist incident activation / handling result before acknowledgement"]
+      K["Run incident only under its active-world time policy"]
+      M["Apply type-specific treatment; preserve creatures"]
+    end
+    A --> B
+    B -->|"No"| BX
+    B -->|"Yes"| C --> D --> E --> F
+    F -->|"No"| FX
+    F -->|"Yes"| G --> H --> I
+    I -->|"No"| IX
+    I -->|"Yes"| J --> K --> L --> M

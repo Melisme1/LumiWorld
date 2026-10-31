@@ -1,0 +1,26 @@
+flowchart TD
+    subgraph Player["Actor: prospective player / owner"]
+      A["Accept required policies and submit registration"]
+      C["Sign in and start own world"]
+      E["Select Nature and inspect footprint / charge preview"]
+      I["Place an owned compatible creature"]
+    end
+    subgraph System["System: account service and game"]
+      B{"Input and policy valid?"}
+      BX["Explain rejection; create no account"]
+      D["Create or load the account world"]
+      F{"Footprint, ownership and funds valid?"}
+      FX["Keep cards and Coins unchanged; show invalid preview"]
+      G["Commit placement and its charge once"]
+      H["Establish biome and shared capacity"]
+      J{"Affinity and capacity valid?"}
+      JX["Reject placement; preserve owned creature"]
+      K["Assign resident; evaluate production eligibility"]
+    end
+    A --> B
+    B -->|"No"| BX
+    B -->|"Yes"| C --> D --> E --> F
+    F -->|"No"| FX --> E
+    F -->|"Yes"| G --> H --> I --> J
+    J -->|"No"| JX --> I
+    J -->|"Yes"| K

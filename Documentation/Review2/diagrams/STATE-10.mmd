@@ -1,0 +1,15 @@
+stateDiagram-v2
+    [*] --> Requested
+    Requested --> Rejected: Invalid pair, recipe, slot, costs or lock / consume nothing
+    Requested --> Running: Accept once / consume costs and lock original parents
+    Running --> Running: Persist or restore countdown under approved offline policy
+    Running --> CompletedUnclaimed: Duration complete / release original parents once
+    CompletedUnclaimed --> CompletedUnclaimed: Repeated completion / no repeated parent release
+    CompletedUnclaimed --> Claimed: Claim once / create one new Rank I individual and receipt
+    Claimed --> Claimed: Repeated claim or reload / same prior outcome
+    Rejected --> [*]
+    note right of Running
+      Parents cannot deploy, produce, trade
+      or enter another breeding job.
+      Manual pause follows the shared timer policy.
+    end note

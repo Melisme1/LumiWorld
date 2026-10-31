@@ -1,0 +1,24 @@
+flowchart TD
+    subgraph Player["Actor: owner player"]
+      A["Choose an order and submit required goods"]
+      F["Perform an eligible world milestone"]
+      I["Preview and request the next island"]
+    end
+    subgraph Game["System: economy and progression"]
+      B{"Goods and order state valid?"}
+      C["Explain shortfall; leave order available without a deadline"]
+      D["Consume goods and award specified Coins once"]
+      G{"Milestone eligible and not previously awarded?"}
+      H["Record milestone and add permanent Harmony once"]
+      J{"Harmony, Coins and prior-island condition satisfied?"}
+      K["Show unmet conditions; do not deduct Coins"]
+      L["Deduct opening fee once and unlock island"]
+    end
+    A --> B
+    B -->|"No"| C
+    B -->|"Yes"| D --> F --> G
+    G -->|"Yes"| H --> I
+    G -->|"Already awarded or ineligible"| I
+    I --> J
+    J -->|"No"| K
+    J -->|"Yes"| L

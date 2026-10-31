@@ -1,0 +1,23 @@
+flowchart TD
+    subgraph Admin["Actor: administrator"]
+      A["Open an administrative function"]
+      D{"Select authorized action"}
+      G["Review target and confirm a permitted change"]
+    end
+    subgraph Service["System: admin service"]
+      B{"Authenticated and current admin role?"}
+      C["Deny access"]
+      E["Return permitted metrics / action-log records"]
+      F["Load configuration or account target and constraints"]
+      H{"Change and target valid?"}
+      I["Reject change; preserve previous state"]
+      J["Persist authorized change and audit result"]
+      K["Apply defined configuration/session policy"]
+    end
+    A --> B
+    B -->|"No"| C
+    B -->|"Yes"| D
+    D -->|"Read"| E
+    D -->|"Change configuration or suspend account"| F --> G --> H
+    H -->|"No"| I
+    H -->|"Yes"| J --> K

@@ -1,0 +1,19 @@
+stateDiagram-v2
+    [*] --> Available: Valid acquisition or transfer to this owner
+    Available --> Deployed: Valid owned placement with no incompatible lock
+    Deployed --> Available: Recall / clear assignment and preserve identity
+    Available --> MarketEscrow: Valid price and ownership / acquire listing lock
+    MarketEscrow --> Available: Cancel or expiry / release same individual once
+    MarketEscrow --> Transferred: Valid sale / change owner and remove seller access
+    Available --> BreedingLocked: Valid job / acquire parent lock
+    BreedingLocked --> Available: Job completes / release original parent once
+    Transferred --> [*]
+    note right of Available
+      Valid listing requires the creature-specific
+      price interval for species and Quality Rank.
+      Conflicting listing / breeding requests have one winner.
+    end note
+    note right of BreedingLocked
+      Claiming the offspring is separate from parent release.
+      Only offspring creation allocates a new individual ID.
+    end note
