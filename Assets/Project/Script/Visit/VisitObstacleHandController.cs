@@ -147,12 +147,12 @@ public sealed class VisitObstacleHandController : MonoBehaviour
         ClearCards();
         if (allowedKinds == null || allowedKinds.Length == 0) return;
 
-        const float cardWidth = 150f;
-        const float maxHandWidth = 780f;
-        float scale = Mathf.Min(0.9f, maxHandWidth / (allowedKinds.Length * cardWidth));
+        const float cardWidth = 100f;
+        const float maxHandWidth = 1300f;
+        float scale = Mathf.Min(1.8f, maxHandWidth / (allowedKinds.Length * cardWidth));
         float spacing = allowedKinds.Length <= 1
             ? 0f
-            : Mathf.Min(165f * scale, (maxHandWidth - cardWidth * scale) / (allowedKinds.Length - 1));
+            : Mathf.Min(300f * scale, (maxHandWidth - cardWidth * scale) / (allowedKinds.Length - 1));
         float firstX = -(allowedKinds.Length - 1) * spacing * 0.5f;
 
         for (int i = 0; i < allowedKinds.Length; i++)
@@ -180,14 +180,14 @@ public sealed class VisitObstacleHandController : MonoBehaviour
                 face.color = CardColor(kind);
             }
 
-            TextMeshProUGUI title = EconomyHUD.CreateText("ObstacleName", rect, 18f,
+            TextMeshProUGUI title = EconomyHUD.CreateText("ObstacleName", rect, 30f,
                 Color.white, TextAlignmentOptions.Center);
             SetTopCenter(title.rectTransform, new Vector2(0f, -46f), new Vector2(136f, 64f));
             title.text = DisplayName(kind);
             title.textWrappingMode = TextWrappingModes.Normal;
             title.raycastTarget = false;
 
-            TextMeshProUGUI fee = EconomyHUD.CreateText("ObstacleFee", rect, 14f,
+            TextMeshProUGUI fee = EconomyHUD.CreateText("ObstacleFee", rect, 27f,
                 new Color(1f, 0.84f, 0.35f), TextAlignmentOptions.Center);
             SetBottomCenter(fee.rectTransform, new Vector2(0f, 16f), new Vector2(140f, 24f));
             fee.text = $"{feeCoins} Coins";
