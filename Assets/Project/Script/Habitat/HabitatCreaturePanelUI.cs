@@ -1601,7 +1601,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             avtRect.anchorMin = new Vector2(0.5f, 0.5f);
             avtRect.anchorMax = new Vector2(0.5f, 0.5f);
             avtRect.pivot = new Vector2(0.5f, 0.5f);
-            avtRect.sizeDelta = new Vector2(38f, 38f);
+            avtRect.sizeDelta = new Vector2(44f, 44f);
 
             Image avtImg = avtObj.GetComponent<Image>();
             avtImg.preserveAspect = true;

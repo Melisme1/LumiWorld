@@ -115,7 +115,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Ô đã có dòng suối từ trước -> Không cho đặt đè
             if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
             {
-                lastValidationError = "Ô này đã có dòng suối";
+                lastValidationError = "This tile already has a stream!";
                 return false;
             }
 
@@ -124,7 +124,7 @@ public class HexPlacementValidator : MonoBehaviour
             // BẮT BUỘC: Ô này phải ĐÃ ĐẶT thẻ Môi trường (Biome / Terrain card)
             if (!HasPlacedTerrain(tileObj))
             {
-                lastValidationError = "Cần đặt thẻ Môi trường (Biome) trước khi khai thông dòng suối!";
+                lastValidationError = "Must place a Biome card before opening a stream!";
                 return false;
             }
 
@@ -152,7 +152,7 @@ public class HexPlacementValidator : MonoBehaviour
                 // Không cho phép đặt nguồn ở vùng thung lũng trũng thấp nhất (Tier 0)
                 if (targetTopY < 1.35f)
                 {
-                    lastValidationError = "Thượng nguồn suối phải bắt đầu từ Tầng trung (đồi) hoặc Tầng cao (núi) để có độ dốc dòng chảy!";
+                    lastValidationError = "River source must start from Middle Tier (hill) or High Tier (mountain) for downstream slope!";
                     return false;
                 }
             }
@@ -176,7 +176,7 @@ public class HexPlacementValidator : MonoBehaviour
 
                 if (!canFlowDownhill)
                 {
-                    lastValidationError = "Nước không thể chảy ngược lên dốc cao hơn!";
+                    lastValidationError = "Water cannot flow uphill to a higher elevation!";
                     return false;
                 }
             }

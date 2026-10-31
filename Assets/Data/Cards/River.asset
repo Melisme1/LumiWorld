@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: River
   cardName: River
-  cardImage: {fileID: 21300000, guid: 8a6bfaee486f4416aedc5c879fab84e0, type: 3}
+  cardImage: {fileID: 21300000, guid: 52b3bcdf06804b71bf844f2218d2b6fb, type: 3}
   cardType: 3
   baseScore: 3
   alwaysBaseScore: 0

@@ -82,6 +82,8 @@ public class MainMenuController : MonoBehaviour
 
         if (startingGame) return;
         startingGame = true;
+        if (accountText != null) Destroy(accountText.gameObject);
+        if (accountButton != null) Destroy(accountButton.gameObject);
         // Rời đảo người khác bằng đường khác ngoài Back home (về menu) thì vẫn vào đảo của mình
         if (VisitSession.Active) VisitSession.End();
         StartCoroutine(SaveSync.PullBeforePlay(() => SceneManager.LoadScene(gameSceneName)));
@@ -117,6 +119,8 @@ public class MainMenuController : MonoBehaviour
         }
         // Unity's Destroy is deferred; let old persistent economy objects disappear first.
         yield return null;
+        if (accountText != null) Destroy(accountText.gameObject);
+        if (accountButton != null) Destroy(accountButton.gameObject);
         SceneManager.LoadScene(gameSceneName);
     }
 
@@ -146,11 +150,26 @@ public class MainMenuController : MonoBehaviour
         RefreshAccountBar();
     }
 
+    private void OnDestroy()
+    {
+        if (accountText != null) Destroy(accountText.gameObject);
+        if (accountButton != null) Destroy(accountButton.gameObject);
+    }
+
     private void BuildAccountBar()
     {
         if (accountText != null) return;
 
-        Canvas canvas = FindFirstObjectByType<Canvas>();
+        // Ưu tiên tìm Canvas thuộc Scene MainMenu để tránh gán nhầm vào Canvas DontDestroyOnLoad (GameDialogUI)
+        Canvas canvas = null;
+        var rootObjects = gameObject.scene.GetRootGameObjects();
+        foreach (var root in rootObjects)
+        {
+            canvas = root.GetComponentInChildren<Canvas>(true);
+            if (canvas != null) break;
+        }
+        if (canvas == null) canvas = FindFirstObjectByType<Canvas>();
+
         if (canvas == null)
         {
             Debug.LogWarning("MainMenuController: không có Canvas, không hiện được dòng tài khoản.");

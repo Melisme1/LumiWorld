@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: FlyingSquirrelSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: flyingsquirrel
-  speciesName: "Sóc Bay"
-  description: "Chú sóc bay tinh anh với đôi mắt sáng, lanh lợi chuyền cành và lướt đi thoăn thoắt giữa những vòm cây râm mát."
+  speciesName: "Flying Squirrel"
+  description: "A nimble flying squirrel with bright eyes, gracefully gliding through lush canopy."
   locomotionType: 0
   baseWalkSpeed: 0.6
   baseRunSpeed: 1.15
