@@ -21,7 +21,6 @@ public sealed class VisitObstacleHandController : MonoBehaviour
     private readonly Dictionary<GameObject, DragOrigin> draggingCards = new();
     private RectTransform handRoot;
     private TextMeshProUGUI statusText;
-    private Button retryButton;
     private Canvas rootCanvas;
     private HexWorldGenerator visitedWorld;
     private HexCameraController cameraController;
@@ -33,6 +32,8 @@ public sealed class VisitObstacleHandController : MonoBehaviour
     private bool feePaid;
     private ObstacleSendRequest pendingRequest;
     private string pendingIdempotencyKey;
+    private int pendingRetryCount;
+    private const int MaxAutomaticRetries = 2;
 
     private sealed class DragOrigin
     {
@@ -102,21 +103,12 @@ public sealed class VisitObstacleHandController : MonoBehaviour
         root.anchoredPosition = new Vector2(0f, 10f);
         root.sizeDelta = new Vector2(900f, 280f);
 
-        statusText = EconomyHUD.CreateText("ObstacleStatus", root, 15f,
+        statusText = EconomyHUD.CreateText("ObstacleStatus", root, 45f,
             new Color(0.9f, 0.93f, 1f), TextAlignmentOptions.Center);
-        SetBottomCenter(statusText.rectTransform, new Vector2(0f, 232f), new Vector2(760f, 32f));
+        SetBottomCenter(statusText.rectTransform, new Vector2(0f, 500f), new Vector2(760f, 32f));
         statusText.text = "Loading obstacle cards...";
         statusText.raycastTarget = false;
 
-        RectTransform retryRect = EconomyHUD.CreateRect("RetryObstacleButton", root);
-        SetBottomCenter(retryRect, new Vector2(390f, 232f), new Vector2(86f, 30f));
-        retryButton = EconomyHUD.AddButton(retryRect, new Color(0.26f, 0.30f, 0.38f, 1f));
-        retryButton.onClick.AddListener(SendPendingObstacle);
-        TextMeshProUGUI retryLabel = EconomyHUD.CreateText("Label", retryRect, 14f,
-            Color.white, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(retryLabel.rectTransform);
-        retryLabel.text = "Retry";
-        retryButton.gameObject.SetActive(false);
     }
 
     private IEnumerator LoadConfigAndBuildCards()
@@ -393,6 +385,7 @@ public sealed class VisitObstacleHandController : MonoBehaviour
 
         pendingRequest = new ObstacleSendRequest { kind = kind, q = target.Q, r = target.R };
         pendingIdempotencyKey = System.Guid.NewGuid().ToString("N");
+        pendingRetryCount = 0;
         if (!wallet.TrySpend(feeCoins, CoinReason.ObstacleSend))
         {
             pendingRequest = null;
@@ -410,7 +403,6 @@ public sealed class VisitObstacleHandController : MonoBehaviour
         ObstacleSendRequest sent = pendingRequest;
         string idempotencyKey = pendingIdempotencyKey;
         sending = true;
-        retryButton.interactable = false;
         string name = DisplayName(sent.kind);
         SetStatus($"Sending {name} to [{sent.q}:{sent.r}]...");
 
@@ -421,9 +413,8 @@ public sealed class VisitObstacleHandController : MonoBehaviour
                 sending = false;
                 pendingRequest = null;
                 pendingIdempotencyKey = null;
+                pendingRetryCount = 0;
                 feePaid = false;
-                retryButton.interactable = true;
-                retryButton.gameObject.SetActive(false);
                 string id = response != null ? response.obstacleId : null;
                 SetStatus(string.IsNullOrEmpty(id)
                     ? $"{name} sent to {VisitSession.OwnerName}'s island at [{sent.q}:{sent.r}]. Charged {feeCoins} Coins."
@@ -432,19 +423,33 @@ public sealed class VisitObstacleHandController : MonoBehaviour
             error =>
             {
                 sending = false;
-                retryButton.interactable = true;
                 if (error != null && error.IsNetworkError)
                 {
-                    retryButton.gameObject.SetActive(true);
-                    SetStatus("Connection uncertain. Retry to safely resend the same request.");
+                    if (pendingRetryCount < MaxAutomaticRetries)
+                    {
+                        pendingRetryCount++;
+                        SetStatus($"Connection interrupted. Retrying automatically ({pendingRetryCount}/{MaxAutomaticRetries})...");
+                        StartCoroutine(RetryPendingObstacle());
+                        return;
+                    }
+
+                    // Keep the request and idempotency key so this client cannot accidentally
+                    // charge again or create a duplicate after an uncertain server response.
+                    SetStatus("Could not confirm the result. The request is kept pending; avoid sending another obstacle.");
                     return;
                 }
                 RefundFee();
                 pendingRequest = null;
                 pendingIdempotencyKey = null;
-                retryButton.gameObject.SetActive(false);
+                pendingRetryCount = 0;
                 SetStatus(MarketSync.Describe(error));
             }));
+    }
+
+    private IEnumerator RetryPendingObstacle()
+    {
+        yield return new WaitForSecondsRealtime(1.25f);
+        SendPendingObstacle();
     }
 
     private void RefundFee()
