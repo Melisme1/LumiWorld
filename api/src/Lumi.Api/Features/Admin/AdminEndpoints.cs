@@ -17,7 +17,12 @@ public sealed record ConfigUpdateRequest(string? Key, string? Value);
 public static class AdminEndpoints
 {
     // Tham số có giá trị số: server phải đọc được thành số, nếu không GameConfig sẽ lặng lẽ dùng mặc định
-    private static readonly string[] NumericPrefixes = ["market.", "obstacle.", "sync.", "save.", "world."];
+    private static readonly string[] NumericPrefixes = ["market.", "obstacle.", "sync.", "save.", "world.", "trade."];
+
+    // Phải từ 1 trở lên; trade.maxPendingOutgoing và market.maxActiveCardListings = 0 thì được (tắt tính năng)
+    private static readonly HashSet<string> MinOneKeys =
+        ["market.listingHours", "market.maxCardsPerListing", "trade.offerHours", "trade.maxCardsPerSide"];
+    private const int MaxTradeOfferHours = 720;
     private const string AllowedKindsKey = "obstacle.allowedKinds";
     private const string MinPriceFactorKey = "market.minPriceFactor";
     private const string MaxPriceFactorKey = "market.maxPriceFactor";
@@ -167,6 +172,19 @@ public static class AdminEndpoints
         if (key == "market.feePercent" && number > 50)
         {
             problem = "market.feePercent cannot be more than 50.";
+            return false;
+        }
+
+        // 0 ở các khóa này làm mọi lô / đề nghị hết hạn ngay hoặc không ai gửi được lá nào
+        if (MinOneKeys.Contains(key) && number < 1)
+        {
+            problem = $"'{key}' must be at least 1.";
+            return false;
+        }
+
+        if (key == "trade.offerHours" && number > MaxTradeOfferHours)
+        {
+            problem = $"trade.offerHours cannot be more than {MaxTradeOfferHours} (30 days).";
             return false;
         }
 

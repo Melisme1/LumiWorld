@@ -9,7 +9,7 @@ namespace Lumi.Api.Infrastructure;
 /// </summary>
 public static class SchemaCheck
 {
-    public static readonly string[] RequiredVersions = ["001_init", "002_market", "003_world_map", "004_crafted_resource_prices", "005_river_view", "006_creature_card_market", "007_card_trades"];
+    public static readonly string[] RequiredVersions = ["001_init", "002_market", "003_world_map", "004_crafted_resource_prices", "005_river_view", "006_creature_card_market", "007_card_trades", "009_report_views"];
 
     public static async Task EnsureAsync(NpgsqlDataSource dataSource, ILogger logger, CancellationToken ct = default)
     {

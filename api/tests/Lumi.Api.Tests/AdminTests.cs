@@ -151,6 +151,52 @@ public sealed class AdminTests(LumiApiFactory factory)
     }
 
     [Fact]
+    public async Task Admin_can_tune_card_trades()
+    {
+        var admin = await AdminAsync();
+        var client = factory.As(admin);
+        var a = await factory.CreateClient().RegisterAsync();
+        var b = await factory.CreateClient().RegisterAsync();
+
+        Task<HttpResponseMessage> Set(string key, string value) =>
+            client.PutAsJsonAsync("/api/v1/admin/config", new { key, value });
+        Task<HttpResponseMessage> Offer(int count) => PostWithKeyAsync(factory.As(a), "/api/v1/trades", new
+        {
+            toPlayerId = b.PlayerId,
+            offerCardId = "card.creature_fox",
+            offerCount = count,
+            requestCardId = "card.creature_deer",
+            requestCount = 1
+        });
+
+        try
+        {
+            var changed = await (await Set("trade.maxCardsPerSide", "3")).JsonAsync();
+            Assert.Equal("10", changed.GetProperty("previousValue").GetString());
+
+            // Giới hạn mới có hiệu lực ngay ở đề nghị kế tiếp
+            Assert.Equal("INVALID_AMOUNT", await (await Offer(4)).CodeAsync());
+            Assert.Equal(HttpStatusCode.Created, (await Offer(3)).StatusCode);
+
+            Assert.Equal(HttpStatusCode.OK, (await Set("trade.offerHours", "24")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await Set("trade.maxPendingOutgoing", "0")).StatusCode);
+
+            Assert.Equal("CONFIG_VALUE_INVALID", await (await Set("trade.maxCardsPerSide", "0")).CodeAsync());
+            Assert.Equal("CONFIG_VALUE_INVALID", await (await Set("trade.offerHours", "0")).CodeAsync());
+            Assert.Equal("CONFIG_VALUE_INVALID", await (await Set("trade.offerHours", "721")).CodeAsync());
+            Assert.Equal("CONFIG_VALUE_INVALID", await (await Set("market.maxCardsPerListing", "0")).CodeAsync());
+            Assert.Equal("CONFIG_KEY_UNKNOWN", await (await Set("trade.nope", "1")).CodeAsync());
+        }
+        finally
+        {
+            // Trả về mặc định để các test khác không bị ảnh hưởng
+            await Set("trade.maxCardsPerSide", "10");
+            await Set("trade.offerHours", "72");
+            await Set("trade.maxPendingOutgoing", "5");
+        }
+    }
+
+    [Fact]
     public async Task Stats_count_new_players_and_sales()
     {
         var admin = await AdminAsync();

@@ -140,6 +140,7 @@ app.MapInboxEndpoints(app.Environment);
 app.MapMarketEndpoints();
 app.MapAdminEndpoints();
 app.MapAdminPlayerEndpoints();
+app.MapAdminDailyStatsEndpoints();
 app.MapObstacleEndpoints();
 app.MapLeaderboardEndpoints();
 
