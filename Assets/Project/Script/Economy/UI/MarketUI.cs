@@ -72,9 +72,9 @@ public class MarketUI : MonoBehaviour
     private readonly Button[] tabButtons = new Button[3];
     private ResourceInventory inventory;
 
-    // Giá gốc mỗi thẻ thú (khớp migration 006_creature_card_market) và số lá tối đa mỗi lô
+    // Giá gốc mỗi thẻ thú (khớp migration 006_creature_card_market); số lá tối đa mỗi lô đọc từ server (market.maxCardsPerListing)
     private const int CardBaseValue = 50;
-    private const int MaxCardAmount = 10;
+    private static int MaxCardAmount => MarketSync.MaxCardsPerListing;
 
     // Bộ lọc tab Buy: -1 tất cả, -2 chỉ thẻ thú, từ 0 là chỉ số tài nguyên
     private const int FilterAll = -1;

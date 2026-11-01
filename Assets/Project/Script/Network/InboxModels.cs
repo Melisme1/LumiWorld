@@ -48,4 +48,8 @@ public class GameConfigDto
     public int marketListingHours;
     public float marketMinPriceFactor;
     public float marketMaxPriceFactor;
+
+    // Thẻ thú: số lá tối đa mỗi lô chợ và mỗi bên một đề nghị đổi thẻ (admin đổi được)
+    public int marketMaxCardsPerListing;
+    public int tradeMaxCardsPerSide;
 }

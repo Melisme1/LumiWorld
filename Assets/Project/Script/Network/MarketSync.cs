@@ -25,6 +25,7 @@ public class MarketSync : MonoBehaviour
     private const int DefaultListingHours = 72;
     private const float DefaultMinPriceFactor = 0.5f;
     private const float DefaultMaxPriceFactor = 3f;
+    private const int DefaultMaxCards = 10;
 
     private static MarketSync _instance;
 
@@ -34,6 +35,8 @@ public class MarketSync : MonoBehaviour
     private static int listingHours = DefaultListingHours;
     private static float minPriceFactor = DefaultMinPriceFactor;
     private static float maxPriceFactor = DefaultMaxPriceFactor;
+    private static int maxCardsPerListing = DefaultMaxCards;
+    private static int tradeMaxCardsPerSide = DefaultMaxCards;
 
     // Các opKey đang được gửi, để một thao tác không gửi hai lượt cùng lúc
     private static readonly HashSet<string> inFlight = new HashSet<string>();
@@ -41,6 +44,8 @@ public class MarketSync : MonoBehaviour
     public static int FeePercent => feePercent;
     public static int MaxActiveListings => maxActiveListings;
     public static int ListingHours => listingHours;
+    public static int MaxCardsPerListing => maxCardsPerListing;
+    public static int TradeMaxCardsPerSide => tradeMaxCardsPerSide;
 
     public static MarketSync Instance
     {
@@ -95,6 +100,8 @@ public class MarketSync : MonoBehaviour
                 if (config.marketListingHours > 0) listingHours = config.marketListingHours;
                 if (config.marketMinPriceFactor > 0f) minPriceFactor = config.marketMinPriceFactor;
                 if (config.marketMaxPriceFactor > 0f) maxPriceFactor = config.marketMaxPriceFactor;
+                if (config.marketMaxCardsPerListing > 0) maxCardsPerListing = config.marketMaxCardsPerListing;
+                if (config.tradeMaxCardsPerSide > 0) tradeMaxCardsPerSide = config.tradeMaxCardsPerSide;
             },
             error => Debug.LogWarning($"[LumiWorld Chợ] Không đọc được tham số chợ, dùng mặc định: {error}"));
     }
