@@ -48,6 +48,9 @@ public static class ErrorCodes
     public const string NotYourTrade = "NOT_YOUR_TRADE";
 
     public const string Forbidden = "FORBIDDEN";
+    public const string AdminSelf = "ADMIN_SELF";
+    public const string AdminTargetIsAdmin = "ADMIN_TARGET_IS_ADMIN";
+    public const string AdminTargetSuspended = "ADMIN_TARGET_SUSPENDED";
     public const string ConfigKeyUnknown = "CONFIG_KEY_UNKNOWN";
     public const string ConfigValueInvalid = "CONFIG_VALUE_INVALID";
 

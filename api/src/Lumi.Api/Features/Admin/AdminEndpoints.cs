@@ -36,7 +36,7 @@ public static class AdminEndpoints
         app.MapGet("/api/v1/leaderboard", Leaderboard).RequireAuthorization();
     }
 
-    private static async Task<IResult?> RequireAdminAsync(ClaimsPrincipal user, NpgsqlDataSource db, CancellationToken ct)
+    internal static async Task<IResult?> RequireAdminAsync(ClaimsPrincipal user, NpgsqlDataSource db, CancellationToken ct)
     {
         await using var conn = await db.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(

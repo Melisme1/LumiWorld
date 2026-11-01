@@ -44,6 +44,23 @@ UTF8) và `03_grants.sql` cho cả hai database. Chạy lại được: role có
 Bảng và sequence lumi_owner tạo ra tự cấp quyền cho lumi_app (default privileges trong `03_grants.sql`).
 `dotnet test` trong D:\Lumi đọc migration từ `$LUMI_DB_DIR\migrations` (mặc định `D:\LumiDB`).
 
+## Sao lưu và khôi phục
+
+```
+powershell -ExecutionPolicy Bypass -File D:\LumiDB\scripts\backup.ps1
+powershell -ExecutionPolicy Bypass -File D:\LumiDB\scripts\restore.ps1 -File D:\LumiDB\backups\lumi_<ngày_giờ>.dump
+```
+
+`backup.ps1` ghi `backups\lumi_<yyyyMMdd_HHmmss>.dump` (pg_dump định dạng custom), đọc lại mục lục để chắc
+file không hỏng, và chỉ giữ 14 bản mới nhất (`-Keep`). `-Database lumi_test` để sao lưu database khác.
+File chứa bảng, view, dữ liệu và quyền trên bảng; role và mật khẩu thì dựng lại bằng `setup.ps1`.
+
+`restore.ps1` hỏi gõ lại tên database, tự sao lưu database đích trước, rồi khôi phục trong một transaction
+(lỗi thì database không đổi). Tắt LumiServer trước khi khôi phục vào `lumi`. Muốn thử thì khôi phục vào
+`lumi_test` trước (`-Database lumi_test`); `dotnet test` sẽ dựng lại `lumi_test` sau đó. Bản sao lưu cũ hơn
+code hiện tại thì chạy `migrate.ps1` sau khi khôi phục. Database đích đã chạy migration mới hơn bản sao lưu
+thì script dừng, không đổi gì (bảng mới sẽ còn sót và migrate báo trùng): khi đó khôi phục vào database trống.
+
 ## Cho bạn bè chơi
 
 1. Chạy `powershell -ExecutionPolicy Bypass -File D:\LumiDB\scripts\share-server.ps1`.
@@ -61,7 +78,7 @@ migrations\  schema, chạy theo thứ tự tên, mỗi file đúng một lần
 views\       view cho dashboard (giai đoạn 4)
 jobs\        dọn dữ liệu cũ, tổng hợp số liệu mỗi đêm (giai đoạn 2, 3)
 seed\        dữ liệu thử (giai đoạn 4)
-scripts\     setup.ps1, migrate.ps1; backup.ps1, restore.ps1 ở giai đoạn 3
+scripts\     setup.ps1, migrate.ps1, backup.ps1, restore.ps1, share-server.ps1
 docs\        ERD và từ điển dữ liệu (giai đoạn 4)
 backups\     bản pg_dump, không commit
 ```

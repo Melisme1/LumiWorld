@@ -27,7 +27,9 @@ string connectionString = builder.Configuration.GetConnectionString("Lumi")
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 
 // --- Đăng nhập bằng JWT ---
-var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+// Đánh dấu trong HttpContext.Items khi token hợp lệ nhưng tài khoản đã bị khóa
+const string SuspendedItem = "lumi.accountSuspended";
+var jwt =builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
 if (jwt.Key.Length < 32)
     throw new InvalidOperationException("Jwt:Key phải dài ít nhất 32 ký tự (đặt qua biến môi trường Jwt__Key).");
 
@@ -57,11 +59,31 @@ builder.Services
         // 401 cũng trả problem+json có code, để client nhận ra hết phiên và mở lại màn đăng nhập
         options.Events = new JwtBearerEvents
         {
+            // Tài khoản bị admin khóa (hoặc đã xóa): token còn hạn cũng hết tác dụng ngay ở request kế tiếp
+            OnTokenValidated = async context =>
+            {
+                if (!Guid.TryParse(context.Principal?.FindFirst("sub")?.Value, out Guid playerId))
+                {
+                    context.Fail("Token has no player id.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<NpgsqlDataSource>();
+                await using var cmd = db.CreateCommand("select is_suspended from players where id = @p");
+                cmd.Parameters.AddWithValue("p", playerId);
+                if (await cmd.ExecuteScalarAsync(context.HttpContext.RequestAborted) is not false)
+                {
+                    context.HttpContext.Items[SuspendedItem] = true;
+                    context.Fail("Account suspended.");
+                }
+            },
             OnChallenge = async context =>
             {
                 context.HandleResponse();
-                await ApiProblem.Create(401, ErrorCodes.Unauthorized, "Log in again to continue.")
-                    .ExecuteAsync(context.HttpContext);
+                IResult problem = context.HttpContext.Items.ContainsKey(SuspendedItem)
+                    ? ApiProblem.Create(403, ErrorCodes.AccountSuspended, "This account can't be used right now.")
+                    : ApiProblem.Create(401, ErrorCodes.Unauthorized, "Log in again to continue.");
+                await problem.ExecuteAsync(context.HttpContext);
             }
         };
     });
@@ -117,6 +139,7 @@ app.MapTradeEndpoints();
 app.MapInboxEndpoints(app.Environment);
 app.MapMarketEndpoints();
 app.MapAdminEndpoints();
+app.MapAdminPlayerEndpoints();
 app.MapObstacleEndpoints();
 app.MapLeaderboardEndpoints();
 
