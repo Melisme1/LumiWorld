@@ -34,6 +34,8 @@ public class WorldVisitHud : MonoBehaviour
 
     private TextMeshProUGUI statusText;
     private ListingsWindow listings;
+    private TradeOfferWindow tradeOffer;
+    private TradeOffersWindow tradeOffers;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void InstallAutoSpawn()
@@ -78,14 +80,30 @@ public class WorldVisitHud : MonoBehaviour
 
     private void BuildOwnPanel()
     {
-        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 112f));
+        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 164f));
 
         AddButton(panel, "World map", new Vector2(12f, -12f), new Vector2(ColumnWidth - 24f, 44f), AccentColor, OpenWorldMap);
+        AddButton(panel, "Trade offers", new Vector2(12f, -64f), new Vector2(ColumnWidth - 24f, 42f), NeutralColor,
+            () => tradeOffers = TradeOffersWindow.Open(tradeOffers, transform));
 
-        statusText = CreateLine(panel, new Vector2(14f, -64f), new Vector2(ColumnWidth - 28f, 40f));
+        statusText = CreateLine(panel, new Vector2(14f, -114f), new Vector2(ColumnWidth - 28f, 40f));
         statusText.text = MapAvailable
             ? "See other islands, visit them and share yours."
             : "World map scene is missing: run Tools > LumiWorld > Tạo scene WorldMap.";
+
+        TradeSync.OfferReceived += HandleOfferReceived;
+    }
+
+    private void OnDestroy()
+    {
+        TradeSync.OfferReceived -= HandleOfferReceived;
+    }
+
+    // Đề nghị đổi thẻ mới tới qua hộp thư: báo trên HUD, cửa sổ đang mở thì tải lại
+    private void HandleOfferReceived(string fromName)
+    {
+        if (statusText != null) statusText.text = "New trade offer from " + fromName + ". Open Trade offers.";
+        if (tradeOffers != null && tradeOffers.IsOpen) tradeOffers.Refresh();
     }
 
     private void OpenWorldMap()
@@ -104,7 +122,7 @@ public class WorldVisitHud : MonoBehaviour
 
     private void BuildVisitPanel()
     {
-        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 210f));
+        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 262f));
 
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 22f, TextColor, TextAlignmentOptions.Left);
         SetTopLeft(title.rectTransform, new Vector2(14f, -10f), new Vector2(ColumnWidth - 28f, 30f));
@@ -122,6 +140,8 @@ public class WorldVisitHud : MonoBehaviour
         AddButton(panel, "Home", new Vector2(24f + half, -98f), new Vector2(half, 42f), DangerColor, GoHome);
         AddButton(panel, "Listings", new Vector2(12f, -150f), new Vector2(ColumnWidth - 24f, 42f), NeutralColor,
             () => listings = ListingsWindow.Open(listings, transform, VisitSession.OwnerId, VisitSession.OwnerName));
+        AddButton(panel, "Trade cards", new Vector2(12f, -202f), new Vector2(ColumnWidth - 24f, 42f), AccentColor,
+            () => tradeOffer = TradeOfferWindow.Open(tradeOffer, transform, VisitSession.OwnerId, VisitSession.OwnerName));
     }
 
     private static void GoHome()

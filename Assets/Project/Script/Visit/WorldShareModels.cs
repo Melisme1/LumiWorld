@@ -34,18 +34,22 @@ public class SnapshotPlacement
     public string animalName;
     public int animalStar;
     public int animalTrait;
+    public int riverFlowStep = -1;
+    public bool riverIsOrigin;
 
     public static SnapshotPlacement From(PlacementRecord record) => new SnapshotPlacement
     {
         cardID = record.cardID, q = record.q, r = record.r, clusterId = record.clusterId,
         displayedScore = record.displayedScore, qualityRank = record.qualityRank,
         animalName = record.animalName, animalStar = record.animalStar, animalTrait = record.animalTrait,
+        riverFlowStep = record.riverFlowStep, riverIsOrigin = record.riverIsOrigin,
     };
 
     public PlacementRecord ToRecord() => new PlacementRecord
     {
         cardID = cardID, q = q, r = r, clusterId = clusterId, displayedScore = displayedScore,
         qualityRank = qualityRank, animalName = animalName, animalStar = animalStar, animalTrait = animalTrait,
+        riverFlowStep = riverFlowStep, riverIsOrigin = riverIsOrigin,
     };
 }
 

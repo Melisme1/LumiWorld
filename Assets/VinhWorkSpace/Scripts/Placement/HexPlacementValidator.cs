@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -72,6 +72,13 @@ public class HexPlacementValidator : MonoBehaviour
                 return true;
             }
 
+            // Rain biến đổi địa hình thay cả khối ô, sẽ xóa luôn đoạn suối mà mạng sông và bản lưu không hay biết
+            if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
+            {
+                lastValidationError = "Ô này đã có dòng suối, không cần tưới";
+                return false;
+            }
+
             // Nếu không có thiên tai, kiểm tra xem ô có phải là ô đất khô Arid cần cải tạo hay không
             if (!cardData.IsTileTransformCard() || !cardData.IsTileAllowed(tileObj, worldGen))
             {
@@ -115,16 +122,11 @@ public class HexPlacementValidator : MonoBehaviour
             // Ô đã có dòng suối từ trước -> Không cho đặt đè
             if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
             {
-                lastValidationError = "Ô này đã có dòng suối";
+                lastValidationError = "This tile already has a river segment.";
                 return false;
             }
 
-            // Ô đang có thú sinh sống trực tiếp -> Không cho đặt trực tiếp lên thú
-            if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
-            {
-                lastValidationError = "Ô này đang có thú sinh sống. Hãy đặt suối ở ô lân cận để tạo bến nước!";
-                return false;
-            }
+            // Cho phep dat suoi chay qua o co thu sinh song (huong diem ben nuoc)
 
             // BẮT BUỘC: Ô này phải ĐÃ ĐẶT thẻ Môi trường (Biome / Terrain card)
             if (!HasPlacedTerrain(tileObj))
@@ -157,7 +159,7 @@ public class HexPlacementValidator : MonoBehaviour
                 // Không cho phép đặt nguồn ở vùng thung lũng trũng thấp nhất (Tier 0)
                 if (targetTopY < 1.35f)
                 {
-                    lastValidationError = "Thượng nguồn suối phải bắt đầu từ Tầng trung (đồi) hoặc Tầng cao (núi) để có độ dốc dòng chảy!";
+                    lastValidationError = "River spring head must start on highland or hill to flow downward!";
                     return false;
                 }
             }
@@ -181,7 +183,7 @@ public class HexPlacementValidator : MonoBehaviour
 
                 if (!canFlowDownhill)
                 {
-                    lastValidationError = "Nước không thể chảy ngược lên dốc cao hơn!";
+                    lastValidationError = "Water cannot flow uphill!";
                     return false;
                 }
             }

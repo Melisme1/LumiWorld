@@ -29,6 +29,9 @@ public class EconomySaveData
     // Thao tác chợ đang chờ server xác nhận (đăng bán, mua, hủy). Xem PendingMarketOp.
     public List<PendingMarketOp> pendingMarketOps = new List<PendingMarketOp>();
 
+    // Thao tác đổi thẻ thú đang chờ server (gửi, đồng ý, từ chối, hủy). Xem PendingTradeOp. Bản lưu cũ để trống.
+    public List<PendingTradeOp> pendingTradeOps = new List<PendingTradeOp>();
+
     // Tiến trình của tài khoản (AchievementManager). harmonyInitialized = false ở bản lưu cũ:
     // khi đó dùng Harmony khởi điểm của AchievementManager rồi ghi lại.
     public bool harmonyInitialized;

@@ -872,6 +872,8 @@ namespace LumiWorld.Acs
                             if (neighborStateForFire == null) continue;
                         }
                         if (!neighborStateForFire.IsLushTile) continue;
+                        // Ô có suối (kể cả suối đặt lúc lửa đang cháy) là tường nước, lửa không lan vào.
+                        if (IsWaterTile(neighborTile)) continue;
 
                         // 2. Chỉ lan trong CÙNG MỘT môi trường (Leafwood chỉ cháy sang Leafwood...).
                         //

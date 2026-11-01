@@ -32,37 +32,18 @@ public static class RiverSetupUtility
             Debug.Log("<color=#38BDF8>[River Setup] Đã tạo mới asset RiverConfig.asset trong Assets/Resources/</color>");
         }
 
-        // 3. Quét tự động các file FBX trong Assets/VinhWorkSpace/Props/Waterfall
-        config.straightPrefab = FindFbx("Stream_Path");
-        config.fork3WayPrefab = FindFbx("Stone_Crossroad");
-        config.springHeadPrefab = FindFbx("Stone_Hollow");
-        config.pondBasinPrefab = FindFbx("Meadow_Pond");
-        config.waterfallPrefab = FindFbx("Stone_Stairw");
+        // 3. Quét tự động các file FBX trong Assets/VinhWorkSpace/Props/Waterfall (chỉ gán nếu chưa có để không đè asset)
+        if (config.straightPrefab == null) config.straightPrefab = FindFbx("Stream_Path");
+        if (config.springHeadPrefab == null) config.springHeadPrefab = FindFbx("Stone_Hollow");
+        if (config.pondBasinPrefab == null) config.pondBasinPrefab = FindFbx("Meadow_Pond");
+        if (config.waterfallPrefab == null) config.waterfallPrefab = FindFbx("Stone_Stairw");
 
-        config.modelScale = Vector3.one;
-        config.yElevationOffset = 0.02f;
-        config.springHeadYOffset = 0.285f;
-        config.springHeadOffset = Vector3.zero;
-        config.pondBasinYOffset = 0.125f;
-        config.pondOffset = Vector3.zero;
-        config.pondTextureOffset = Vector2.zero;
-        config.straightYOffset = 0.095f;
-        config.curve120YOffset = 0.135f;
-        config.curve60YOffset = 0.135f;
-        config.fork3WayYOffset = 0.080f;
-        config.waterfallYOffset = 0.477f;
-        config.waterfallOffset = new Vector3(0f, 0f, 0.18f);
-        config.waterfallRotationOffset = 0f;
-        config.globalRotationOffset = 0f;
-
-        config.pointsPerRiverTile = 3;
-        config.pointsPerCoLocatedBiome = 2;
-        config.pointsPerAdjacentBiome = 1;
-        config.pointsPerAdjacentCreature = 5;
-        config.pointsPeninsulaBonus = 5;
+        // LƯU Ý: Toàn bộ thông số bù trừ vị trí (offset), góc xoay (rotation), tỉ lệ (scale)
+        // và bảng điểm gameplay được quản lý DUY NHẤT tại RiverConfig (RiverConfig.cs / RiverConfig.asset).
+        // Tuyệt đối không hardcode gán đè tại đây.
 
         EditorUtility.SetDirty(config);
-        Debug.Log("<color=#10B981>[River Setup] Đã gán thành công 6 mô hình FBX vào RiverConfig!</color>");
+        Debug.Log("<color=#10B981>[River Setup] Đã kiểm tra mô hình FBX vào RiverConfig! Toàn bộ offset được giữ nguyên theo RiverConfig.asset.</color>");
 
         // 4. Tìm hoặc tạo CardData River.asset
         string cardsDir = "Assets/Data/Cards";
@@ -89,8 +70,8 @@ public static class RiverSetupUtility
         riverCard.replacesTile = false;
         riverCard.baseScore = 3;
         riverCard.alwaysBaseScore = false;
-        riverCard.shopPrice = 30;
-        riverCard.placementFee = 5;
+        riverCard.shopPrice = 80;
+        riverCard.placementFee = 15;
 
         // Gán sprite đại diện nếu tìm thấy Streamstone hoặc Lilywater
         Sprite riverSprite = FindSprite("Streamstone");

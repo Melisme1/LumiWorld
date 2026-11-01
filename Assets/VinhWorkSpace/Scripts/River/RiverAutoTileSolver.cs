@@ -11,6 +11,8 @@ public struct RiverTileSolution
     public float rotationY;       // Góc xoay trục Y (độ) để khớp với các cổng kết nối
     public int connectedPortsMask;// Bitmask các hướng (0..5) đã kết nối
     public int connectionCount;   // Số lượng nhánh suối kề bên kết nối
+    public int primaryPortA;      // Cổng dòng chính A (Inlet hoặc cổng chính 1)
+    public int primaryPortB;      // Cổng dòng chính B (Outlet hoặc cổng chính 2)
 
     public bool HasPort(int dir) => (connectedPortsMask & (1 << dir)) != 0;
 }
@@ -42,18 +44,24 @@ public static class RiverAutoTileSolver
     /// <param name="downhillDir">Hướng nghiêng dốc xuống về thung lũng (khi chưa có nhánh kết nối)</param>
     /// <param name="isLowTierTerminal">Ô này có phải tầng thấp nhất (Tier 0) cuối dòng suối để đọng thành hồ không</param>
     /// <param name="upstreamDir">Hướng kề bên (0..5) dẫn về ô thượng nguồn (flowStep nhỏ hơn), giúp suối thẳng luôn quay đúng chiều dòng chảy</param>
+    /// <param name="existingPortA">Cổng dòng chính A đã thiết lập trước đó (nếu có, để bảo toàn dòng chính khi phân nhánh)</param>
+    /// <param name="existingPortB">Cổng dòng chính B đã thiết lập trước đó (nếu có, để bảo toàn dòng chính khi phân nhánh)</param>
     public static RiverTileSolution Solve(
         List<int> connectedDirections, 
         bool isOrigin = false, 
         int downhillDir = 0, 
         bool isLowTierTerminal = false,
         int upstreamDir = -1,
-        int outflowDir = -1)
+        int outflowDir = -1,
+        int existingPortA = -1,
+        int existingPortB = -1)
     {
         RiverTileSolution solution = new RiverTileSolution
         {
             connectedPortsMask = 0,
-            connectionCount = connectedDirections != null ? connectedDirections.Count : 0
+            connectionCount = connectedDirections != null ? connectedDirections.Count : 0,
+            primaryPortA = -1,
+            primaryPortB = -1
         };
 
         if (connectedDirections != null)
@@ -65,7 +73,7 @@ public static class RiverAutoTileSolver
         }
 
         // 1. Trường hợp Ô Thượng Nguồn (isOrigin == true):
-        // Luôn luôn giữ nguyên bản chất là Hang Nguồn (SpringHead), không bao giờ bị biến dạng thành khúc cua hay suối thẳng!
+        // Luôn luôn giữ nguyên bản chất là Hang Nguồn (SpringHead), TUYỆT ĐỐI không bao giờ bị biến dạng thành khúc cua hay suối thẳng!
         if (isOrigin)
         {
             solution.pieceType = RiverPieceType.SpringHead;
@@ -77,52 +85,157 @@ public static class RiverAutoTileSolver
             {
                 // Miệng hang quay thẳng vào ô hạ lưu tiếp theo
                 solution.rotationY = GetDirectionAngle(connectedDirections[0]);
+                solution.primaryPortA = connectedDirections[0];
             }
             else
             {
-                // Khi có 2+ nhánh hạ lưu kề bên: quay miệng hang theo hướng phân giác trung bình
-                float a0 = GetDirectionAngle(connectedDirections[0]);
-                float a1 = GetDirectionAngle(connectedDirections[1]);
-                solution.rotationY = Mathf.LerpAngle(a0, a1, 0.5f);
+                // Khi có 2+ nhánh hạ lưu kề bên:
+                // Nếu có hướng đổ dốc xuống (outflowDir), ưu tiên quay theo hướng dốc/hạ lưu đó
+                if (outflowDir >= 0 && connectedDirections.Contains(outflowDir))
+                {
+                    solution.rotationY = GetDirectionAngle(outflowDir);
+                    solution.primaryPortA = outflowDir;
+                }
+                else
+                {
+                    float a0 = GetDirectionAngle(connectedDirections[0]);
+                    float a1 = GetDirectionAngle(connectedDirections[1]);
+                    solution.rotationY = Mathf.LerpAngle(a0, a1, 0.5f);
+                    solution.primaryPortA = connectedDirections[0];
+                    solution.primaryPortB = connectedDirections[1];
+                }
             }
             return solution;
         }
 
-        // 2. Trường hợp 0 kết nối (ô suối đơn lẻ): Quay theo hướng dốc
+        // 2. Trường hợp 0 kết nối (ô suối đứng biệt lập):
         if (solution.connectionCount == 0)
         {
-            solution.pieceType = RiverPieceType.SpringHead;
-            solution.rotationY = GetDirectionAngle(downhillDir);
+            if (isOrigin)
+            {
+                solution.pieceType = RiverPieceType.SpringHead;
+                solution.rotationY = GetDirectionAngle(downhillDir);
+            }
+            else
+            {
+                // Ở tầng thấp hoặc ô không phải origin: Biến thành Hồ nước (PondBasin), TUYỆT ĐỐI không sinh Hang Nguồn Đá ở tầng dưới
+                solution.pieceType = RiverPieceType.PondBasin;
+                solution.rotationY = GetDirectionAngle(downhillDir);
+            }
             return solution;
         }
 
-        // 3. Trường hợp 1 kết nối: Cuối nhánh dòng suối tụ lại thành hồ nhỏ (PondBasin)
+        // 3. Trường hợp 1 kết nối:
         if (solution.connectionCount == 1)
         {
             int dir = connectedDirections[0];
+            // Là điểm cuối của dòng suối: Đọng thành HỒ (PondBasin)
             solution.pieceType = RiverPieceType.PondBasin;
             solution.rotationY = GetDirectionAngle(dir);
+            solution.primaryPortA = dir;
             return solution;
         }
 
-        // 3. Trường hợp 2 kết nối: Suối Thẳng (180°) hoặc Ngã ba hợp lưu (Fork)
-        if (solution.connectionCount == 2)
+        // 4. Trường hợp 2+ kết nối (Dòng chảy liên tục, hỗ trợ phân nhánh từ dòng chính):
+        // GIỮ NGUYÊN DÒNG CHÍNH (Straight / Curve120 / Curve60) xuyên suốt giữa 2 cổng chính.
+        // Bất kỳ cổng thứ 3, thứ 4... sẽ được kết nối như nhánh phụ (Tributary) từ mép vào tâm!
+        if (solution.connectionCount >= 2)
         {
-            int d0 = connectedDirections[0];
-            int d1 = connectedDirections[1];
+            // Điểm hội tụ 3+ nhánh ở tầng trũng thấp nhất không có đường thoát -> Hồ chứa PondBasin
+            if (solution.connectionCount >= 3 && outflowDir < 0 && isLowTierTerminal)
+            {
+                solution.pieceType = RiverPieceType.PondBasin;
+                int primaryInlet = (upstreamDir >= 0) ? upstreamDir : connectedDirections[0];
+                solution.rotationY = GetDirectionAngle(primaryInlet);
+                solution.primaryPortA = primaryInlet;
+                return solution;
+            }
 
-            int diff = ((d1 - d0) % 6 + 6) % 6;
+            int pA = -1;
+            int pB = -1;
+
+            if (solution.connectionCount == 2)
+            {
+                // Ưu tiên bảo tồn cổng chính đã có trước đó:
+                if (existingPortA >= 0 && existingPortB >= 0 &&
+                    connectedDirections.Contains(existingPortA) && connectedDirections.Contains(existingPortB))
+                {
+                    pA = existingPortA;
+                    pB = existingPortB;
+                }
+                // Đảm bảo pA là cổng thượng nguồn (upstream / inlet) và pB là cổng hạ lưu (outflow)
+                else if (upstreamDir >= 0 && connectedDirections.Contains(upstreamDir))
+                {
+                    pA = upstreamDir;
+                    pB = (connectedDirections[0] == upstreamDir) ? connectedDirections[1] : connectedDirections[0];
+                }
+                else if (outflowDir >= 0 && connectedDirections.Contains(outflowDir))
+                {
+                    pB = outflowDir;
+                    pA = (connectedDirections[0] == outflowDir) ? connectedDirections[1] : connectedDirections[0];
+                }
+                else
+                {
+                    pA = connectedDirections[0];
+                    pB = connectedDirections[1];
+                }
+            }
+            else
+            {
+                // Chọn 2 cổng tạo nên DÒNG CHÍNH (Main Trunk):
+                // ƯU TIÊN 0: BẢO TOÀN DÒNG CHÍNH ĐÃ CÓ (Preserve Existing Main River)
+                // Khi người chơi muốn tạo nhánh rẽ từ một dòng suối đã tồn tại,
+                // dòng chính cũ (existingPortA -> existingPortB) luôn được giữ nguyên 100%.
+                // Cổng mới thêm vào sẽ tự động là NHÁNH PHỤ (Tributary Branch),
+                // không bao giờ bẻ dòng chính sang ô mới rồi biến ô cũ thành nhánh!
+                if (existingPortA >= 0 && existingPortB >= 0 &&
+                    connectedDirections.Contains(existingPortA) && connectedDirections.Contains(existingPortB))
+                {
+                    pA = existingPortA;
+                    pB = existingPortB;
+                }
+                // Ưu tiên 1: Cặp upstreamDir và outflowDir nếu cả 2 đều thuộc connectedDirections
+                else if (upstreamDir >= 0 && outflowDir >= 0 &&
+                    connectedDirections.Contains(upstreamDir) && connectedDirections.Contains(outflowDir))
+                {
+                    pA = upstreamDir;
+                    pB = outflowDir;
+                }
+                // Ưu tiên 2: Có upstreamDir, chọn pB trong các cổng còn lại tạo góc duỗi thẳng nhất
+                else if (upstreamDir >= 0 && connectedDirections.Contains(upstreamDir))
+                {
+                    pA = upstreamDir;
+                    pB = FindBestOppositePort(pA, connectedDirections);
+                }
+                // Ưu tiên 3: Có outflowDir, chọn pA trong các cổng còn lại tạo góc duỗi thẳng nhất
+                else if (outflowDir >= 0 && connectedDirections.Contains(outflowDir))
+                {
+                    pB = outflowDir;
+                    pA = FindBestOppositePort(pB, connectedDirections);
+                }
+                // Ưu tiên 4: Tìm cặp 2 cổng trong danh sách tạo thành đường thẳng nhất (180° > 120° > 60°)
+                else
+                {
+                    FindBestTrunkPair(connectedDirections, out pA, out pB);
+                }
+            }
+
+            solution.primaryPortA = pA;
+            solution.primaryPortB = pB;
+
+            int diff = ((pB - pA) % 6 + 6) % 6;
+            int d0 = pA;
+            int d1 = pB;
             if (diff > 3)
             {
-                int temp = d0;
-                d0 = d1;
-                d1 = temp;
+                d0 = pB;
+                d1 = pA;
                 diff = 6 - diff;
             }
 
             if (diff == 3)
             {
-                // 180 độ: Suối thẳng xuyên tâm (nối 2 hướng đối diện)
+                // 180 độ: Suối thẳng xuyên tâm (Straight)
                 solution.pieceType = RiverPieceType.Straight;
                 int downstreamDir = (upstreamDir == d0) ? d1 : (upstreamDir == d1 ? d0 : d0);
                 solution.rotationY = GetDirectionAngle(downstreamDir);
@@ -130,7 +243,7 @@ public static class RiverAutoTileSolver
             }
             else
             {
-                // Rẽ góc sang ô khác (120° hoặc 60°)
+                // Rẽ góc (120° mềm Bézier hoặc 60° cua)
                 solution.pieceType = (diff == 2) ? RiverPieceType.Curve120 : RiverPieceType.Curve60;
                 float a0 = GetDirectionAngle(d0);
                 float a1 = GetDirectionAngle(d1);
@@ -139,11 +252,54 @@ public static class RiverAutoTileSolver
             }
         }
 
-        // 4. Trường hợp 3+ kết nối: Ngã ba chữ Y (Fork)
-        // Cổng xả của Fork sẽ hướng thẳng về phía hạ lưu (outflowDir) để xả vào hồ đọng PondBasin hoặc ô tiếp theo
-        solution.pieceType = RiverPieceType.Fork3Way;
-        int targetForkDir = (outflowDir >= 0) ? outflowDir : connectedDirections[0];
-        solution.rotationY = GetDirectionAngle(targetForkDir);
         return solution;
+    }
+
+    /// <summary>
+    /// Tìm cổng kết nối khác trong danh sách tạo góc duỗi thẳng nhất với referencePort (ưu tiên 180° diff=3, sau đó 120° diff=2)
+    /// </summary>
+    private static int FindBestOppositePort(int referencePort, List<int> candidates)
+    {
+        int bestPort = -1;
+        int maxDiff = -1;
+        foreach (int c in candidates)
+        {
+            if (c == referencePort) continue;
+            int d = ((c - referencePort) % 6 + 6) % 6;
+            if (d > 3) d = 6 - d;
+            if (d > maxDiff)
+            {
+                maxDiff = d;
+                bestPort = c;
+            }
+        }
+        return (bestPort >= 0) ? bestPort : (candidates.Count > 0 ? candidates[0] : 0);
+    }
+
+    /// <summary>
+    /// Tìm cặp 2 cổng trong danh sách tạo thành đường thẳng nhất (ưu tiên góc duỗi 180° > 120° > 60°)
+    /// </summary>
+    private static void FindBestTrunkPair(List<int> candidates, out int portA, out int portB)
+    {
+        portA = candidates[0];
+        portB = candidates[1];
+        int maxDiff = -1;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            for (int j = i + 1; j < candidates.Count; j++)
+            {
+                int p0 = candidates[i];
+                int p1 = candidates[j];
+                int d = ((p1 - p0) % 6 + 6) % 6;
+                if (d > 3) d = 6 - d;
+                if (d > maxDiff)
+                {
+                    maxDiff = d;
+                    portA = p0;
+                    portB = p1;
+                }
+            }
+        }
     }
 }
