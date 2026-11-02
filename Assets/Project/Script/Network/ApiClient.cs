@@ -229,10 +229,14 @@ public static class ApiClient
 
         if (request.result == UnityWebRequest.Result.ProtocolError)
         {
-            if (sendingToken && request.responseCode == 401)
+            ApiError error = ApiError.FromResponse(request.responseCode, text);
+
+            // Hết phiên, hoặc admin vừa khóa tài khoản (403 ACCOUNT_SUSPENDED): mở lại màn đăng nhập.
+            // Đăng nhập lại sẽ hiện thông báo tài khoản bị khóa.
+            if (sendingToken && (request.responseCode == 401 || error.Code == "ACCOUNT_SUSPENDED"))
                 SessionExpired?.Invoke();
 
-            onError?.Invoke(ApiError.FromResponse(request.responseCode, text));
+            onError?.Invoke(error);
             yield break;
         }
 
