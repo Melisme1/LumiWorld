@@ -72,6 +72,13 @@ public class HexPlacementValidator : MonoBehaviour
                 return true;
             }
 
+            // Rain biến đổi địa hình thay cả khối ô, sẽ xóa luôn đoạn suối mà mạng sông và bản lưu không hay biết
+            if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
+            {
+                lastValidationError = "Ô này đã có dòng suối, không cần tưới";
+                return false;
+            }
+
             // Nếu không có thiên tai, kiểm tra xem ô có phải là ô đất khô Arid cần cải tạo hay không
             if (!cardData.IsTileTransformCard() || !cardData.IsTileAllowed(tileObj, worldGen))
             {

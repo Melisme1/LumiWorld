@@ -72,8 +72,27 @@ public class MarketUI : MonoBehaviour
     private readonly Button[] tabButtons = new Button[3];
     private ResourceInventory inventory;
 
+    // Giá gốc mỗi thẻ thú (khớp migration 006_creature_card_market) và số lá tối đa mỗi lô
+    private const int CardBaseValue = 50;
+    private const int MaxCardAmount = 10;
+
+    // Bộ lọc tab Buy: -1 tất cả, -2 chỉ thẻ thú, từ 0 là chỉ số tài nguyên
+    private const int FilterAll = -1;
+    private const int FilterCards = -2;
+
+    // Một lựa chọn ở tab Sell: tài nguyên trong kho hoặc thẻ thú đang có trên tay
+    private struct SellOption
+    {
+        public ResourceData resource;
+        public CardData card;
+        public int held;
+        public bool IsCard => card != null;
+        public string Name => IsCard ? card.cardName : resource.resourceName;
+        public string MarketId => IsCard ? CardTradeIds.ToMarketId(card) : resource.resourceID;
+    }
+
     // Tab Buy
-    private int buyResourceIndex = -1;
+    private int buyResourceIndex = FilterAll;
     private bool buyNewestFirst;
     private int buyPage = 1;
     private bool buyHasMore;
@@ -225,6 +244,7 @@ public class MarketUI : MonoBehaviour
         SetStatus("Loading listings...", false);
 
         string resourceId = buyResourceIndex < 0 ? null : Catalog()[buyResourceIndex].resourceID;
+        string kind = buyResourceIndex == FilterCards ? "card" : null;
         MarketSync.Browse(resourceId, buyNewestFirst, buyPage, RowCount,
             response =>
             {
@@ -242,13 +262,17 @@ public class MarketUI : MonoBehaviour
                 if (id != requestId || !IsOpen || tab != Tab.Buy) return;
                 RenderRows(new List<MarketListingDto>(), false);
                 SetStatus(message, true);
-            });
+            },
+            kind);
     }
 
     private void CycleBuyResource()
     {
+        // Thứ tự: tất cả -> thẻ thú -> từng tài nguyên -> tất cả
         int count = Catalog().Count;
-        buyResourceIndex = buyResourceIndex + 1 >= count ? -1 : buyResourceIndex + 1;
+        if (buyResourceIndex == FilterAll) buyResourceIndex = FilterCards;
+        else if (buyResourceIndex == FilterCards) buyResourceIndex = count > 0 ? 0 : FilterAll;
+        else buyResourceIndex = buyResourceIndex + 1 >= count ? FilterAll : buyResourceIndex + 1;
         buyPage = 1;
         UpdateBuyLabels();
         LoadBuy();
@@ -264,7 +288,10 @@ public class MarketUI : MonoBehaviour
 
     private void UpdateBuyLabels()
     {
-        buyFilterLabel.text = "Resource: " + (buyResourceIndex < 0 ? "All" : Catalog()[buyResourceIndex].resourceName) + "  >";
+        string filter = buyResourceIndex == FilterAll ? "All"
+            : buyResourceIndex == FilterCards ? "Creature cards"
+            : Catalog()[buyResourceIndex].resourceName;
+        buyFilterLabel.text = "Show: " + filter + "  >";
         sortLabel.text = "Sort: " + (buyNewestFirst ? "Newest" : "Price per unit") + "  >";
     }
 
@@ -296,30 +323,59 @@ public class MarketUI : MonoBehaviour
     // TAB SELL
     // =========================================================
 
+    /// <summary>Tài nguyên trong danh mục, rồi thẻ thú đang có trên tay (chỉ ở đảo mình).</summary>
+    private List<SellOption> SellOptions()
+    {
+        var options = new List<SellOption>();
+        foreach (ResourceData resource in Catalog())
+            options.Add(new SellOption { resource = resource, held = inventory.GetAmount(resource) });
+
+        foreach (KeyValuePair<CardData, int> pair in HandCards.Creatures())
+            options.Add(new SellOption { card = pair.Key, held = pair.Value });
+        return options;
+    }
+
     private void CycleSellResource()
     {
-        int count = Catalog().Count;
+        int count = SellOptions().Count;
         if (count == 0) return;
+        bool wasCard = CurrentSellOption(out SellOption before) && before.IsCard;
         sellResourceIndex = (sellResourceIndex + 1) % count;
+
+        // Vừa chuyển sang thẻ thú: gợi ý 1 lá giá gốc 50 Coins
+        if (CurrentSellOption(out SellOption now) && now.IsCard && !wasCard)
+        {
+            amountInput.text = "1";
+            priceInput.text = CardBaseValue.ToString(Inv);
+        }
         UpdateSell();
+    }
+
+    private bool CurrentSellOption(out SellOption option)
+    {
+        List<SellOption> options = SellOptions();
+        option = default;
+        if (options.Count == 0) return false;
+        if (sellResourceIndex >= options.Count) sellResourceIndex = 0;
+        option = options[sellResourceIndex];
+        return true;
     }
 
     private void UpdateSell()
     {
-        IReadOnlyList<ResourceData> catalog = Catalog();
-        if (catalog.Count == 0) return;
+        if (!CurrentSellOption(out SellOption option)) return;
 
-        ResourceData resource = catalog[sellResourceIndex];
-        int stock = inventory.GetAmount(resource);
-        sellResourceLabel.text = "Resource: " + resource.resourceName + "  >";
-        stockText.text = "In stock: " + Format(stock);
+        int stock = option.held;
+        int maxAmount = option.IsCard ? MaxCardAmount : MaxAmount;
+        sellResourceLabel.text = (option.IsCard ? "Creature card: " : "Resource: ") + option.Name + "  >";
+        stockText.text = (option.IsCard ? "In hand: " : "In stock: ") + Format(stock);
 
         bool hasAmount = int.TryParse(amountInput.text, NumberStyles.Integer, Inv, out int amount);
         bool hasPrice = int.TryParse(priceInput.text, NumberStyles.Integer, Inv, out int price);
 
-        if (!hasAmount || amount < 1 || amount > MaxAmount)
+        if (!hasAmount || amount < 1 || amount > maxAmount)
         {
-            sellHint.text = "Enter an amount from 1 to " + MaxAmount + ".";
+            sellHint.text = "Enter an amount from 1 to " + maxAmount + ".";
             sellHint.color = mutedColor;
             sellButton.interactable = false;
             return;
@@ -327,13 +383,14 @@ public class MarketUI : MonoBehaviour
 
         if (amount > stock)
         {
-            sellHint.text = "You only have " + Format(stock) + " " + resource.resourceName + " in stock.";
+            sellHint.text = "You only have " + Format(stock) + " " + option.Name + (option.IsCard ? " in your hand." : " in stock.");
             sellHint.color = warningColor;
             sellButton.interactable = false;
             return;
         }
 
-        MarketSync.PriceRange(amount, resource.baseValue, out int minPrice, out int maxPrice);
+        int baseValue = option.IsCard ? CardBaseValue : option.resource.baseValue;
+        MarketSync.PriceRange(amount, baseValue, out int minPrice, out int maxPrice);
         string range = "Allowed price for this lot: " + Format(minPrice) + " to " + Format(maxPrice) + " Coins.";
 
         if (!hasPrice || price < minPrice || price > maxPrice)
@@ -353,16 +410,14 @@ public class MarketUI : MonoBehaviour
 
     private void OnSellClicked()
     {
-        IReadOnlyList<ResourceData> catalog = Catalog();
-        if (catalog.Count == 0) return;
+        if (!CurrentSellOption(out SellOption option)) return;
 
-        ResourceData resource = catalog[sellResourceIndex];
         int.TryParse(amountInput.text, NumberStyles.Integer, Inv, out int amount);
         int.TryParse(priceInput.text, NumberStyles.Integer, Inv, out int price);
 
         // Chặn bấm lần hai cho tới khi server trả lời
         sellButton.interactable = false;
-        MarketSync.Sell(resource.resourceID, amount, price, (ok, message) =>
+        MarketSync.Sell(option.MarketId, amount, price, (ok, message) =>
         {
             SetStatus(message, !ok);
             if (ok)
