@@ -113,7 +113,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
     }
 
     [Tooltip("Số ô lục giác tối đa của một Cụm Biome (Mặc định: 9). Khi cụm đã đủ 9 ô, các ô đặt thêm sau đó sẽ tách thành cụm độc lập, không tạo viền nối.")]
-    [SerializeField] private int maxTilesPerCluster = 9;
+    [SerializeField] private int maxTilesPerCluster = 10;
     public int MaxTilesPerCluster
     {
         get => maxTilesPerCluster;

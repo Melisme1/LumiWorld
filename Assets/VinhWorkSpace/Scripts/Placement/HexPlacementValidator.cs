@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -12,7 +12,7 @@ public class HexPlacementValidator : MonoBehaviour
     [SerializeField] private bool enableBiomeSizeLimit = true;
 
     [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 9). Nếu người chơi ghép thêm ô làm cụm vượt quá số này sẽ bị chặn.")]
-    [SerializeField] private int maxTilesPerBiome = 9;
+    [SerializeField] private int maxTilesPerBiome = 10;
 
     private string lastValidationError = "";
 
@@ -228,7 +228,7 @@ public class HexPlacementValidator : MonoBehaviour
                 int capacity = CalculateClusterCreatureCapacity(clusterSize);
                 if (creatureCount >= capacity)
                 {
-                    lastValidationError = $"Biome cluster has reached max creature capacity ({creatureCount}/{capacity}). Expand the cluster (milestones: 3/6/9 tiles)";
+                    lastValidationError = $"Biome cluster has reached max creature capacity ({creatureCount}/{capacity}). Expand the cluster (milestones: 3/6/10 tiles)";
                     return false;
                 }
             }
@@ -485,7 +485,7 @@ public class HexPlacementValidator : MonoBehaviour
     public static int CalculateClusterCreatureCapacity(int hexCount)
     {
         if (hexCount < 3) return 0;
-        return Mathf.Clamp(hexCount / 3, 1, 3);
+        return hexCount < 6 ? 2 : (hexCount < 10 ? 4 : 6);
     }
 
     /// <summary>
