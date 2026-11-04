@@ -110,7 +110,23 @@ public class CardUI : MonoBehaviour
 
         if (cardImage != null)
         {
-            cardImage.sprite = cardData.cardImage;
+            Sprite spr = cardData.cardImage;
+            if (spr == null)
+            {
+                string id = (cardData.cardID ?? "").ToLowerInvariant();
+                string cname = (cardData.cardName ?? "").ToLowerInvariant();
+                string combined = id + " " + cname + " " + (cardData.name ?? "").ToLowerInvariant();
+
+                if (combined.Contains("cow") || combined.Contains("bo"))
+                    spr = Resources.Load<Sprite>("CreatureAvatars/18_Cow") ?? Resources.Load<Sprite>("CreatureAvatars/Cow");
+                else if (combined.Contains("fox") || combined.Contains("cao"))
+                    spr = Resources.Load<Sprite>("CreatureAvatars/19_Fox") ?? Resources.Load<Sprite>("CreatureAvatars/Fox");
+                else if (combined.Contains("canoc") || combined.Contains("puffer") || combined.Contains("cá nóc") || combined.Contains("ca noc"))
+                    spr = Resources.Load<Sprite>("CreatureAvatars/20_Pufferfish") ?? Resources.Load<Sprite>("CreatureAvatars/Pufferfish");
+                else if (combined.Contains("braluff"))
+                    spr = Resources.Load<Sprite>("CreatureAvatars/17_Braluff") ?? Resources.Load<Sprite>("CreatureAvatars/Braluff");
+            }
+            cardImage.sprite = spr;
         }
 
         UpdateCountBadge();

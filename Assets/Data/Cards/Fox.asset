@@ -14,10 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_fox
   cardName: "Cáo"
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: c0c1d2e3f4a500190019000000000019, type: 3}
   cardType: 0
   baseScore: 2
   alwaysBaseScore: 0
+  shopPrice: 50
+  placementFee: 10
   prefabToPlace: {fileID: 7181911848354186262, guid: c8429846cd809bd4baa1bcdf3118bd18, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
@@ -31,4 +33,4 @@ MonoBehaviour:
   habitatSpawnMargin: 0.5
   habitatProps: []
   allowedTilePrefabs:
-  - {fileID: 846643552139226012, guid: c10000048a144b6289b7996f34397104, type: 3}
+  - {fileID: 1548687027083203766, guid: c10000068a144b6289b7996f34397106, type: 3}

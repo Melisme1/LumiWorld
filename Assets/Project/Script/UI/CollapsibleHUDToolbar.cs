@@ -114,8 +114,8 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         // 2. Horizontal Expandable Panel ("panel_toolbar")
         BuildHorizontalPanel();
 
-        // 3. Populate the 8 buttons inside the panel
-        BuildEightButtons();
+        // 3. Populate the 9 buttons inside the panel
+        BuildNineButtons();
 
         // Mặc định mở rộng để người chơi thấy ngay
         SetExpandedInstant(true);
@@ -191,12 +191,12 @@ public class CollapsibleHUDToolbar : MonoBehaviour
             toolbarPanelImage.color = new Color(0.27f, 0.31f, 0.37f, 0.95f);
         }
 
-        // 8 buttons: 8 * 46 + 7 * 10 + 2 * 22 = 368 + 70 + 44 = 482px
-        targetPanelWidth = 8 * innerButtonSize + 7 * itemSpacing + 2 * panelPadding;
+        // 9 buttons: 9 * 46 + 8 * 10 + 2 * 22 = 414 + 80 + 44 = 538px
+        targetPanelWidth = 9 * innerButtonSize + 8 * itemSpacing + 2 * panelPadding;
         toolbarPanelRect.sizeDelta = new Vector2(targetPanelWidth, toolbarHeight);
     }
 
-    private void BuildEightButtons()
+    private void BuildNineButtons()
     {
         // 1. Kho tài nguyên (Warehouse)
         CreateToolbarButton("Btn_Warehouse", "icon_warehouse", 0, () =>
@@ -255,6 +255,32 @@ public class CollapsibleHUDToolbar : MonoBehaviour
             var settings = FindAnyObjectByType<GameSettingsUI>();
             if (settings != null) settings.ToggleWindow();
         });
+
+        // 9. Lai tạo thú (Creation Lab / Breeding)
+        CreateToolbarButton("Btn_Breeding", "icon_breeding", 8, () =>
+        {
+            var lab = FindAnyObjectByType<CreationLabUI>(FindObjectsInactive.Include);
+            if (lab != null)
+            {
+                lab.Toggle();
+            }
+            else
+            {
+                CreationLabUI.Instance?.Toggle();
+            }
+        });
+    }
+
+    private static Sprite LoadSpriteSafe(string path)
+    {
+        Sprite s = Resources.Load<Sprite>(path);
+        if (s != null) return s;
+        Texture2D t = Resources.Load<Texture2D>(path);
+        if (t != null)
+        {
+            return Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f));
+        }
+        return null;
     }
 
     private void CreateToolbarButton(string name, string iconResource, int index, System.Action onClick)
@@ -289,11 +315,30 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         iconRect.sizeDelta = new Vector2(innerIconSize, innerIconSize);
 
         Image iconImg = iconObj.GetComponent<Image>();
-        Sprite iconSprite = Resources.Load<Sprite>("UI_Buttons/" + iconResource)
-                         ?? Resources.Load<Sprite>(iconResource);
+        Sprite iconSprite = LoadSpriteSafe("UI_Buttons/" + iconResource)
+                         ?? LoadSpriteSafe(iconResource);
         iconImg.sprite = iconSprite;
         iconImg.preserveAspect = true;
         iconImg.raycastTarget = false;
+        // If sprite not found, keep color transparent so button bg still shows
+        if (iconSprite == null)
+        {
+            iconImg.color = Color.clear;
+            // Add a fallback text label so the button is not blank
+            GameObject lblGo = new GameObject("FallbackLabel", typeof(RectTransform));
+            lblGo.transform.SetParent(btnObj.transform, false);
+            var lblRect = lblGo.GetComponent<RectTransform>();
+            lblRect.anchorMin = Vector2.zero;
+            lblRect.anchorMax = Vector2.one;
+            lblRect.offsetMin = lblRect.offsetMax = Vector2.zero;
+            var lbl = lblGo.AddComponent<TMPro.TextMeshProUGUI>();
+            lbl.text = iconResource.Replace("icon_", "").Substring(0, 1).ToUpper(); // first letter
+            lbl.fontSize = 18;
+            lbl.fontStyle = TMPro.FontStyles.Bold;
+            lbl.color = new Color(0.08f, 0.45f, 0.80f);
+            lbl.alignment = TMPro.TextAlignmentOptions.Center;
+            lbl.raycastTarget = false;
+        }
 
         Button btn = btnObj.GetComponent<Button>();
         btn.targetGraphic = btnImg;
