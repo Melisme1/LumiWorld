@@ -1808,15 +1808,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
         // 8. Food status
         var production = ResourceProductionRuntime.Instance;
-        string foodId = production != null && production.CareSettings != null
-            ? production.CareSettings.FoodResourceId : string.Empty;
-        ResourceData foodData = production != null && production.CareSettings != null &&
-            production.CareSettings.food != null ? production.CareSettings.food : ResourceCatalog.Find(foodId);
-        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(foodId, foodData != null ? foodData.resourceName : "Food");
-        int warehouseFood = production != null && production.Inventory != null && !string.IsNullOrEmpty(foodId)
-            ? production.Inventory.GetAmount(foodId) : 0;
-        long pantryFood = production != null && !string.IsNullOrEmpty(foodId)
-            ? production.GetCreatureFoodAmount(indId, foodId) : 0;
+        string foodId = ResolveBestFoodForCreature(indId, out string foodName, out int warehouseFood, out long pantryFood);
         if (foodLabelText != null) foodLabelText.text = foodName + ":";
         favoriteFoodText.text = $"Warehouse {warehouseFood} · Pantry {pantryFood}";
 
@@ -1824,7 +1816,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         if (feedButton != null)
         {
             feedButton.interactable = hunger != null;
-            feedButtonText.text = warehouseFood > 0 ? "Deposit Food" : "Out of Food";
+            if (warehouseFood > 0) feedButtonText.text = "Deposit Food";
+            else if (pantryFood > 0) feedButtonText.text = "Feed";
+            else feedButtonText.text = "Out of Food";
         }
 
         if (medicineButton != null)
@@ -1857,32 +1851,103 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     #region Action Buttons
 
+    private string ResolveBestFoodForCreature(string indId, out string foodName, out int warehouseFood, out long pantryFood)
+    {
+        var production = ResourceProductionRuntime.Instance;
+        foodName = "Food";
+        warehouseFood = 0;
+        pantryFood = 0;
+        if (production == null) return string.Empty;
+
+        // 1. Kiểm tra xem trong ngăn của cá thể này đang có loại thức ăn nào
+        var stocks = production.GetCreatureFoodStocks(indId);
+        if (stocks != null && stocks.Count > 0)
+        {
+            foreach (var stock in stocks)
+            {
+                if (stock != null && stock.Amount > 0)
+                {
+                    string fId = stock.ResourceId;
+                    pantryFood = stock.Amount;
+                    warehouseFood = production.Inventory != null ? production.Inventory.GetAmount(fId) : 0;
+                    ResourceData rd = ResourceCatalog.Find(fId);
+                    foodName = ResourceInventoryUIPresentation.LocalizeResourceName(fId, rd != null ? rd.resourceName : fId);
+                    return fId;
+                }
+            }
+        }
+
+        // 2. Nếu ngăn đang trống, ưu tiên món được cài trong máy Auto-Feed (có sẵn trong kho)
+        for (int s = 0; s < 3; s++)
+        {
+            string afId = PlayerPrefs.GetString("AutoFeed_Slot_" + s, string.Empty);
+            if (!string.IsNullOrEmpty(afId))
+            {
+                int stock = production.Inventory != null ? production.Inventory.GetAmount(afId) : 0;
+                if (stock > 0)
+                {
+                    warehouseFood = stock;
+                    pantryFood = production.GetCreatureFoodAmount(indId, afId);
+                    ResourceData rd = ResourceCatalog.Find(afId);
+                    foodName = ResourceInventoryUIPresentation.LocalizeResourceName(afId, rd != null ? rd.resourceName : afId);
+                    return afId;
+                }
+            }
+        }
+
+        // 3. Nếu không có trong AutoFeed, tìm bất kỳ món Food nào đang có trong kho
+        if (production.Inventory != null && LumiWorld.Economy.Crafting.CraftingCatalog.All != null)
+        {
+            foreach (var item in LumiWorld.Economy.Crafting.CraftingCatalog.All)
+            {
+                if (item != null && item.category == LumiWorld.Economy.Crafting.CraftingCategory.Food && item.outputResource != null)
+                {
+                    string cId = item.outputResource.resourceID;
+                    int stock = production.Inventory.GetAmount(cId);
+                    if (stock > 0)
+                    {
+                        warehouseFood = stock;
+                        pantryFood = production.GetCreatureFoodAmount(indId, cId);
+                        ResourceData rd = ResourceCatalog.Find(cId);
+                        foodName = ResourceInventoryUIPresentation.LocalizeResourceName(cId, rd != null ? rd.resourceName : item.recipeName);
+                        return cId;
+                    }
+                }
+            }
+        }
+
+        // 4. Mặc định fallback
+        string defaultId = production.CareSettings != null ? production.CareSettings.FoodResourceId : "resource.leafwood.raspberries";
+        warehouseFood = production.Inventory != null ? production.Inventory.GetAmount(defaultId) : 0;
+        pantryFood = production.GetCreatureFoodAmount(indId, defaultId);
+        ResourceData defData = ResourceCatalog.Find(defaultId);
+        foodName = ResourceInventoryUIPresentation.LocalizeResourceName(defaultId, defData != null ? defData.resourceName : "Raspberries");
+        return defaultId;
+    }
+
     private void OnFeedClicked()
     {
         if (currentSelectedResident == null || currentHabitat == null) return;
         var production = ResourceProductionRuntime.Instance;
-        if (production == null || production.CareSettings == null) return;
-        string foodId = production.CareSettings.FoodResourceId;
-        ResourceData foodData = production.CareSettings.food != null
-            ? production.CareSettings.food : ResourceCatalog.Find(foodId);
-        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(foodId, foodData != null ? foodData.resourceName : "food");
-        int available = production.Inventory != null ? production.Inventory.GetAmount(foodId) : 0;
-        long pantryBefore = production.GetCreatureFoodAmount(currentSelectedResident.individualId, foodId);
-        int amount = Mathf.Min(available, production.CareSettings.seedFoodUnitsToFull);
+        if (production == null) return;
+
+        string foodId = ResolveBestFoodForCreature(currentSelectedResident.individualId, out string foodName, out int available, out long pantryBefore);
+        if (string.IsNullOrEmpty(foodId)) return;
+
+        int amount = Mathf.Min(available, 20);
         string reason = string.Empty;
         bool deposited = amount > 0 && production.DepositCreatureFood(currentHabitat.habitatId,
             currentSelectedResident.individualId, foodId, amount, out reason);
-        int remaining = production.Inventory != null ? production.Inventory.GetAmount(foodId) : available;
-        long pantryAfter = production.GetCreatureFoodAmount(currentSelectedResident.individualId, foodId);
-        string feedback = deposited ? $"Transferred {amount} {foodName}: Warehouse {available} → {remaining}, Pantry {pantryBefore} → {pantryAfter}." :
-            available == 0 ? "Warehouse is out of food." : reason;
-        if (deposited)
+
+        if (deposited || pantryBefore > 0)
         {
-            ShowFeedback(feedback, new Color(0.2f, 0.85f, 0.4f, 1f));
+            AutoFeedUI.Instance?.DistributeFoodToResident(currentHabitat, currentSelectedResident);
+            production.SettleNow();
+            ShowFeedback($"Fed {foodName}! Fullness restored.", new Color(0.2f, 0.85f, 0.4f, 1f));
         }
         else
         {
-            ShowFeedback(feedback, new Color(0.95f, 0.35f, 0.35f, 1f));
+            ShowFeedback(available == 0 ? "Warehouse is out of food." : reason, new Color(0.95f, 0.35f, 0.35f, 1f));
         }
 
         RefreshPanel2();
