@@ -133,6 +133,22 @@ public static class WorldShareService
         SceneManager.LoadScene(VisitSession.VisitScene);
     }
 
+    /// <summary>Gửi một obstacle tới inbox chủ đảo đang thăm. Server xác thực phí và giới hạn lượt.</summary>
+    public static IEnumerator SendObstacle(
+        string targetPlayerId,
+        string kind,
+        int q,
+        int r,
+        string idempotencyKey,
+        Action<ObstacleSendResponse> ok,
+        Action<ApiError> fail)
+    {
+        string target = UnityWebRequest.EscapeURL(targetPlayerId ?? string.Empty);
+        var request = new ObstacleSendRequest { kind = kind, q = q, r = r };
+        yield return ApiClient.Post<ObstacleSendRequest, ObstacleSendResponse>(
+            "/api/v1/worlds/" + target + "/obstacles", request, true, ok, fail, idempotencyKey);
+    }
+
     /// <summary>Lô đang bán của một người chơi, mới nhất trước.</summary>
     public static IEnumerator LoadListings(string sellerId, Action<List<MarketListingDto>> ok, Action<string> fail)
     {

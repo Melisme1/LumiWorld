@@ -11,6 +11,9 @@ public class HexTileInfo : MonoBehaviour
     [Tooltip("Chỉ số tầng địa hình trong HexWorldGenerator.TerrainPrefabs")]
     public int terrainTypeIndex;
 
+    [Tooltip("Ô có môi trường Lush cho phép cháy rừng. Dữ liệu gameplay độc lập với model hiển thị.")]
+    public bool hasLushEnvironment;
+
     [Tooltip("Tọa độ của ô trên bản đồ")]
     public HexCoordinates coordinates;
 

@@ -34,6 +34,19 @@ public class InboxAckResponse
     public int acked;
 }
 
+[Serializable]
+public class ObstacleInboxPayload
+{
+    public string obstacleId;
+    public string kind;
+    public int q;
+    public int r;
+    public double durationSeconds;
+    public string senderName;
+    public string senderId;
+    public int feeCoins;
+}
+
 /// <summary>
 /// Phần của GET /api/v1/config mà client đang dùng. Các trường khác server gửi kèm thì bỏ qua.
 /// </summary>
@@ -42,10 +55,17 @@ public class GameConfigDto
 {
     public int syncInboxSeconds;
 
+    public string[] obstacleAllowedKinds;
+    public int obstacleFeeCoins;
+
     // Chợ (xem MarketSync). Server trả đủ; client dùng để kiểm tra giá trước khi gửi.
     public int marketFeePercent;
     public int marketMaxActiveListings;
     public int marketListingHours;
     public float marketMinPriceFactor;
     public float marketMaxPriceFactor;
+
+    // Thẻ thú: số lá tối đa mỗi lô chợ và mỗi bên một đề nghị đổi thẻ (admin đổi được)
+    public int marketMaxCardsPerListing;
+    public int tradeMaxCardsPerSide;
 }

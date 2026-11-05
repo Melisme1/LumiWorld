@@ -24,6 +24,10 @@ namespace LumiWorld.Acs
 
         private static void Spawn()
         {
+            // Visit chỉ dựng snapshot để xem. Không tạo runtime thiên tai cho đảo khách,
+            // kể cả khi scene có HexWorldGenerator nhưng WorldLaunch chưa kịp cập nhật.
+            if (WorldLaunch.IsVisit || SceneManager.GetActiveScene().name == VisitSession.VisitScene) return;
+
             if (Object.FindAnyObjectByType<DisasterRuntimeManager>(FindObjectsInactive.Include) != null) return;
 
             var world = Object.FindAnyObjectByType<HexWorldGenerator>();

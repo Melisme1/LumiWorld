@@ -561,11 +561,14 @@ public static class HabitatCreaturePanelStyle
         {
             try
             {
-                if (rawTex == null)
+                if (rawTex == null || !rawTex.isReadable)
                 {
-                    byte[] bytes = File.ReadAllBytes(filePath);
-                    rawTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                    if (!rawTex.LoadImage(bytes)) rawTex = null;
+                    if (File.Exists(filePath))
+                    {
+                        byte[] bytes = File.ReadAllBytes(filePath);
+                        rawTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                        if (!rawTex.LoadImage(bytes)) rawTex = null;
+                    }
                 }
                 if (rawTex != null)
                 {
@@ -615,13 +618,30 @@ public static class HabitatCreaturePanelStyle
                           (!string.IsNullOrEmpty(rawTex.name) && rawTex.name.IndexOf("Bramblet", StringComparison.OrdinalIgnoreCase) >= 0) ||
                           (rawW >= 3000 && rawW <= 3200 && rawH >= 1500 && rawH <= 1650);
 
+        // Xử lý đặc biệt cho Spriglide (Sóc bay) - hình 3 pose (1774x887):
+        // Frame 0 chính là góc nhìn chính diện Front-view (x = 0..540), có đường phân cách ở x=543, x=1213
+        bool isSpriglide = string.Equals(canonicalName, "Spriglide", StringComparison.OrdinalIgnoreCase) ||
+                           (!string.IsNullOrEmpty(rawTex.name) && rawTex.name.IndexOf("Spriglide", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                           (rawW >= 1700 && rawW <= 1850 && rawH >= 850 && rawH <= 920);
+
         int frameCount = 1;
         int frameIdx = 0;
+        int startX = 0;
+        int frameW = rawW;
+        int frameH = rawH;
 
         if (isBramblet)
         {
             frameCount = 3;
             frameIdx = 0; // Luôn lấy frame chính diện đẹp nhất cho Nai rừng
+            frameW = rawW / frameCount;
+            startX = frameIdx * frameW;
+        }
+        else if (isSpriglide)
+        {
+            // Lấy riêng 1 khung hình chính diện 0..540 để không bị lộ sang hình kế bên
+            startX = 0;
+            frameW = Mathf.Min(540, rawW);
         }
         else
         {
@@ -634,15 +654,16 @@ public static class HabitatCreaturePanelStyle
             {
                 frameIdx = rank == CreatureQualityRank.RankI ? 0 : 1;
             }
+            frameW = rawW / frameCount;
+            startX = frameIdx * frameW;
         }
 
-        int frameW = rawW / frameCount;
-        int frameH = rawH;
+        Color[] sourcePixels = rawTex.GetPixels(startX, 0, frameW, frameH);
 
-        Color[] sourcePixels = rawTex.GetPixels(frameIdx * frameW, 0, frameW, frameH);
-
-        int targetW = Mathf.Min(frameW, 400);
-        int targetH = Mathf.Min(frameH, 400);
+        // Đảm bảo tỷ lệ khung hình chuẩn 1:1, không bị co kéo hay dãn ảnh
+        float aspectScale = Mathf.Min(400f / frameW, 400f / frameH, 1f);
+        int targetW = Mathf.Max(1, Mathf.RoundToInt(frameW * aspectScale));
+        int targetH = Mathf.Max(1, Mathf.RoundToInt(frameH * aspectScale));
 
         Texture2D workTex = new Texture2D(targetW, targetH, TextureFormat.RGBA32, false);
         workTex.filterMode = FilterMode.Bilinear;
@@ -651,11 +672,11 @@ public static class HabitatCreaturePanelStyle
         Color[] workPixels = new Color[targetW * targetH];
         for (int y = 0; y < targetH; y++)
         {
-            float v = (float)y / (targetH - 1);
+            float v = targetH > 1 ? (float)y / (targetH - 1) : 0f;
             int sy = Mathf.Clamp(Mathf.RoundToInt(v * (frameH - 1)), 0, frameH - 1);
             for (int x = 0; x < targetW; x++)
             {
-                float u = (float)x / (targetW - 1);
+                float u = targetW > 1 ? (float)x / (targetW - 1) : 0f;
                 int sx = Mathf.Clamp(Mathf.RoundToInt(u * (frameW - 1)), 0, frameW - 1);
                 workPixels[y * targetW + x] = sourcePixels[sy * frameW + sx];
             }
@@ -717,8 +738,15 @@ public static class HabitatCreaturePanelStyle
         {
             for (int x = 0; x < targetW; x++)
             {
-                if (workPixels[y * targetW + x].a > 0.05f)
+                Color p = workPixels[y * targetW + x];
+                if (p.a > 0.05f)
                 {
+                    // Bỏ qua bóng mờ ở đáy của Spriglide để nhân vật ôm sát và to rõ trong ô lục giác
+                    if (isSpriglide && y < targetH * 0.25f && p.r > 0.65f && p.g > 0.65f && p.b > 0.65f)
+                    {
+                        continue;
+                    }
+
                     if (x < minX) minX = x;
                     if (x > maxX) maxX = x;
                     if (y < minY) minY = y;

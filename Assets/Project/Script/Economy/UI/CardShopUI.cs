@@ -66,6 +66,10 @@ public class CardShopUI : MonoBehaviour
         public TextMeshProUGUI buyLabel;
         public RectTransform floatLayer;
         public Coroutine punch;
+        public int quantity = 1;
+        public TMP_InputField qtyInput;
+        public Button minusBtn;
+        public Button plusBtn;
     }
 
     private CurrencyWallet wallet;
@@ -201,16 +205,70 @@ public class CardShopUI : MonoBehaviour
             hand.TryGetValue(CardShop.CardKey(tile.card), out int owned);
             tile.owned.text = owned > 0 ? "In hand: " + owned : "Not in hand";
 
-            // Phải đủ cả giá thẻ lẫn phí đặt; thiếu thì nút ghi rõ số Coins cần có
-            int required = CardShop.GetRequiredCoins(tile.card);
-            bool affordable = wallet.CanAfford(required);
-            tile.price.color = affordable ? coinColor : missingColor;
-
-            bool canBuy = CardShop.CanBuy(tile.card);
-            tile.buy.interactable = canBuy;
-            tile.buyLabel.color = canBuy ? Color.white : mutedColor;
-            tile.buyLabel.text = affordable ? "Buy" : "Need " + FormatNumber(required) + " Coins";
+            UpdateTileState(tile);
         }
+    }
+
+    private void UpdateTileState(TileView tile)
+    {
+        int unitPrice = CardShop.GetPrice(tile.card);
+        int totalCost = unitPrice * tile.quantity;
+        tile.price.text = FormatNumber(totalCost);
+
+        int required = CardShop.GetRequiredCoins(tile.card, tile.quantity);
+        bool affordable = wallet.CanAfford(required);
+        tile.price.color = affordable ? coinColor : missingColor;
+
+        bool canBuy = CardShop.CanBuy(tile.card, tile.quantity);
+        tile.buy.interactable = canBuy;
+        tile.buyLabel.color = canBuy ? Color.white : mutedColor;
+        tile.buyLabel.text = affordable ? "Buy" : "Need " + FormatNumber(required) + " Coins";
+    }
+
+    private void BindTileStepper(TileView tile)
+    {
+        tile.minusBtn.onClick.AddListener(() =>
+        {
+            if (tile.quantity > 1)
+            {
+                tile.quantity--;
+                tile.qtyInput.text = tile.quantity.ToString();
+                UpdateTileState(tile);
+            }
+        });
+
+        tile.plusBtn.onClick.AddListener(() =>
+        {
+            if (tile.quantity < 99)
+            {
+                tile.quantity++;
+                tile.qtyInput.text = tile.quantity.ToString();
+                UpdateTileState(tile);
+            }
+        });
+
+        tile.qtyInput.onValueChanged.AddListener((val) =>
+        {
+            if (int.TryParse(val, out int q))
+            {
+                tile.quantity = Mathf.Clamp(q, 1, 99);
+                UpdateTileState(tile);
+            }
+        });
+
+        tile.qtyInput.onEndEdit.AddListener((val) =>
+        {
+            if (!int.TryParse(val, out int q) || q < 1)
+            {
+                tile.quantity = 1;
+            }
+            else
+            {
+                tile.quantity = Mathf.Clamp(q, 1, 99);
+            }
+            tile.qtyInput.text = tile.quantity.ToString();
+            UpdateTileState(tile);
+        });
     }
 
     // =========================================================
@@ -220,13 +278,19 @@ public class CardShopUI : MonoBehaviour
     private void Buy(TileView tile)
     {
         string cardName = CardShop.CardName(tile.card);
-        int price = CardShop.GetPrice(tile.card);
+        int qty = Mathf.Max(1, tile.quantity);
+        int unitPrice = CardShop.GetPrice(tile.card);
+        int totalPrice = unitPrice * qty;
+
+        string question = qty == 1
+            ? $"Do you want to buy 1x card \"{cardName}\" for {totalPrice} Coins?"
+            : $"Do you want to buy {qty}x card \"{cardName}\" for {totalPrice} Coins ({unitPrice} Coins each)?";
 
         GameDialogUI.ShowConfirm(
-            $"Do you want to buy card \"{cardName}\" for {price} Coins?",
+            question,
             () =>
             {
-                if (!CardShop.TryBuy(tile.card))
+                if (!CardShop.TryBuy(tile.card, qty))
                 {
                     GameDialogUI.ShowNotice("Not enough Coins to buy this card!");
                     return;
@@ -237,7 +301,8 @@ public class CardShopUI : MonoBehaviour
                 Punch(ref tile.punch, tile.rect, 1.05f);
 
                 float x = TileWidth * 0.5f - 12f - 56f;
-                StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, "+1 card", enoughColor, 22f,
+                string floatTxt = qty == 1 ? "+1 card" : $"+{qty} cards";
+                StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, floatTxt, enoughColor, 22f,
                     new Vector2(x, 54f), new Vector2(x, 100f), 1f));
             }
         );
@@ -474,9 +539,9 @@ public class CardShopUI : MonoBehaviour
         tile.owned.fontStyle = FontStyles.Normal;
         Place(tile.owned.rectTransform, new Vector2(0f, 1f), new Vector2(textX, -60f), new Vector2(textWidth, 18f));
 
-        // Giá: đồng xu và số Coins ở góc dưới cột chữ, nút Mua ở góc dưới bên phải
+        // Giá: đồng xu và số Coins ở góc dưới cột chữ, nút Mua và Stepper ở góc dưới bên phải
         RectTransform priceRect = EconomyHUD.CreateRect("Price", tile.rect);
-        Place(priceRect, Vector2.zero, new Vector2(textX, 12f), new Vector2(textWidth - 124f, 40f));
+        Place(priceRect, Vector2.zero, new Vector2(textX, 10f), new Vector2(textWidth - 124f, 36f));
         EconomyHUD.CreateIcon("CoinIcon", priceRect, EconomyHUD.CoinSprite, 24f, 0f);
 
         tile.price = EconomyHUD.CreateText("Value", priceRect, 21f, coinColor, TextAlignmentOptions.Left);
@@ -487,8 +552,47 @@ public class CardShopUI : MonoBehaviour
         valueRect.offsetMax = Vector2.zero;
         tile.price.text = FormatNumber(CardShop.GetPrice(card));
 
+        // Stepper: [-] [_] [+] đặt ngay phía trên nút Mua
+        RectTransform stepperRect = EconomyHUD.CreateRect("Stepper", tile.rect);
+        Place(stepperRect, new Vector2(1f, 0f), new Vector2(-12f, 50f), new Vector2(112f, 28f));
+
+        // Nút trừ (-)
+        RectTransform minusRect = EconomyHUD.CreateRect("MinusBtn", stepperRect);
+        Place(minusRect, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(28f, 28f));
+        tile.minusBtn = EconomyHUD.AddButton(minusRect, secondaryColor);
+        CreateLabel(minusRect, "-", 18f, textColor);
+
+        // Ô nhập số (_)
+        RectTransform inputRect = EconomyHUD.CreateRect("QtyInput", stepperRect);
+        Place(inputRect, new Vector2(0f, 0f), new Vector2(32f, 0f), new Vector2(48f, 28f));
+        Image inputBg = EconomyHUD.CreateBorderedPanel(inputRect, sectionColor);
+        inputBg.raycastTarget = true;
+
+        TextMeshProUGUI inputText = EconomyHUD.CreateText("Text", inputRect, 15f, textColor, TextAlignmentOptions.Center);
+        inputText.fontStyle = FontStyles.Bold;
+        EconomyHUD.Stretch(inputText.rectTransform);
+        inputText.rectTransform.offsetMin = new Vector2(2f, 0f);
+        inputText.rectTransform.offsetMax = new Vector2(-2f, 0f);
+
+        tile.qtyInput = inputRect.gameObject.AddComponent<TMP_InputField>();
+        tile.qtyInput.targetGraphic = inputBg;
+        tile.qtyInput.textComponent = inputText;
+        tile.qtyInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+        tile.qtyInput.characterLimit = 3;
+        tile.qtyInput.lineType = TMP_InputField.LineType.SingleLine;
+        tile.qtyInput.text = "1";
+
+        // Nút cộng (+)
+        RectTransform plusRect = EconomyHUD.CreateRect("PlusBtn", stepperRect);
+        Place(plusRect, new Vector2(0f, 0f), new Vector2(84f, 0f), new Vector2(28f, 28f));
+        tile.plusBtn = EconomyHUD.AddButton(plusRect, secondaryColor);
+        CreateLabel(plusRect, "+", 18f, textColor);
+
+        BindTileStepper(tile);
+
+        // Nút Mua ở góc dưới bên phải
         RectTransform buyRect = EconomyHUD.CreateRect("BuyButton", tile.rect);
-        Place(buyRect, new Vector2(1f, 0f), new Vector2(-12f, 12f), new Vector2(112f, 40f));
+        Place(buyRect, new Vector2(1f, 0f), new Vector2(-12f, 10f), new Vector2(112f, 36f));
         tile.buy = EconomyHUD.AddButton(buyRect, buyColor);
         tile.buy.onClick.AddListener(() => Buy(tile));
         // Chữ tự thu nhỏ khi dài (ví dụ "Cần 1,250 Coins"), chừa lề hai bên nút

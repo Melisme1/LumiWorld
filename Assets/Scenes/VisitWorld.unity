@@ -1714,6 +1714,7 @@ GameObject:
   - component: {fileID: 1357980050}
   - component: {fileID: 1357980049}
   - component: {fileID: 1357980048}
+  - component: {fileID: 2067890001}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -1785,6 +1786,19 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!114 &2067890001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1357980047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ae77f5ba6c14d6db7831eaf6dbdb110, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::VisitObstacleHandController
+  cardPrefab: {fileID: 9100000000000000001, guid: f27b8d6a2e7c4a49b69b00b67b7a18df, type: 3}
 --- !u!224 &1357980051
 RectTransform:
   m_ObjectHideFlags: 0

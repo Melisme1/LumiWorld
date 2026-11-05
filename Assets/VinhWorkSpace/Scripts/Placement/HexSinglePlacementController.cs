@@ -616,6 +616,7 @@ public class HexSinglePlacementController : MonoBehaviour
         }
         newTileInfo.sourcePrefab = transformedPrefab;
         newTileInfo.terrainTypeIndex = -1;
+        newTileInfo.hasLushEnvironment = true;
         newTileInfo.coordinates = coords;
         newTileInfo.isOccupied = cardData.occupiesTile; // Rain: occupiesTile = false
 
