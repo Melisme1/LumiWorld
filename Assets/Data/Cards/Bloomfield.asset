@@ -96,7 +96,7 @@ MonoBehaviour:
     minDistance: 0.1
     scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 3
-    customGroundEmbed: 0.01
+    customGroundEmbed: 0
     placeAtCenter: 0
   - groupName: Waterplant
     prefabs:
@@ -113,7 +113,7 @@ MonoBehaviour:
     minDistance: 0.1
     scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 3
-    customGroundEmbed: 0.01
+    customGroundEmbed: 0
     placeAtCenter: 0
   - groupName: Sunflower
     prefabs:
@@ -126,7 +126,7 @@ MonoBehaviour:
     minDistance: 0.1
     scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 4
-    customGroundEmbed: 0.01
+    customGroundEmbed: 0
     placeAtCenter: 0
   - groupName: Grass/Fern
     prefabs:
@@ -147,7 +147,7 @@ MonoBehaviour:
     minDistance: 0.1
     scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 4
-    customGroundEmbed: 0.1
+    customGroundEmbed: 0
     placeAtCenter: 0
   groundCoverPrefabs: []
   groundCoverCountRange: {x: 80, y: 120}
