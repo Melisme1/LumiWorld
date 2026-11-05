@@ -567,6 +567,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         var (topGrassUV, bevelUV, wallUV) = GetTilePaletteUVs(tileA, habitatData);
         Material tileMat = GetTileMaterial(tileA);
+        bool usePlanarUV = IsPlanarUVTile(tileA, tileMat);
 
         Mesh bridgeMesh = HexClusterMeshBuilder.BuildSeamBridgeMeshLocal(
             u, v, halfEdge,
@@ -574,7 +575,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
             rimY - midPoint.y,
             bottomY - midPoint.y,
             v1IsOuter, v2IsOuter,
-            topGrassUV, bevelUV, wallUV
+            topGrassUV, bevelUV, wallUV,
+            midPoint, posA, posB, usePlanarUV
         );
         if (bridgeMesh != null)
             _ownedConnectionMeshes.Add(bridgeMesh);
@@ -622,8 +624,12 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         var (topGrassUV, _, _) = GetTilePaletteUVs(tileA, habitatData);
         Material tileMat = GetTileMaterial(tileA);
+        bool usePlanarUV = IsPlanarUVTile(tileA, tileMat);
 
-        Mesh cornerMesh = HexClusterMeshBuilder.BuildCornerFillerMeshLocal(cornerFillerRadius, topGrassUV, cornerKey);
+        Mesh cornerMesh = HexClusterMeshBuilder.BuildCornerFillerMeshLocal(
+            cornerFillerRadius, topGrassUV, cornerKey, 6,
+            center, posA, posB, posC, usePlanarUV
+        );
         if (cornerMesh != null)
             _ownedConnectionMeshes.Add(cornerMesh);
 
@@ -866,6 +872,24 @@ public class HexBiomeClusterConnector : MonoBehaviour
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem ô lục giác có đang dùng chất liệu vân ảnh thực tế (Planar UV) thay cho bảng màu Palette cũ hay không.
+    /// </summary>
+    public static bool IsPlanarUVTile(GameObject tileObj, Material mat)
+    {
+        if (mat != null && mat.mainTexture != null && mat.mainTexture.width > 256) return true;
+        if (tileObj != null)
+        {
+            string n = tileObj.name;
+            if (n.IndexOf("Bloomfield", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                n.IndexOf("Leafwood", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Forwarding helpers to HexClusterPropResolver for 100% backward compatibility

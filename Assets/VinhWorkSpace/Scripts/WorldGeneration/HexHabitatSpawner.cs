@@ -510,6 +510,27 @@ public class HexHabitatSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// Tính ma trận biến đổi đầy đủ từ hệ toạ độ của MeshFilter (có thể nằm ở object con)
+    /// về hệ toạ độ của Prefab Root (bao gồm cả góc xoay, vị trí và tỉ lệ scale của toàn bộ các cấp con).
+    /// </summary>
+    public static Matrix4x4 GetMeshToPrefabMatrix(GameObject prefab, Transform meshTransform)
+    {
+        if (prefab == null || meshTransform == null) return Matrix4x4.identity;
+
+        Matrix4x4 localToRoot = Matrix4x4.identity;
+        Transform curr = meshTransform;
+        while (curr != null && curr != prefab.transform)
+        {
+            Matrix4x4 localMat = Matrix4x4.TRS(curr.localPosition, curr.localRotation, curr.localScale);
+            localToRoot = localMat * localToRoot;
+            curr = curr.parent;
+        }
+
+        Matrix4x4 rootMat = Matrix4x4.TRS(Vector3.zero, prefab.transform.localRotation, prefab.transform.localScale);
+        return rootMat * localToRoot;
+    }
+
+    /// <summary>
     /// Tính bán kính chiếm dụng mặt đất (XZ footprint) của prefab sau khi xoay và scale.
     /// Dùng để tự động trừ hao vùng sinh (boundary setback), đảm bảo rễ cây xòe hoặc tán cây to không bao giờ bị thò ra mép vực.
     /// </summary>
@@ -522,29 +543,31 @@ public class HexHabitatSpawner : MonoBehaviour
         if (!_radiusCache.TryGetValue(prefab, out float meshFootprintUnscaled))
         {
             meshFootprintUnscaled = 0f;
-            MeshFilter mf = prefab.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
+            MeshFilter[] filters = prefab.GetComponentsInChildren<MeshFilter>();
+            if (filters != null && filters.Length > 0)
             {
-                Bounds b = mf.sharedMesh.bounds;
-                Vector3 scaledMin = Vector3.Scale(b.min, prefab.transform.localScale);
-                Vector3 scaledMax = Vector3.Scale(b.max, prefab.transform.localScale);
-                Quaternion rot = prefab.transform.localRotation;
-
                 float maxRadiusXZ = 0f;
-                for (int x = 0; x <= 1; x++)
+                foreach (var mf in filters)
                 {
-                    for (int y = 0; y <= 1; y++)
+                    if (mf == null || mf.sharedMesh == null) continue;
+                    Matrix4x4 fullMat = GetMeshToPrefabMatrix(prefab, mf.transform);
+                    Bounds b = mf.sharedMesh.bounds;
+
+                    for (int x = 0; x <= 1; x++)
                     {
-                        for (int z = 0; z <= 1; z++)
+                        for (int y = 0; y <= 1; y++)
                         {
-                            Vector3 corner = new Vector3(
-                                x == 0 ? scaledMin.x : scaledMax.x,
-                                y == 0 ? scaledMin.y : scaledMax.y,
-                                z == 0 ? scaledMin.z : scaledMax.z
-                            );
-                            Vector3 rotCorner = rot * corner;
-                            float distXZ = Mathf.Sqrt(rotCorner.x * rotCorner.x + rotCorner.z * rotCorner.z);
-                            if (distXZ > maxRadiusXZ) maxRadiusXZ = distXZ;
+                            for (int z = 0; z <= 1; z++)
+                            {
+                                Vector3 corner = new Vector3(
+                                    x == 0 ? b.min.x : b.max.x,
+                                    y == 0 ? b.min.y : b.max.y,
+                                    z == 0 ? b.min.z : b.max.z
+                                );
+                                Vector3 pt = fullMat.MultiplyPoint3x4(corner);
+                                float distXZ = Mathf.Sqrt(pt.x * pt.x + pt.z * pt.z);
+                                if (distXZ > maxRadiusXZ) maxRadiusXZ = distXZ;
+                            }
                         }
                     }
                 }
@@ -574,33 +597,41 @@ public class HexHabitatSpawner : MonoBehaviour
         if (prefab == null) return 0f;
 
         float offset = 0f;
-        MeshFilter mf = prefab.GetComponentInChildren<MeshFilter>();
-        if (mf != null && mf.sharedMesh != null)
+        MeshFilter[] filters = prefab.GetComponentsInChildren<MeshFilter>();
+        if (filters != null && filters.Length > 0)
         {
-            Bounds b = mf.sharedMesh.bounds;
-            Vector3 localMin = Vector3.Scale(b.min, prefab.transform.localScale);
-            Vector3 localMax = Vector3.Scale(b.max, prefab.transform.localScale);
-            Quaternion rot = prefab.transform.localRotation;
             float minY = float.MaxValue;
             float maxY = float.MinValue;
+            bool hasMesh = false;
 
-            for (int x = 0; x <= 1; x++)
+            foreach (var mf in filters)
             {
-                for (int y = 0; y <= 1; y++)
+                if (mf == null || mf.sharedMesh == null) continue;
+                hasMesh = true;
+
+                Matrix4x4 fullMat = GetMeshToPrefabMatrix(prefab, mf.transform);
+                Bounds b = mf.sharedMesh.bounds;
+
+                for (int x = 0; x <= 1; x++)
                 {
-                    for (int z = 0; z <= 1; z++)
+                    for (int y = 0; y <= 1; y++)
                     {
-                        Vector3 corner = new Vector3(
-                            x == 0 ? localMin.x : localMax.x,
-                            y == 0 ? localMin.y : localMax.y,
-                            z == 0 ? localMin.z : localMax.z
-                        );
-                        float rotY = (rot * corner).y;
-                        if (rotY < minY) minY = rotY;
-                        if (rotY > maxY) maxY = rotY;
+                        for (int z = 0; z <= 1; z++)
+                        {
+                            Vector3 corner = new Vector3(
+                                x == 0 ? b.min.x : b.max.x,
+                                y == 0 ? b.min.y : b.max.y,
+                                z == 0 ? b.min.z : b.max.z
+                            );
+                            float rotY = fullMat.MultiplyPoint3x4(corner).y;
+                            if (rotY < minY) minY = rotY;
+                            if (rotY > maxY) maxY = rotY;
+                        }
                     }
                 }
             }
+
+            if (!hasMesh) return 0f;
 
             float totalHeight = Mathf.Max(0.01f, maxY - minY);
             float groundEmbed = 0.02f;
@@ -628,7 +659,6 @@ public class HexHabitatSpawner : MonoBehaviour
                 else
                 {
                     // 3. Fallback mặc định an toàn: Tự động tính 5% theo chiều cao mô hình (tối đa 5cm)
-                    // Hoàn toàn KHÔNG dùng so khớp chuỗi tên (string matching)!
                     groundEmbed = Mathf.Clamp(totalHeight * 0.05f, 0.005f, 0.05f);
                 }
             }
