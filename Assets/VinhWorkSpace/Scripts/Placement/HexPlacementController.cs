@@ -527,6 +527,7 @@ public class HexPlacementController : MonoBehaviour
             HexTileInfo tileInfo = tileInstance.AddComponent<HexTileInfo>();
             tileInfo.sourcePrefab = prefabToSpawn;
             tileInfo.terrainTypeIndex = levelIndex;
+            tileInfo.hasLushEnvironment = prefabToSpawn.name.IndexOf("_Lush", System.StringComparison.OrdinalIgnoreCase) >= 0;
             tileInfo.coordinates = targetCoord;
 
             // Lưu vào dữ liệu Map

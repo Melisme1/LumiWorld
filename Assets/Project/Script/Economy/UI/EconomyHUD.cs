@@ -93,6 +93,12 @@ public class EconomyHUD : MonoBehaviour
         _ = CreatureCareManager.Instance;
         _ = GameAudioManager.Instance;
 
+        // Đảm bảo không bị hiển thị đè AccountText/AccountButton từ MainMenu lên góc tiền của màn chơi
+        GameObject oldAccText = GameObject.Find("AccountText");
+        if (oldAccText != null) Destroy(oldAccText);
+        GameObject oldAccBtn = GameObject.Find("AccountButton");
+        if (oldAccBtn != null) Destroy(oldAccBtn);
+
         FitToCanvas();
     }
 

@@ -48,6 +48,7 @@ public class DisasterSaveData
     public bool saved;
     public int instanceCounter;
     public double nextSpawnInSeconds = -1;   // -1: chưa có lịch
+    public List<string> appliedInboxObstacleIds = new List<string>();
     public List<DisasterTileRecord> tiles = new List<DisasterTileRecord>();
     public List<DisasterRecord> active = new List<DisasterRecord>();
 }
@@ -182,6 +183,8 @@ public class TileRecord
     public string model;          // khóa prefab trong TileCatalog (GUID của asset)
     public string objectName;     // tên GameObject y hệt lúc lưu, thiên tai tìm ô theo tên
     public int terrainTypeIndex;  // -1 với ô đã tưới Rain
+    public int terrainDataVersion; // 0: save cũ cần suy ra một lần từ prefab; 1: dùng dữ liệu môi trường bên dưới
+    public bool hasLushEnvironment;
     public int rotationStep;      // 0..5, mỗi bước 60 độ
     public bool isOccupied;
 }

@@ -162,6 +162,7 @@ public class HexWorldGenerator : MonoBehaviour
             HexTileInfo tileInfo = tileInstance.AddComponent<HexTileInfo>();
             tileInfo.sourcePrefab = prefabToSpawn;
             tileInfo.terrainTypeIndex = levelIndex;
+            tileInfo.hasLushEnvironment = prefabToSpawn.name.IndexOf("_Lush", System.StringComparison.OrdinalIgnoreCase) >= 0;
             tileInfo.coordinates = coords;
 
             MapTiles.Add(coords, tileInstance);
@@ -216,6 +217,11 @@ public class HexWorldGenerator : MonoBehaviour
             if (tileInfo == null) tileInfo = tileInstance.AddComponent<HexTileInfo>();
             tileInfo.sourcePrefab = prefab;
             tileInfo.terrainTypeIndex = record.terrainTypeIndex;
+            tileInfo.hasLushEnvironment = record.terrainDataVersion > 0
+                ? record.hasLushEnvironment
+                : prefab.name.IndexOf("_Lush", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                  (!string.IsNullOrEmpty(record.objectName) &&
+                   record.objectName.IndexOf("_Lush", System.StringComparison.OrdinalIgnoreCase) >= 0);
             tileInfo.coordinates = coords;
             tileInfo.isOccupied = record.isOccupied;
 

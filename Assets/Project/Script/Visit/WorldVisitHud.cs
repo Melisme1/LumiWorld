@@ -23,7 +23,6 @@ public class WorldVisitHud : MonoBehaviour
     private const float ColumnX = 20f;
     private const float ColumnWidth = 360f;
     private const float PanelTop = 86f;
-
     // Dời cả lớp HUD (Pos X / Pos Y của object WorldVisitHud trong Inspector)
     private static readonly Vector2 RootOffset = new Vector2(-5f, -99f);
 
@@ -132,7 +131,7 @@ public class WorldVisitHud : MonoBehaviour
 
         TextMeshProUGUI line = CreateLine(panel, new Vector2(14f, -42f), new Vector2(ColumnWidth - 28f, 48f));
         line.text = "Score " + VisitSession.OwnerScore + " pts  ·  [" + VisitSession.OwnerX + ":" + VisitSession.OwnerY + "]"
-            + "\nLooking only: nothing here can be changed.";
+            + "\nDrag an obstacle card from your hand onto this island.";
 
         float half = (ColumnWidth - 36f) / 2f;
         bool backToMap = VisitSession.FromWorldMap && MapAvailable;
@@ -171,7 +170,7 @@ public class WorldVisitHud : MonoBehaviour
         return line;
     }
 
-    private static void AddButton(RectTransform parent, string text, Vector2 position, Vector2 size, Color color, UnityEngine.Events.UnityAction onClick)
+    private static Button AddButton(RectTransform parent, string text, Vector2 position, Vector2 size, Color color, UnityEngine.Events.UnityAction onClick)
     {
         RectTransform rect = EconomyHUD.CreateRect(text + "Button", parent);
         SetTopLeft(rect, position, size);
@@ -181,6 +180,7 @@ public class WorldVisitHud : MonoBehaviour
         TextMeshProUGUI label = EconomyHUD.CreateText("Label", rect, 18f, TextColor, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(label.rectTransform);
         label.text = text;
+        return button;
     }
 
     private static void SetTopLeft(RectTransform rect, Vector2 position, Vector2 size)

@@ -16,8 +16,8 @@ public class TradeSync : MonoBehaviour
     public const string DeclineKind = "Decline";
     public const string CancelKind = "Cancel";
 
-    // Khớp trade.maxCardsPerSide trên server
-    public const int MaxCardsPerSide = 10;
+    // trade.maxCardsPerSide trên server (đọc cùng tham số chợ, mặc định 10)
+    public static int MaxCardsPerSide => MarketSync.TradeMaxCardsPerSide;
 
     private const int ResendSeconds = 60;
 

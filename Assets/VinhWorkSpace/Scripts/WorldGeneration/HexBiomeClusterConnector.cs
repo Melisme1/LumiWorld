@@ -133,6 +133,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
     private readonly HashSet<string> _createdEdgeBridges = new HashSet<string>();
     private readonly HashSet<string> _createdCornerFillers = new HashSet<string>();
     private readonly HashSet<string> _celebratedClusters = new HashSet<string>();
+    private readonly HashSet<Mesh> _ownedConnectionMeshes = new HashSet<Mesh>();
 
     private Transform _connectionsContainer;
     public Transform ConnectionsContainer
@@ -575,6 +576,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
             v1IsOuter, v2IsOuter,
             topGrassUV, bevelUV, wallUV
         );
+        if (bridgeMesh != null)
+            _ownedConnectionMeshes.Add(bridgeMesh);
 
         GameObject bridgeGo = new GameObject($"SeamBridge_{edgeKey}");
         bridgeGo.transform.SetParent(ConnectionsContainer, false);
@@ -621,6 +624,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
         Material tileMat = GetTileMaterial(tileA);
 
         Mesh cornerMesh = HexClusterMeshBuilder.BuildCornerFillerMeshLocal(cornerFillerRadius, topGrassUV, cornerKey);
+        if (cornerMesh != null)
+            _ownedConnectionMeshes.Add(cornerMesh);
 
         GameObject cornerGo = new GameObject($"CornerFiller_{cornerKey}");
         cornerGo.transform.SetParent(ConnectionsContainer, false);
@@ -1011,6 +1016,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
         _celebratedClusters.Clear();
         _nextClusterId = 1;
 
+        DestroyOwnedConnectionMeshes();
+
         if (_connectionsContainer != null)
         {
             if (Application.isPlaying)
@@ -1209,17 +1216,35 @@ public class HexBiomeClusterConnector : MonoBehaviour
     private void DestroyConnectionObject(Transform connection)
     {
         if (connection == null) return;
+
         MeshFilter meshFilter = connection.GetComponent<MeshFilter>();
-        if (meshFilter != null && meshFilter.sharedMesh != null)
+        Mesh mesh = meshFilter != null ? meshFilter.sharedMesh : null;
+        if (mesh != null && _ownedConnectionMeshes.Remove(mesh))
         {
-            Mesh mesh = meshFilter.sharedMesh;
             meshFilter.sharedMesh = null;
-            if (Application.isPlaying) Destroy(mesh);
-            else DestroyImmediate(mesh);
+            DestroyOwnedMesh(mesh);
         }
 
         if (Application.isPlaying) Destroy(connection.gameObject);
         else DestroyImmediate(connection.gameObject);
+    }
+
+    private void DestroyOwnedConnectionMeshes()
+    {
+        if (_ownedConnectionMeshes.Count == 0) return;
+
+        foreach (Mesh mesh in _ownedConnectionMeshes)
+            DestroyOwnedMesh(mesh);
+
+        _ownedConnectionMeshes.Clear();
+    }
+
+    private static void DestroyOwnedMesh(Mesh mesh)
+    {
+        if (mesh == null) return;
+
+        if (Application.isPlaying) Destroy(mesh);
+        else DestroyImmediate(mesh);
     }
 
     private IEnumerator AnimateBridgePopIn(Transform target)

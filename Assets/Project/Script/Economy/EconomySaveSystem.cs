@@ -162,6 +162,7 @@ public class EconomySaveSystem : MonoBehaviour
 
         // Phần đã cộng vào ví hoặc kho. Nếu không ghi được file thì hoàn tác để lần sau áp lại đúng một lần
         Action undo = null;
+        string appliedObstacleNotice = null;
 
         switch (kind)
         {
@@ -244,6 +245,34 @@ public class EconomySaveSystem : MonoBehaviour
                 break;
             }
 
+            case "Obstacle":
+            {
+                // World effects must be applied on the owner's loaded island. The disaster
+                // manager writes the effect and its inbox ID into the world save first.
+                ObstacleInboxPayload obstacle;
+                try { obstacle = JsonUtility.FromJson<ObstacleInboxPayload>(payload); }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[LumiWorld Inbox] Obstacle {itemId} sai JSON: {ex.Message}. Giữ lại trên server.");
+                    return false;
+                }
+
+                if (obstacle == null || string.IsNullOrWhiteSpace(obstacle.kind) ||
+                    !LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var disasterManager) ||
+                    !disasterManager.ApplyInboxObstacle(obstacle, itemId))
+                {
+                    return false;
+                }
+
+                string obstacleName = System.Enum.TryParse(obstacle.kind, true, out LumiWorld.Acs.DisasterKind obstacleKind) &&
+                                      System.Enum.IsDefined(typeof(LumiWorld.Acs.DisasterKind), obstacleKind)
+                    ? LumiWorld.Acs.DisasterCatalog.DisplayName(obstacleKind)
+                    : obstacle.kind;
+                string senderName = string.IsNullOrWhiteSpace(obstacle.senderName) ? "Another player" : obstacle.senderName;
+                appliedObstacleNotice = $"{senderName} sent {obstacleName} to your island at [{obstacle.q}:{obstacle.r}].";
+                break;
+            }
+
             default:
                 // Loại mới hơn bản client này: giữ lại trên server cho tới khi cập nhật
                 Debug.LogWarning($"[LumiWorld Inbox] Loại mục chưa hỗ trợ: {kind}. Giữ lại trên server.");
@@ -253,7 +282,15 @@ public class EconomySaveSystem : MonoBehaviour
         data.appliedInboxIds.Add(itemId);
         MarkDirty();
 
-        if (SaveNow()) return true;
+        if (SaveNow())
+        {
+            if (!string.IsNullOrEmpty(appliedObstacleNotice))
+            {
+                Debug.Log($"[LumiWorld Inbox] {appliedObstacleNotice}");
+                GameDialogUI.ShowNotice(appliedObstacleNotice, title: "OBSTACLE APPLIED");
+            }
+            return true;
+        }
 
         // Không ghi được thì bỏ id và hoàn tác, để lần sau áp lại đúng một lần
         data.appliedInboxIds.Remove(itemId);

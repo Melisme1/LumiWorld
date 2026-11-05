@@ -37,26 +37,28 @@ public static class CardShop
     /// Số Coins phải có để mua một lá: giá thẻ cộng phí đặt. Chỉ trừ giá thẻ, phần phí đặt còn lại trong ví
     /// để thẻ vừa mua luôn đặt được ngay, người chơi không bị kẹt vì tiêu hết Coins vào cửa hàng.
     /// </summary>
-    public static int GetRequiredCoins(CardData card)
+    public static int GetRequiredCoins(CardData card, int quantity = 1)
     {
-        return card != null ? GetPrice(card) + Mathf.Max(0, card.placementFee) : 0;
+        quantity = Mathf.Max(1, quantity);
+        return card != null ? (GetPrice(card) * quantity) + Mathf.Max(0, card.placementFee) : 0;
     }
 
     /// <summary>
     /// Mua được khi thẻ có giá, màn chơi có bài trên tay và đủ Coins cho cả giá thẻ lẫn phí đặt.
     /// </summary>
-    public static bool CanBuy(CardData card)
+    public static bool CanBuy(CardData card, int quantity = 1)
     {
         return GetPrice(card) > 0
             && CardDeskController.Instance != null
-            && CurrencyWallet.Instance.CanAfford(GetRequiredCoins(card));
+            && CurrencyWallet.Instance.CanAfford(GetRequiredCoins(card, quantity));
     }
 
     /// <summary>
-    /// Mua một lá: trừ giá thẻ rồi thêm thẻ vào bài trên tay. Không đủ Coins thì không làm gì và trả về false.
+    /// Mua thẻ theo số lượng: trừ tổng giá thẻ rồi thêm thẻ vào bài trên tay. Không đủ Coins thì không làm gì và trả về false.
     /// </summary>
-    public static bool TryBuy(CardData card)
+    public static bool TryBuy(CardData card, int quantity = 1)
     {
+        quantity = Mathf.Max(1, quantity);
         int price = GetPrice(card);
         if (price <= 0) return false;
 
@@ -68,10 +70,14 @@ public static class CardShop
         }
 
         CurrencyWallet wallet = CurrencyWallet.Instance;
-        if (!wallet.CanAfford(GetRequiredCoins(card)) || !wallet.TrySpend(price, CoinReason.CardPurchase)) return false;
+        int totalCost = price * quantity;
+        if (!wallet.CanAfford(GetRequiredCoins(card, quantity)) || !wallet.TrySpend(totalCost, CoinReason.CardPurchase)) return false;
 
-        hand.AddRewardCard(card);
-        Debug.Log($"<color=#A78BFA>🛒 [LumiWorld Cửa hàng] Đã mua 1 lá {CardName(card)}, giá {price} Coins.</color>");
+        for (int i = 0; i < quantity; i++)
+        {
+            hand.AddRewardCard(card);
+        }
+        Debug.Log($"<color=#A78BFA>🛒 [LumiWorld Cửa hàng] Đã mua {quantity} lá {CardName(card)}, tổng {totalCost} Coins.</color>");
         return true;
     }
 
