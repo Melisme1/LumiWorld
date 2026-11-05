@@ -72,8 +72,8 @@ namespace LumiWorld.Economy.Crafting.Testing
             "resource.food.wild_berry_nut_cake"
         };
 
-        // Công cụ test chỉ tự gắn trong Editor, không lọt vào bản build gửi người chơi
-#if UNITY_EDITOR
+        // Công cụ test tự gắn trong Editor hoặc bản Development Build để test
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoInitialize()
         {
