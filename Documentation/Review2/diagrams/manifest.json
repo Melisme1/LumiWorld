@@ -1,0 +1,156 @@
+[
+  {
+    "id": "SYS-01",
+    "title": "System overview and authority boundaries",
+    "trace": "FR-1, FR-10 to FR-15; design sections 11-15",
+    "status": "Target architecture. The authoritative asset service and complete admin/policy functions are planned. External hosting is unselected.",
+    "file": "SYS-01.mmd"
+  },
+  {
+    "id": "GAME-01",
+    "title": "Core play cycle",
+    "trace": "FR-2 to FR-9, FR-16 to FR-18; design sections 2-9",
+    "status": "Conceptual game loop. Optional activities do not imply real-time multiplayer or mandatory timed play throughout the loop.",
+    "file": "GAME-01.mmd"
+  },
+  {
+    "id": "ACT-01",
+    "title": "Establish the first functional biome",
+    "trace": "WF-01; FR-1, FR-2, FR-3, FR-15",
+    "status": "Target workflow. Policy enforcement is planned; starter content and exact charges require approval.",
+    "file": "ACT-01.mmd"
+  },
+  {
+    "id": "ACT-02",
+    "title": "Produce, craft and restore creature contribution",
+    "trace": "WF-02; FR-4, FR-5, FR-6",
+    "status": "Target workflow. Approved recipe quantities, durations and storage-full behavior remain open.",
+    "file": "ACT-02.mmd"
+  },
+  {
+    "id": "ACT-03",
+    "title": "Orders, milestones and island expansion",
+    "trace": "WF-03; FR-7, FR-8",
+    "status": "Target workflow. Orders supply Coins; only explicitly eligible milestones award Harmony. Thresholds and completion conditions are open.",
+    "file": "ACT-03.mmd"
+  },
+  {
+    "id": "ACT-04",
+    "title": "Authoritative resource or Creature Card trade",
+    "trace": "WF-04; FR-11, FR-12; design section 13",
+    "status": "Target only. Current resource-market transactions do not establish server asset authority or individual creature transfer. Creature price bounds use species and Quality Rank; the numeric table is pending.",
+    "file": "ACT-04.mmd"
+  },
+  {
+    "id": "ACT-05",
+    "title": "Publish, visit and handle a delayed obstacle",
+    "trace": "WF-05; FR-9, FR-10, FR-12",
+    "status": "Target workflow. A visitor command is separate from the read-only snapshot. Server fee authority and invalid-target delivery fallback remain incomplete/open.",
+    "file": "ACT-05.mmd"
+  },
+  {
+    "id": "ACT-06",
+    "title": "Inspect and tame a wild Alpha",
+    "trace": "WF-06; FR-16",
+    "status": "Target workflow informed by the rhythm source. Visitor inspection is required but currently blocked by the inspected click path; duplicate-safe reward must be verified.",
+    "file": "ACT-06.mmd"
+  },
+  {
+    "id": "ACT-07",
+    "title": "River topology, scoring and persistence",
+    "trace": "WF-07; FR-17, FR-1, FR-2",
+    "status": "Target workflow. Final scoring destination/formula and accepted terrain constraints are pending.",
+    "file": "ACT-07.mmd"
+  },
+  {
+    "id": "ACT-08",
+    "title": "Authorized administration",
+    "trace": "FR-14, FR-15; design section 14",
+    "status": "Target administrative workflow. Existing source provides config/stats endpoints; UI, suspension and log-view actions and policy enforcement remain planned.",
+    "file": "ACT-08.mmd"
+  },
+  {
+    "id": "ACT-09",
+    "title": "Breed eligible parents and claim one offspring",
+    "trace": "WF-08; FR-18, FR-4, FR-1; FR-11 lock interaction",
+    "status": "Target based on the existing breeding design and newly confirmed scope. Recipe values, slot capacity, cancellation and offline/server authority details are pending; no runtime completion is claimed.",
+    "file": "ACT-09.mmd"
+  },
+  {
+    "id": "STATE-01",
+    "title": "Account eligibility",
+    "trace": "FR-1, FR-14, FR-15",
+    "status": "Target lifecycle. Administrative suspension and policy checks are planned. Session expiry and daily play limits are separate session conditions; reinstatement policy is open.",
+    "file": "STATE-01.mmd"
+  },
+  {
+    "id": "STATE-02",
+    "title": "Local and cloud save synchronization",
+    "trace": "FR-1",
+    "status": "Target model. Conflict uses the registered newer-server reload policy; UI/data reconciliation details and tradable-asset integration remain open.",
+    "file": "STATE-02.mmd"
+  },
+  {
+    "id": "STATE-03",
+    "title": "Biome structure and usable habitat",
+    "trace": "FR-2, FR-3, FR-9",
+    "status": "Document-level target model. Occupancy and production eligibility are separate data; damage/restore behavior is type-specific.",
+    "file": "STATE-03.mmd"
+  },
+  {
+    "id": "STATE-04",
+    "title": "Creature ownership and contribution",
+    "trace": "FR-3, FR-4, FR-9, FR-11, FR-18",
+    "status": "Target contribution lifecycle; hunger, sickness, recovery and environmental flags coexist. Placement requires the separate ownership/use guards in STATE-11. Returned cards must preserve individual data, which is not established by current CardData-only return code.",
+    "file": "STATE-04.mmd"
+  },
+  {
+    "id": "STATE-05",
+    "title": "Craft job lifecycle",
+    "trace": "FR-6",
+    "status": "Target model. CompletedHolding is a proposed safe representation for undelivered output, not an approved UI/full-storage rule. Cancellation/refund policy is intentionally absent.",
+    "file": "STATE-05.mmd"
+  },
+  {
+    "id": "STATE-06",
+    "title": "Market listing lifecycle",
+    "trace": "FR-11, FR-12",
+    "status": "States and expiry worker are present in the resource-market source. Resource escrow and identified-creature transfer describe the target; server ownership/locks and creature price validation remain unverified implementation work.",
+    "file": "STATE-06.mmd"
+  },
+  {
+    "id": "STATE-07",
+    "title": "Inbox handling and acknowledgement",
+    "trace": "FR-12; design section 13",
+    "status": "Target delivery lifecycle. The durable receipt must survive the agreed restore/multi-device scenarios; local apply-before-ack alone does not prove this.",
+    "file": "STATE-07.mmd"
+  },
+  {
+    "id": "STATE-08",
+    "title": "Incident lifecycle and persistent biome damage",
+    "trace": "FR-9, FR-12",
+    "status": "Source-informed game model. Incident completion and burned-tile recovery are separate lifecycles. Manual-pause integration remains a source-audit gap.",
+    "file": "STATE-08.mmd"
+  },
+  {
+    "id": "STATE-09",
+    "title": "Wild encounter and taming attempt",
+    "trace": "FR-16",
+    "status": "Target encounter lifecycle informed by current rhythm flow. Failure/cancellation retains the encounter; session resonance is not permanent Harmony.",
+    "file": "STATE-09.mmd"
+  },
+  {
+    "id": "STATE-10",
+    "title": "Breeding job, parent release and offspring claim",
+    "trace": "FR-18; ACT-09",
+    "status": "Target lifecycle. Completion releases parents; claim creates one distinct Rank I offspring. No queue, cancellation or refund transition is inferred before those rules are approved.",
+    "file": "STATE-10.mmd"
+  },
+  {
+    "id": "STATE-11",
+    "title": "Creature ownership and incompatible-use locks",
+    "trace": "FR-4, FR-11, FR-18; BR-13, BR-14",
+    "status": "Target lifecycle from one account perspective. Care flags coexist with use states. Owner transfer keeps the same individual ID; the buyer receives that individual, not a newly minted species card. Authoritative lock storage is pending design.",
+    "file": "STATE-11.mmd"
+  }
+]

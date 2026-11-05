@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> OwnedUnplaced: Acquire individual once
+    OwnedUnplaced --> PlacedBlocked: Valid placement with no incompatible lock / evaluate blockers
+    PlacedBlocked --> Contributing: Affinity and production conditions valid; all blockers clear
+    Contributing --> PlacedBlocked: Hunger, sickness, recovery or disruption blocks work
+    PlacedBlocked --> PlacedBlocked: Resolve one cause while another remains
+    Contributing --> OwnedUnplaced: Recall or rescue / preserve individual
+    PlacedBlocked --> OwnedUnplaced: Recall or rescue / preserve individual
+    note right of PlacedBlocked
+      Independent data: fullness, illness, recovery,
+      disaster and encounter effects.
+      Treating one cause does not clear the others.
+      No death or rank-loss transition is specified.
+    end note

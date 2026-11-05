@@ -1,0 +1,19 @@
+flowchart TD
+    subgraph Player["Actor: owner player"]
+      A["Select river edit and inspect preview"]
+      D["Confirm valid edit"]
+      I["Save and later reopen the world"]
+    end
+    subgraph Game["System: placement, river graph and persistence"]
+      B{"Owner context, terrain, topology and cost valid?"}
+      C["Reject edit; preserve prior world, card and Coins"]
+      E["Commit segment without replacing Nature terrain"]
+      F["Rebuild adjacent connections and elevation transitions"]
+      G["Adjust conflicting props and riverbank decoration"]
+      H["Recalculate affected score contributions without duplicate milestones"]
+      J["Persist segment identities, connections and height steps"]
+      K["Restore topology and equivalent resulting contributions"]
+    end
+    A --> B
+    B -->|"No"| C --> A
+    B -->|"Yes"| D --> E --> F --> G --> H --> I --> J --> K

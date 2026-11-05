@@ -1,0 +1,10 @@
+stateDiagram-v2
+    [*] --> Pending: Server records unique result
+    Pending --> Received: Authorized recipient fetches item
+    Received --> AppliedDurably: Apply effect and record durable handled identity
+    Received --> Received: Retry fetch / no second application
+    AppliedDurably --> AckPending: Submit acknowledgement
+    AckPending --> AckPending: Network failure / retry acknowledgement only
+    AckPending --> Acknowledged: Server accepts acknowledgement
+    AppliedDurably --> AppliedDurably: Duplicate delivery / use handled identity
+    Acknowledged --> Acknowledged: Repeated acknowledgement / no new effect

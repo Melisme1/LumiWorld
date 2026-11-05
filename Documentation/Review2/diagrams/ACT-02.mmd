@@ -1,0 +1,28 @@
+flowchart TD
+    subgraph Player["Actor: owner player"]
+      A["Select a valid production resource"]
+      D["Collect available output"]
+      F["Choose a care recipe and confirm"]
+      J["Apply suitable food or medicine"]
+    end
+    subgraph Game["System: production, Warehouse, crafting and care"]
+      B{"Required active species and buffer space available?"}
+      BX["Show blocking cause; preserve accumulated output"]
+      C["Accumulate eligible output"]
+      E["Transfer accepted quantity to Warehouse"]
+      G{"Recipe unlocked, ingredients and queue space valid?"}
+      GX["Reject job without consuming ingredients"]
+      H["Consume inputs once; persist queued job"]
+      I["Complete duration; deliver output once or retain it safely"]
+      K["Validate care item and update the relevant care process"]
+      L{"All independent contribution blockers cleared?"}
+      M["Resume eligible contribution"]
+      N["Show remaining hunger, sickness or environmental block"]
+    end
+    A --> B
+    B -->|"No"| BX
+    B -->|"Yes"| C --> D --> E --> F --> G
+    G -->|"No"| GX --> F
+    G -->|"Yes"| H --> I --> J --> K --> L
+    L -->|"Yes"| M
+    L -->|"No"| N

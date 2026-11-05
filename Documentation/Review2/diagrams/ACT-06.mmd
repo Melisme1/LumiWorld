@@ -1,0 +1,25 @@
+flowchart TD
+    subgraph Player["Actor: player in owner or visitor context"]
+      A["Inspect the Alpha"]
+      D{"Choose Observe or Tame?"}
+      G["Enter direction sequence and beat input"]
+      N["Keep the pack or retry later"]
+    end
+    subgraph Game["System: encounter and rhythm session"]
+      B{"Visiting?"}
+      C["Inspection only; disable taming and reward"]
+      E["Close inspection; encounter remains active"]
+      F["Start timed session and resonance target"]
+      H{"Completion target reached before timeout?"}
+      I["Validate active encounter and unclaimed reward"]
+      J["Grant one Creature Card; resolve encounter"]
+      K["Clear its production restrictions"]
+      L["No card; keep encounter and restrictions for later"]
+    end
+    A --> B
+    B -->|"Yes"| C
+    B -->|"No"| D
+    D -->|"Observe"| E
+    D -->|"Tame"| F --> G --> H
+    H -->|"Yes"| I --> J --> K
+    H -->|"Timeout or cancellation"| L --> N

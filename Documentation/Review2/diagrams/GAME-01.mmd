@@ -1,0 +1,22 @@
+flowchart LR
+    B["Build and arrange a hex island"] --> H["Establish compatible biomes"]
+    H --> C["House owned creatures"]
+    C --> P["Produce while eligible"]
+    P --> W["Harvest into Warehouse"]
+    W --> R["Craft and care"]
+    R --> P
+    W --> O["Fulfill orders / trade resources or Creature Cards"]
+    O --> CO["Obtain Coins"]
+    H --> M["Eligible one-time milestones"]
+    C --> M
+    M --> HA["Permanent Harmony"]
+    CO --> E["Open islands when all conditions hold"]
+    HA --> E
+    E --> B
+    D["Environmental disruption"] --> R
+    T["Wild encounter and successful taming"] --> C
+    C --> BR["Recall eligible parents and breed"]
+    W -->|"Recipe food"| BR
+    CO -->|"Breeding fee"| BR
+    BR -->|"Return parents and claim one Rank I offspring"| C
+    B --> RV["Rivers and scenery"]

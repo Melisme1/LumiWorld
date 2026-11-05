@@ -1,0 +1,13 @@
+stateDiagram-v2
+    [*] --> Clean: Load accepted revision
+    Clean --> Dirty: Eligible local change
+    Dirty --> Dirty: More local changes
+    Dirty --> Uploading: Debounce elapsed and service available
+    Uploading --> Clean: Accepted revision and no later local edits
+    Uploading --> Dirty: Accepted revision but later edits remain
+    Uploading --> RetryPending: Connection failure
+    RetryPending --> Uploading: Retry same pending operation safely
+    Uploading --> Conflict: Server revision is newer
+    Conflict --> Reloading: Explain conflict and apply required server reload policy
+    Reloading --> Clean: Newer authoritative snapshot loaded
+    Reloading --> Conflict: Download fails / preserve unresolved state

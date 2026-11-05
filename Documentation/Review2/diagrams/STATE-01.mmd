@@ -1,0 +1,10 @@
+stateDiagram-v2
+    [*] --> Unregistered
+    Unregistered --> Active: Valid registration with required policy data
+    Unregistered --> Unregistered: Invalid registration / reject
+    Active --> Suspended: Authorized suspension with audit
+    Suspended --> Suspended: Login or protected request / deny
+    note right of Active
+      Token expiry and playtime eligibility
+      do not delete the account or its world.
+    end note

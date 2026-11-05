@@ -1,0 +1,11 @@
+stateDiagram-v2
+    [*] --> Requested
+    Requested --> Rejected: Invalid recipe, ingredients or queue capacity / consume nothing
+    Requested --> Queued: Valid request / consume inputs exactly once
+    Queued --> Running: Processing slot available
+    Running --> Running: Save and restore remaining progress under approved policy
+    Running --> CompletedHolding: Required duration completed / retain output
+    CompletedHolding --> Delivered: Valid durable delivery / award output once
+    Delivered --> Delivered: Duplicate delivery request / no additional output
+    Rejected --> [*]
+    Delivered --> [*]

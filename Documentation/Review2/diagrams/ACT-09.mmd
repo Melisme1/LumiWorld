@@ -1,0 +1,26 @@
+flowchart TD
+    subgraph Player["Actor: owner player"]
+      A["Choose two recalled parent individuals"]
+      D["Review recipe, offspring, food, Coins and duration"]
+      E["Confirm breeding"]
+      J["Claim available offspring"]
+    end
+    subgraph Game["System: breeding, ownership and persistence"]
+      B{"Distinct owned parents, compatible recipe and no incompatible locks?"}
+      C["Show invalid parent or recipe; consume nothing"]
+      F{"Slot, costs and exclusive parent locks still valid?"}
+      FX["Reject race or shortfall without partial charge"]
+      G["Accept costs once; persist job and lock both parents"]
+      H["Advance timer with save/offline policy; parents cannot produce or trade"]
+      I["Complete once; release original parents and retain one claim"]
+      K{"Claim already committed?"}
+      L["Return prior claim result; create no new individual"]
+      M["Create one Rank I offspring ID and durable job-linked receipt"]
+    end
+    A --> B
+    B -->|"No"| C --> A
+    B -->|"Yes"| D --> E --> F
+    F -->|"No"| FX
+    F -->|"Yes"| G --> H --> I --> J --> K
+    K -->|"Yes"| L
+    K -->|"No"| M
