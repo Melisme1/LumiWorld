@@ -284,12 +284,28 @@ public static class RhythmMinigameUIBuilder
         CreateBarWing(bgObj.transform, new Vector2(-326f, 0f), 0f);
         CreateBarWing(bgObj.transform, new Vector2(326f, 0f), 180f);
 
+        // Khung mask bo góc theo dáng viên thuốc để vạt fill không bị tràn ra ngoài viền cong
+        GameObject maskObj = new GameObject("FillMask");
+        maskObj.transform.SetParent(bgObj.transform, false);
+        RectTransform maskRect = maskObj.AddComponent<RectTransform>();
+        maskRect.anchorMin = Vector2.zero;
+        maskRect.anchorMax = Vector2.one;
+        maskRect.offsetMin = new Vector2(4f, 4f);
+        maskRect.offsetMax = new Vector2(-4f, -4f);
+
+        Image maskImg = maskObj.AddComponent<Image>();
+        maskImg.sprite = RhythmProceduralSprites.CapsuleBar;
+        maskImg.type = Image.Type.Sliced;
+        Mask mask = maskObj.AddComponent<Mask>();
+        mask.showMaskGraphic = false;
+
         GameObject fillObj = new GameObject("Fill");
-        fillObj.transform.SetParent(bgObj.transform, false);
+        fillObj.transform.SetParent(maskObj.transform, false);
         bindings.HarmonyFillRect = fillObj.AddComponent<RectTransform>();
-        bindings.HarmonyFillRect.anchorMin = new Vector2(0f, 0f);
-        bindings.HarmonyFillRect.anchorMax = new Vector2(0f, 1f);
-        bindings.HarmonyFillRect.sizeDelta = Vector2.zero;
+        bindings.HarmonyFillRect.anchorMin = Vector2.zero;
+        bindings.HarmonyFillRect.anchorMax = Vector2.one;
+        bindings.HarmonyFillRect.offsetMin = Vector2.zero;
+        bindings.HarmonyFillRect.offsetMax = Vector2.zero;
         bindings.HarmonyFillRect.pivot = new Vector2(0f, 0.5f);
 
         bindings.HarmonyFillImg = fillObj.AddComponent<Image>();
