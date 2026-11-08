@@ -1799,6 +1799,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::VisitObstacleHandController
   cardPrefab: {fileID: 9100000000000000001, guid: f27b8d6a2e7c4a49b69b00b67b7a18df, type: 3}
+  targetHighlightShader: {fileID: 4800000, guid: c4a6224bf1164c7a94ecb36cf7a54210, type: 3}
 --- !u!224 &1357980051
 RectTransform:
   m_ObjectHideFlags: 0

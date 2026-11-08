@@ -26,6 +26,7 @@ public sealed class VisitObstacleHandController : MonoBehaviour
     private HexCameraController cameraController;
     private LineRenderer targetHighlight;
     private Material targetHighlightMaterial;
+    [SerializeField] private Shader targetHighlightShader;
     private string[] allowedKinds = DefaultKinds;
     private int feeCoins = 20;
     private bool sending;
@@ -303,12 +304,22 @@ public sealed class VisitObstacleHandController : MonoBehaviour
     {
         if (targetHighlight != null) return;
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        // Use a serialized project shader first so the Player build keeps it even when
+        // shader stripping removes shaders that are only referenced through Shader.Find.
+        Shader shader = targetHighlightShader;
+        if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
         if (shader == null) shader = Shader.Find("Unlit/Color");
-        if (shader == null) return;
+        if (shader == null)
+        {
+            Debug.LogError("[LumiWorld Visit] Could not find a shader for the obstacle target highlight. " +
+                "Include URP/Unlit in the build or assign a serialized highlight material.", this);
+            return;
+        }
 
         targetHighlightMaterial = new Material(shader) { name = "VisitObstacleTargetHighlightMaterial" };
         targetHighlightMaterial.color = new Color(0.25f, 1f, 0.65f, 1f);
+        // Draw over the tile surface so the selection ring remains visible in Player builds.
+        targetHighlightMaterial.renderQueue = 3000;
         GameObject ring = new GameObject("VisitObstacleTargetHighlight", typeof(LineRenderer));
         targetHighlight = ring.GetComponent<LineRenderer>();
         targetHighlight.useWorldSpace = true;
@@ -316,9 +327,12 @@ public sealed class VisitObstacleHandController : MonoBehaviour
         targetHighlight.positionCount = 7;
         targetHighlight.startWidth = 0.09f;
         targetHighlight.endWidth = 0.09f;
+        targetHighlight.numCapVertices = 2;
+        targetHighlight.numCornerVertices = 2;
         targetHighlight.startColor = targetHighlightMaterial.color;
         targetHighlight.endColor = targetHighlightMaterial.color;
         targetHighlight.sharedMaterial = targetHighlightMaterial;
+        targetHighlight.sortingOrder = 20;
         targetHighlight.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         targetHighlight.receiveShadows = false;
         targetHighlight.enabled = false;
