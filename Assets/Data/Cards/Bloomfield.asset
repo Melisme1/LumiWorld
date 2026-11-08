@@ -28,6 +28,7 @@ MonoBehaviour:
   replacesTile: 0
   clearPropsOnTransform: 1
   occupiesTile: 0
+  isRiverCard: 0
   animalSpeciesData: {fileID: 0}
   producedResource: {fileID: 11400000, guid: c051e312543046fb9e751531a812af52, type: 2}
   landResourceBonus: 0
@@ -36,65 +37,120 @@ MonoBehaviour:
   transformRules: []
   habitatSpawnMargin: 0.95
   habitatProps:
-  - groupName: Daisy Carpet Colony
+  - groupName: FLower
     prefabs:
-    - {fileID: 3498718991465793296, guid: 93c1165f28e919648966b7aa7dfbb811, type: 3}
+    - {fileID: 4613694623266311548, guid: f1ecb93824d6816428ebef2804639004, type: 3}
+    - {fileID: 4023487225333559738, guid: 09b43f0676ac52f41a38cfca187efa97, type: 3}
+    - {fileID: 253351452791061680, guid: f96a2acee0e5ddc4082ac2b4470af4eb, type: 3}
+    - {fileID: 4219980092752249503, guid: c57a14fb7758e8c42aec02b6d4e4a88c, type: 3}
+    - {fileID: 1948073503561082619, guid: 54846264f2a115942bb2e1975034ed52, type: 3}
+    - {fileID: 5878652414853450005, guid: dffad28f1bcda914d880a8d3e90de058, type: 3}
+    - {fileID: 6521022569285911339, guid: d78d9a6017df7be478168a491037d203, type: 3}
+    - {fileID: 4340718556242320594, guid: 699f81ccced62ae4b96df4a78b54c69a, type: 3}
+    - {fileID: 6434057374238121740, guid: 0fa2fcac0a0044f45b43b5a626840e66, type: 3}
+    - {fileID: 7030224936248423386, guid: c1f95c0fb05a95c4c807a44084f106f7, type: 3}
+    - {fileID: 6398131439026760633, guid: 4bbd859e14059c64cae211b647d27f73, type: 3}
+    - {fileID: 3692837239055387468, guid: f56126d6f87b10c449900c60f0295331, type: 3}
+    - {fileID: 560501233234186508, guid: 20c6886bf127d68438dd6d25fb8ad028, type: 3}
+    - {fileID: 3345123521500872737, guid: 167ab613d8ad56d4fbf68729437b03d8, type: 3}
+    - {fileID: 1390275603237328943, guid: 62cf51aa7cf8a1e4fbd92b951fea684e, type: 3}
+    - {fileID: 6981972278188921970, guid: b8121700dfdb7ca4eae94166d13d5bbd, type: 3}
+    - {fileID: 592832491373675291, guid: 64663a749f100d34fa2cf79793d7df08, type: 3}
+    - {fileID: 3491244144829945293, guid: 0ef2ad076611fde438bc8a6e15762bd4, type: 3}
+    - {fileID: 625164974008829756, guid: 4bb74305ac282b348aa98616d242e097, type: 3}
+    - {fileID: 6338202949521031475, guid: 2f101c707a59233479f28724f8fd703c, type: 3}
+    - {fileID: 5276806058488027153, guid: 67cda51be21b3534486e735fb0e74ed4, type: 3}
+    - {fileID: 8860616222349984344, guid: 0668f6ebb7b2fe84992642ef6aee4d54, type: 3}
+    - {fileID: 3059746991263232830, guid: 077f2cfde427f3c4b90edf7fe31ef24f, type: 3}
+    - {fileID: 3243274744182657132, guid: 235621ab1b6871642936cfb061ec8387, type: 3}
+    - {fileID: 1466150669217659519, guid: 2d2541b9612bde84f8e647347cbeb96a, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 4, y: 6}
-    propsPerClusterRange: {x: 4, y: 6}
+    countRange: {x: 5, y: 6}
+    propsPerClusterRange: {x: 5, y: 6}
     clusterRadius: 0.3
     minDistance: 0.1
     scaleRange: {x: 0.8, y: 1.05}
     maxTiltAngle: 3.5
     customGroundEmbed: 0
     placeAtCenter: 0
-  - groupName: Prairie Wildflowers
+  - groupName: Plant
     prefabs:
-    - {fileID: 6573039375062614792, guid: ac679d92ac02a9c4e8232e21a83456f6, type: 3}
+    - {fileID: 5888470778940352216, guid: 79e976f483d13cb4fab3b5c0c3f86a64, type: 3}
+    - {fileID: 5308315454403622068, guid: 3c95c0b05da86a449b0e7a3021d0946f, type: 3}
+    - {fileID: 8416608617394787552, guid: d28cdd037df9fb546936ea0658a1e077, type: 3}
+    - {fileID: 4024027614095424081, guid: 4764a3a36fa8d3b4f980770d7ff72216, type: 3}
+    - {fileID: 599612891039938370, guid: 3b8ac0e5fd01fe340bdd68937c6ad9f7, type: 3}
+    - {fileID: 1355632486453844732, guid: 505b73920d04e1d429660d5d4048461d, type: 3}
+    - {fileID: 8458489892047731573, guid: db1108a6f85023b49abe9b17ae1ac1f4, type: 3}
+    - {fileID: 7192870055056757692, guid: 517b47abecb456e4f9b780721d3c45ae, type: 3}
+    - {fileID: 805801697542291764, guid: 025523a6a1f374447b1e6d357545991c, type: 3}
+    - {fileID: 3363382437142391297, guid: 61882a0ed19e1c44bb5faf5a10a443c0, type: 3}
+    - {fileID: 4565232562262007877, guid: 17dcc0a83cde6a54ab346b697d5ea7cd, type: 3}
+    - {fileID: 8495396432207417071, guid: 72cc97505c4047945a9e761dbfba7d8e, type: 3}
+    - {fileID: 7161847453778324907, guid: 25fa907e559772e4b820cb00716cddcf, type: 3}
+    - {fileID: 111382491250647802, guid: 903db474856f05a4ca2eaf08e9039869, type: 3}
     clusterAsPatch: 0
-    countRange: {x: 6, y: 8}
+    countRange: {x: 8, y: 12}
     propsPerClusterRange: {x: 0, y: 0}
     clusterRadius: 0.25
     minDistance: 0.1
-    scaleRange: {x: 0.52, y: 0.7}
+    scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 3
     customGroundEmbed: 0
     placeAtCenter: 0
-  - groupName: Lavender Cushions
+  - groupName: Waterplant
     prefabs:
-    - {fileID: 381245416735343399, guid: 9c98b1643201a1e45a256562d30a58fd, type: 3}
+    - {fileID: 2161125614564777905, guid: f589f0e354e9318499a298f8b2622632, type: 3}
+    - {fileID: 678849384484318336, guid: d2dbc6ee352bc3242b67e29ac9c76b75, type: 3}
+    - {fileID: 4745731898510179904, guid: 595822925c4f20a4f8db728cbe025092, type: 3}
+    - {fileID: 8676766415527762711, guid: c2812e3c4e90ebd4ca12945bfa84b36b, type: 3}
+    - {fileID: 5115217525116933667, guid: 0c4f8b35e50e71242841f2af7f7110f1, type: 3}
+    - {fileID: 4041099143558075753, guid: 34c6e494535760b4a94e7f236cf30291, type: 3}
     clusterAsPatch: 1
-    countRange: {x: 4, y: 6}
-    propsPerClusterRange: {x: 4, y: 6}
+    countRange: {x: 5, y: 6}
+    propsPerClusterRange: {x: 5, y: 6}
     clusterRadius: 0.25
     minDistance: 0.1
-    scaleRange: {x: 0.7, y: 0.88}
+    scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 3
     customGroundEmbed: 0
     placeAtCenter: 0
-  - groupName: Bell Flower
+  - groupName: Sunflower
     prefabs:
-    - {fileID: 2406618652017832576, guid: 90277f1fa4bebdb4488157661967a0be, type: 3}
+    - {fileID: 5023310264813052562, guid: f84e4cc936e05d5489487ea758fcbcfb, type: 3}
+    - {fileID: 3735019782394149512, guid: 93c77adbda0e5644f839fe707461b80b, type: 3}
     clusterAsPatch: 0
     countRange: {x: 6, y: 8}
     propsPerClusterRange: {x: 0, y: 0}
     clusterRadius: 0.12
     minDistance: 0.1
-    scaleRange: {x: 0.85, y: 1.05}
+    scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 4
     customGroundEmbed: 0
     placeAtCenter: 0
-  - groupName: Pebble Blossom Scatter
+  - groupName: Grass/Fern
     prefabs:
-    - {fileID: 5941888988430255883, guid: 5b31c3b3b89e6f14d9360a88e9cdf3cb, type: 3}
+    - {fileID: 8677440497214979780, guid: aa0455f8e44d62c41a22e067116353f2, type: 3}
+    - {fileID: 7793058400058546285, guid: 4909610b43641574193cdb61b1915268, type: 3}
+    - {fileID: 3823618758234233170, guid: de1f959a4b7d7c14196a98933accb7c8, type: 3}
+    - {fileID: 1423292623756391360, guid: 070909da4b38c3a4695f50f00f56cedf, type: 3}
+    - {fileID: 5020517001049195420, guid: 5d6665719a4e11442ba38a024ae3a9f3, type: 3}
+    - {fileID: 1716637634045062138, guid: 36dd8097f059ed540b77fa258743e603, type: 3}
+    - {fileID: 8838927059177142014, guid: a38b3f2ae0cfb0648bbf3add5b78df62, type: 3}
+    - {fileID: 2428283099024156464, guid: 8c6497e78d1e0c34f8f4967c15644bcd, type: 3}
+    - {fileID: 4221049355035434850, guid: ec79d7126665b804eae03fc1b6e01eee, type: 3}
+    - {fileID: 5067106653192161209, guid: 84e0e119ed044684e927f96164157867, type: 3}
     clusterAsPatch: 0
-    countRange: {x: 6, y: 8}
+    countRange: {x: 8, y: 12}
     propsPerClusterRange: {x: 0, y: 0}
     clusterRadius: 0.14
     minDistance: 0.1
-    scaleRange: {x: 0.85, y: 1.05}
+    scaleRange: {x: 0.5, y: 0.7}
     maxTiltAngle: 4
     customGroundEmbed: 0
     placeAtCenter: 0
+  groundCoverPrefabs: []
+  groundCoverCountRange: {x: 80, y: 120}
+  groundCoverScaleRange: {x: 0.9, y: 1.3}
   allowedTilePrefabs:
   - {fileID: 8492549821474773207, guid: c10000028a144b6289b7996f34397102, type: 3}

@@ -54,7 +54,7 @@ public class HexSinglePlacementController : MonoBehaviour
     [SerializeField] private bool enableBiomeSizeLimit = true;
 
     [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 9). Nếu người chơi ghép thêm ô vượt quá số này sẽ bị chặn.")]
-    [SerializeField] private int maxTilesPerBiome = 9;
+    [SerializeField] private int maxTilesPerBiome = 10;
 
     [Header("Modular Components")]
     [SerializeField] private HexPointerRaycaster raycaster;

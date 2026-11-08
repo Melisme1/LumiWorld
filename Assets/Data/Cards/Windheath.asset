@@ -28,6 +28,7 @@ MonoBehaviour:
   replacesTile: 0
   clearPropsOnTransform: 1
   occupiesTile: 0
+  isRiverCard: 0
   animalSpeciesData: {fileID: 0}
   producedResource: {fileID: 11400000, guid: e0fca13f9eec4df2880f62a38ab11d27, type: 2}
   landResourceBonus: 0
@@ -36,34 +37,30 @@ MonoBehaviour:
   transformRules: []
   habitatSpawnMargin: 0.9
   habitatProps:
-  - groupName: Floor Highland Boulder Anchor
-    prefabs:
-    - {fileID: 349442941351498450, guid: 8816255af19bb474d95379476507ca46, type: 3}
-    clusterAsPatch: 0
-    countRange: {x: 1, y: 2}
-    propsPerClusterRange: {x: 0, y: 0}
-    clusterRadius: 0.25
-    minDistance: 0.45
-    scaleRange: {x: 0.95, y: 1.25}
-    maxTiltAngle: 1.5
-    customGroundEmbed: 0.02
-    placeAtCenter: 0
   - groupName: The Solitary Windswept Sentinel
     prefabs:
-    - {fileID: 4164058881040370493, guid: 97410ef8b30a5fd4fbf42999ec23bcc0, type: 3}
-    - {fileID: 1767401183566329671, guid: 2215a524d6ecc4340bbf043fa2569fb1, type: 3}
+    - {fileID: 6311652057145066999, guid: 57ffd18a5b19e1043a77da3dee4bf5c1, type: 3}
+    - {fileID: 411771778018470948, guid: ec01e650c380e8448815ae7a620a2afb, type: 3}
+    - {fileID: 3718922737715235402, guid: 483e69fbb5a447b49b25a0dee8c104ce, type: 3}
+    - {fileID: 8571103616550054642, guid: 965d711621c83214aa64a04046179fb3, type: 3}
+    - {fileID: 80733721516463320, guid: 44532c21a7574e64cb9bea74d1932d11, type: 3}
     clusterAsPatch: 0
     countRange: {x: 1, y: 2}
     propsPerClusterRange: {x: 0, y: 0}
-    clusterRadius: 0.25
+    clusterRadius: 0.257
     minDistance: 0.48
     scaleRange: {x: 0.95, y: 1.2}
     maxTiltAngle: 3.5
     customGroundEmbed: 0
     placeAtCenter: 0
-  - groupName: Heather Carpet Colony
+  - groupName: Rock_mid
     prefabs:
-    - {fileID: 8961250465676783812, guid: c737dab75eaa72b489e7f9b13536b29f, type: 3}
+    - {fileID: 5826049076221137504, guid: 4f18d10d8c57b0e498c59781f2788929, type: 3}
+    - {fileID: 1779125429671499157, guid: e1f95dcf66ecd87429d573191ee98316, type: 3}
+    - {fileID: 6950373912922262699, guid: 6ff1610baeccba247a67833984deaff0, type: 3}
+    - {fileID: 3053444723029838247, guid: ee26a242e5390a14b88198fbb02cc83d, type: 3}
+    - {fileID: 8133098876761376007, guid: fc4fa7a352914f944a913241122dc1cc, type: 3}
+    - {fileID: 7915391252190661850, guid: 5d88eb9df70db8540a6d448f2e5518ee, type: 3}
     clusterAsPatch: 1
     countRange: {x: 3, y: 5}
     propsPerClusterRange: {x: 3, y: 4}
@@ -73,9 +70,16 @@ MonoBehaviour:
     maxTiltAngle: 2.5
     customGroundEmbed: 0
     placeAtCenter: 0
-  - groupName: Tussock Wind-Drift
+  - groupName: SmallRoc
     prefabs:
-    - {fileID: 3732195332727685260, guid: b170701159a146a49aca0c3bdb3c3542, type: 3}
+    - {fileID: 5102705552047714100, guid: 66b2f504f1310994383ee9b21a5303b8, type: 3}
+    - {fileID: 4782304152242629978, guid: e37ff046fc150ef40aff067047d24e05, type: 3}
+    - {fileID: 5033465896431840978, guid: da339041e4494424bac740d517f9e01f, type: 3}
+    - {fileID: 4999746641559418713, guid: c47fcf06d84902649b17d93c2452aa0a, type: 3}
+    - {fileID: 625299232957455928, guid: f897a1a883b72174e9f935fb17ec07cc, type: 3}
+    - {fileID: 4056730460321390439, guid: 1ed31c4c9e0e222429a8372f8a9ebc79, type: 3}
+    - {fileID: 1671907066846157528, guid: e49947ff5013e4c40be5438e1a4dd711, type: 3}
+    - {fileID: 3376423747359692416, guid: 127e4cb8c0c0c684f9ec86232569291e, type: 3}
     clusterAsPatch: 1
     countRange: {x: 5, y: 7}
     propsPerClusterRange: {x: 4, y: 6}
@@ -85,5 +89,8 @@ MonoBehaviour:
     maxTiltAngle: 4
     customGroundEmbed: 0.2
     placeAtCenter: 0
+  groundCoverPrefabs: []
+  groundCoverCountRange: {x: 80, y: 120}
+  groundCoverScaleRange: {x: 0.9, y: 1.3}
   allowedTilePrefabs:
   - {fileID: 1548687027083203766, guid: c10000068a144b6289b7996f34397106, type: 3}

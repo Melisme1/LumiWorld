@@ -33,7 +33,7 @@ namespace LumiWorld.Acs
             if (definition.affinity != habitat.affinity || HabitatDataRules.GetIsland(definition.affinity) != habitat.island)
                 return Reject("Resource does not match habitat biome or island.");
             if (GetSlotCount(habitat.HexCount, definition.tier) == 0)
-                return Reject(definition.tier == ResourceTier.Tier2 ? "T2 requires a cluster of 6+ hexes." : "T1 requires a cluster of 3 to 12 hexes.");
+                return Reject(definition.tier == ResourceTier.Tier2 ? "T2 requires a cluster of 6+ hexes." : "T1 requires a cluster of 3 to 10 hexes.");
             if (definition.requirements == null || definition.requirements.Count == 0 ||
                 (definition.tier == ResourceTier.Tier1 && definition.requirements.Count != 1))
                 return Reject("Invalid requirements.");

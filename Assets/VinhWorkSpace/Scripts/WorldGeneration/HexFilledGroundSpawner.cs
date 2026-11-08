@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -420,46 +420,56 @@ public class HexFilledGroundSpawner : MonoBehaviour
     /// <summary>
     /// Tính độ cao đáy chính xác của Mesh taking localRotation & localScale into account,
     /// đảm bảo bụi cỏ tiếp xúc chuẩn xác mặt phẳng Y=0 với độ cắm sâu tùy chỉnh.
+    /// Hỗ trợ hoàn hảo cả prefab 1 cấp lẫn prefab có MeshFilter nằm ở GameObject con.
     /// </summary>
     public static float CalculateExactBottomY(GameObject prefab, float customGroundEmbed)
     {
         if (prefab == null) return 0f;
 
-        MeshFilter mf = prefab.GetComponentInChildren<MeshFilter>();
-        if (mf != null && mf.sharedMesh != null)
+        MeshFilter[] filters = prefab.GetComponentsInChildren<MeshFilter>();
+        if (filters != null && filters.Length > 0)
         {
-            Bounds b = mf.sharedMesh.bounds;
-            Vector3 scaledMin = Vector3.Scale(b.min, prefab.transform.localScale);
-            Vector3 scaledMax = Vector3.Scale(b.max, prefab.transform.localScale);
-            Quaternion rot = prefab.transform.localRotation;
             float minY = float.MaxValue;
+            bool hasMesh = false;
 
-            for (int x = 0; x <= 1; x++)
+            foreach (var mf in filters)
             {
-                for (int y = 0; y <= 1; y++)
+                if (mf == null || mf.sharedMesh == null) continue;
+                hasMesh = true;
+
+                Matrix4x4 fullMat = HexHabitatSpawner.GetMeshToPrefabMatrix(prefab, mf.transform);
+                Bounds b = mf.sharedMesh.bounds;
+
+                for (int x = 0; x <= 1; x++)
                 {
-                    for (int z = 0; z <= 1; z++)
+                    for (int y = 0; y <= 1; y++)
                     {
-                        Vector3 corner = new Vector3(
-                            x == 0 ? scaledMin.x : scaledMax.x,
-                            y == 0 ? scaledMin.y : scaledMax.y,
-                            z == 0 ? scaledMin.z : scaledMax.z
-                        );
-                        float rotY = (rot * corner).y;
-                        if (rotY < minY) minY = rotY;
+                        for (int z = 0; z <= 1; z++)
+                        {
+                            Vector3 corner = new Vector3(
+                                x == 0 ? b.min.x : b.max.x,
+                                y == 0 ? b.min.y : b.max.y,
+                                z == 0 ? b.min.z : b.max.z
+                            );
+                            float rotY = fullMat.MultiplyPoint3x4(corner).y;
+                            if (rotY < minY) minY = rotY;
+                        }
                     }
                 }
             }
 
-            float embed = customGroundEmbed;
-            if (embed <= 0f)
+            if (hasMesh)
             {
-                HexPropConfig propConfig = prefab.GetComponent<HexPropConfig>();
-                if (propConfig == null) propConfig = prefab.GetComponentInChildren<HexPropConfig>();
-                if (propConfig != null) embed = propConfig.GroundEmbed;
-            }
+                float embed = customGroundEmbed;
+                if (embed <= 0f)
+                {
+                    HexPropConfig propConfig = prefab.GetComponent<HexPropConfig>();
+                    if (propConfig == null) propConfig = prefab.GetComponentInChildren<HexPropConfig>();
+                    if (propConfig != null) embed = propConfig.GroundEmbed;
+                }
 
-            return -minY - embed;
+                return -minY - embed;
+            }
         }
 
         return -customGroundEmbed;
