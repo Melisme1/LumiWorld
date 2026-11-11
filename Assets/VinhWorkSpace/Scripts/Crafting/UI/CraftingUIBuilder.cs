@@ -709,40 +709,54 @@ namespace LumiWorld.Economy.Crafting
             Image icon = EconomyHUD.CreateIcon("Icon", slot, rowIcon != null ? rowIcon : EconomyHUD.CircleSprite, 40f, 4f);
             if (rowIcon == null && outRes != null) icon.color = outRes.resourceColor;
 
-            TextMeshProUGUI title = EconomyHUD.CreateText("Title", row, 17f, style.textColor, TextAlignmentOptions.Left);
-            title.rectTransform.anchoredPosition = new Vector2(68f, 10f);
-            title.rectTransform.sizeDelta = new Vector2(300f, 26f);
+            TextMeshProUGUI title = EconomyHUD.CreateText("Title", row, 15.5f, style.textColor, TextAlignmentOptions.Left);
+            title.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+            title.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            title.rectTransform.pivot = new Vector2(0f, 0.5f);
+            title.rectTransform.anchoredPosition = new Vector2(68f, 11f);
+            title.rectTransform.sizeDelta = new Vector2(200f, 24f);
             title.textWrappingMode = TextWrappingModes.NoWrap;
+            title.overflowMode = TextOverflowModes.Ellipsis;
             string qId = recipe != null ? (recipe.outputResource != null ? recipe.outputResource.resourceID : recipe.recipeID) : "";
             string rName = recipe != null ? ResourceInventoryUIPresentation.LocalizeResourceName(qId, recipe.recipeName) : "Crafted Product";
             title.text = $"{rName} <b>x{job.TotalOutputAmount}</b>";
 
-            TextMeshProUGUI status = EconomyHUD.CreateText("Status", row, 14f, style.mutedColor, TextAlignmentOptions.Left);
-            status.rectTransform.anchoredPosition = new Vector2(68f, -14f);
-            status.rectTransform.sizeDelta = new Vector2(300f, 22f);
+            TextMeshProUGUI status = EconomyHUD.CreateText("Status", row, 12.5f, style.mutedColor, TextAlignmentOptions.Left);
+            status.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+            status.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            status.rectTransform.pivot = new Vector2(0f, 0.5f);
+            status.rectTransform.anchoredPosition = new Vector2(68f, -13f);
+            status.rectTransform.sizeDelta = new Vector2(200f, 20f);
             status.textWrappingMode = TextWrappingModes.NoWrap;
             status.overflowMode = TextOverflowModes.Ellipsis;
 
             RectTransform barBg = EconomyHUD.CreateRect("BarBg", row);
-            barBg.anchorMin = new Vector2(0.48f, 0.5f);
-            barBg.anchorMax = new Vector2(0.48f, 0.5f);
+            barBg.anchorMin = new Vector2(0f, 0.5f);
+            barBg.anchorMax = new Vector2(0f, 0.5f);
             barBg.pivot = new Vector2(0f, 0.5f);
-            barBg.sizeDelta = new Vector2(240f, 16f);
-            EconomyHUD.CreatePanel(barBg, style.sectionColor);
+            barBg.anchoredPosition = new Vector2(285f, 0f);
+            barBg.sizeDelta = new Vector2(480f, 16f);
+            Image bgImg = EconomyHUD.CreatePanel(barBg, new Color(0.88f, 0.92f, 0.96f, 1f));
+            bgImg.sprite = EconomyHUD.RoundedSprite;
+            bgImg.type = Image.Type.Sliced;
+            Mask mask = barBg.gameObject.AddComponent<Mask>();
+            mask.showMaskGraphic = true;
 
             RectTransform barFill = EconomyHUD.CreateRect("BarFill", barBg);
             barFill.anchorMin = Vector2.zero;
             barFill.anchorMax = new Vector2(0f, 1f);
             barFill.pivot = new Vector2(0f, 0.5f);
             barFill.sizeDelta = new Vector2(0f, 0f);
-            EconomyHUD.CreatePanel(barFill, style.accentColor);
+            Image fillImg = EconomyHUD.CreatePanel(barFill, style.accentColor);
+            fillImg.sprite = EconomyHUD.RoundedSprite;
+            fillImg.type = Image.Type.Sliced;
 
             RectTransform btnRect = EconomyHUD.CreateRect("ClaimBtn", row);
             btnRect.anchorMin = new Vector2(1f, 0.5f);
             btnRect.anchorMax = new Vector2(1f, 0.5f);
             btnRect.pivot = new Vector2(1f, 0.5f);
-            btnRect.anchoredPosition = new Vector2(-12f, 0f);
-            btnRect.sizeDelta = new Vector2(110f, 38f);
+            btnRect.anchoredPosition = new Vector2(-16f, 0f);
+            btnRect.sizeDelta = new Vector2(96f, 38f);
             Button claimBtn = EconomyHUD.AddButton(btnRect, style.accentColor);
             TextMeshProUGUI claimLbl = EconomyHUD.CreateText("Lbl", btnRect, 15f, Color.white, TextAlignmentOptions.Center);
             EconomyHUD.Stretch(claimLbl.rectTransform);

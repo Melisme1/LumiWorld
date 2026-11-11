@@ -133,6 +133,7 @@ public static class CardShop
         if (key.Contains("ếch hoa") || key.Contains("echhoa") || key.Contains("blossomfrog")) return "Blossom Frog";
         if (key.Contains("cáo cỏ") || key.Contains("caoco") || key.Contains("grassfox")) return "Grass Fox";
         if (key.Contains("cáo đỏ") || key.Contains("cao") || key.Contains("fox")) return "Red Fox";
+        if (key.Contains("cá nóc") || key.Contains("canoc") || key.Contains("puffer")) return "Pufferfish";
         if (key.Contains("vẹt 7 màu") || key.Contains("chimvet") || key.Contains("parrot")) return "Rainbow Parrot";
         if (key.Contains("thiên nga") || key.Contains("thiennga") || key.Contains("swan")) return "Swan";
         if (key.Contains("capybara")) return "Capybara";

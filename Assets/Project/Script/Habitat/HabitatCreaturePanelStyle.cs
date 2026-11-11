@@ -102,7 +102,9 @@ public static class HabitatCreaturePanelStyle
 
         { "reedle", ("Reedle", "Reedle", "thiennga_anm") },
         { "craggle", ("Craggle", "Craggle", "canoc_anm") },
-        { "lotelle", ("Lotelle", "Lotelle", "echduoica_anm") }
+        { "lotelle", ("Lotelle", "Lotelle", "echduoica_anm") },
+        { "braluff", ("Braluff", "Braluff", "Braluff") },
+        { "creature_braluff", ("Braluff", "Braluff", "Braluff") }
     };
 
     public static Sprite PanelBackground
@@ -532,7 +534,7 @@ public static class HabitatCreaturePanelStyle
                     {
                         canonical = fromCardImg.canonicalName;
                     }
-                    else if (!string.IsNullOrEmpty(cImgName))
+                    else if (!string.IsNullOrEmpty(cImgName) && !speciesMap.ContainsKey(clean))
                     {
                         canonical = cImgName;
                     }
@@ -555,21 +557,26 @@ public static class HabitatCreaturePanelStyle
             return cached;
         }
 
-        Texture2D rawTex = Resources.Load<Texture2D>("CreatureAvatars/" + canonicalName);
+        Texture2D rawTex = null;
         string filePath = Path.Combine(Application.dataPath, "AVT_ANM", canonicalName + ".png");
-        if (rawTex != null || File.Exists(filePath))
+        if (File.Exists(filePath))
         {
             try
             {
-                if (rawTex == null || !rawTex.isReadable)
-                {
-                    if (File.Exists(filePath))
-                    {
-                        byte[] bytes = File.ReadAllBytes(filePath);
-                        rawTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                        if (!rawTex.LoadImage(bytes)) rawTex = null;
-                    }
-                }
+                byte[] bytes = File.ReadAllBytes(filePath);
+                rawTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                if (!rawTex.LoadImage(bytes)) rawTex = null;
+            }
+            catch (Exception) { rawTex = null; }
+        }
+        if (rawTex == null)
+        {
+            rawTex = Resources.Load<Texture2D>("CreatureAvatars/" + canonicalName);
+        }
+        if (rawTex != null && rawTex.isReadable)
+        {
+            try
+            {
                 if (rawTex != null)
                 {
                     Texture2D slicedTex = SliceAndCutoutFrame(rawTex, rank, canonicalName);

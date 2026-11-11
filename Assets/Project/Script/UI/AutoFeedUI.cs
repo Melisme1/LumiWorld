@@ -81,6 +81,10 @@ public class AutoFeedUI : MonoBehaviour
     private int modalCurrentAmount = 1;
     private int modalMaxStock = 1;
 
+    // Confirmation Modal
+    private GameObject confirmModalObj;
+    private TextMeshProUGUI confirmModalItemsText;
+
     private static readonly Color ThemeCyan = new Color(0.04f, 0.70f, 0.90f, 1f);
     private static readonly Color ThemeDark = new Color(0.06f, 0.12f, 0.22f, 1f);
     private static readonly Color CardBg = new Color(0.96f, 0.985f, 1f, 0.98f);
@@ -112,6 +116,22 @@ public class AutoFeedUI : MonoBehaviour
         {
             EconomyHUD.RegisterWindow(window, Close);
         }
+        StartCoroutine(AutoFeedRoutine());
+        DistributeFoodToAllCreatures();
+    }
+
+    private System.Collections.IEnumerator AutoFeedRoutine()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(2.5f);
+            DistributeFoodToAllCreatures();
+            if (IsOpen)
+            {
+                RefreshFoodInventory();
+                RefreshDispenserStats();
+            }
+        }
     }
 
     public void Toggle()
@@ -133,6 +153,10 @@ public class AutoFeedUI : MonoBehaviour
 
     public void Close()
     {
+        if (confirmModalObj != null && confirmModalObj.activeSelf)
+        {
+            confirmModalObj.SetActive(false);
+        }
         if (quantityModalObj != null && quantityModalObj.activeSelf)
         {
             quantityModalObj.SetActive(false);
@@ -914,8 +938,8 @@ public class AutoFeedUI : MonoBehaviour
             }
         }
 
-        // Fallback: check CraftingCatalog recipes with category == Food
-        if (currentFoodList.Count == 0 && inventory != null)
+        // Luôn bổ sung các món Food chế tạo từ CraftingCatalog có sẵn trong kho
+        if (inventory != null && CraftingCatalog.All != null)
         {
             foreach (var recipe in CraftingCatalog.All)
             {
@@ -1593,46 +1617,325 @@ public class AutoFeedUI : MonoBehaviour
             return;
         }
 
-        // Transfer food to pantries / dispenser
-        var production = ResourceProductionRuntime.Instance;
-        HabitatRuntimeManager habManager = null;
-        if (production != null && production.HabitatManager != null)
+        OpenConfirmModal(totalAssigned);
+    }
+
+    private void OpenConfirmModal(int totalAssigned)
+    {
+        if (confirmModalObj == null)
         {
-            habManager = production.HabitatManager;
-        }
-        else
-        {
-            HabitatRuntimeManager.TryGetActive(out habManager);
+            BuildConfirmModal();
         }
 
-        if (production != null && production.CareSettings != null && habManager != null && habManager.Habitats != null)
+        if (confirmModalItemsText != null)
         {
-            foreach (var h in habManager.Habitats)
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < 3; i++)
             {
-                if (h == null || h.residents == null) continue;
-                foreach (var resident in h.residents)
+                string fId = AssignedFoodIds[i];
+                if (!string.IsNullOrEmpty(fId))
                 {
-                    if (resident == null) continue;
-                    for (int s = 0; s < 3; s++)
-                    {
-                        string fId = AssignedFoodIds[s];
-                        if (!string.IsNullOrEmpty(fId))
-                        {
-                            // Check if we can deposit to habitat residents
-                            int amt = Mathf.Min(AssignedFoodAmounts[s], 10);
-                            if (amt > 0)
-                            {
-                                production.DepositCreatureFood(h.habitatId, resident.individualId, fId, amt, out _);
-                            }
-                        }
-                    }
+                    string fName = ResourceInventoryUIPresentation.LocalizeResourceName(fId, fId);
+                    int amt = AssignedFoodAmounts[i];
+                    sb.AppendLine($"• <color=#0284c7><b>{fName}</b></color> (Qty: <b>{amt:N0}</b>)");
+                }
+            }
+            confirmModalItemsText.text = sb.ToString().TrimEnd();
+        }
+
+        confirmModalObj.SetActive(true);
+        confirmModalObj.transform.SetAsLastSibling();
+        GameAudioManager.Instance?.PlayClick();
+    }
+
+    private void CloseConfirmModal()
+    {
+        if (confirmModalObj != null && confirmModalObj.activeSelf)
+        {
+            confirmModalObj.SetActive(false);
+            GameAudioManager.Instance?.PlayClick();
+        }
+    }
+
+    private void ExecuteStartAutoFeed(int totalAssigned)
+    {
+        CloseConfirmModal();
+        SaveSlots();
+        DistributeFoodToAllCreatures();
+        RefreshFoodInventory();
+        RefreshDispenserStats();
+        ShowFeedback($"✓ Auto-Feed Activated! Dispenser loaded with {totalAssigned} food item(s).", new Color(0.10f, 0.88f, 0.45f, 1f));
+    }
+
+    private void BuildConfirmModal()
+    {
+        if (panel == null) return;
+
+        confirmModalObj = new GameObject("ConfirmModalOverlay", typeof(RectTransform), typeof(Image));
+        confirmModalObj.transform.SetParent(panel, false);
+        var cRect = confirmModalObj.GetComponent<RectTransform>();
+        cRect.anchorMin = Vector2.zero; cRect.anchorMax = Vector2.one;
+        cRect.offsetMin = Vector2.zero; cRect.offsetMax = Vector2.zero;
+        var cImg = confirmModalObj.GetComponent<Image>();
+        cImg.color = new Color(0f, 0f, 0f, 0.6f);
+
+        var cardObj = new GameObject("ConfirmCard", typeof(RectTransform), typeof(Image));
+        cardObj.transform.SetParent(confirmModalObj.transform, false);
+        var cdRect = cardObj.GetComponent<RectTransform>();
+        cdRect.anchorMin = cdRect.anchorMax = new Vector2(0.5f, 0.5f);
+        cdRect.pivot = new Vector2(0.5f, 0.5f);
+        cdRect.sizeDelta = new Vector2(400f, 270f);
+
+        var cdImg = cardObj.GetComponent<Image>();
+        cdImg.sprite = GetCardBoxSprite();
+        cdImg.type = Image.Type.Sliced;
+        cdImg.color = Color.white;
+        EconomyHUD.AddBlueBorder(cdRect, new Color(0.04f, 0.70f, 0.90f, 0.85f));
+
+        // Header Title
+        var tObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
+        tObj.transform.SetParent(cardObj.transform, false);
+        var tRect = tObj.GetComponent<RectTransform>();
+        tRect.anchorMin = tRect.anchorMax = new Vector2(0.5f, 1f);
+        tRect.pivot = new Vector2(0.5f, 1f);
+        tRect.anchoredPosition = new Vector2(0f, -16f);
+        tRect.sizeDelta = new Vector2(360f, 26f);
+        var tTxt = tObj.GetComponent<TextMeshProUGUI>();
+        tTxt.font = durationText.font;
+        tTxt.text = "CONFIRM AUTO-FEEDING";
+        tTxt.fontSize = 15f;
+        tTxt.fontStyle = FontStyles.Bold;
+        tTxt.color = ThemeDark;
+        tTxt.alignment = TextAlignmentOptions.Center;
+
+        // Close X button
+        var closeObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        closeObj.transform.SetParent(cardObj.transform, false);
+        var clRect = closeObj.GetComponent<RectTransform>();
+        clRect.anchorMin = clRect.anchorMax = new Vector2(1f, 1f);
+        clRect.pivot = new Vector2(1f, 1f);
+        clRect.anchoredPosition = new Vector2(-10f, -10f);
+        clRect.sizeDelta = new Vector2(26f, 26f);
+        var clImg = closeObj.GetComponent<Image>();
+        clImg.sprite = GetCardBoxSprite();
+        clImg.type = Image.Type.Sliced;
+        clImg.color = new Color(0.92f, 0.95f, 0.98f, 1f);
+        var clTxtObj = new GameObject("X", typeof(RectTransform), typeof(TextMeshProUGUI));
+        clTxtObj.transform.SetParent(closeObj.transform, false);
+        var cltRect = clTxtObj.GetComponent<RectTransform>();
+        cltRect.anchorMin = Vector2.zero; cltRect.anchorMax = Vector2.one;
+        cltRect.offsetMin = Vector2.zero; cltRect.offsetMax = Vector2.zero;
+        var clTxt = clTxtObj.GetComponent<TextMeshProUGUI>();
+        clTxt.font = durationText.font;
+        clTxt.text = "X";
+        clTxt.fontSize = 14f;
+        clTxt.fontStyle = FontStyles.Bold;
+        clTxt.color = SubTextCol;
+        clTxt.alignment = TextAlignmentOptions.Center;
+        var clBtn = closeObj.GetComponent<Button>();
+        clBtn.targetGraphic = clImg;
+        clBtn.onClick.AddListener(CloseConfirmModal);
+
+        // Subtitle description
+        var descObj = new GameObject("Desc", typeof(RectTransform), typeof(TextMeshProUGUI));
+        descObj.transform.SetParent(cardObj.transform, false);
+        var dRect = descObj.GetComponent<RectTransform>();
+        dRect.anchorMin = dRect.anchorMax = new Vector2(0.5f, 1f);
+        dRect.pivot = new Vector2(0.5f, 1f);
+        dRect.anchoredPosition = new Vector2(0f, -48f);
+        dRect.sizeDelta = new Vector2(350f, 42f);
+        var dTxt = descObj.GetComponent<TextMeshProUGUI>();
+        dTxt.font = durationText.font;
+        dTxt.text = "Activate automated continuous feeding with selected foods?\nCreatures in your habitats will be fed automatically to maintain full stamina.";
+        dTxt.fontSize = 11.5f;
+        dTxt.color = SubTextCol;
+        dTxt.alignment = TextAlignmentOptions.Center;
+
+        // Selected items box
+        var boxObj = new GameObject("ItemsBox", typeof(RectTransform), typeof(Image));
+        boxObj.transform.SetParent(cardObj.transform, false);
+        var bRect = boxObj.GetComponent<RectTransform>();
+        bRect.anchorMin = bRect.anchorMax = new Vector2(0.5f, 1f);
+        bRect.pivot = new Vector2(0.5f, 1f);
+        bRect.anchoredPosition = new Vector2(0f, -96f);
+        bRect.sizeDelta = new Vector2(350f, 85f);
+        var bImg = boxObj.GetComponent<Image>();
+        bImg.sprite = GetCardBoxSprite();
+        bImg.type = Image.Type.Sliced;
+        bImg.color = new Color(0.95f, 0.97f, 1f, 1f);
+
+        var itmTxtObj = new GameObject("ItemsText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        itmTxtObj.transform.SetParent(boxObj.transform, false);
+        var itRect = itmTxtObj.GetComponent<RectTransform>();
+        itRect.anchorMin = Vector2.zero; itRect.anchorMax = Vector2.one;
+        itRect.offsetMin = new Vector2(14f, 8f); itRect.offsetMax = new Vector2(-14f, -8f);
+        confirmModalItemsText = itmTxtObj.GetComponent<TextMeshProUGUI>();
+        confirmModalItemsText.font = durationText.font;
+        confirmModalItemsText.fontSize = 12f;
+        confirmModalItemsText.color = ThemeDark;
+        confirmModalItemsText.alignment = TextAlignmentOptions.MidlineLeft;
+
+        // Action Buttons: Cancel (left) & Start (right) (y = -205f)
+        var cancelObj = new GameObject("CancelBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        cancelObj.transform.SetParent(cardObj.transform, false);
+        var cbRect = cancelObj.GetComponent<RectTransform>();
+        cbRect.anchorMin = cbRect.anchorMax = new Vector2(0.5f, 1f);
+        cbRect.pivot = new Vector2(0.5f, 1f);
+        cbRect.anchoredPosition = new Vector2(-80f, -205f);
+        cbRect.sizeDelta = new Vector2(120f, 38f);
+        var cbImg = cancelObj.GetComponent<Image>();
+        cbImg.sprite = GetButtonSecondarySprite();
+        cbImg.type = Image.Type.Sliced;
+        cbImg.color = Color.white;
+        var cbtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+        cbtObj.transform.SetParent(cancelObj.transform, false);
+        var cbtRect = cbtObj.GetComponent<RectTransform>();
+        cbtRect.anchorMin = Vector2.zero; cbtRect.anchorMax = Vector2.one;
+        cbtRect.offsetMin = Vector2.zero; cbtRect.offsetMax = Vector2.zero;
+        var cbt = cbtObj.GetComponent<TextMeshProUGUI>();
+        cbt.font = durationText.font;
+        cbt.text = "Cancel";
+        cbt.fontSize = 13f;
+        cbt.fontStyle = FontStyles.Bold;
+        cbt.color = SubTextCol;
+        cbt.alignment = TextAlignmentOptions.Center;
+        var cbBtn = cancelObj.GetComponent<Button>();
+        cbBtn.targetGraphic = cbImg;
+        cbBtn.onClick.AddListener(CloseConfirmModal);
+
+        var startObj = new GameObject("StartBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        startObj.transform.SetParent(cardObj.transform, false);
+        var sbRect = startObj.GetComponent<RectTransform>();
+        sbRect.anchorMin = sbRect.anchorMax = new Vector2(0.5f, 1f);
+        sbRect.pivot = new Vector2(0.5f, 1f);
+        sbRect.anchoredPosition = new Vector2(80f, -205f);
+        sbRect.sizeDelta = new Vector2(150f, 38f);
+        var sbImg = startObj.GetComponent<Image>();
+        sbImg.sprite = GetButtonPrimarySprite();
+        sbImg.type = Image.Type.Sliced;
+        sbImg.color = Color.white;
+        var sbtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+        sbtObj.transform.SetParent(startObj.transform, false);
+        var sbtRect = sbtObj.GetComponent<RectTransform>();
+        sbtRect.anchorMin = Vector2.zero; sbtRect.anchorMax = Vector2.one;
+        sbtRect.offsetMin = Vector2.zero; sbtRect.offsetMax = Vector2.zero;
+        var sbt = sbtObj.GetComponent<TextMeshProUGUI>();
+        sbt.font = durationText.font;
+        sbt.text = "Confirm & Start";
+        sbt.fontSize = 13f;
+        sbt.fontStyle = FontStyles.Bold;
+        sbt.color = Color.white;
+        sbt.alignment = TextAlignmentOptions.Center;
+        var sbBtn = startObj.GetComponent<Button>();
+        sbBtn.targetGraphic = sbImg;
+        sbBtn.onClick.AddListener(() =>
+        {
+            int total = 0;
+            for (int i = 0; i < 3; i++) if (!string.IsNullOrEmpty(AssignedFoodIds[i])) total++;
+            ExecuteStartAutoFeed(total);
+        });
+    }
+
+    public void DistributeFoodToAllCreatures()
+    {
+        var production = ResourceProductionRuntime.Instance;
+        if (production == null || production.Inventory == null) return;
+
+        HabitatRuntimeManager habManager = production.HabitatManager;
+        if (habManager == null) HabitatRuntimeManager.TryGetActive(out habManager);
+        if (habManager == null || habManager.Habitats == null) return;
+
+        bool anyDeposited = false;
+        foreach (var h in habManager.Habitats)
+        {
+            if (h == null || h.residents == null) continue;
+            foreach (var resident in h.residents)
+            {
+                if (resident == null) continue;
+                if (DistributeFoodToResident(h, resident))
+                {
+                    anyDeposited = true;
                 }
             }
         }
 
-        SaveSlots();
-        RefreshDispenserStats();
-        ShowFeedback($"✓ Auto-Feed Active! Dispenser loaded with {totalAssigned} food item(s).", new Color(0.10f, 0.88f, 0.45f, 1f));
+        if (anyDeposited)
+        {
+            production.SettleNow();
+        }
+    }
+
+    public bool DistributeFoodToResident(HabitatState h, HabitatResident resident)
+    {
+        if (h == null || resident == null) return false;
+        var production = ResourceProductionRuntime.Instance;
+        if (production == null || production.Inventory == null) return false;
+
+        var stocks = production.GetCreatureFoodStocks(resident.individualId);
+        long currentPantryTotal = 0;
+        if (stocks != null)
+        {
+            foreach (var s in stocks) if (s != null) currentPantryTotal += s.Amount;
+        }
+
+        // Nếu ngăn đã có >= 20 đơn vị thức ăn thì chưa cần bơm thêm
+        if (currentPantryTotal >= 20) return false;
+
+        bool depositedAny = false;
+        for (int i = 0; i < 3; i++)
+        {
+            string fId = AssignedFoodIds[i];
+            if (string.IsNullOrEmpty(fId)) continue;
+
+            int availableWarehouse = production.Inventory.GetAmount(fId);
+            if (availableWarehouse <= 0)
+            {
+                // Thức ăn trong kho đã hết: tự động làm trống ô slot và thông báo ngay
+                string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(fId, fId);
+                AssignedFoodIds[i] = string.Empty;
+                AssignedFoodAmounts[i] = 0;
+                SaveSlots();
+
+                ShowFeedback($"⚠️ Notice: {foodName} is depleted and removed from slot {i + 1}!", new Color(0.95f, 0.45f, 0.20f, 1f));
+                if (IsOpen)
+                {
+                    RefreshFoodInventory();
+                    RefreshDispenserStats();
+                }
+                continue;
+            }
+
+            int targetAdd = (int)Mathf.Min(availableWarehouse, 20 - currentPantryTotal);
+            if (targetAdd > 0)
+            {
+                if (production.DepositCreatureFood(h.habitatId, resident.individualId, fId, targetAdd, out _))
+                {
+                    currentPantryTotal += targetAdd;
+                    depositedAny = true;
+
+                    // Kiểm tra nếu sau khi nạp mà kho vừa hết sạch món này
+                    int remainingWarehouse = production.Inventory.GetAmount(fId);
+                    if (remainingWarehouse <= 0)
+                    {
+                        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(fId, fId);
+                        AssignedFoodIds[i] = string.Empty;
+                        AssignedFoodAmounts[i] = 0;
+                        SaveSlots();
+
+                        ShowFeedback($"⚠️ Notice: {foodName} has run out and was removed from slot {i + 1}!", new Color(0.95f, 0.45f, 0.20f, 1f));
+                        if (IsOpen)
+                        {
+                            RefreshFoodInventory();
+                            RefreshDispenserStats();
+                        }
+                    }
+
+                    if (currentPantryTotal >= 20) break;
+                }
+            }
+        }
+
+        return depositedAny;
     }
 
     private void UpdateBorders()
@@ -1651,17 +1954,31 @@ public class AutoFeedUI : MonoBehaviour
         int totalFoodUnits = 0;
         double totalSatiety = 0;
 
+        var production = ResourceProductionRuntime.Instance;
+        var inventory = production != null ? production.Inventory : null;
+
         for (int i = 0; i < 3; i++)
         {
             var view = slotViews[i];
             if (view == null) continue;
 
             string foodId = AssignedFoodIds[i];
+
+            // Nếu món ăn đã hết trong kho (stock <= 0) hoặc thú đã ăn hết: tự động làm trống ô slot để người chơi đặt món mới
+            int stock = (!string.IsNullOrEmpty(foodId) && inventory != null) ? inventory.GetAmount(foodId) : 0;
+            if (!string.IsNullOrEmpty(foodId) && stock <= 0)
+            {
+                AssignedFoodIds[i] = string.Empty;
+                AssignedFoodAmounts[i] = 0;
+                foodId = string.Empty;
+                SaveSlots();
+            }
+
             int amount = AssignedFoodAmounts[i];
 
             if (string.IsNullOrEmpty(foodId))
             {
-                // Empty slot
+                // Empty slot: ô hoàn toàn trống
                 view.emptyPlaceholder.SetActive(true);
                 view.occupiedContainer.SetActive(false);
                 view.removeButton.gameObject.SetActive(false);
@@ -1672,7 +1989,7 @@ public class AutoFeedUI : MonoBehaviour
             }
             else
             {
-                // Occupied slot
+                // Occupied slot: ô có thức ăn hợp lệ
                 view.emptyPlaceholder.SetActive(false);
                 view.occupiedContainer.SetActive(true);
                 view.removeButton.gameObject.SetActive(true);
@@ -1682,11 +1999,8 @@ public class AutoFeedUI : MonoBehaviour
                 Sprite icon = item != null ? item.icon : null;
                 string dispName = item != null ? item.name : foodId;
 
-                if (item != null && item.stock > 0)
-                {
-                    amount = Mathf.Clamp(amount, 1, item.stock);
-                    AssignedFoodAmounts[i] = amount;
-                }
+                amount = Mathf.Clamp(amount, 1, stock);
+                AssignedFoodAmounts[i] = amount;
 
                 view.iconImage.sprite = icon;
                 view.iconImage.gameObject.SetActive(icon != null);

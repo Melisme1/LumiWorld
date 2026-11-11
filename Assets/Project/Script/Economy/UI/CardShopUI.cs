@@ -506,9 +506,26 @@ public class CardShopUI : MonoBehaviour
         Place(artRect, new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(ArtWidth, ArtHeight));
         Image art = artRect.gameObject.AddComponent<Image>();
         art.raycastTarget = false;
-        if (card.cardImage != null)
+        Sprite spr = card.cardImage;
+        if (spr == null)
         {
-            art.sprite = card.cardImage;
+            string id = (card.cardID ?? "").ToLowerInvariant();
+            string cname = (card.cardName ?? "").ToLowerInvariant();
+            string combined = id + " " + cname + " " + (card.name ?? "").ToLowerInvariant();
+
+            if (combined.Contains("cow") || combined.Contains("bo"))
+                spr = Resources.Load<Sprite>("CreatureAvatars/18_Cow") ?? Resources.Load<Sprite>("CreatureAvatars/Cow");
+            else if (combined.Contains("fox") || combined.Contains("cao"))
+                spr = Resources.Load<Sprite>("CreatureAvatars/19_Fox") ?? Resources.Load<Sprite>("CreatureAvatars/Fox");
+            else if (combined.Contains("canoc") || combined.Contains("puffer") || combined.Contains("cá nóc") || combined.Contains("ca noc"))
+                spr = Resources.Load<Sprite>("CreatureAvatars/20_Pufferfish") ?? Resources.Load<Sprite>("CreatureAvatars/Pufferfish");
+            else if (combined.Contains("braluff"))
+                spr = Resources.Load<Sprite>("CreatureAvatars/17_Braluff") ?? Resources.Load<Sprite>("CreatureAvatars/Braluff");
+        }
+
+        if (spr != null)
+        {
+            art.sprite = spr;
             art.preserveAspect = true;
         }
         else
