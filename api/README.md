@@ -62,6 +62,7 @@ Project Settings > Player > Other Settings > Allow downloads over HTTP, chọn
 | GET /api/v1/admin/config, PUT /api/v1/admin/config | Admin xem và đổi tham số game_config |
 | GET /api/v1/admin/stats | Admin xem số liệu người chơi, chợ, lượt thăm |
 | GET /api/v1/admin/stats/daily?from=&to= | Admin xem số liệu theo từng ngày (giờ Việt Nam, đọc view report_* của migration 009) |
+| GET /admin | Trang quản trị (wwwroot/admin, HTML/JS tĩnh): đăng nhập bằng tài khoản admin; Overview, Players, Settings |
 | GET /api/v1/admin/players, POST /api/v1/admin/players/{id}/suspend, /unsuspend, /role | Admin tìm, khóa, mở khóa, đổi quyền người chơi |
 
 Lỗi luôn là `application/problem+json` có trường `code` (ví dụ `USERNAME_TAKEN`, `SAVE_CONFLICT`).

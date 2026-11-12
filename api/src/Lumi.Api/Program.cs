@@ -125,6 +125,36 @@ app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseSerilogRequestLogging();
+
+// --- Trang quản trị tĩnh /admin (wwwroot/admin) ---
+// Chỉ là vỏ HTML/JS: không có dữ liệu, mọi số liệu lấy qua /api/v1/admin/* bằng token admin.
+// Chặn nhúng trang vào web khác, chỉ cho chạy script và gọi API cùng nguồn, luôn tải bản mới.
+// Route "/admin" của endpoint cũng khớp "/admin/" (gây chuyển hướng vòng), nên so đúng đường dẫn ở đây
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.Value == "/admin")
+    {
+        context.Response.Redirect("/admin/");
+        return;
+    }
+    await next();
+});
+app.UseDefaultFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        var headers = context.Context.Response.Headers;
+        headers.CacheControl = "no-cache";
+        headers.XContentTypeOptions = "nosniff";
+        headers.XFrameOptions = "DENY";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers.ContentSecurityPolicy =
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; " +
+            "frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+    }
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();

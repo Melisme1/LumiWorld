@@ -1,0 +1,192 @@
+:root {
+  --bg: #f4f6f9;
+  --card: #ffffff;
+  --text: #17202c;
+  --muted: #5d6b7c;
+  --line: #dde3ea;
+  --accent: #2563c9;
+  --accent-text: #ffffff;
+  --danger: #b4372b;
+  --ok: #24804a;
+  --bar: #3b7ddd;
+  --chip: #eef2f7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11161d;
+    --card: #1a212b;
+    --text: #e4e9ef;
+    --muted: #93a1b2;
+    --line: #2c3643;
+    --accent: #5b93ec;
+    --accent-text: #0d1117;
+    --danger: #e0695c;
+    --ok: #5cc28a;
+    --bar: #5b93ec;
+    --chip: #242d39;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+[hidden] { display: none !important; }
+
+h1, h2, h3 { margin: 0; font-weight: 600; }
+h1 { font-size: 22px; }
+h2 { font-size: 20px; }
+h3 { font-size: 15px; margin-bottom: 12px; }
+
+.muted { color: var(--muted); }
+.error { color: var(--danger); min-height: 1.4em; margin: 0; }
+.ok { color: var(--ok); }
+
+input, button, select {
+  font: inherit;
+  color: inherit;
+}
+
+input[type="search"], input:not([type]), input[type="password"], input[type="text"] {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  min-width: 0;
+}
+
+button {
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+button.danger { color: var(--danger); }
+button.link { background: none; border: none; color: var(--accent); padding: 0; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* Đăng nhập */
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login-card { width: 100%; max-width: 360px; display: grid; gap: 12px; }
+.login-card label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.login-card input { color: var(--text); }
+
+/* Khung chính */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 10px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 700; }
+.tabs { display: flex; gap: 4px; }
+.tabs a {
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.tabs a.active { background: var(--chip); color: var(--text); font-weight: 600; }
+.who { margin-left: auto; color: var(--muted); font-size: 14px; }
+
+.tab { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.segmented button { border: none; border-radius: 0; background: var(--card); }
+.segmented button + button { border-left: 1px solid var(--line); }
+.segmented button.active { background: var(--accent); color: var(--accent-text); }
+
+.inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.check { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+
+/* Ô số */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.tile {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 4px;
+}
+.tile-label { color: var(--muted); font-size: 13px; }
+.tile-value { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile-sub { color: var(--muted); font-size: 13px; }
+
+/* Biểu đồ */
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: 220px; }
+.chart .bar { fill: var(--bar); }
+.chart .bar:hover { opacity: 0.8; }
+.chart .axis { stroke: var(--line); }
+.chart text { fill: var(--muted); font-size: 11px; }
+
+/* Bảng */
+.table-wrap { overflow-x: auto; }
+table.data { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.data th, table.data td {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+table.data th { color: var(--muted); font-weight: 600; font-size: 13px; }
+table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data td.actions { text-align: right; }
+table.data td.actions button + button { margin-left: 6px; }
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  font-size: 12px;
+}
+.badge.admin { color: var(--accent); }
+.badge.suspended { color: var(--danger); }
+
+.pager { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+
+/* Tham số */
+.config-group h3 { text-transform: capitalize; }
+.config-row td:nth-child(2) { width: 220px; }
+.config-row input { width: 100%; }
+.config-row .msg { font-size: 13px; }
+
+@media (max-width: 640px) {
+  .topbar, .tab { padding-left: 16px; padding-right: 16px; }
+  .who { margin-left: 0; }
+}

@@ -61,12 +61,12 @@ public sealed class ObstacleTests(LumiApiFactory factory)
         var sender = await factory.CreateClient().RegisterAsync();
         string key = Key();
 
-        var first = await SendAsync(factory.As(sender), owner.PlayerId, new { kind = "Drought", q = 3, r = 0 }, key);
+        var first = await SendAsync(factory.As(sender), owner.PlayerId, new { kind = "Cyclone", q = 3, r = 0 }, key);
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         string obstacleId = (await first.JsonAsync()).GetProperty("obstacleId").GetString()!;
 
         // Mất mạng rồi gửi lại cùng khóa: trả đúng kết quả cũ, không thêm mục thứ hai
-        var again = await SendAsync(factory.As(sender), owner.PlayerId, new { kind = "Drought", q = 3, r = 0 }, key);
+        var again = await SendAsync(factory.As(sender), owner.PlayerId, new { kind = "Cyclone", q = 3, r = 0 }, key);
         Assert.Equal(HttpStatusCode.Created, again.StatusCode);
         Assert.Equal(obstacleId, (await again.JsonAsync()).GetProperty("obstacleId").GetString());
 
@@ -74,7 +74,7 @@ public sealed class ObstacleTests(LumiApiFactory factory)
         Assert.Single(items);
         var payload = JsonDocument.Parse(items[0].GetProperty("payload").GetString()!).RootElement;
         Assert.Equal(obstacleId, payload.GetProperty("obstacleId").GetString());
-        Assert.Equal("Drought", payload.GetProperty("kind").GetString());
+        Assert.Equal("Cyclone", payload.GetProperty("kind").GetString());
         Assert.Equal(sender.PlayerId, payload.GetProperty("senderId").GetString());
     }
 
@@ -85,20 +85,27 @@ public sealed class ObstacleTests(LumiApiFactory factory)
         var sender = await factory.CreateClient().RegisterAsync();
         var client = factory.As(sender);
 
-        var noKey = await SendAsync(client, owner.PlayerId, new { kind = "Obstacle", q = 1, r = 0 }, null);
+        var noKey = await SendAsync(client, owner.PlayerId, new { kind = "ForestFire", q = 1, r = 0 }, null);
         Assert.Equal("IDEMPOTENCY_KEY_MISSING", await noKey.CodeAsync());
 
         var kind = await SendAsync(client, owner.PlayerId, new { kind = "Meteor", q = 1, r = 0 }, Key());
         Assert.Equal(HttpStatusCode.BadRequest, kind.StatusCode);
         Assert.Equal("OBSTACLE_KIND_NOT_ALLOWED", await kind.CodeAsync());
 
-        var tile = await SendAsync(client, owner.PlayerId, new { kind = "Obstacle", q = 99, r = 99 }, Key());
+        // Từ migration 010 chỉ còn ForestFire và Cyclone
+        foreach (string removed in new[] { "Obstacle", "Drought" })
+        {
+            var old = await SendAsync(client, owner.PlayerId, new { kind = removed, q = 1, r = 0 }, Key());
+            Assert.Equal("OBSTACLE_KIND_NOT_ALLOWED", await old.CodeAsync());
+        }
+
+        var tile = await SendAsync(client, owner.PlayerId, new { kind = "ForestFire", q = 99, r = 99 }, Key());
         Assert.Equal("OBSTACLE_TILE_NOT_FOUND", await tile.CodeAsync());
 
-        var own = await SendAsync(factory.As(owner), owner.PlayerId, new { kind = "Obstacle", q = 1, r = 0 }, Key());
+        var own = await SendAsync(factory.As(owner), owner.PlayerId, new { kind = "ForestFire", q = 1, r = 0 }, Key());
         Assert.Equal("OBSTACLE_OWN_WORLD", await own.CodeAsync());
 
-        var missing = await SendAsync(client, Guid.NewGuid().ToString(), new { kind = "Obstacle", q = 1, r = 0 }, Key());
+        var missing = await SendAsync(client, Guid.NewGuid().ToString(), new { kind = "ForestFire", q = 1, r = 0 }, Key());
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
         Assert.Equal("WORLD_NOT_FOUND", await missing.CodeAsync());
     }
@@ -112,7 +119,7 @@ public sealed class ObstacleTests(LumiApiFactory factory)
         Assert.Equal(HttpStatusCode.OK, published.StatusCode);
 
         var sender = await factory.CreateClient().RegisterAsync();
-        var refused = await SendAsync(factory.As(sender), fresh.PlayerId, new { kind = "Obstacle", q = 1, r = 0 }, Key());
+        var refused = await SendAsync(factory.As(sender), fresh.PlayerId, new { kind = "ForestFire", q = 1, r = 0 }, Key());
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
         Assert.Equal("OBSTACLE_PROTECTED", await refused.CodeAsync());
     }
@@ -127,19 +134,19 @@ public sealed class ObstacleTests(LumiApiFactory factory)
 
         // Hai obstacle tới A: đủ giới hạn chờ (2)
         Assert.Equal(HttpStatusCode.Created,
-            (await SendAsync(client, targetA.PlayerId, new { kind = "Obstacle", q = 1, r = 0 }, Key())).StatusCode);
+            (await SendAsync(client, targetA.PlayerId, new { kind = "ForestFire", q = 1, r = 0 }, Key())).StatusCode);
         Assert.Equal(HttpStatusCode.Created,
-            (await SendAsync(client, targetA.PlayerId, new { kind = "Drought", q = 2, r = 0 }, Key())).StatusCode);
+            (await SendAsync(client, targetA.PlayerId, new { kind = "Cyclone", q = 2, r = 0 }, Key())).StatusCode);
 
         // Obstacle thứ ba tới A: A còn hai obstacle chưa nhận
-        var pending = await SendAsync(client, targetA.PlayerId, new { kind = "Obstacle", q = 3, r = 0 }, Key());
+        var pending = await SendAsync(client, targetA.PlayerId, new { kind = "ForestFire", q = 3, r = 0 }, Key());
         Assert.Equal("OBSTACLE_PENDING_LIMIT", await pending.CodeAsync());
 
         // Người gửi đã dùng hai lượt trong ngày, còn một: gửi tới B được, lượt sau thì hết
         Assert.Equal(HttpStatusCode.Created,
-            (await SendAsync(client, targetB.PlayerId, new { kind = "Obstacle", q = 4, r = 0 }, Key())).StatusCode);
+            (await SendAsync(client, targetB.PlayerId, new { kind = "ForestFire", q = 4, r = 0 }, Key())).StatusCode);
 
-        var daily = await SendAsync(client, targetB.PlayerId, new { kind = "Obstacle", q = 5, r = 0 }, Key());
+        var daily = await SendAsync(client, targetB.PlayerId, new { kind = "ForestFire", q = 5, r = 0 }, Key());
         Assert.Equal("OBSTACLE_DAILY_LIMIT", await daily.CodeAsync());
     }
 }

@@ -19,7 +19,7 @@ public sealed record GameConfig
     public int TradeOfferHours { get; init; } = 72;
     public int TradeMaxPendingOutgoing { get; init; } = 5;
     public int TradeMaxCardsPerSide { get; init; } = 10;
-    public string[] ObstacleAllowedKinds { get; init; } = ["Obstacle", "Drought"];
+    public string[] ObstacleAllowedKinds { get; init; } = ["ForestFire", "Cyclone"];
     public int ObstacleFeeCoins { get; init; } = 20;
     public int ObstacleDailyLimit { get; init; } = 3;
     public int ObstacleMaxPendingPerWorld { get; init; } = 2;
