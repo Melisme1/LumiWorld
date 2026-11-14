@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
+  m_Name: Rain
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardID: Rain
+  cardName: Rain
+  cardImage: {fileID: 21300000, guid: 7a2301fd1d54416db1820d3010861795, type: 3}
+  cardType: 3
+  baseScore: 1
+  alwaysBaseScore: 1
+  shopPrice: 30
+  placementFee: 5
+  prefabToPlace: {fileID: 919132149155446097, guid: 0f6475f7f2a817f429a31a04d5bc5d3a, type: 3}
+  useEffectPrefab: {fileID: 5179857454117101156, guid: 666d43f9f3a0fde4ead3cc5e227ee31d, type: 3}
+  useEffectOffset: {x: 0, y: 2, z: 0}
+  useEffectScale: 0.2
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 1
+  clearPropsOnTransform: 1
+  occupiesTile: 0
+  animalSpeciesData: {fileID: 0}
+  producedResource: {fileID: 0}
+  landResourceBonus: 0
+  biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
+  transformRules:
+  - aridTilePrefab: {fileID: 6631663884789134560, guid: c10000018a144b6289b7996f34397101, type: 3}
+    lushTilePrefab: {fileID: 8492549821474773207, guid: c10000028a144b6289b7996f34397102, type: 3}
+  - aridTilePrefab: {fileID: 3253958818025765182, guid: c10000038a144b6289b7996f34397103, type: 3}
+    lushTilePrefab: {fileID: 846643552139226012, guid: c10000048a144b6289b7996f34397104, type: 3}
+  - aridTilePrefab: {fileID: 5258101239339502816, guid: c10000058a144b6289b7996f34397105, type: 3}
+    lushTilePrefab: {fileID: 1548687027083203766, guid: c10000068a144b6289b7996f34397106, type: 3}
+  habitatSpawnMargin: 0.8
+  habitatProps: []
+  allowedTilePrefabs:
+  - {fileID: 6631663884789134560, guid: c10000018a144b6289b7996f34397101, type: 3}
+  - {fileID: 3253958818025765182, guid: c10000038a144b6289b7996f34397103, type: 3}
+  - {fileID: 5258101239339502816, guid: c10000058a144b6289b7996f34397105, type: 3}

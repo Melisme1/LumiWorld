@@ -182,6 +182,10 @@ public class HexSinglePlacementController : MonoBehaviour
         SetupModularComponents();
         SyncSettingsToSubComponents();
 
+        if (cardData != null && (string.Equals(cardData.cardID, "creature_braluff", System.StringComparison.OrdinalIgnoreCase) || string.Equals(cardData.cardName, "Braluff", System.StringComparison.OrdinalIgnoreCase)))
+        {
+            BreedingManager.EnsureBraluffCardConfigured(cardData);
+        }
         currentCardData = cardData;
         isPreviewing = true;
         isHoveringValidTile = false;
@@ -316,6 +320,11 @@ public class HexSinglePlacementController : MonoBehaviour
         {
             CancelPreview();
             return false;
+        }
+
+        if (cardData != null && (string.Equals(cardData.cardID, "creature_braluff", System.StringComparison.OrdinalIgnoreCase) || string.Equals(cardData.cardName, "Braluff", System.StringComparison.OrdinalIgnoreCase)))
+        {
+            BreedingManager.EnsureBraluffCardConfigured(cardData);
         }
 
         if (!validator.ValidatePlacement(currentHoverHex, worldGenerator, cardData, out GameObject targetTileObj))
@@ -481,6 +490,33 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
 
                 // Khởi tạo thông số cá thể cho động vật (Rank 1★-5★, Trait, Tốc độ, Tài nguyên)
+                if (cardData.cardType == CardType.Creature || cardData.animalSpeciesData != null)
+                {
+                    if (placedObject.GetComponent<AnimalMovementAI>() == null)
+                    {
+                        var rends = placedObject.GetComponentsInChildren<Renderer>(true);
+                        if (rends != null && rends.Length > 0)
+                        {
+                            Bounds b = rends[0].bounds;
+                            for (int ri = 1; ri < rends.Length; ri++) b.Encapsulate(rends[ri].bounds);
+                            float maxD = Mathf.Max(b.size.x, b.size.y, b.size.z);
+                            if (maxD > 0.85f) placedObject.transform.localScale *= (0.65f / maxD);
+                        }
+                        var moveAI = placedObject.AddComponent<AnimalMovementAI>(); moveAI.SetYOffset(0f, true); if (placedObject.GetComponent<FarmAnimalAI>() == null) placedObject.AddComponent<FarmAnimalAI>();
+                        moveAI.SetYOffset(0f, true);
+                        
+                        
+                        
+                        if (placedObject.GetComponent<AnimalVisualEnhancer>() == null) placedObject.AddComponent<AnimalVisualEnhancer>();
+                        var anim = placedObject.GetComponentInChildren<Animation>(true);
+                        if (anim != null)
+                        {
+                            anim.cullingType = AnimationCullingType.AlwaysAnimate;
+                            anim.wrapMode = WrapMode.Loop;
+                            if (anim.clip != null) anim.Play(anim.clip.name);
+                        }
+                    }
+                }
                 if (cardData.cardType == CardType.Creature || cardData.animalSpeciesData != null)
                 {
                     AnimalIndividual individual = placedObject.GetComponent<AnimalIndividual>();

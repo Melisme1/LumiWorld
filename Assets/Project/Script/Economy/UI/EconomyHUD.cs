@@ -80,6 +80,14 @@ public class EconomyHUD : MonoBehaviour
         CreateOverlay<GameSettingsUI>("GameSettingsUI");
         CreateOverlay<AutoFeedUI>("AutoFeedUI");
         CreateOverlay<CollapsibleHUDToolbar>("CollapsibleHUDToolbar");
+        CreateOverlay<CreationLabUI>("CreationLabUI");
+
+        if (BreedingManager.Instance == null)
+        {
+            var bMgr = new GameObject("BreedingManager");
+            bMgr.AddComponent<BreedingManager>();
+            DontDestroyOnLoad(bMgr);
+        }
 
         // Đảm bảo các Manager trung tâm tự động khởi chạy an toàn
         if (HabitatDiamondBadgeManager.Instance == null)

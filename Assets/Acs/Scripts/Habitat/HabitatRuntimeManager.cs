@@ -93,6 +93,18 @@ namespace LumiWorld.Acs
             RefreshFromWorld(true);
         }
 
+        private static void EnsureBraluffIfHybrid(CardData card)
+        {
+            if (card == null) return;
+            string id = card.cardID ?? "";
+            string nm = card.cardName ?? "";
+            if (id.IndexOf("braluff", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                nm.IndexOf("braluff", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                BreedingManager.EnsureBraluffCardConfigured(card);
+            }
+        }
+
         private void RefreshFromWorld(bool force)
         {
             if (!IsConfigured) return;
@@ -148,6 +160,7 @@ namespace LumiWorld.Acs
             foreach (var record in records)
             {
                 if (record.CardType != CardType.Creature) continue;
+                EnsureBraluffIfHybrid(record.cardData);
                 var identity = identities[record];
                 if (!occupied.Add(identity.HomeHex))
                 { diagnostics.Add("Nhiều creature cùng home hex " + identity.HomeHex + "."); continue; }
@@ -208,6 +221,7 @@ namespace LumiWorld.Acs
         public bool CanPlaceCreature(CardData creature, CardData nature, HexCoordinates homeHex, out string reason)
         {
             if (!IsConfigured) { reason = "HabitatRuntimeManager catalog is not configured."; return false; }
+            EnsureBraluffIfHybrid(creature);
             if (creature == null || creature.cardType != CardType.Creature || creature.animalSpeciesData == null)
             { reason = "Creature Card has no Species assigned."; return false; }
             if (nature == null || !catalog.TryGetHabitat(nature.cardID, out var habitat))

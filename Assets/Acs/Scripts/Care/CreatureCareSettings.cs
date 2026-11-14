@@ -60,11 +60,64 @@ namespace LumiWorld.Acs
                 if (seedFoodUnitsToFull < 1) throw new ArgumentException("Seed Food Units To Full phải >= 1.");
                 var foods = new List<CreatureFoodRule>
                 { new CreatureFoodRule(FoodResourceId, 100d / seedFoodUnitsToFull) };
+                var ids = new HashSet<string>(StringComparer.Ordinal) { FoodResourceId };
+
                 foreach (var entry in additionalFoods ?? new List<CreatureFoodSettings>())
                 {
                     if (entry == null) throw new ArgumentException("Additional Foods có dòng trống.");
-                    foods.Add(new CreatureFoodRule(entry.ResourceId, entry.satietyPerUnit));
+                    if (ids.Add(entry.ResourceId))
+                    {
+                        foods.Add(new CreatureFoodRule(entry.ResourceId, entry.satietyPerUnit));
+                    }
                 }
+
+                // Các loại thực phẩm thu hoạch và chế biến thông dụng
+                string[] knownFoodIds = new[]
+                {
+                    "resource.leafwood.raspberries",
+                    "resource.leafwood.acorns",
+                    "resource.leafwood.tender_leaves_crispy",
+                    "resource.leafwood.roasted_acorns",
+                    "resource.leafwood.dried_raspberries",
+                    "resource.windheath.mountain_blueberries",
+                    "resource.windheath.dried_mountain_blueberries",
+                    "resource.food.dried_wild_berries_mix",
+                    "resource.leafwood.honey_glazed_acorns",
+                    "resource.food.wild_berry_nut_cake"
+                };
+                foreach (var kf in knownFoodIds)
+                {
+                    if (ids.Add(kf))
+                    {
+                        foods.Add(new CreatureFoodRule(kf, 2.0));
+                    }
+                }
+
+                // Tự động nhận diện bổ sung từ xưởng chế biến nếu có trong assembly
+                var craftingType = Type.GetType("LumiWorld.Economy.Crafting.CraftingCatalog, Assembly-CSharp");
+                if (craftingType != null)
+                {
+                    var prop = craftingType.GetProperty("All", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    if (prop != null && prop.GetValue(null) is System.Collections.IEnumerable list)
+                    {
+                        foreach (var item in list)
+                        {
+                            if (item == null) continue;
+                            var catProp = item.GetType().GetField("category") ?? (System.Reflection.MemberInfo)item.GetType().GetProperty("category");
+                            object catVal = catProp is System.Reflection.FieldInfo fi ? fi.GetValue(item) : (catProp is System.Reflection.PropertyInfo pi ? pi.GetValue(item) : null);
+                            if (catVal != null && catVal.ToString() == "Food")
+                            {
+                                var outProp = item.GetType().GetField("outputResource") ?? (System.Reflection.MemberInfo)item.GetType().GetProperty("outputResource");
+                                object outVal = outProp is System.Reflection.FieldInfo ofi ? ofi.GetValue(item) : (outProp is System.Reflection.PropertyInfo opi ? opi.GetValue(item) : null);
+                                if (outVal is ResourceData rd && !string.IsNullOrEmpty(rd.resourceID) && ids.Add(rd.resourceID))
+                                {
+                                    foods.Add(new CreatureFoodRule(rd.resourceID, 2.0));
+                                }
+                            }
+                        }
+                    }
+                }
+
                 var diets = new List<SpeciesDietRule>();
                 foreach (var entry in speciesDiets ?? new List<SpeciesDietSettings>())
                 {

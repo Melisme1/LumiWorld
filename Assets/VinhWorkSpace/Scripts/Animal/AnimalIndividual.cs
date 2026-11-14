@@ -339,7 +339,7 @@ public class AnimalIndividual : MonoBehaviour
         AnimalMovementAI moveAI = GetComponent<AnimalMovementAI>();
         if (moveAI == null)
         {
-            moveAI = gameObject.AddComponent<AnimalMovementAI>();
+            var rends = GetComponentsInChildren<Renderer>(true); if (rends != null && rends.Length > 0) { Bounds b = rends[0].bounds; for (int ri = 1; ri < rends.Length; ri++) b.Encapsulate(rends[ri].bounds); float maxD = Mathf.Max(b.size.x, b.size.y, b.size.z); if (maxD > 0.85f) transform.localScale *= (0.65f / maxD); } moveAI = gameObject.AddComponent<AnimalMovementAI>(); if (GetComponent<FarmAnimalAI>() == null) gameObject.AddComponent<FarmAnimalAI>();
         }
         if (moveAI != null)
         {
