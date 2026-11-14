@@ -88,6 +88,11 @@ public class HexGhostVisual : MonoBehaviour
             itemGhostInstance.name = "GhostItemPreview";
             itemGhostInstance.transform.localPosition = Vector3.zero;
 
+            if (cardData != null && cardData.IsSettlementCard())
+            {
+                itemGhostInstance.transform.localScale = Vector3.one * SettlementAssetConfig.GetGlobalScale(SettlementScaleType.Building);
+            }
+
             NeutralizeGhostInstance(itemGhostInstance);
             ApplyGhostMaterial(itemGhostInstance);
         }
@@ -318,6 +323,18 @@ public class HexGhostVisual : MonoBehaviour
                 return isFirstRiverTile
                     ? RiverNetworkManager.Instance.Config.springHeadPrefab
                     : RiverNetworkManager.Instance.Config.straightPrefab;
+            }
+        }
+
+        if (cardData.IsSettlementCard())
+        {
+            if (SettlementClusterManager.Instance != null && SettlementClusterManager.Instance.Config != null)
+            {
+                var cfg = SettlementClusterManager.Instance.Config;
+                if (cfg.smallHouses != null && cfg.smallHouses.Count > 0 && cfg.smallHouses[0] != null)
+                    return cfg.smallHouses[0];
+                if (cfg.villageCenterpieces != null && cfg.villageCenterpieces.Count > 0 && cfg.villageCenterpieces[0] != null)
+                    return cfg.villageCenterpieces[0];
             }
         }
 

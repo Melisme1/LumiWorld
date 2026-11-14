@@ -29,6 +29,9 @@ public class RiverConfig : ScriptableObject
     [Tooltip("Scale suối thẳng Straight (chiều rộng 0.85, chiều cao 0.85, chiều dài 1.25 vừa vặn kết nối mép ô)")]
     public Vector3 straightScale = new Vector3(0.85f, 0.85f, 1.25f);
 
+    [Tooltip("Scale riêng cho khúc cua 60 độ (Curve60) thanh mảnh, gọn gàng, tránh vón cục bờ đá ở góc cua gắt")]
+    public Vector3 curve60Scale = Vector3.zero;
+
     [Tooltip("Scale Thượng Nguồn Spring Head Grotto (mặc định 1.0, 1.0, 1.0 vừa vặn ô)")]
     public Vector3 springHeadScale = new Vector3(1.0f, 1.0f, 1.0f);
 
@@ -48,14 +51,20 @@ public class RiverConfig : ScriptableObject
     {
         switch (pieceType)
         {
+            case RiverPieceType.Curve60:
+                if (curve60Scale.sqrMagnitude > 0.01f) return curve60Scale;
+                return (straightScale.sqrMagnitude > 0.01f) 
+                    ? new Vector3(straightScale.x * 0.95f, straightScale.y * 0.90f, straightScale.z * 0.90f) 
+                    : new Vector3(0.26f, 0.18f, 0.16f);
+
             case RiverPieceType.Straight:
             case RiverPieceType.Curve120:
-            case RiverPieceType.Curve60:
-                return (straightScale.sqrMagnitude > 0.01f) ? straightScale : new Vector3(0.32f, 0.3f, 0.28f);
+                return (straightScale.sqrMagnitude > 0.01f) ? straightScale : new Vector3(0.27f, 0.20f, 0.18f);
+
             case RiverPieceType.SpringHead:
-                return (springHeadScale.sqrMagnitude > 0.01f) ? springHeadScale : new Vector3(1.0f, 1.0f, 1.0f);
+                return (springHeadScale.sqrMagnitude > 0.01f) ? springHeadScale : new Vector3(0.55f, 0.55f, 0.55f);
             case RiverPieceType.PondBasin:
-                return (pondBasinScale.sqrMagnitude > 0.01f) ? pondBasinScale : new Vector3(1.2f, 1.0f, 1.2f);
+                return (pondBasinScale.sqrMagnitude > 0.01f) ? pondBasinScale : new Vector3(0.80f, 0.78f, 0.80f);
             case RiverPieceType.Waterfall:
                 return waterfallScale;
             default:

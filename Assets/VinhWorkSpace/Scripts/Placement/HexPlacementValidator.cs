@@ -126,12 +126,10 @@ public class HexPlacementValidator : MonoBehaviour
                 return false;
             }
 
-            // Cho phep dat suoi chay qua o co thu sinh song (huong diem ben nuoc)
-
-            // BẮT BUỘC: Ô này phải ĐÃ ĐẶT thẻ Môi trường (Biome / Terrain card)
-            if (!HasPlacedTerrain(tileObj))
+            // Cho phép đặt suối chảy qua ô đã có Biome HOẶC ô đã có Building
+            if (!HasPlacedTerrain(tileObj) && tileObj.GetComponent<SettlementTile>() == null)
             {
-                lastValidationError = "Must place a Biome card before opening a stream!";
+                lastValidationError = "Must place a Biome or Settlement card before opening a stream!";
                 return false;
             }
 
@@ -186,6 +184,13 @@ public class HexPlacementValidator : MonoBehaviour
                     lastValidationError = "Water cannot flow uphill to a higher elevation!";
                     return false;
                 }
+
+                if (targetTopY < 1.35f && RiverNetworkManager.Instance != null &&
+                    !RiverNetworkManager.Instance.CanFormAnyConnection(coords, targetTopY, worldGen))
+                {
+                    lastValidationError = "Cannot connect stream here without creating an isolated pond!";
+                    return false;
+                }
             }
 
             lastValidationError = "";
@@ -195,6 +200,13 @@ public class HexPlacementValidator : MonoBehaviour
         // 1. Phân biệt theo loại thẻ:
         if (cardData != null && cardData.cardType == CardType.Creature)
         {
+            // Tách thú ra khỏi building: Thú chỉ sinh sống nơi thiên nhiên hoang dã, không cư ngụ trong khu dân cư
+            if (tileObj.GetComponent<SettlementTile>() != null)
+            {
+                lastValidationError = "Creatures live in wild nature habitats, not inside settlements!";
+                return false;
+            }
+
             // Thẻ thú không được đặt nếu ô này ĐÃ CÓ một con thú khác
             if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
             {
@@ -242,12 +254,37 @@ public class HexPlacementValidator : MonoBehaviour
                 return false;
             }
 
-            // Các thẻ Terrain tuân theo quy tắc kiểm tra chiếm ô
-            if (IsTileOccupied(tileObj))
+            // Cho phép phủ thêm Biome lên ô đã có Settlement (để kết hợp Biome + Building)
+            if (IsTileOccupied(tileObj) && tileObj.GetComponent<SettlementTile>() == null)
             {
                 lastValidationError = "This tile is already occupied.";
                 return false;
             }
+        }
+        else if (cardData != null && cardData.IsSettlementCard())
+        {
+            // Bắt buộc ô phải được tưới nước trước (đất tươi tốt / Lush) bằng thẻ Mưa (Rain)
+            if (!IsWateredTile(tileObj))
+            {
+                lastValidationError = "This tile is dry and arid. You must water it with a Rain card first!";
+                return false;
+            }
+
+            // Đã có khu dân cư / thành phố trên ô này -> Không cho đặt chồng
+            if (tileObj.GetComponent<SettlementTile>() != null)
+            {
+                lastValidationError = "This tile already has a settlement!";
+                return false;
+            }
+
+            // Đã có sinh vật cư ngụ -> Tách thú ra khỏi building, không cho xây thành phố đè lên thú
+            if (HasPlacedCreature(tileObj))
+            {
+                lastValidationError = "Cannot build over living creatures. Animals need their wild habitat!";
+                return false;
+            }
+
+            // Cho phép xây dựng trên cả: Ô đã có Biome, Ô chưa có Biome, và Ô có Suối (River)
         }
         else
         {
@@ -349,6 +386,29 @@ public class HexPlacementValidator : MonoBehaviour
                 return true;
             }
         }
+        return false;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem ô lục giác đã được tưới nước (Lush / Đất tươi tốt sau khi dùng thẻ Mưa) hay chưa.
+    /// </summary>
+    public bool IsWateredTile(GameObject tileObj)
+    {
+        if (tileObj == null) return false;
+
+        HexTileInfo info = tileObj.GetComponent<HexTileInfo>();
+        if (info != null && info.hasLushEnvironment) return true;
+
+        if (tileObj.name.IndexOf("_Lush", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+
+        // Hoặc kiểm tra xem có PlacedCard của Rain / TileTransform không
+        PlacedCard[] pcs = tileObj.GetComponentsInChildren<PlacedCard>();
+        foreach (var pc in pcs)
+        {
+            if (pc != null && pc.cardData != null && pc.cardData.IsTileTransformCard())
+                return true;
+        }
+
         return false;
     }
 

@@ -425,6 +425,15 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
                 PlayCardUseEffect(cardData, spawnWorldPos);
             }
+            // TRƯỜNG HỢP 0.5: THẺ KHU DÂN CƯ / LÀNG MẠC (SETTLEMENT CARD)
+            else if (cardData.IsSettlementCard())
+            {
+                if (SettlementClusterManager.Instance != null)
+                {
+                    placedCardInstance = SettlementClusterManager.Instance.PlaceSettlement(currentHoverHex, targetTileObj, cardData, spawnWorldPos);
+                }
+                PlayCardUseEffect(cardData, spawnWorldPos);
+            }
             // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN TRÊN ĐẤT KHÔ ARID)
             else if (cardData.IsTileTransformCard())
             {
@@ -508,7 +517,7 @@ public class HexSinglePlacementController : MonoBehaviour
             // 1. Phân bổ Cụm Biome & Kết nối các khối trong cụm (Preserve-style seamless cluster connection)
             if (HexBiomeClusterConnector.Instance != null && placedCardInstance != null)
             {
-                if (!cardData.IsRiverCard())
+                if (!cardData.IsRiverCard() && !cardData.IsSettlementCard())
                 {
                     HexBiomeClusterConnector.Instance.ConnectCluster(placedCardInstance);
                 }

@@ -175,7 +175,7 @@ public class WildAlphaInteractable : MonoBehaviour
         titleRect.anchoredPosition = new Vector2(0f, 275f);
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) titleText.font = fontAsset;
-        titleText.text = "Alpha Creature Emerged";
+        titleText.text = "Wild Alpha";
         titleText.fontSize = 28f;
         titleText.fontStyle = FontStyles.Bold;
         titleText.alignment = TextAlignmentOptions.Center;
@@ -224,7 +224,7 @@ public class WildAlphaInteractable : MonoBehaviour
         creatureInfoText.color = skin != null ? skin.forest : new Color(0.24f, 0.35f, 0.25f, 1f);
         creatureInfoText.text =
             $"<b>Alpha {speciesName}</b>\n" +
-            $"<size=16><color=#854D0E><b>{rankTitle}</b></color>  •  <color=#4B5563>{hostBiome} Cluster</color></size>";
+            $"<size=16><color=#854D0E><b>{rankTitle}</b></color>  •  <color=#4B5563>{hostBiome}</color></size>";
 
         // B. Hộp Cảnh Báo Phong Tỏa & Hướng Dẫn Tự Nhiên (Phần giữa inset)
         GameObject alertCardObj = new GameObject("AlertCard");
@@ -267,8 +267,8 @@ public class WildAlphaInteractable : MonoBehaviour
         alertText.color = new Color(0.20f, 0.24f, 0.22f, 1f);
         alertText.alignment = TextAlignmentOptions.TopLeft;
         alertText.text =
-            $"The wild pack is occupying the <b>{hostBiome}</b> cluster, temporarily halting resource production.\n\n" +
-            $"Tame them to free the island and earn a creature card!";
+            $"<b>{hostBiome}</b> production is halted.\n" +
+            $"Tame to clear & earn a creature card.";
 
         // 5. Nút Bấm Hành Động (Bottom Actions - 2 nút lớn 310x56px cân đối, sang trọng)
         // Nút Xanh: Thuần Hóa
@@ -305,6 +305,11 @@ public class WildAlphaInteractable : MonoBehaviour
                             {
                                 WildPackIncidentManager.Instance.OnAlphaInteracted(associatedIncident);
                             }
+                            HexPlacementPreviewHUD.ShowFeedbackToast($"Tamed {GetSpeciesDisplayName()}! +1 Card", 3.0f);
+                        }
+                        else if (result != null)
+                        {
+                            HexPlacementPreviewHUD.ShowFeedbackToast($"Tame failed — {GetSpeciesDisplayName()} stayed wild!", 2.5f);
                         }
                     });
                 }

@@ -80,21 +80,27 @@ public static class RiverAutoTileSolver
             if (solution.connectionCount == 0)
             {
                 solution.rotationY = GetDirectionAngle(downhillDir);
+                solution.connectedPortsMask = 0;
             }
             else if (solution.connectionCount == 1)
             {
                 // Miệng hang quay thẳng vào ô hạ lưu tiếp theo
                 solution.rotationY = GetDirectionAngle(connectedDirections[0]);
                 solution.primaryPortA = connectedDirections[0];
+                solution.connectedPortsMask = (1 << connectedDirections[0]);
             }
             else
             {
                 // Khi có 2+ nhánh hạ lưu kề bên:
-                // Nếu có hướng đổ dốc xuống (outflowDir), ưu tiên quay theo hướng dốc/hạ lưu đó
+                // Giữ nguyên TẤT CẢ các cổng kết nối trong connectedPortsMask để SpringHead vẽ mương tới mọi nhánh hạ lưu,
+                // đồng thời ưu tiên hướng dốc xuống (outflowDir) làm hướng xoay chính của hang nguồn.
                 if (outflowDir >= 0 && connectedDirections.Contains(outflowDir))
                 {
                     solution.rotationY = GetDirectionAngle(outflowDir);
                     solution.primaryPortA = outflowDir;
+                    solution.primaryPortB = connectedDirections[0] == outflowDir
+                        ? (connectedDirections.Count > 1 ? connectedDirections[1] : -1)
+                        : connectedDirections[0];
                 }
                 else
                 {
@@ -111,6 +117,7 @@ public static class RiverAutoTileSolver
         // 2. Trường hợp 0 kết nối (ô suối đứng biệt lập):
         if (solution.connectionCount == 0)
         {
+            solution.connectedPortsMask = 0;
             if (isOrigin)
             {
                 solution.pieceType = RiverPieceType.SpringHead;
@@ -133,12 +140,12 @@ public static class RiverAutoTileSolver
             solution.pieceType = RiverPieceType.PondBasin;
             solution.rotationY = GetDirectionAngle(dir);
             solution.primaryPortA = dir;
+            solution.connectedPortsMask = (1 << dir);
             return solution;
         }
 
-        // 4. Trường hợp 2+ kết nối (Dòng chảy liên tục, hỗ trợ phân nhánh từ dòng chính):
+        // 4. Trường hợp 2+ kết nối (Dòng chảy liên tục):
         // GIỮ NGUYÊN DÒNG CHÍNH (Straight / Curve120 / Curve60) xuyên suốt giữa 2 cổng chính.
-        // Bất kỳ cổng thứ 3, thứ 4... sẽ được kết nối như nhánh phụ (Tributary) từ mép vào tâm!
         if (solution.connectionCount >= 2)
         {
             // Điểm hội tụ 3+ nhánh ở tầng trũng thấp nhất không có đường thoát -> Hồ chứa PondBasin
@@ -148,6 +155,8 @@ public static class RiverAutoTileSolver
                 int primaryInlet = (upstreamDir >= 0) ? upstreamDir : connectedDirections[0];
                 solution.rotationY = GetDirectionAngle(primaryInlet);
                 solution.primaryPortA = primaryInlet;
+                solution.connectedPortsMask = (1 << primaryInlet);
+                solution.connectionCount = 1;
                 return solution;
             }
 
@@ -222,6 +231,9 @@ public static class RiverAutoTileSolver
 
             solution.primaryPortA = pA;
             solution.primaryPortB = pB;
+            // Giữ nguyên toàn bộ các cổng trong connectedPortsMask (bao gồm cả nhánh phụ thứ 3+)
+            // để UpdateConnectingTrenches vẽ đủ nhánh rẽ nối liền mạch, không bị đứt quãng.
+            solution.connectedPortsMask |= (1 << pA) | (1 << pB);
 
             int diff = ((pB - pA) % 6 + 6) % 6;
             int d0 = pA;

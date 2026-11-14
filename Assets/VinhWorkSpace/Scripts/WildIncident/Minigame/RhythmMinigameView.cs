@@ -107,7 +107,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
         {
             IsSuccess = false,
             Type = MinigameType.RhythmResonance,
-            Message = "Người chơi đã hủy phiên thử thách."
+            Message = "Challenge cancelled."
         });
     }
 
@@ -149,7 +149,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
         // 4. Cập nhật đồng hồ đếm ngược định dạng chuẩn
         if (timerText != null)
         {
-            timerText.text = $"<b>{engine.TimeRemaining:F1}s</b>".Replace('.', ',');
+            timerText.text = $"<b>{engine.TimeRemaining:F1}s</b>";
         }
 
         // 5. Cập nhật hiệu ứng nốt hiện tại đang chờ bấm (Pulsing highlight)
@@ -308,7 +308,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
                 if (beatButtonImg != null && beatButtonText != null)
                 {
                     beatButtonImg.color = new Color(0.98f, 0.65f, 0.16f, 1f);
-                    beatButtonText.text = "CHẠM NHỊP (SPACE)";
+                    beatButtonText.text = "HIT BEAT (SPACE)";
                 }
             }
             else
@@ -326,7 +326,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
                 if (beatButtonImg != null && beatButtonText != null)
                 {
                     beatButtonImg.color = Color.white;
-                    beatButtonText.text = "CHẠM NHỊP (SPACE)";
+                    beatButtonText.text = "HIT BEAT (SPACE)";
                 }
             }
         }
@@ -497,11 +497,11 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
             int percent = Mathf.RoundToInt(displayHarmonyProgress * 100f);
             if (displayHarmonyProgress >= 0.99f)
             {
-                harmonyText.text = "TIẾN TRÌNH THU PHỤC: <b>HOÀN TẤT!</b>";
+                harmonyText.text = "TAMED!";
             }
             else
             {
-                harmonyText.text = $"TIẾN TRÌNH THU PHỤC: <b>{percent}%</b>";
+                harmonyText.text = $"TAMING: <b>{percent}%</b>";
             }
         }
     }
@@ -532,7 +532,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
         {
             if (feedbackGradeText != null)
             {
-                feedbackGradeText.text = "HẾT THỜI GIAN!";
+                feedbackGradeText.text = "TIME'S UP!";
                 feedbackGradeText.color = new Color(0.88f, 0.30f, 0.25f, 1f);
                 feedbackGradeText.fontSize = 24;
             }
@@ -560,7 +560,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
         }
         if (harmonyText != null)
         {
-            harmonyText.text = "THU PHỤC HOÀN TẤT (100%)";
+            harmonyText.text = "TAMED (100%)";
             harmonyText.color = new Color(0.48f, 0.22f, 0.05f, 1f);
         }
 
@@ -625,7 +625,7 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
         vtRect.anchoredPosition = new Vector2(0f, 24f);
         var vtText = vTitleObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) vtText.font = fontAsset;
-        vtText.text = "THU PHỤC THÀNH CÔNG !";
+        vtText.text = "TAMED!";
         vtText.fontSize = 25f;
         vtText.fontStyle = FontStyles.Bold;
         vtText.alignment = TextAlignmentOptions.Center;
@@ -643,9 +643,9 @@ public class RhythmMinigameView : MonoBehaviour, IMinigameSession
         vsRect.anchoredPosition = new Vector2(0f, -22f);
         var vsText = vSubObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) vsText.font = fontAsset;
-        string species = !string.IsNullOrEmpty(currentContext.SpeciesName) ? currentContext.SpeciesName : "Linh Thú";
+        string species = !string.IsNullOrEmpty(currentContext.SpeciesName) ? currentContext.SpeciesName : "Creature";
         vsText.color = new Color(0.26f, 0.16f, 0.10f, 1f);
-        vsText.text = $"<b>{species}</b> đã sẵn sàng đồng hành cùng bạn!\n<size=13.5><color=#5C4032>Tâm hồn thú cưng để hòa làm một</color></size>";
+        vsText.text = $"<b>{species}</b> joined your world!";
         vsText.fontSize = 15f;
         vsText.alignment = TextAlignmentOptions.Center;
 

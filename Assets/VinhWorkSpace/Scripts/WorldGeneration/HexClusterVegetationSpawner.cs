@@ -73,7 +73,7 @@ public static class HexClusterVegetationSpawner
     public static bool ShouldSpawnSeamGrassForHabitat(CardData cardData, bool spawnSeamMicroGrass)
     {
         if (!spawnSeamMicroGrass) return false;
-        if (cardData == null) return false;
+        if (cardData == null || cardData.IsSettlementCard()) return false;
 
         if (HexFilledGroundSpawner.Instance != null && HexFilledGroundSpawner.Instance.HasFilledGround(cardData))
             return true;
