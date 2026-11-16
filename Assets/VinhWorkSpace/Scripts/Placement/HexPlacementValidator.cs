@@ -11,8 +11,10 @@ public class HexPlacementValidator : MonoBehaviour
     [Tooltip("Bật/Tắt giới hạn số ô lục giác tối đa trong một Cụm Biome")]
     [SerializeField] private bool enableBiomeSizeLimit = true;
 
-    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 9). Nếu người chơi ghép thêm ô làm cụm vượt quá số này sẽ bị chặn.")]
-    [SerializeField] private int maxTilesPerBiome = 9;
+    [Tooltip("Số ô lục giác tối đa cho phép trong một Cụm Biome (mặc định = 10). Nếu người chơi ghép thêm ô làm cụm vượt quá số này sẽ bị chặn.")]
+    [SerializeField] private int maxTilesPerBiome = 10;
+
+    private const string BuildingsCreaturesSeparateError = "Buildings and creatures cannot share a tile.";
 
     private string lastValidationError = "";
 
@@ -203,7 +205,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Tách thú ra khỏi building: Thú chỉ sinh sống nơi thiên nhiên hoang dã, không cư ngụ trong khu dân cư
             if (tileObj.GetComponent<SettlementTile>() != null)
             {
-                lastValidationError = "Creatures live in wild nature habitats, not inside settlements!";
+                lastValidationError = BuildingsCreaturesSeparateError;
                 return false;
             }
 
@@ -277,10 +279,21 @@ public class HexPlacementValidator : MonoBehaviour
                 return false;
             }
 
-            // Đã có sinh vật cư ngụ -> Tách thú ra khỏi building, không cho xây thành phố đè lên thú
-            if (HasPlacedCreature(tileObj))
+            bool hasCreatureOnTile = HasPlacedCreature(tileObj);
+            CardData existingTerrain = GetPlacedTerrainCard(tileObj);
+
+            // Nếu không có nền Biome bên dưới mà lại có sinh vật -> chặn theo luật tách biệt
+            if (existingTerrain == null && hasCreatureOnTile)
             {
-                lastValidationError = "Cannot build over living creatures. Animals need their wild habitat!";
+                lastValidationError = BuildingsCreaturesSeparateError;
+                return false;
+            }
+
+            // Kiểm tra 2 chiều: nếu ô này đang nằm trong cụm Biome, việc tách ô để xây Building
+            // phải đảm bảo cụm Biome còn lại (hoặc bị cắt đôi) vẫn đủ ô duy trì toàn bộ thú (kể cả thú cần dời từ ô này).
+            if (existingTerrain != null &&
+                !CanRemoveTileFromBiomeCluster(coords, existingTerrain, worldGen, useHabitatRules, hasCreatureOnTile, out lastValidationError))
+            {
                 return false;
             }
 
@@ -471,7 +484,8 @@ public class HexPlacementValidator : MonoBehaviour
             HexCoordinates neighborHex = targetHex.GetNeighbor(dir);
             if (prospectiveCluster.Contains(neighborHex)) continue;
 
-            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
+            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null &&
+                !HasSettlement(neighborTile))
             {
                 CardData neighborTerrain = GetPlacedTerrainCard(neighborTile);
                 if (neighborTerrain != null && IsMatchingTerrainOrBiome(terrainCard, neighborTerrain))
@@ -492,7 +506,8 @@ public class HexPlacementValidator : MonoBehaviour
                 HexCoordinates nextHex = current.GetNeighbor(dir);
                 if (prospectiveCluster.Contains(nextHex)) continue;
 
-                if (worldGen.MapTiles.TryGetValue(nextHex, out GameObject nextTile) && nextTile != null)
+                if (worldGen.MapTiles.TryGetValue(nextHex, out GameObject nextTile) && nextTile != null &&
+                    !HasSettlement(nextTile))
                 {
                     CardData nextTerrain = GetPlacedTerrainCard(nextTile);
                     if (nextTerrain != null && IsMatchingTerrainOrBiome(terrainCard, nextTerrain))
@@ -548,8 +563,191 @@ public class HexPlacementValidator : MonoBehaviour
         return Mathf.Clamp(hexCount / 3, 1, 3);
     }
 
+    private static bool HasSettlement(GameObject tileObj)
+    {
+        return tileObj != null && tileObj.GetComponent<SettlementTile>() != null;
+    }
+
+    private static int GetCreatureCapacity(int hexCount, bool useHabitatRules)
+    {
+        if (!useHabitatRules) return CalculateClusterCreatureCapacity(hexCount);
+        if (hexCount >= 10) return 6;
+        if (hexCount >= 6) return 4;
+        if (hexCount >= 3) return 2;
+        return 0;
+    }
+
     /// <summary>
-    /// Đếm số ô và số lượng thú hiện có trong cụm Biome chứa ô hex này
+    /// Tìm một ô Biome an toàn (chưa có Settlement, ưu tiên chưa có Creature) trong phần còn lại của cụm để thú né/chuyển sang.
+    /// </summary>
+    public bool FindSafeBiomeRelocationTile(
+        HexCoordinates excludedHex,
+        CardData terrainCard,
+        HexWorldGenerator worldGen,
+        out HexCoordinates safeHex,
+        out GameObject safeTileObj)
+    {
+        safeHex = default;
+        safeTileObj = null;
+        if (worldGen == null || worldGen.MapTiles == null || terrainCard == null) return false;
+
+        GameObject fallbackTile = null;
+        HexCoordinates fallbackHex = default;
+        HashSet<HexCoordinates> visited = new HashSet<HexCoordinates> { excludedHex };
+        Queue<HexCoordinates> queue = new Queue<HexCoordinates>();
+
+        for (int dir = 0; dir < 6; dir++)
+        {
+            HexCoordinates nHex = excludedHex.GetNeighbor(dir);
+            if (worldGen.MapTiles.TryGetValue(nHex, out GameObject nTile) && nTile != null && !HasSettlement(nTile))
+            {
+                CardData nTerrain = GetPlacedTerrainCard(nTile);
+                if (nTerrain != null && IsMatchingTerrainOrBiome(terrainCard, nTerrain))
+                {
+                    visited.Add(nHex);
+                    queue.Enqueue(nHex);
+                }
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            HexCoordinates current = queue.Dequeue();
+            if (worldGen.MapTiles.TryGetValue(current, out GameObject currentTile) && currentTile != null)
+            {
+                if (!HasPlacedCreature(currentTile))
+                {
+                    safeHex = current;
+                    safeTileObj = currentTile;
+                    return true;
+                }
+                if (fallbackTile == null)
+                {
+                    fallbackTile = currentTile;
+                    fallbackHex = current;
+                }
+            }
+
+            for (int dir = 0; dir < 6; dir++)
+            {
+                HexCoordinates nextHex = current.GetNeighbor(dir);
+                if (visited.Contains(nextHex)) continue;
+                if (worldGen.MapTiles.TryGetValue(nextHex, out GameObject nextTile) && nextTile != null && !HasSettlement(nextTile))
+                {
+                    CardData nextTerrain = GetPlacedTerrainCard(nextTile);
+                    if (nextTerrain != null && IsMatchingTerrainOrBiome(terrainCard, nextTerrain))
+                    {
+                        visited.Add(nextHex);
+                        queue.Enqueue(nextHex);
+                    }
+                }
+            }
+        }
+
+        if (fallbackTile != null)
+        {
+            safeHex = fallbackHex;
+            safeTileObj = fallbackTile;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem sau khi tách removedHex khỏi cụm Biome (để xây Building),
+    /// các cụm Biome con còn lại có đủ số ô để duy trì toàn bộ thú đang sống trên đó không.
+    /// </summary>
+    private bool CanRemoveTileFromBiomeCluster(
+        HexCoordinates removedHex,
+        CardData terrainCard,
+        HexWorldGenerator worldGen,
+        bool useHabitatRules,
+        bool hasCreatureOnRemovedHex,
+        out string reason)
+    {
+        reason = "";
+        if (worldGen == null || worldGen.MapTiles == null || terrainCard == null) return true;
+
+        HashSet<HexCoordinates> visited = new HashSet<HexCoordinates> { removedHex };
+        bool canRelocateRemovedCreature = !hasCreatureOnRemovedHex;
+
+        for (int dir = 0; dir < 6; dir++)
+        {
+            HexCoordinates seedHex = removedHex.GetNeighbor(dir);
+            if (visited.Contains(seedHex)) continue;
+
+            if (!worldGen.MapTiles.TryGetValue(seedHex, out GameObject seedTile) || seedTile == null ||
+                HasSettlement(seedTile))
+                continue;
+
+            CardData seedTerrain = GetPlacedTerrainCard(seedTile);
+            if (seedTerrain == null || !IsMatchingTerrainOrBiome(terrainCard, seedTerrain)) continue;
+
+            int subClusterSize = 0;
+            int creatureCount = 0;
+            Queue<HexCoordinates> queue = new Queue<HexCoordinates>();
+            visited.Add(seedHex);
+            queue.Enqueue(seedHex);
+
+            while (queue.Count > 0)
+            {
+                HexCoordinates current = queue.Dequeue();
+                subClusterSize++;
+                if (worldGen.MapTiles.TryGetValue(current, out GameObject currentTile) &&
+                    currentTile != null && HasPlacedCreature(currentTile))
+                {
+                    creatureCount++;
+                }
+
+                for (int nDir = 0; nDir < 6; nDir++)
+                {
+                    HexCoordinates nextHex = current.GetNeighbor(nDir);
+                    if (visited.Contains(nextHex)) continue;
+
+                    if (worldGen.MapTiles.TryGetValue(nextHex, out GameObject nextTile) && nextTile != null &&
+                        !HasSettlement(nextTile))
+                    {
+                        CardData nextTerrain = GetPlacedTerrainCard(nextTile);
+                        if (nextTerrain != null && IsMatchingTerrainOrBiome(terrainCard, nextTerrain))
+                        {
+                            visited.Add(nextHex);
+                            queue.Enqueue(nextHex);
+                        }
+                    }
+                }
+            }
+
+            if (creatureCount > 0)
+            {
+                int capacity = GetCreatureCapacity(subClusterSize, useHabitatRules);
+                if (subClusterSize < 3 || creatureCount > capacity)
+                {
+                    reason = "Remaining biome would be too small for its creatures.";
+                    return false;
+                }
+            }
+
+            if (!canRelocateRemovedCreature && subClusterSize >= 3)
+            {
+                int capacity = GetCreatureCapacity(subClusterSize, useHabitatRules);
+                if (creatureCount + 1 <= capacity && subClusterSize > creatureCount)
+                {
+                    canRelocateRemovedCreature = true;
+                }
+            }
+        }
+
+        if (!canRelocateRemovedCreature)
+        {
+            reason = "Remaining biome has no room for the creature on this tile.";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Đếm số ô và số lượng thú hiện có trong cụm Biome chứa ô hex này (bỏ qua ô đã có Building/Settlement)
     /// </summary>
     public (int clusterSize, int creatureCount) GetClusterCreatureStats(HexCoordinates targetHex, CardData terrainCard, HexWorldGenerator worldGen)
     {
@@ -558,6 +756,8 @@ public class HexPlacementValidator : MonoBehaviour
         // 1. Thử lấy theo PlacedCard.clusterId nếu đã được phân cụm
         if (worldGen.MapTiles.TryGetValue(targetHex, out GameObject targetTile) && targetTile != null)
         {
+            if (HasSettlement(targetTile)) return (0, 0);
+
             PlacedCard targetPlaced = HexBiomeClusterConnector.GetHabitatCardOnTile(targetTile);
             if (targetPlaced != null && targetPlaced.clusterId > 0)
             {
@@ -566,7 +766,7 @@ public class HexPlacementValidator : MonoBehaviour
                 int creatures = 0;
                 foreach (var pair in worldGen.MapTiles)
                 {
-                    if (pair.Value == null) continue;
+                    if (pair.Value == null || HasSettlement(pair.Value)) continue;
                     PlacedCard pc = HexBiomeClusterConnector.GetHabitatCardOnTile(pair.Value);
                     if (pc != null && pc.clusterId == targetClusterId)
                     {
@@ -578,16 +778,16 @@ public class HexPlacementValidator : MonoBehaviour
             }
         }
 
-        // 2. Fallback quét BFS theo địa hình liền kề
+        // 2. Fallback quét BFS theo địa hình liền kề (bỏ qua ô có Settlement)
         HashSet<HexCoordinates> visited = new HashSet<HexCoordinates>();
         Queue<HexCoordinates> queue = new Queue<HexCoordinates>();
         visited.Add(targetHex);
         queue.Enqueue(targetHex);
 
         int creatureCount = 0;
-        if (worldGen.MapTiles.TryGetValue(targetHex, out GameObject startTile) && startTile != null)
+        if (targetTile != null && HasPlacedCreature(targetTile))
         {
-            if (HasPlacedCreature(startTile)) creatureCount++;
+            creatureCount++;
         }
 
         while (queue.Count > 0)
@@ -598,7 +798,8 @@ public class HexPlacementValidator : MonoBehaviour
                 HexCoordinates neighborHex = current.GetNeighbor(dir);
                 if (visited.Contains(neighborHex)) continue;
 
-                if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
+                if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null &&
+                    !HasSettlement(neighborTile))
                 {
                     CardData neighborTerrain = GetPlacedTerrainCard(neighborTile);
                     if (neighborTerrain != null && IsMatchingTerrainOrBiome(terrainCard, neighborTerrain))

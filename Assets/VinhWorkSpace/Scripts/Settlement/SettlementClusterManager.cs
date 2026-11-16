@@ -155,6 +155,11 @@ public class SettlementClusterManager : MonoBehaviour
     /// </summary>
     private void UpdateSettlementCluster(HexCoordinates placedHex, PlacedCard placedCardInstance)
     {
+        if (HexBiomeClusterConnector.Instance != null)
+        {
+            HexBiomeClusterConnector.Instance.DetachTerrainClusterFromHex(placedHex);
+        }
+
         // Tìm toàn bộ các ô liên thông trực tiếp với ô vừa đặt
         List<HexCoordinates> clusterHexes = SettlementClusterCalculator.FindConnectedCluster(
             placedHex,

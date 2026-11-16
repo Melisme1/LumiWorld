@@ -154,15 +154,16 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         GameObject toastObj = new GameObject("FeedbackToast", typeof(RectTransform), typeof(Image));
         toastObj.transform.SetParent(transform, false);
         toastPanel = toastObj.GetComponent<RectTransform>();
-        toastPanel.anchorMin = new Vector2(0.5f, 0.5f);
-        toastPanel.anchorMax = new Vector2(0.5f, 0.5f);
-        toastPanel.pivot = new Vector2(0.5f, 0.5f);
-        toastPanel.anchoredPosition = new Vector2(0f, 160f);
-        toastPanel.sizeDelta = new Vector2(560f, 54f);
+        toastPanel.anchorMin = new Vector2(0.5f, 1f);
+        toastPanel.anchorMax = new Vector2(0.5f, 1f);
+        toastPanel.pivot = new Vector2(0.5f, 1f);
+        toastPanel.anchoredPosition = new Vector2(0f, -84f);
+        toastPanel.sizeDelta = new Vector2(560f, 52f);
 
         Image toastBg = toastObj.GetComponent<Image>();
         toastBg.sprite = PreserveDiamondStyle.DiamondBase;
-        toastBg.color = new Color(0.15f, 0.12f, 0.08f, 0.96f);
+        toastBg.color = new Color(0.14f, 0.08f, 0.09f, 0.92f);
+        toastBg.raycastTarget = false;
 
         GameObject toastLabelObj = new GameObject("ToastLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
         toastLabelObj.transform.SetParent(toastPanel, false);
@@ -173,6 +174,7 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         toastText.alignment = TextAlignmentOptions.Center;
         toastText.fontSize = 15f;
         toastText.color = new Color(1f, 0.90f, 0.50f, 1f);
+        toastText.raycastTarget = false;
 
         toastPanel.gameObject.SetActive(false);
     }
@@ -189,10 +191,29 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         int placementFee,
         bool canAffordFee)
     {
-        // Vô hiệu hóa Banner đen cũ để không gây lỗi font và che khuất màn hình.
-        // Trạng thái trực quan 3D (Ghost Xanh/Đỏ và -X Coins) đã được HexGhostVisual hiển thị chuẩn xác tại ô đất.
-        // Mọi thông báo lỗi (thiếu Coins, vị trí không hợp lệ) sẽ được chuyển về Panel Thông Báo chuẩn của game khi thả chuột.
-        HidePreview();
+        if (previewPanel != null)
+        {
+            previewPanel.gameObject.SetActive(false);
+        }
+
+        if (isValid && canAffordFee)
+        {
+            if (toastPanel != null && toastCoroutine == null)
+            {
+                toastPanel.gameObject.SetActive(false);
+            }
+            return;
+        }
+
+        if (toastPanel != null && toastText != null)
+        {
+            string reason = !canAffordFee
+                ? $"Not enough Coins ({placementFee} required)."
+                : (!string.IsNullOrEmpty(validationError) ? validationError : "Cannot place here.");
+            toastText.text = reason;
+            toastText.color = new Color(1f, 0.55f, 0.52f, 1f);
+            toastPanel.gameObject.SetActive(true);
+        }
     }
 
     public void HidePreview()
@@ -200,6 +221,10 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         if (previewPanel != null)
         {
             previewPanel.gameObject.SetActive(false);
+        }
+        if (toastPanel != null && toastCoroutine == null)
+        {
+            toastPanel.gameObject.SetActive(false);
         }
     }
 

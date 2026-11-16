@@ -230,12 +230,14 @@ public class WildPackIncidentManager : MonoBehaviour
 
                     Vector3 sumPos = Vector3.zero;
                     int count = 0;
+                    var clusterHexes = new List<HexCoordinates>();
                     if (habitat.members != null)
                     {
                         foreach (var m in habitat.members)
                         {
                             if (m != null)
                             {
+                                clusterHexes.Add(m.hex);
                                 float tileSurfaceY = HexMetrics.TileHeight;
                                 if (worldGen != null && worldGen.MapTiles.TryGetValue(m.hex, out GameObject tileObj) && tileObj != null)
                                 {
@@ -257,6 +259,7 @@ public class WildPackIncidentManager : MonoBehaviour
                         ClusterId = habitat.habitatId,
                         BiomeName = habitat.affinity.ToString(),
                         HexCount = habitat.HexCount,
+                        Hexes = clusterHexes,
                         CenterPosition = center,
                         TerrainCard = terrain,
                         NatureKey = natureKey,
@@ -296,10 +299,12 @@ public class WildPackIncidentManager : MonoBehaviour
             {
                 var list = kvp.Value;
                 Vector3 sumPos = Vector3.zero;
+                var fallbackHexes = new List<HexCoordinates>();
                 foreach (var p in list)
                 {
                     if (p != null)
                     {
+                        fallbackHexes.Add(p.placedHex);
                         float tileSurfaceY = p.transform.position.y;
                         if (worldGen != null && worldGen.MapTiles.TryGetValue(p.placedHex, out GameObject tileObj) && tileObj != null)
                         {
@@ -317,6 +322,7 @@ public class WildPackIncidentManager : MonoBehaviour
                     ClusterId = kvp.Key,
                     BiomeName = firstCard.cardName,
                     HexCount = list.Count,
+                    Hexes = fallbackHexes,
                     CenterPosition = center,
                     TerrainCard = firstCard,
                     NatureKey = firstCard.cardName,
@@ -534,6 +540,7 @@ public class WildPackIncidentManager : MonoBehaviour
 
         activeIncidents.Add(incident);
         OnIncidentSpawned?.Invoke(incident);
+        if (BiomeBuffVisualManager.Instance != null) BiomeBuffVisualManager.Instance.RefreshAllBuffs();
 
         string sourceTag = isDebugForce
             ? "<color=#38bdf8><b>[Test Tool - Thú Hoang]</b></color>"
@@ -626,6 +633,7 @@ public class WildPackIncidentManager : MonoBehaviour
 
         incident.Resolve();
         activeIncidents.Remove(incident);
+        if (BiomeBuffVisualManager.Instance != null) BiomeBuffVisualManager.Instance.RefreshAllBuffs();
         StartNextSpawnCooldown(); // Khởi tạo chu kỳ đếm giờ ngẫu nhiên mới qua Time System (180s - 300s)
 
         OnIncidentResolved?.Invoke(incident, rewarded);

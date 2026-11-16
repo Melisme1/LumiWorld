@@ -12,6 +12,7 @@ public class IncidentClusterTarget
     public string ClusterId { get; set; } = "";
     public string BiomeName { get; set; } = "Biome";
     public int HexCount { get; set; } = 3;
+    public List<HexCoordinates> Hexes { get; set; } = new List<HexCoordinates>();
     public Vector3 CenterPosition { get; set; } = Vector3.zero;
     public CardData TerrainCard { get; set; }
     public string NatureKey { get; set; } = "";

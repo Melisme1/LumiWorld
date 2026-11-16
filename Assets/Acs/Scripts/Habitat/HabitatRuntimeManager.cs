@@ -144,6 +144,7 @@ namespace LumiWorld.Acs
             foreach (var record in records)
             {
                 if (record.CardType != CardType.Terrain || !catalog.TryGetHabitat(record.CardID, out var definition)) continue;
+                if (record.GetComponentInParent<SettlementTile>() != null) continue;
                 var identity = identities[record];
                 if (terrainByHex.ContainsKey(identity.HomeHex))
                 { diagnostics.Add("Hai Nature cards tại " + identity.HomeHex + "; kiểm tra placement."); continue; }

@@ -474,11 +474,25 @@ public class HexBiomeClusterConnector : MonoBehaviour
         PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>(true);
         if (cards != null)
         {
+            // Building (Settlement) luôn tách riêng khỏi Biome nền bên dưới.
+            foreach (var c in cards)
+            {
+                if (c != null && c.cardData != null && c.cardData.IsSettlementCard())
+                {
+                    return c;
+                }
+            }
+
+            if (tileObj.GetComponent<SettlementTile>() != null)
+            {
+                return null;
+            }
+
             foreach (var c in cards)
                 if (c != null && c.CardType == CardType.Terrain) return c;
             foreach (var c in cards)
             {
-                if (c != null && c.cardData != null && (c.cardData.HasHabitatProps() || c.cardData.IsSettlementCard()))
+                if (c != null && c.cardData != null && c.cardData.HasHabitatProps())
                 {
                     return c;
                 }
@@ -1062,6 +1076,51 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 DestroyImmediate(_connectionsContainer.gameObject);
 
             _connectionsContainer = null;
+        }
+    }
+
+    /// <summary>
+    /// Tách một ô (ví dụ vừa xây Building/Settlement) khỏi cụm Biome trước đó:
+    /// xóa các cầu nối/prop cạnh cũ và chia lại clusterId cho phần Biome còn lại nếu bị tách.
+    /// </summary>
+    public void DetachTerrainClusterFromHex(HexCoordinates hex)
+    {
+        RemoveConnectionsForHex(hex);
+
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen == null || worldGen.MapTiles == null) return;
+        if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null) return;
+
+        int oldBiomeClusterId = 0;
+        PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>(true);
+        foreach (var c in cards)
+        {
+            if (c != null && c.CardType == CardType.Terrain)
+            {
+                if (c.clusterId > 0) oldBiomeClusterId = c.clusterId;
+                c.clusterId = 0;
+            }
+        }
+
+        if (oldBiomeClusterId <= 0) return;
+
+        List<PlacedCard> affectedCards = new List<PlacedCard>();
+        foreach (var pair in worldGen.MapTiles)
+        {
+            if (pair.Value == null || pair.Value == tileObj) continue;
+            if (pair.Value.GetComponent<SettlementTile>() != null) continue;
+
+            PlacedCard pc = GetHabitatCardOnTile(pair.Value);
+            if (pc != null && pc.CardType == CardType.Terrain && pc.clusterId == oldBiomeClusterId)
+            {
+                pc.clusterId = 0;
+                affectedCards.Add(pc);
+            }
+        }
+
+        foreach (var pc in affectedCards)
+        {
+            AssignCluster(pc);
         }
     }
 

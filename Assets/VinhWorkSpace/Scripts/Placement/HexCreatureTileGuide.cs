@@ -79,6 +79,8 @@ public class HexCreatureTileGuide : MonoBehaviour
     }
 
     private readonly List<TileGuideVisualInfo> activeGuides = new List<TileGuideVisualInfo>();
+    private readonly List<GameObject> activeClusterBorders = new List<GameObject>();
+    private readonly List<Mesh> activeClusterBorderMeshes = new List<Mesh>();
     private readonly HashSet<AnimalVisualEnhancer> highlightedAnimals = new HashSet<AnimalVisualEnhancer>();
 
     private GameObject guideCanvasObj;
@@ -199,30 +201,177 @@ public class HexCreatureTileGuide : MonoBehaviour
         isGuideActive = true;
         guideCanvasObj.SetActive(true);
 
+        // Gom tất cả các ô Biome (loại trừ ô Building/Settlement) thành từng cụm
+        Dictionary<string, List<(HexCoordinates coords, GameObject tileObj)>> clusters =
+            new Dictionary<string, List<(HexCoordinates, GameObject)>>();
+        List<string> clusterOrder = new List<string>();
+
         foreach (var pair in worldGen.MapTiles)
         {
             HexCoordinates coords = pair.Key;
             GameObject tileObj = pair.Value;
-            if (tileObj == null) continue;
+            if (tileObj == null || tileObj.GetComponent<SettlementTile>() != null) continue;
 
-            // 1. Ô ĐÃ CÓ THÚ SINH SỐNG (Báo đỏ ngắn gọn: "Creature present")
-            if (validator != null && validator.HasPlacedCreature(tileObj))
+            CardData terrainCard = validator != null ? validator.GetPlacedTerrainCard(tileObj) : null;
+            if (terrainCard == null) continue;
+
+            PlacedCard habitatCard = HexBiomeClusterConnector.GetHabitatCardOnTile(tileObj);
+            int cId = habitatCard != null ? habitatCard.clusterId : 0;
+            string key = cId > 0 ? $"{terrainCard.cardID}:{cId}" : $"{terrainCard.cardID}:0";
+
+            if (!clusters.TryGetValue(key, out var list))
             {
-                AnimalVisualEnhancer animal = tileObj.GetComponentInChildren<AnimalVisualEnhancer>();
-                CreateTileGuideVisual(coords, tileObj, true, "Creature present", animal);
+                list = new List<(HexCoordinates, GameObject)>();
+                clusters[key] = list;
+                clusterOrder.Add(key);
+            }
+            list.Add((coords, tileObj));
+        }
 
-                if (animal != null)
+        for (int c = 0; c < clusterOrder.Count; c++)
+        {
+            var clusterTiles = clusters[clusterOrder[c]];
+            if (clusterTiles.Count == 0) continue;
+
+            bool clusterHasValidPlacement = false;
+            for (int i = 0; i < clusterTiles.Count; i++)
+            {
+                var item = clusterTiles[i];
+                if (validator != null && !validator.HasPlacedCreature(item.tileObj) &&
+                    validator.ValidatePlacement(item.coords, worldGen, creatureCard, out _))
                 {
-                    animal.SetGreetingHighlight(true);
-                    highlightedAnimals.Add(animal);
+                    clusterHasValidPlacement = true;
+                    break;
                 }
             }
-            // 2. Ô TRỐNG HỢP LỆ (Có thể đặt thú này -> Sáng bừng xanh lá toàn bộ)
-            else if (validator != null && validator.ValidatePlacement(coords, worldGen, creatureCard, out _))
+
+            // Tìm ô nằm gần trọng tâm nhất của cụm để đặt Pin đại diện
+            int centerIndex = FindClusterCenterTileIndex(clusterTiles);
+
+            for (int i = 0; i < clusterTiles.Count; i++)
             {
-                CreateTileGuideVisual(coords, tileObj, false, "Place here", null);
+                var item = clusterTiles[i];
+                bool isOccupiedTile = validator != null && validator.HasPlacedCreature(item.tileObj);
+                if (isOccupiedTile)
+                {
+                    AnimalVisualEnhancer animal = item.tileObj.GetComponentInChildren<AnimalVisualEnhancer>();
+                    if (animal != null)
+                    {
+                        animal.SetGreetingHighlight(true);
+                        highlightedAnimals.Add(animal);
+                    }
+                }
+
+                bool showPin = clusterHasValidPlacement && (i == centerIndex);
+                bool showAsRed = !clusterHasValidPlacement;
+                CreateTileGuideVisual(item.coords, item.tileObj, showAsRed, "Biome Zone", null, showOverheadPin: showPin);
+            }
+
+            CreateClusterPerimeterBorder(clusterTiles, clusterHasValidPlacement);
+        }
+    }
+
+    private static int FindClusterCenterTileIndex(List<(HexCoordinates coords, GameObject tileObj)> clusterTiles)
+    {
+        if (clusterTiles.Count <= 1) return 0;
+
+        Vector3 centroid = Vector3.zero;
+        for (int i = 0; i < clusterTiles.Count; i++)
+        {
+            centroid += clusterTiles[i].tileObj.transform.position;
+        }
+        centroid /= clusterTiles.Count;
+
+        int bestIdx = 0;
+        float bestDistSqr = float.MaxValue;
+        for (int i = 0; i < clusterTiles.Count; i++)
+        {
+            Vector3 delta = clusterTiles[i].tileObj.transform.position - centroid;
+            delta.y = 0f;
+            float dSqr = delta.sqrMagnitude;
+            if (dSqr < bestDistSqr)
+            {
+                bestDistSqr = dSqr;
+                bestIdx = i;
             }
         }
+        return bestIdx;
+    }
+
+    private void CreateClusterPerimeterBorder(List<(HexCoordinates coords, GameObject tileObj)> clusterTiles, bool isValid)
+    {
+        HashSet<HexCoordinates> clusterSet = new HashSet<HexCoordinates>();
+        for (int i = 0; i < clusterTiles.Count; i++) clusterSet.Add(clusterTiles[i].coords);
+
+        List<Vector3> vertices = new List<Vector3>();
+        List<Color> colors = new List<Color>();
+        List<int> triangles = new List<int>();
+
+        float rInner = HexMetrics.OuterRadius * 0.87f;
+        float rOuter = HexMetrics.OuterRadius * 0.97f;
+        Color borderColor = isValid
+            ? new Color(0.28f, 1.0f, 0.52f, 0.92f)
+            : new Color(1.0f, 0.30f, 0.30f, 0.88f);
+
+        for (int i = 0; i < clusterTiles.Count; i++)
+        {
+            HexCoordinates hex = clusterTiles[i].coords;
+            GameObject tileObj = clusterTiles[i].tileObj;
+            Vector3 center = tileObj.transform.position;
+            var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
+            float y = topY + 0.046f;
+
+            for (int dir = 0; dir < 6; dir++)
+            {
+                if (clusterSet.Contains(hex.GetNeighbor(dir))) continue;
+
+                float normalDeg = -60f * dir;
+                float a0 = Mathf.Deg2Rad * (normalDeg - 30f);
+                float a1 = Mathf.Deg2Rad * (normalDeg + 30f);
+
+                Vector3 d0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0));
+                Vector3 d1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1));
+
+                int baseIdx = vertices.Count;
+                vertices.Add(new Vector3(center.x + d0.x * rInner, y, center.z + d0.z * rInner));
+                vertices.Add(new Vector3(center.x + d0.x * rOuter, y, center.z + d0.z * rOuter));
+                vertices.Add(new Vector3(center.x + d1.x * rOuter, y, center.z + d1.z * rOuter));
+                vertices.Add(new Vector3(center.x + d1.x * rInner, y, center.z + d1.z * rInner));
+
+                colors.Add(borderColor);
+                colors.Add(borderColor);
+                colors.Add(borderColor);
+                colors.Add(borderColor);
+
+                triangles.Add(baseIdx);
+                triangles.Add(baseIdx + 2);
+                triangles.Add(baseIdx + 1);
+                triangles.Add(baseIdx);
+                triangles.Add(baseIdx + 3);
+                triangles.Add(baseIdx + 2);
+            }
+        }
+
+        if (vertices.Count == 0) return;
+
+        Mesh borderMesh = new Mesh { name = "ClusterGuidePerimeterMesh" };
+        borderMesh.SetVertices(vertices);
+        borderMesh.SetColors(colors);
+        borderMesh.SetTriangles(triangles, 0);
+        borderMesh.RecalculateNormals();
+        borderMesh.RecalculateBounds();
+
+        GameObject borderGo = new GameObject("ClusterGuidePerimeter");
+        borderGo.transform.SetParent(transform, false);
+        MeshFilter mf = borderGo.AddComponent<MeshFilter>();
+        mf.sharedMesh = borderMesh;
+        MeshRenderer mr = borderGo.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = cachedGroundMaterial;
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+
+        activeClusterBorders.Add(borderGo);
+        activeClusterBorderMeshes.Add(borderMesh);
     }
 
     /// <summary>
@@ -278,6 +427,18 @@ public class HexCreatureTileGuide : MonoBehaviour
         }
         activeGuides.Clear();
 
+        for (int i = 0; i < activeClusterBorders.Count; i++)
+        {
+            if (activeClusterBorders[i] != null) Destroy(activeClusterBorders[i]);
+        }
+        activeClusterBorders.Clear();
+
+        for (int i = 0; i < activeClusterBorderMeshes.Count; i++)
+        {
+            if (activeClusterBorderMeshes[i] != null) Destroy(activeClusterBorderMeshes[i]);
+        }
+        activeClusterBorderMeshes.Clear();
+
         if (guideCanvasObj != null)
         {
             guideCanvasObj.SetActive(false);
@@ -290,7 +451,7 @@ public class HexCreatureTileGuide : MonoBehaviour
     /// 2. Cột sáng nối thẳng lên trời (Vertical Stem)
     /// 3. Pin biểu tượng nổi cao trên ngọn cây (Overhead Floating Badge)
     /// </summary>
-    private void CreateTileGuideVisual(HexCoordinates coords, GameObject tileObj, bool isOccupied, string label, AnimalVisualEnhancer animal)
+    private void CreateTileGuideVisual(HexCoordinates coords, GameObject tileObj, bool isOccupied, string label, AnimalVisualEnhancer animal, bool showOverheadPin = true)
     {
         // 1. Xác định bề mặt thực tế chuẩn xác của ô cỏ (không bị dôi bởi props)
         float surfaceY = HexMetrics.TileHeight;
@@ -332,6 +493,20 @@ public class HexCreatureTileGuide : MonoBehaviour
         block.SetColor("_Color", groundMeshBaseColor);
         block.SetColor("_BaseColor", groundMeshBaseColor);
         mr.SetPropertyBlock(block);
+
+        if (!showOverheadPin)
+        {
+            activeGuides.Add(new TileGuideVisualInfo
+            {
+                coords = coords,
+                isOccupied = isOccupied,
+                associatedAnimal = animal,
+                groundObj = groundObj,
+                groundRenderer = mr,
+                baseGroundColor = groundMeshBaseColor
+            });
+            return;
+        }
 
         // -------------------------------------------------------------
         // PHẦN 2: PIN CHỈ DẪN NỔI CAO TRÊN TÁN CÂY (FLOATING BADGE)
@@ -542,10 +717,7 @@ public class HexCreatureTileGuide : MonoBehaviour
         List<Color> colors = new List<Color>();
         List<int> triangles = new List<int>();
 
-        float baseOuterR = HexMetrics.OuterRadius;
-        float rInner = baseOuterR * 0.74f;
-        float rOuter = baseOuterR * 0.95f;
-        float rFade = rOuter + 0.08f;
+        float baseOuterR = HexMetrics.OuterRadius * 0.99f;
 
         // 6 góc của lục giác nhọn đỉnh (Pointed-Top)
         Vector2[] dirs = new Vector2[6];
@@ -555,32 +727,16 @@ public class HexCreatureTileGuide : MonoBehaviour
             dirs[i] = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
         }
 
-        // Đỉnh 0: Tâm lục giác
+        // Phủ phẳng đồng nhất không có viền nội bộ giữa các ô cùng cụm
         vertices.Add(Vector3.zero);
-        colors.Add(new Color(1f, 1f, 1f, 0.22f));
+        colors.Add(new Color(1f, 1f, 1f, 0.34f));
 
-        // Đỉnh 1..6: Vòng trong (Inner Ring)
         for (int i = 0; i < 6; i++)
         {
-            vertices.Add(new Vector3(dirs[i].x * rInner, 0f, dirs[i].y * rInner));
-            colors.Add(new Color(1f, 1f, 1f, 0.42f));
+            vertices.Add(new Vector3(dirs[i].x * baseOuterR, 0f, dirs[i].y * baseOuterR));
+            colors.Add(new Color(1f, 1f, 1f, 0.34f));
         }
 
-        // Đỉnh 7..12: Vòng ngoài phát sáng (Outer Glowing Border)
-        for (int i = 0; i < 6; i++)
-        {
-            vertices.Add(new Vector3(dirs[i].x * rOuter, 0f, dirs[i].y * rOuter));
-            colors.Add(new Color(1f, 1f, 1f, 0.95f));
-        }
-
-        // Đỉnh 13..18: Viền tan dần (Fade Feather Rim)
-        for (int i = 0; i < 6; i++)
-        {
-            vertices.Add(new Vector3(dirs[i].x * rFade, 0f, dirs[i].y * rFade));
-            colors.Add(new Color(1f, 1f, 1f, 0.0f));
-        }
-
-        // 1. Tam giác đĩa trung tâm (Center Disc)
         for (int i = 0; i < 6; i++)
         {
             int next = (i + 1) % 6;
@@ -589,46 +745,11 @@ public class HexCreatureTileGuide : MonoBehaviour
             triangles.Add(1 + i);
         }
 
-        // 2. Dải viền sáng (Inner Ring -> Outer Ring)
-        for (int i = 0; i < 6; i++)
-        {
-            int next = (i + 1) % 6;
-            int inA = 1 + i;
-            int inB = 1 + next;
-            int outA = 7 + i;
-            int outB = 7 + next;
-
-            triangles.Add(inA);
-            triangles.Add(outB);
-            triangles.Add(outA);
-
-            triangles.Add(inA);
-            triangles.Add(inB);
-            triangles.Add(outB);
-        }
-
-        // 3. Dải viền mờ mềm mại (Outer Ring -> Fade Rim)
-        for (int i = 0; i < 6; i++)
-        {
-            int next = (i + 1) % 6;
-            int outA = 7 + i;
-            int outB = 7 + next;
-            int fadeA = 13 + i;
-            int fadeB = 13 + next;
-
-            triangles.Add(outA);
-            triangles.Add(fadeB);
-            triangles.Add(fadeA);
-
-            triangles.Add(outA);
-            triangles.Add(outB);
-            triangles.Add(fadeB);
-        }
-
         mesh.SetVertices(vertices);
         mesh.SetColors(colors);
         mesh.SetTriangles(triangles, 0);
         mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
 
         return mesh;
     }
