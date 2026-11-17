@@ -330,15 +330,7 @@ public class RhythmMinigameEngine
     {
         currentSequence.Clear();
 
-        int noteCount = rank switch
-        {
-            AnimalRank.Common => 3,
-            AnimalRank.Uncommon => 4,
-            AnimalRank.Rare => random.Next(4, 6),
-            AnimalRank.Epic => 5,
-            AnimalRank.Legendary => 6,
-            _ => 3
-        };
+        int noteCount = random.Next(3, 6); // Random từ 3 đến 5 nhịp mỗi lượt
 
         RhythmDirection prev = (RhythmDirection)(-1);
         int repeatCount = 0;

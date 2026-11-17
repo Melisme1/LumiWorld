@@ -91,15 +91,8 @@ public class AnimalIndividual : MonoBehaviour
             uniqueID = Guid.NewGuid().ToString().Substring(0, 6).ToUpper();
         }
 
-        // 1. Xác định cấp sao (1★ đến 5★)
-        if (forcedStar >= 1 && forcedStar <= 5)
-        {
-            this.starLevel = forcedStar;
-        }
-        else
-        {
-            this.starLevel = RollStarLevel(speciesData);
-        }
+        // 1. Xác định cấp sao (mặc định luôn là cấp thấp nhất 1★ nếu không ép sao)
+        this.starLevel = (forcedStar >= 1 && forcedStar <= 5) ? forcedStar : 1;
         this.rank = (AnimalRank)this.starLevel;
 
         // 2. Xác định Thiên phú / Tính cách (Trait)
@@ -364,26 +357,6 @@ public class AnimalIndividual : MonoBehaviour
             Color rankColor = GetRankColor(rank);
             visual.ApplyRankVisuals(rank, starLevel, rankColor);
         }
-    }
-
-    private int RollStarLevel(AnimalSpeciesData data)
-    {
-        float totalWeight = data.weight1Star + data.weight2Star + data.weight3Star + data.weight4Star + data.weight5Star;
-        if (totalWeight <= 0f) totalWeight = 100f;
-
-        float roll = Random.Range(0f, totalWeight);
-        if (roll < data.weight1Star) return 1;
-        roll -= data.weight1Star;
-
-        if (roll < data.weight2Star) return 2;
-        roll -= data.weight2Star;
-
-        if (roll < data.weight3Star) return 3;
-        roll -= data.weight3Star;
-
-        if (roll < data.weight4Star) return 4;
-
-        return 5; // 5★ Huyền thoại
     }
 
     public static string GetRankTitle(AnimalRank r) => r switch

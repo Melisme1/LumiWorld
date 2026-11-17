@@ -100,7 +100,7 @@ public class InventoryUI : MonoBehaviour
             slotRect.anchoredPosition = new Vector2(padding + i * (slotWidth + slotSpacing) + slotWidth * 0.5f, 0f);
 
             // Icon giống bong bóng thu hoạch: dùng ResourceData.icon nếu có, không thì icon vẽ bằng code
-            EconomyHUD.CreateIcon("Icon", slotRect, BiomeHarvestIndicator.GetResourceSprite(resource), iconSize, 0f);
+            EconomyHUD.CreateIcon("Icon", slotRect, ResourceIconUtility.GetResourceSprite(resource), iconSize, 0f);
 
             TextMeshProUGUI amountText = EconomyHUD.CreateText("Amount", slotRect, 22f, amountColor, TextAlignmentOptions.Left);
             RectTransform amountRect = amountText.rectTransform;

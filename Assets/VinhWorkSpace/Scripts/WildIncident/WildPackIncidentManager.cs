@@ -80,6 +80,11 @@ public class WildPackIncidentManager : MonoBehaviour
 
     private readonly HashSet<string> disruptedHabitatIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+    public bool IsHabitatDisrupted(string habitatId)
+    {
+        return !string.IsNullOrEmpty(habitatId) && disruptedHabitatIds.Contains(habitatId);
+    }
+
     public event Action<WildPackIncident> OnIncidentSpawned;
     public event Action<WildPackIncident, bool> OnIncidentResolved;
 
@@ -228,8 +233,7 @@ public class WildPackIncidentManager : MonoBehaviour
                 {
                     if (habitat == null) continue;
 
-                    Vector3 sumPos = Vector3.zero;
-                    int count = 0;
+                    var memberPositions = new List<Vector3>();
                     var clusterHexes = new List<HexCoordinates>();
                     if (habitat.members != null)
                     {
@@ -244,13 +248,12 @@ public class WildPackIncidentManager : MonoBehaviour
                                     var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
                                     tileSurfaceY = topY;
                                 }
-                                sumPos += HexMetrics.HexToWorldPosition(m.hex, tileSurfaceY);
-                                count++;
+                                memberPositions.Add(HexMetrics.HexToWorldPosition(m.hex, tileSurfaceY));
                             }
                         }
                     }
 
-                    Vector3 center = count > 0 ? sumPos / count : Vector3.zero;
+                    Vector3 center = PickNearestMemberPosition(memberPositions);
                     string natureKey = habitat.affinity.ToString();
                     CardData terrain = FindMatchingTerrainCard(natureKey);
 
@@ -264,11 +267,11 @@ public class WildPackIncidentManager : MonoBehaviour
                         TerrainCard = terrain,
                         NatureKey = natureKey,
                         IsDisrupted = disruptedHabitatIds.Contains(habitat.habitatId),
+                        IsProducing = habitat.residents != null && habitat.residents.Count > 0,
                         SetDisruptedAction = (disrupted) => {
                             if (disrupted) disruptedHabitatIds.Add(habitat.habitatId);
                             else disruptedHabitatIds.Remove(habitat.habitatId);
-                        },
-                        SetSpeedMultiplierAction = (mult) => { }
+                        }
                     };
 
                     result.Add(target);
@@ -298,8 +301,9 @@ public class WildPackIncidentManager : MonoBehaviour
             foreach (var kvp in groups)
             {
                 var list = kvp.Value;
-                Vector3 sumPos = Vector3.zero;
+                var memberPositions = new List<Vector3>();
                 var fallbackHexes = new List<HexCoordinates>();
+                bool hasAnimal = false;
                 foreach (var p in list)
                 {
                     if (p != null)
@@ -310,11 +314,15 @@ public class WildPackIncidentManager : MonoBehaviour
                         {
                             var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
                             tileSurfaceY = topY;
+                            if (!hasAnimal && tileObj.GetComponentInChildren<AnimalIndividual>() != null)
+                            {
+                                hasAnimal = true;
+                            }
                         }
-                        sumPos += new Vector3(p.transform.position.x, tileSurfaceY, p.transform.position.z);
+                        memberPositions.Add(new Vector3(p.transform.position.x, tileSurfaceY, p.transform.position.z));
                     }
                 }
-                Vector3 center = list.Count > 0 ? sumPos / list.Count : Vector3.zero;
+                Vector3 center = PickNearestMemberPosition(memberPositions);
 
                 var firstCard = list[0].cardData;
                 var target = new IncidentClusterTarget
@@ -326,14 +334,40 @@ public class WildPackIncidentManager : MonoBehaviour
                     CenterPosition = center,
                     TerrainCard = firstCard,
                     NatureKey = firstCard.cardName,
-                    SetDisruptedAction = (disrupted) => { },
-                    SetSpeedMultiplierAction = (mult) => { }
+                    IsProducing = hasAnimal,
+                    SetDisruptedAction = (disrupted) => { }
                 };
                 result.Add(target);
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Chọn tọa độ ô thực tế nằm gần tâm hình học nhất trong cụm,
+    /// tránh trường hợp cụm hình chữ U / vòng cung có trung bình cộng rơi ra ngoài (lọt sang cụm khác).
+    /// </summary>
+    private static Vector3 PickNearestMemberPosition(List<Vector3> positions)
+    {
+        if (positions == null || positions.Count == 0) return Vector3.zero;
+
+        Vector3 avg = Vector3.zero;
+        for (int i = 0; i < positions.Count; i++) avg += positions[i];
+        avg /= positions.Count;
+
+        Vector3 best = positions[0];
+        float bestDistSqr = (positions[0] - avg).sqrMagnitude;
+        for (int i = 1; i < positions.Count; i++)
+        {
+            float d = (positions[i] - avg).sqrMagnitude;
+            if (d < bestDistSqr)
+            {
+                bestDistSqr = d;
+                best = positions[i];
+            }
+        }
+        return best;
     }
 
     /// <summary>
@@ -404,9 +438,7 @@ public class WildPackIncidentManager : MonoBehaviour
         var hostCluster = WildIncidentEvaluator.PickHostCluster(clusters, config.minClusterSizeToHost);
         CardData creatureCard = config.GetCompatibleCreature(hostCluster.TerrainCard, hostCluster.NatureKey);
 
-        int scoreMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
-        int progressionTier = WildIncidentEvaluator.EvaluateProgressionTier(scoreMilestone, clusters);
-        AnimalRank alphaRank = config.RollAlphaRank(progressionTier);
+        AnimalRank alphaRank = AnimalRank.Common;
 
         incident = ExecuteSpawn(hostCluster, creatureCard, alphaRank, clusters, isDebugForce: false);
         failureReason = incident != null ? null : "Lỗi khi sinh mô hình sinh vật vào scene.";
@@ -450,9 +482,7 @@ public class WildPackIncidentManager : MonoBehaviour
             creature = config.GetCompatibleCreature(host.TerrainCard, host.NatureKey);
         }
 
-        int scoreMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
-        int progressionTier = WildIncidentEvaluator.EvaluateProgressionTier(scoreMilestone, clusters);
-        AnimalRank rank = forceRank ?? (config != null ? config.RollAlphaRank(progressionTier) : AnimalRank.Rare);
+        AnimalRank rank = forceRank ?? AnimalRank.Common;
 
         incident = ExecuteSpawn(host, creature, rank, clusters, isDebugForce: true);
         failureReason = incident != null ? null : "Lỗi khi sinh mô hình sinh vật.";
@@ -520,7 +550,6 @@ public class WildPackIncidentManager : MonoBehaviour
 
         // 3. Khởi tạo đối tượng sự cố và phong tỏa
         string incidentId = Guid.NewGuid().ToString().Substring(0, 6).ToUpper();
-        float debuff = config != null ? config.satelliteSpeedDebuff : 0.7f;
         var incident = new WildPackIncident(
             incidentId,
             hostCluster,
@@ -528,8 +557,7 @@ public class WildPackIncidentManager : MonoBehaviour
             alphaRank,
             alphaInstance,
             satelliteClusters,
-            minionInstances,
-            debuff
+            minionInstances
         );
 
         if (alphaInstance != null)
@@ -583,7 +611,7 @@ public class WildPackIncidentManager : MonoBehaviour
         if (incident.HostCluster != null) incident.HostCluster.SetDisrupted(false);
         foreach (var sat in incident.SatelliteClusters)
         {
-            if (sat != null) sat.SetSpeedMultiplier(1.0f);
+            if (sat != null) sat.SetDisrupted(false);
         }
 
         // 2. Thu thập danh sách mô hình thú đang có mặt

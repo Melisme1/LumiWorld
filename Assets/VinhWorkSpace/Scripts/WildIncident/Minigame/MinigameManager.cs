@@ -105,6 +105,11 @@ public class MinigameManager : MonoBehaviour
                 activeSession = rhythmView;
                 break;
 
+            case MinigameType.ObstacleRunner:
+                var runnerView = activeModalCanvasObj.AddComponent<RunnerMinigameView>();
+                activeSession = runnerView;
+                break;
+
             case MinigameType.RockPaperScissors:
                 // Sẵn sàng gắn RockPaperScissorsView khi triển khai Minigame 1
                 Debug.LogWarning("[MinigameManager] Minigame Kéo Búa Bao đang được phát triển, tạm thời dùng Vũ Điệu Hòa Nhịp.");

@@ -297,7 +297,11 @@ public class WildAlphaInteractable : MonoBehaviour
                         TimeLimitSeconds = 24f
                     };
 
-                    MinigameManager.Instance.StartMinigame(MinigameType.RhythmResonance, context, (result) =>
+                    MinigameType chosenMinigame = UnityEngine.Random.value < 0.5f
+                        ? MinigameType.ObstacleRunner
+                        : MinigameType.RhythmResonance;
+
+                    MinigameManager.Instance.StartMinigame(chosenMinigame, context, (result) =>
                     {
                         if (result != null && result.IsSuccess)
                         {

@@ -329,7 +329,7 @@ public class OrderBoardUI : MonoBehaviour
             ResourceData resource = ResourceCatalog.Find(need.resourceId);
             int have = inventory.GetAmount(need.resourceId);
 
-            row.icon.sprite = BiomeHarvestIndicator.GetResourceSprite(resource);
+            row.icon.sprite = ResourceIconUtility.GetResourceSprite(resource);
             row.name.text = resource != null ? resource.resourceName : need.resourceId;
             row.count.text = have + "/" + need.amount;
             row.count.color = have >= need.amount ? enoughColor : missingColor;
@@ -739,7 +739,7 @@ public class OrderBoardUI : MonoBehaviour
 
             RectTransform iconSlot = EconomyHUD.CreateRect("IconSlot", view.row);
             Place(iconSlot, new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(30f, 30f));
-            EconomyHUD.CreateIcon("Icon", iconSlot, BiomeHarvestIndicator.GetResourceSprite(view.resource), 28f, 0f);
+            EconomyHUD.CreateIcon("Icon", iconSlot, ResourceIconUtility.GetResourceSprite(view.resource), 28f, 0f);
 
             TextMeshProUGUI name = EconomyHUD.CreateText("Name", view.row, 15f, textColor, TextAlignmentOptions.Left);
             Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(textLeft, -3f), new Vector2(textWidth, 20f));
