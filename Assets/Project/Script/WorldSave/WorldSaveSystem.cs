@@ -330,14 +330,13 @@ public class WorldSaveSystem : MonoBehaviour
     private int RemoveDuplicatePlacements()
     {
         // Earlier tile-only loads retained old records and appended newly placed Nature on top.
-        // One home hex can have one Nature and one creature; use the newest record of each kind.
+        // One home hex can have one Nature/transform, while multiple creatures can share a biome hex.
         var lastIndex = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int i = 0; i < keptPlacements.Count; i++)
         {
             PlacementRecord record = keptPlacements[i];
             CardData card = cardCatalog.Find(record.cardID);
             string kind = card.cardType == CardType.Terrain ? "terrain" :
-                card.cardType == CardType.Creature ? "creature" :
                 card.IsTileTransformCard() ? "transform" : null;
             if (kind != null) lastIndex[$"{record.q},{record.r}:{kind}"] = i;
         }
@@ -348,7 +347,6 @@ public class WorldSaveSystem : MonoBehaviour
             PlacementRecord record = keptPlacements[i];
             CardData card = cardCatalog.Find(record.cardID);
             string kind = card.cardType == CardType.Terrain ? "terrain" :
-                card.cardType == CardType.Creature ? "creature" :
                 card.IsTileTransformCard() ? "transform" : null;
             if (kind == null || lastIndex[$"{record.q},{record.r}:{kind}"] == i)
                 unique.Add(record);

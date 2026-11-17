@@ -237,7 +237,7 @@ public class HexCreatureTileGuide : MonoBehaviour
             for (int i = 0; i < clusterTiles.Count; i++)
             {
                 var item = clusterTiles[i];
-                if (validator != null && !validator.HasPlacedCreature(item.tileObj) &&
+                if (validator != null &&
                     validator.ValidatePlacement(item.coords, worldGen, creatureCard, out _))
                 {
                     clusterHasValidPlacement = true;

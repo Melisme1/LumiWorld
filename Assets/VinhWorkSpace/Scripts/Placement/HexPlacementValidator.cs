@@ -77,7 +77,7 @@ public class HexPlacementValidator : MonoBehaviour
             // Rain biến đổi địa hình thay cả khối ô, sẽ xóa luôn đoạn suối mà mạng sông và bản lưu không hay biết
             if (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(coords))
             {
-                lastValidationError = "Ô này đã có dòng suối, không cần tưới";
+                lastValidationError = "This tile already has a stream.";
                 return false;
             }
 
@@ -206,13 +206,6 @@ public class HexPlacementValidator : MonoBehaviour
             if (tileObj.GetComponent<SettlementTile>() != null)
             {
                 lastValidationError = BuildingsCreaturesSeparateError;
-                return false;
-            }
-
-            // Thẻ thú không được đặt nếu ô này ĐÃ CÓ một con thú khác
-            if (HasPlacedCreature(tileObj) || (useHabitatRules && habitatManager.HasCreatureAtHome(coords)))
-            {
-                lastValidationError = "Each home hex can only contain one creature.";
                 return false;
             }
 
@@ -387,19 +380,25 @@ public class HexPlacementValidator : MonoBehaviour
     /// <summary>
     /// Kiểm tra xem ô lục giác đã có sinh vật (Creature) nào sinh sống chưa
     /// </summary>
-    public bool HasPlacedCreature(GameObject tileObj)
-    {
-        if (tileObj == null) return false;
+    public bool HasPlacedCreature(GameObject tileObj) => CountPlacedCreatures(tileObj) > 0;
 
+    /// <summary>
+    /// Đếm số lượng sinh vật (Creature) đang gắn trên ô lục giác này
+    /// </summary>
+    public int CountPlacedCreatures(GameObject tileObj)
+    {
+        if (tileObj == null) return 0;
+
+        int count = 0;
         PlacedCard[] placedCards = tileObj.GetComponentsInChildren<PlacedCard>();
         foreach (var pc in placedCards)
         {
             if (pc != null && pc.CardType == CardType.Creature)
             {
-                return true;
+                count++;
             }
         }
-        return false;
+        return count;
     }
 
     /// <summary>
@@ -771,7 +770,7 @@ public class HexPlacementValidator : MonoBehaviour
                     if (pc != null && pc.clusterId == targetClusterId)
                     {
                         size++;
-                        if (HasPlacedCreature(pair.Value)) creatures++;
+                        creatures += CountPlacedCreatures(pair.Value);
                     }
                 }
                 return (size, creatures);
@@ -784,11 +783,7 @@ public class HexPlacementValidator : MonoBehaviour
         visited.Add(targetHex);
         queue.Enqueue(targetHex);
 
-        int creatureCount = 0;
-        if (targetTile != null && HasPlacedCreature(targetTile))
-        {
-            creatureCount++;
-        }
+        int creatureCount = targetTile != null ? CountPlacedCreatures(targetTile) : 0;
 
         while (queue.Count > 0)
         {
@@ -806,7 +801,7 @@ public class HexPlacementValidator : MonoBehaviour
                     {
                         visited.Add(neighborHex);
                         queue.Enqueue(neighborHex);
-                        if (HasPlacedCreature(neighborTile)) creatureCount++;
+                        creatureCount += CountPlacedCreatures(neighborTile);
                     }
                 }
             }

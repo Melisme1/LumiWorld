@@ -28,21 +28,23 @@ public class BiomeBuffVisualManager : MonoBehaviour
         }
     }
 
-    [Header("Harmony Palette (Màu hòa cảnh, đủ rõ trên nền cỏ)")]
-    [SerializeField] private Color riverBuffColor = new Color(0.32f, 0.90f, 0.88f, 1f);
-    [SerializeField] private Color buildingBuffColor = new Color(1.0f, 0.78f, 0.28f, 1f);
+    [Header("Harmony Palette (Màu hòa cảnh, dịu mắt trên nền cỏ)")]
+    [SerializeField] private Color riverBuffColor = new Color(0.38f, 0.76f, 0.84f, 1f);
+    [SerializeField] private Color buildingBuffColor = new Color(0.92f, 0.74f, 0.34f, 1f);
+    [SerializeField] private Color combinedBuffColor = new Color(0.66f, 0.62f, 0.94f, 1f);
     [SerializeField] private Color wildIncidentColor = new Color(0.96f, 0.26f, 0.26f, 1f);
-    [SerializeField] private float hoverAuraAlpha = 0.22f;
-    [SerializeField] private float hoverAffectedBiomeAlpha = 0.38f;
+    [SerializeField] private float hoverAuraAlpha = 0.20f;
+    [SerializeField] private float hoverAffectedBiomeAlpha = 0.34f;
 
     [Header("Perimeter Border (Tầng 1 & 2 - Viền địa hình + Rim đứng nhẹ)")]
-    [SerializeField] private float borderAmbientAlpha = 0.62f;
-    [SerializeField] private float borderPulseAlpha = 0.95f;
+    [SerializeField] private float borderAmbientAlpha = 0.36f;
+    [SerializeField] private float borderIncidentAlpha = 0.78f;
+    [SerializeField] private float borderPulseAlpha = 0.78f;
     [SerializeField] private float borderPulseDuration = 0.85f;
-    [SerializeField] private float borderInnerRadiusRatio = 0.82f;
+    [SerializeField] private float borderInnerRadiusRatio = 0.86f;
     [SerializeField] private float borderOuterRadiusRatio = 0.96f;
     [SerializeField] private float borderYOffset = 0.045f;
-    [SerializeField] private float borderRimHeight = 0.18f;
+    [SerializeField] private float borderRimHeight = 0.10f;
 
     private sealed class ClusterBorderVisual
     {
@@ -399,7 +401,8 @@ public class BiomeBuffVisualManager : MonoBehaviour
         RebuildPerimeterRibbonMesh(visual.Mesh, info.Hexes, worldGen);
 
         Color tint = hasWildIncident ? wildIncidentColor : ResolveBorderColor(info.BuffState);
-        visual.BaseColor = tint;
+        float targetAlpha = hasWildIncident ? borderIncidentAlpha : borderAmbientAlpha;
+        visual.BaseColor = new Color(tint.r, tint.g, tint.b, targetAlpha);
 
         if (pulseActivation)
         {
@@ -408,7 +411,7 @@ public class BiomeBuffVisualManager : MonoBehaviour
         }
         else if (visual.PulseCoroutine == null)
         {
-            visual.Material.color = new Color(tint.r, tint.g, tint.b, borderAmbientAlpha);
+            visual.Material.color = visual.BaseColor;
         }
     }
 
@@ -533,12 +536,13 @@ public class BiomeBuffVisualManager : MonoBehaviour
     private IEnumerator AnimateBorderPulseCoroutine(ClusterBorderVisual visual)
     {
         float elapsed = 0f;
+        float targetAlpha = visual.BaseColor.a > 0.01f ? visual.BaseColor.a : borderAmbientAlpha;
         while (elapsed < borderPulseDuration && visual != null && visual.Material != null)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / borderPulseDuration);
             float ease = 1f - Mathf.Pow(1f - t, 3f);
-            float alpha = Mathf.Lerp(borderPulseAlpha, borderAmbientAlpha, ease);
+            float alpha = Mathf.Lerp(borderPulseAlpha, targetAlpha, ease);
             Color c = visual.BaseColor;
             visual.Material.color = new Color(c.r, c.g, c.b, alpha);
             yield return null;
@@ -546,8 +550,7 @@ public class BiomeBuffVisualManager : MonoBehaviour
 
         if (visual != null && visual.Material != null)
         {
-            Color c = visual.BaseColor;
-            visual.Material.color = new Color(c.r, c.g, c.b, borderAmbientAlpha);
+            visual.Material.color = visual.BaseColor;
             visual.PulseCoroutine = null;
         }
     }
@@ -556,7 +559,7 @@ public class BiomeBuffVisualManager : MonoBehaviour
     {
         if (state.HasRiverBuff && state.HasBuildingBuff)
         {
-            return Color.Lerp(riverBuffColor, buildingBuffColor, 0.5f);
+            return combinedBuffColor;
         }
         return state.HasRiverBuff ? riverBuffColor : buildingBuffColor;
     }

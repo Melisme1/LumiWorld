@@ -157,14 +157,11 @@ namespace LumiWorld.Acs
             }
 
             var residents = new List<HabitatResident>();
-            var occupied = new HashSet<HexCoordinates>();
             foreach (var record in records)
             {
                 if (record.CardType != CardType.Creature) continue;
                 EnsureBraluffIfHybrid(record.cardData);
                 var identity = identities[record];
-                if (!occupied.Add(identity.HomeHex))
-                { diagnostics.Add("Nhiều creature cùng home hex " + identity.HomeHex + "."); continue; }
                 string speciesId = record.cardData.animalSpeciesData != null ? record.cardData.animalSpeciesData.speciesID : string.Empty;
                 if (!terrainByHex.TryGetValue(identity.HomeHex, out var home) ||
                     !catalog.speciesRegistry.TryGetActiveBySpeciesId(speciesId, out var mapping) || mapping.GetRole(home.affinity) == AffinityRole.None)
@@ -221,17 +218,16 @@ namespace LumiWorld.Acs
 
         public bool CanPlaceCreature(CardData creature, CardData nature, HexCoordinates homeHex, out string reason)
         {
-            if (!IsConfigured) { reason = "HabitatRuntimeManager catalog is not configured."; return false; }
+            if (!IsConfigured) { reason = "Creature placement is currently unavailable."; return false; }
             EnsureBraluffIfHybrid(creature);
             if (creature == null || creature.cardType != CardType.Creature || creature.animalSpeciesData == null)
-            { reason = "Creature Card has no Species assigned."; return false; }
+            { reason = "This creature card is not ready to be placed yet."; return false; }
             if (nature == null || !catalog.TryGetHabitat(nature.cardID, out var habitat))
-            { reason = "Nature Card has no Habitat Definition in catalog."; return false; }
+            { reason = "Creatures cannot live on this type of land."; return false; }
             if (!catalog.speciesRegistry.TryGetActiveBySpeciesId(creature.animalSpeciesData.speciesID, out var mapping))
-            { reason = "Species has no active mapping in registry."; return false; }
+            { reason = "This creature cannot be placed on the island yet."; return false; }
             if (mapping.GetRole(habitat.affinity) == AffinityRole.None)
-            { reason = "Creature has no matching primary/secondary affinity for " + habitat.affinity + "."; return false; }
-            if (HasCreatureAtHome(homeHex)) { reason = "Home hex already has a creature."; return false; }
+            { reason = $"This creature cannot live in {habitat.affinity} biomes."; return false; }
             var homeHabitat = FindHabitatByHex(homeHex);
             if (homeHabitat == null) { RefreshFromWorld(false); homeHabitat = FindHabitatByHex(homeHex); }
             if (homeHabitat != null)
@@ -240,13 +236,13 @@ namespace LumiWorld.Acs
                 if (homeHabitat.residents.Count >= maxAllowed)
                 {
                     int nextMilestone = homeHabitat.HexCount < 3 ? 3 : (homeHabitat.HexCount < 6 ? 6 : 10);
-                    reason = maxAllowed >= 6 ? "Biome cluster already has maximum 6 creatures." : $"Must reach {nextMilestone} connected biome tiles of the same type to unlock more creature slots (Milestones: 3 tiles -> 2 creatures, 6 tiles -> 4 creatures, 10 tiles -> 6 creatures).";
+                    reason = maxAllowed >= 6 ? "This biome is full (max 6 creatures)." : $"Expand this biome to {nextMilestone} connected tiles to add more creatures.";
                     return false;
                 }
             }
             else
             {
-                reason = "Must reach 3 connected biome tiles of the same type to unlock the first creature slot.";
+                reason = "Connect at least 3 matching biome tiles to house a creature.";
                 return false;
             }
             reason = string.Empty;

@@ -136,7 +136,7 @@ public class CardDrag : MonoBehaviour,
         // 0. Kiểm tra trạng thái khóa (Escrow, Breeding, Account-bound)
         if (cardUI != null && cardUI.IsLocked)
         {
-            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Card is locked: {cardUI.CurrentLockReason}");
+            HexPlacementPreviewHUD.ShowFeedbackToast($"Card locked: {cardUI.CurrentLockReason}");
             return;
         }
 
