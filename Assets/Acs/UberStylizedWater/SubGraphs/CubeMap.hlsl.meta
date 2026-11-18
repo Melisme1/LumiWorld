@@ -1,6 +1,11 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Acs/UberStylizedWater/SubGraphs/CubeMap.hlsl.meta
 guid: 530418264b2033c47985681a3abb933a
 ShaderIncludeImporter:
+========
+guid: 138e7f67b4b1ff8419fa980bf66f97bd
+TextScriptImporter:
+>>>>>>>> Acs:Assets/Acs/UberStylizedWater/Third Party/ShaderGraphVariables-main/README.md.meta
   externalObjects: {}
   userData: 
   assetBundleName: 

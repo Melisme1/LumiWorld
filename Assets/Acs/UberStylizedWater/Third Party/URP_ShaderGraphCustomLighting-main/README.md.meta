@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Acs/UberStylizedWater/Third Party/URP_ShaderGraphCustomLighting-main/README.md.meta
 guid: 5614068afe191054e8eef9f398292bc2
+========
+guid: ebd33c094b6b23c42a9ffddc5540fb8e
+>>>>>>>> Acs:Assets/Acs/UberStylizedWater/Guide.txt.meta
 TextScriptImporter:
   externalObjects: {}
   userData: 

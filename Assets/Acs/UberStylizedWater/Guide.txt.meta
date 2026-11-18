@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Acs/UberStylizedWater/Guide.txt.meta
 guid: ebd33c094b6b23c42a9ffddc5540fb8e
+========
+guid: c74c76c3b0a62b7429b32bc3f4d532bc
+>>>>>>>> Acs:Assets/Acs/Art/UI/Fonts/OFL.txt.meta
 TextScriptImporter:
   externalObjects: {}
   userData: 
