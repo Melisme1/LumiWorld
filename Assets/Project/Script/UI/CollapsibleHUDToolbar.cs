@@ -105,15 +105,7 @@ public class CollapsibleHUDToolbar : MonoBehaviour
 
         BuildToggleButton();
         BuildHorizontalPanel();
-<<<<<<< HEAD
-
-        // 3. Populate the 9 buttons inside the panel
-        BuildNineButtons();
-
-        // Mặc định mở rộng để người chơi thấy ngay
-=======
         BuildGameplayButtons();
->>>>>>> Acs
         SetExpandedInstant(true);
     }
 
@@ -176,21 +168,12 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         toolbarPanelImage.color = LumiWorldUITheme.Window;
         LumiWorldUITheme.AddSoftElevation(panelObj, 3.5f, 0.16f);
 
-<<<<<<< HEAD
-        // 9 buttons: 9 * 46 + 8 * 10 + 2 * 22 = 414 + 80 + 44 = 538px
-        targetPanelWidth = 9 * innerButtonSize + 8 * itemSpacing + 2 * panelPadding;
-        toolbarPanelRect.sizeDelta = new Vector2(targetPanelWidth, toolbarHeight);
-    }
-
-    private void BuildNineButtons()
-=======
         const int buttonCount = 7;
         targetPanelWidth = buttonCount * innerButtonSize + (buttonCount - 1) * itemSpacing + 2 * panelPadding;
         toolbarPanelRect.sizeDelta = new Vector2(targetPanelWidth, toolbarHeight);
     }
 
     private void BuildGameplayButtons()
->>>>>>> Acs
     {
         // §5 HUD order: Inventory, Crafting, Card Shop, Orders, Market, Auto Feeding, Creation Lab
         CreateToolbarButton("Btn_Warehouse", "G-01", "Inventory", 0, () =>
@@ -228,32 +211,6 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         {
             GameDialogUI.ShowNotice("Creation Lab chambers are being prepared for this island.");
         });
-
-        // 9. Lai tạo thú (Creation Lab / Breeding)
-        CreateToolbarButton("Btn_Breeding", "icon_breeding", 8, () =>
-        {
-            var lab = FindAnyObjectByType<CreationLabUI>(FindObjectsInactive.Include);
-            if (lab != null)
-            {
-                lab.Toggle();
-            }
-            else
-            {
-                CreationLabUI.Instance?.Toggle();
-            }
-        });
-    }
-
-    private static Sprite LoadSpriteSafe(string path)
-    {
-        Sprite s = Resources.Load<Sprite>(path);
-        if (s != null) return s;
-        Texture2D t = Resources.Load<Texture2D>(path);
-        if (t != null)
-        {
-            return Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f));
-        }
-        return null;
     }
 
     private void CreateToolbarButton(string objName, string glyphId, string tooltipLabel, int index, Action onClick)
@@ -285,35 +242,10 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         iconRect.sizeDelta = new Vector2(innerIconSize, innerIconSize);
 
         Image iconImg = iconObj.GetComponent<Image>();
-<<<<<<< HEAD
-        Sprite iconSprite = LoadSpriteSafe("UI_Buttons/" + iconResource)
-                         ?? LoadSpriteSafe(iconResource);
-        iconImg.sprite = iconSprite;
-=======
         iconImg.sprite = LumiWorldUITheme.Glyph(glyphId);
         iconImg.color = LumiWorldUITheme.Text;
->>>>>>> Acs
         iconImg.preserveAspect = true;
         iconImg.raycastTarget = false;
-        // If sprite not found, keep color transparent so button bg still shows
-        if (iconSprite == null)
-        {
-            iconImg.color = Color.clear;
-            // Add a fallback text label so the button is not blank
-            GameObject lblGo = new GameObject("FallbackLabel", typeof(RectTransform));
-            lblGo.transform.SetParent(btnObj.transform, false);
-            var lblRect = lblGo.GetComponent<RectTransform>();
-            lblRect.anchorMin = Vector2.zero;
-            lblRect.anchorMax = Vector2.one;
-            lblRect.offsetMin = lblRect.offsetMax = Vector2.zero;
-            var lbl = lblGo.AddComponent<TMPro.TextMeshProUGUI>();
-            lbl.text = iconResource.Replace("icon_", "").Substring(0, 1).ToUpper(); // first letter
-            lbl.fontSize = 18;
-            lbl.fontStyle = TMPro.FontStyles.Bold;
-            lbl.color = new Color(0.08f, 0.45f, 0.80f);
-            lbl.alignment = TMPro.TextAlignmentOptions.Center;
-            lbl.raycastTarget = false;
-        }
 
         Button btn = btnObj.GetComponent<Button>();
         btn.targetGraphic = btnImg;

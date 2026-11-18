@@ -73,9 +73,7 @@ public static class HabitatCreaturePanelStyle
 
         { "reedle", ("Reedle", "Reedle", "thiennga_anm") },
         { "craggle", ("Craggle", "Craggle", "canoc_anm") },
-        { "lotelle", ("Lotelle", "Lotelle", "echduoica_anm") },
-        { "braluff", ("Braluff", "Braluff", "Braluff") },
-        { "creature_braluff", ("Braluff", "Braluff", "Braluff") }
+        { "lotelle", ("Lotelle", "Lotelle", "echduoica_anm") }
     };
 
     public static void ClearCache()
@@ -125,7 +123,7 @@ public static class HabitatCreaturePanelStyle
                     {
                         canonical = fromCardImg.canonicalName;
                     }
-                    else if (!string.IsNullOrEmpty(cImgName) && !speciesMap.ContainsKey(clean))
+                    else if (!string.IsNullOrEmpty(cImgName))
                     {
                         canonical = cImgName;
                     }
@@ -148,61 +146,12 @@ public static class HabitatCreaturePanelStyle
             return cached;
         }
 
-<<<<<<< HEAD
-        Texture2D rawTex = null;
-        string filePath = Path.Combine(Application.dataPath, "AVT_ANM", canonicalName + ".png");
-        if (File.Exists(filePath))
-        {
-            try
-            {
-                byte[] bytes = File.ReadAllBytes(filePath);
-                rawTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                if (!rawTex.LoadImage(bytes)) rawTex = null;
-            }
-            catch (Exception) { rawTex = null; }
-        }
-        if (rawTex == null)
-        {
-            rawTex = Resources.Load<Texture2D>("CreatureAvatars/" + canonicalName);
-        }
-        if (rawTex != null && rawTex.isReadable)
-        {
-            try
-            {
-                if (rawTex != null)
-                {
-                    Texture2D slicedTex = SliceAndCutoutFrame(rawTex, rank, canonicalName);
-                    if (slicedTex != null)
-                    {
-                        Sprite sp = Sprite.Create(slicedTex, new Rect(0, 0, slicedTex.width, slicedTex.height), new Vector2(0.5f, 0.5f), 100f);
-                        sp.name = cacheKey;
-                        creatureAvatarCache[cacheKey] = sp;
-                        return sp;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[HabitatCreaturePanelStyle] Lỗi nạp avatar từ AVT_ANM cho {canonicalName}: {ex.Message}");
-            }
-        }
-
-        var allAvts = Resources.LoadAll<Sprite>("CreatureAvatars");
-        foreach (var avt in allAvts)
-        {
-            if (avt != null && avt.name.IndexOf(canonicalName, StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                creatureAvatarCache[cacheKey] = avt;
-                return avt;
-            }
-=======
         // Official close-up Non-background portrait for P-05 Resident cards
         Sprite officialPortrait = LumiWorldUITheme.CreaturePortrait(canonicalName);
         if (officialPortrait != null)
         {
             creatureAvatarCache[cacheKey] = officialPortrait;
             return officialPortrait;
->>>>>>> Acs
         }
 
         if (resolved.cardSprite != null)

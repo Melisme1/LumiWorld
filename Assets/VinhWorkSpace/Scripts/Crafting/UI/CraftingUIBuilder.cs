@@ -848,16 +848,6 @@ namespace LumiWorld.Economy.Crafting
             icon.rectTransform.anchoredPosition = new Vector2(12f, -12f);
             if (rowIcon == null && outRes != null) icon.color = outRes.resourceColor;
 
-<<<<<<< HEAD
-            TextMeshProUGUI title = EconomyHUD.CreateText("Title", row, 15.5f, style.textColor, TextAlignmentOptions.Left);
-            title.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-            title.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-            title.rectTransform.pivot = new Vector2(0f, 0.5f);
-            title.rectTransform.anchoredPosition = new Vector2(68f, 11f);
-            title.rectTransform.sizeDelta = new Vector2(200f, 24f);
-            title.textWrappingMode = TextWrappingModes.NoWrap;
-            title.overflowMode = TextOverflowModes.Ellipsis;
-=======
             TextMeshProUGUI title = EconomyHUD.CreateText("Title", row, 16f, LumiWorldUITheme.Text, TextAlignmentOptions.MidlineLeft);
             ApplyHeadingFont(title);
             title.rectTransform.anchorMin = new Vector2(0f, 1f);
@@ -869,21 +859,10 @@ namespace LumiWorld.Economy.Crafting
             title.fontSizeMin = 12f;
             title.fontSizeMax = 16f;
             title.textWrappingMode = TextWrappingModes.Normal;
->>>>>>> Acs
             string qId = recipe != null ? (recipe.outputResource != null ? recipe.outputResource.resourceID : recipe.recipeID) : "";
             string rName = recipe != null ? ResourceInventoryUIPresentation.LocalizeResourceName(qId, recipe.recipeName) : "Crafted Product";
             title.text = $"{rName} ×{job.TotalOutputAmount}";
 
-<<<<<<< HEAD
-            TextMeshProUGUI status = EconomyHUD.CreateText("Status", row, 12.5f, style.mutedColor, TextAlignmentOptions.Left);
-            status.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-            status.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-            status.rectTransform.pivot = new Vector2(0f, 0.5f);
-            status.rectTransform.anchoredPosition = new Vector2(68f, -13f);
-            status.rectTransform.sizeDelta = new Vector2(200f, 20f);
-            status.textWrappingMode = TextWrappingModes.NoWrap;
-            status.overflowMode = TextOverflowModes.Ellipsis;
-=======
             // State Group ("In progress" pill OR icon-only "✓ Ready")
             RectTransform statePillRect = EconomyHUD.CreateRect("StatePill", row);
             statePillRect.anchorMin = new Vector2(0f, 0f);
@@ -892,7 +871,6 @@ namespace LumiWorld.Economy.Crafting
             statePillRect.anchoredPosition = new Vector2(76f, 26f);
             statePillRect.sizeDelta = new Vector2(102f, 26f);
             Image statePill = EconomyHUD.CreatePanel(statePillRect, LumiWorldUITheme.Inset);
->>>>>>> Acs
 
             Image readyIcon = EconomyHUD.CreateIcon("ReadyIcon", statePillRect, LumiWorldUITheme.StatusReadySprite, 20f, 0f);
             readyIcon.gameObject.SetActive(false);
@@ -912,50 +890,22 @@ namespace LumiWorld.Economy.Crafting
 
             // Progress Bar Track (bottom of card when in progress)
             RectTransform barBg = EconomyHUD.CreateRect("BarBg", row);
-<<<<<<< HEAD
-            barBg.anchorMin = new Vector2(0f, 0.5f);
-            barBg.anchorMax = new Vector2(0f, 0.5f);
-            barBg.pivot = new Vector2(0f, 0.5f);
-            barBg.anchoredPosition = new Vector2(285f, 0f);
-            barBg.sizeDelta = new Vector2(480f, 16f);
-            Image bgImg = EconomyHUD.CreatePanel(barBg, new Color(0.88f, 0.92f, 0.96f, 1f));
-            bgImg.sprite = EconomyHUD.RoundedSprite;
-            bgImg.type = Image.Type.Sliced;
-            Mask mask = barBg.gameObject.AddComponent<Mask>();
-            mask.showMaskGraphic = true;
-=======
             barBg.anchorMin = new Vector2(0f, 0f);
             barBg.anchorMax = new Vector2(1f, 0f);
             barBg.pivot = new Vector2(0.5f, 0f);
             barBg.anchoredPosition = new Vector2(0f, 10f);
             barBg.sizeDelta = new Vector2(-24f, 10f);
             EconomyHUD.CreatePanel(barBg, LumiWorldUITheme.Inset);
->>>>>>> Acs
 
             RectTransform barFill = EconomyHUD.CreateRect("BarFill", barBg);
             barFill.anchorMin = Vector2.zero;
             barFill.anchorMax = new Vector2(0f, 1f);
             barFill.pivot = new Vector2(0f, 0.5f);
             barFill.sizeDelta = new Vector2(0f, 0f);
-<<<<<<< HEAD
-            Image fillImg = EconomyHUD.CreatePanel(barFill, style.accentColor);
-            fillImg.sprite = EconomyHUD.RoundedSprite;
-            fillImg.type = Image.Type.Sliced;
-=======
             EconomyHUD.CreatePanel(barFill, LumiWorldUITheme.Success);
->>>>>>> Acs
 
             // Claim Button (bottom-right when completed)
             RectTransform btnRect = EconomyHUD.CreateRect("ClaimBtn", row);
-<<<<<<< HEAD
-            btnRect.anchorMin = new Vector2(1f, 0.5f);
-            btnRect.anchorMax = new Vector2(1f, 0.5f);
-            btnRect.pivot = new Vector2(1f, 0.5f);
-            btnRect.anchoredPosition = new Vector2(-16f, 0f);
-            btnRect.sizeDelta = new Vector2(96f, 38f);
-            Button claimBtn = EconomyHUD.AddButton(btnRect, style.accentColor);
-            TextMeshProUGUI claimLbl = EconomyHUD.CreateText("Lbl", btnRect, 15f, Color.white, TextAlignmentOptions.Center);
-=======
             btnRect.anchorMin = new Vector2(1f, 0f);
             btnRect.anchorMax = new Vector2(1f, 0f);
             btnRect.pivot = new Vector2(1f, 0f);
@@ -965,7 +915,6 @@ namespace LumiWorld.Economy.Crafting
             LumiWorldUITheme.AddSoftElevation(btnRect.gameObject, 2.5f, 0.16f);
             TextMeshProUGUI claimLbl = EconomyHUD.CreateText("Lbl", btnRect, 14.5f, Color.white, TextAlignmentOptions.Center);
             ApplyHeadingFont(claimLbl);
->>>>>>> Acs
             EconomyHUD.Stretch(claimLbl.rectTransform);
             claimLbl.text = "Claim";
 

@@ -760,14 +760,8 @@ namespace LumiWorld.Economy.Crafting
                 float progress = queue.GetProgress(card.job);
                 float remaining = queue.GetRemainingSeconds(card.job);
 
-<<<<<<< HEAD
-                float maxBarWidth = card.progressBarFill.parent is RectTransform pRect ? pRect.rect.width : 180f;
-                if (maxBarWidth <= 0f) maxBarWidth = 180f;
-                card.progressBarFill.sizeDelta = new Vector2(maxBarWidth * Mathf.Clamp01(progress), 0f);
-=======
                 if (card.progressBarFill != null)
                     card.progressBarFill.sizeDelta = new Vector2(264f * Mathf.Clamp01(progress), 0f);
->>>>>>> Acs
 
                 if (card.job.isCompleted)
                 {
