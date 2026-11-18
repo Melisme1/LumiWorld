@@ -12,8 +12,8 @@ using UnityEngine;
 public class CoinHUD : MonoBehaviour
 {
     [Header("Look")]
-    [SerializeField] private Vector2 panelSize = new Vector2(170f, 48f);
-    [SerializeField] private Color backgroundColor = new Color(0.06f, 0.09f, 0.16f, 0.88f);
+    [SerializeField] private Vector2 panelSize = new Vector2(138f, 48f);
+    [SerializeField] private Color backgroundColor = new Color(0.25f, 0.25f, 0.24f, 1f);
     [SerializeField] private Color valueColor = Color.white;
     [SerializeField] private Color gainColor = new Color(0.45f, 0.95f, 0.55f, 1f);
     [SerializeField] private Color spendColor = new Color(1f, 0.42f, 0.38f, 1f);
@@ -72,25 +72,31 @@ public class CoinHUD : MonoBehaviour
     private void Build()
     {
         RectTransform rect = (RectTransform)transform;
+        panelSize = new Vector2(138f, 48f);
         rect.sizeDelta = panelSize;
+        if (!WorldLaunch.IsVisit && !VisitSession.Active)
+            rect.anchoredPosition = new Vector2(-76f, -14f);
 
         // Body nảy khi số dư đổi; số bay nằm ngoài Body nên không nảy theo
         body = EconomyHUD.CreateRect("Body", rect);
         EconomyHUD.Stretch(body);
-        EconomyHUD.CreatePanel(body, backgroundColor);
+        EconomyHUD.CreatePanel(body, LumiWorld.Acs.LumiWorldUITheme.Primary);
+        LumiWorld.Acs.LumiWorldUITheme.AddSoftElevation(body.gameObject, 3f, 0.16f);
 
-        float iconSize = panelSize.y - 16f;
-        EconomyHUD.CreateIcon("CoinIcon", body, EconomyHUD.CoinSprite, iconSize, 10f);
+        float iconSize = 28f;
+        EconomyHUD.CreateIcon("CoinIcon", body, EconomyHUD.CoinSprite, iconSize, 12f);
 
-        valueText = EconomyHUD.CreateText("Value", body, 26f, valueColor, TextAlignmentOptions.Center);
+        valueText = EconomyHUD.CreateText("Value", body, 22f, valueColor, TextAlignmentOptions.Center);
+        if (LumiWorld.Acs.LumiWorldUITheme.Heading != null)
+            valueText.font = LumiWorld.Acs.LumiWorldUITheme.Heading;
         RectTransform valueRect = valueText.rectTransform;
         valueRect.anchorMin = Vector2.zero;
         valueRect.anchorMax = Vector2.one;
-        valueRect.offsetMin = new Vector2(10f + iconSize + 4f, 2f);
+        valueRect.offsetMin = new Vector2(12f + iconSize + 4f, 2f);
         valueRect.offsetMax = new Vector2(-12f, -2f);
         valueText.enableAutoSizing = true;
         valueText.fontSizeMin = 14f;
-        valueText.fontSizeMax = 26f;
+        valueText.fontSizeMax = 22f;
         valueText.text = "0";
 
         // Điểm gốc của số bay: giữa cạnh trái ô Coins

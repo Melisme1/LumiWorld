@@ -368,7 +368,64 @@ public class CardDrag : MonoBehaviour,
             StopCoroutine(returnCoroutine);
         }
 
+        if (!gameObject.activeInHierarchy)
+        {
+            rectTransform.anchoredPosition = targetPosition;
+            RestoreVisualAfterPlacement();
+            transform.SetSiblingIndex(originalSiblingIndex);
+            IsReturningToHand = false;
+            returnCoroutine = null;
+            GetComponent<CardHover>()?.SyncAfterReturn();
+            return;
+        }
+
         returnCoroutine = StartCoroutine(ReturnAnimation(targetPosition));
+    }
+
+    /// <summary>
+    /// Cancels an uncommitted drag/placement immediately (e.g., when collapsing the P-03 Card Tray)
+    /// without consuming the card or spending coins.
+    /// </summary>
+    public void CancelDragImmediately()
+    {
+        if (!IsDragging && !IsReturningToHand) return;
+
+        IsDragging = false;
+        IsReturningToHand = false;
+        targetTilt = 0f;
+        currentTilt = 0f;
+
+        if (returnCoroutine != null)
+        {
+            StopCoroutine(returnCoroutine);
+            returnCoroutine = null;
+        }
+
+        if (cameraController != null)
+        {
+            cameraController.SetCardDragging(false);
+        }
+
+        HabitatDiamondBadgeManager.Instance?.OnStopDraggingCreature();
+
+        if (singlePlacementController != null)
+        {
+            singlePlacementController.CancelPreview();
+        }
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.blocksRaycasts = true;
+        }
+
+        if (handSlot != null)
+        {
+            rectTransform.anchoredPosition = handSlot.TargetPosition;
+        }
+
+        RestoreVisualAfterPlacement();
+        transform.SetSiblingIndex(originalSiblingIndex);
+        GetComponent<CardHover>()?.SyncAfterReturn();
     }
 
     private IEnumerator ReturnAnimation(Vector2 targetPosition)

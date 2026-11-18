@@ -1,6 +1,11 @@
 fileFormatVersion: 2
-guid: b1c2d3e4f5a600020002000000000011
+<<<<<<<< HEAD:Assets/Data/Cards/Pufferfish.asset.meta
+guid: ee9acce4bea381b42a89eb8c4bef6038
 NativeFormatImporter:
+========
+guid: c74c76c3b0a62b7429b32bc3f4d532bc
+TextScriptImporter:
+>>>>>>>> Acs:Assets/Acs/Art/UI/Fonts/OFL.txt.meta
   externalObjects: {}
   userData: 
   assetBundleName: 

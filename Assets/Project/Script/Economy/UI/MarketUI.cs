@@ -128,6 +128,12 @@ public class MarketUI : MonoBehaviour
 
     private void Start()
     {
+        hudColor = accentColor = LumiWorld.Acs.LumiWorldUITheme.Primary;
+        panelColor = LumiWorld.Acs.LumiWorldUITheme.Window;
+        rowColor = LumiWorld.Acs.LumiWorldUITheme.Surface;
+        sectionColor = secondaryColor = LumiWorld.Acs.LumiWorldUITheme.Inset;
+        textColor = LumiWorld.Acs.LumiWorldUITheme.Text; mutedColor = LumiWorld.Acs.LumiWorldUITheme.Muted;
+        warningColor = LumiWorld.Acs.LumiWorldUITheme.Error;
         BuildOpenButton();
         BuildWindow();
 

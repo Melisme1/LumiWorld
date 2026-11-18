@@ -7,83 +7,104 @@ using UnityEngine.UI;
 using LumiWorld.Acs;
 
 /// <summary>
-/// Giao diện Quản lý Sinh vật & Môi trường sống (Habitat Living Creatures & Details Panel).
-/// Nâng cấp chuyên nghiệp:
-/// 1. Panel 1:
-///    - Thanh Năng Lượng (Energy Bar) công nghệ cao thay thế UI oval.
-///    - Thanh Chữ Nhật nằm ngang phong cách phù hợp môi trường ở chân panel.
-///    - Lưới tổ ong lục giác so le đối xứng (3-2-3-2), nút thu gọn nằm an toàn bên trong mép panel.
-/// 2. Panel 2:
-///    - Trực tiếp render 3D Model sinh vật xoay nhẹ nhàng trên nền màu hệ môi trường.
-///    - Xóa các ô xám cồng kềnh, thay bằng hệ thống Chip / Nút thông số game (Stat Chips).
-///    - Thanh cuộn ScrollRect mượt mà, đảm bảo mọi thông tin (Món ăn ưa thích...) nằm gọn gàng bên trong panel.
-///    - Bộ 3 nút hành động phong cách 3D Game có độ nảy và bóng đổ chuyên nghiệp.
+/// P-05 Biome / Habitat Panel & P-06 Creature Detail Panel — LumiWorld UI Production Pack:
+/// - Scaled consistently with Inventory/Crafting via ResourceInventoryUILayout.FitScale (1280x720 design stage).
+/// - P-05 (Top-right docked, 340×524 du -> ~510×786 px at 1080p, grows downward to 640 du for 4-6 residents):
+///   + Colored Biome Emblem (B-01..B-07) + Biome Name (no "Habitat" word) + Footprint glyph (3/6/10 hex).
+///   + Residents (current/capacity): Centered per row (1 centered, 2 centered evenly, 3 fill row 1; 4-6 expand panel and wrap onto row 2),
+///     using the 16 cropped portrait cutouts, status dot ("Working" / "Needs care"), "!" warning badge when hungry,
+///     and dark graphite selection border (#403F3C). Clicking a resident opens P-06 immediately to the left.
+///   + Production: "Production" header + "[Refresh] Change resource" button, production slot cards, and "[G-24] Collect all (N)".
+/// - P-06 (Docked immediately to the left of P-05, 262×476 du, clear of P-03 Card Tray):
+///   + "[← Back to <Biome>]" pill + "[×]" close button.
+///   + Creature Portrait Stage using the official non-background cutout PNGs.
+///   + Creature Name + [Pencil] Rename button + clickable Rank I/II/III pill (opens Rank Popover with Care & Rank Up).
+///   + Fullness progress bar + status pill + Food card (icon + name only).
+///   + Bottom action row: "[G-22] Feed" and "[G-23] Treat" side-by-side.
 /// </summary>
 public class HabitatCreaturePanelUI : MonoBehaviour
 {
     private static HabitatCreaturePanelUI instance;
     public static HabitatCreaturePanelUI Instance => instance;
 
-    [Header("Root Canvas & Windows")]
     private GameObject rootModal;
     private CanvasGroup rootCanvasGroup;
+    private RectTransform panelsStageRect;
+    private int lastStageScreenW;
+    private int lastStageScreenH;
+    private float lastStageParentScale;
 
-    // Panel 1: Danh sách thú đang sinh sống
+    // Panel 1 (P-05): Biome / Residents / Production
+    private const float P05PanelWidth = 340f;
+    private const float P05PanelBaseHeight = 524f;
+    private const float P05ResidentsBaseHeight = 128f;
+    private const float P05ResidentsExtraRowHeight = 116f;
+    private const float P05ResidentsWidth = 308f;
+
     private RectTransform panelListRect;
-    private Image panelListBg;
-    private TextMeshProUGUI weatherText;
+    private Image biomeEmblemImg;
     private TextMeshProUGUI habitatNameText;
-    private Slider capacitySlider;
-    private Image capacityFillImg;
-    private TextMeshProUGUI capacityLabel;
-    private Transform creatureGridRoot;
-    private TextMeshProUGUI footerSummaryText;
-    private TextMeshProUGUI footerScaleText;
-    private TextMeshProUGUI footerResidentText;
+    private Image footprintGlyphImg;
+    private TextMeshProUGUI footprintCountText;
+    private TextMeshProUGUI residentsHeaderText;
+    private RectTransform creatureGridRoot;
+    private RectTransform productionHeaderRect;
+    private RectTransform changeResourceBtnRect;
+    private RectTransform resourceSlotsRoot;
+    private Button changeResourceBtn;
+    private Button harvestAllButton;
+    private TextMeshProUGUI harvestAllButtonText;
+    private Image harvestAllIconImg;
 
-    // Panel 2: Chi tiết sinh vật
+    // Panel 2 (P-06): Creature Detail
+    private const float P06PanelWidth = 262f;
+    private const float P06PanelHeight = 476f;
+
     private RectTransform panelDetailRect;
-    private Image panelDetailBg;
-    private RawImage creatureModelRawImg;
-    private Image creatureArtFallbackImg;
+    private TextMeshProUGUI backToBiomeText;
+    private Image creatureArtImg;
     private TextMeshProUGUI creatureNameText;
     private Button renameButton;
-    private TextMeshProUGUI creatureBadgeText;
-    private GameObject renameModal;
-    private TMP_InputField renameInputField;
 
-    // Scrollable Content trong Panel 2
-    private ScrollRect infoScrollRect;
-    private TextMeshProUGUI statusBannerTitle;
-    private TextMeshProUGUI statusBannerDesc;
-    private TextMeshProUGUI chipSpeciesText;
-    private TextMeshProUGUI chipRankText;
-    private TextMeshProUGUI chipStarsText;
-    private TextMeshProUGUI chipTraitText;
-    private Slider hungerSlider;
+    // Rank Pill & Rank Popover
+    private Button rankPillButton;
+    private Image rankPillGlyphImg;
+    private TextMeshProUGUI rankPillText;
+    private GameObject rankPopoverObj;
+    private TextMeshProUGUI rankPopoverTitleText;
+    private TextMeshProUGUI rankPopoverCareText;
+    private Image rankPopoverCareFill;
+    private Button rankUpButton;
+    private TextMeshProUGUI rankUpButtonText;
+
+    // Fullness & Food Card
+    private TextMeshProUGUI statusPillText;
+    private Image statusPillBg;
     private TextMeshProUGUI hungerProgressLabel;
-    private TextMeshProUGUI favoriteFoodText;
-    private TextMeshProUGUI foodLabelText;
+    private Image hungerFillImg;
+    private Image foodIconImg;
+    private TextMeshProUGUI foodNameText;
 
-    // Bộ 3 nút hành động 3D
+    // Side-by-side Feed & Treat buttons
     private Button feedButton;
     private TextMeshProUGUI feedButtonText;
     private Button medicineButton;
     private TextMeshProUGUI medicineButtonText;
-    private Button rankUpButton;
-    private TextMeshProUGUI rankUpButtonText;
     private TextMeshProUGUI feedbackNotifyText;
 
-    // Dữ liệu đang chọn
+    // Rename Modal
+    private GameObject renameModal;
+    private TMP_InputField renameInputField;
+
+    // Runtime selection state
     private HabitatState currentHabitat;
     private HabitatResident currentSelectedResident;
     private AnimalIndividual currentSelectedAnimal;
     private readonly List<GameObject> spawnedSlotButtons = new List<GameObject>();
-    private Transform resourceSlotsRoot;
     private readonly List<GameObject> spawnedResourceCards = new List<GameObject>();
-    private Button harvestAllButton;
-    private TextMeshProUGUI harvestAllButtonText;
     private Coroutine feedbackFadeRoutine;
+
+    private static Sprite s_SelectionOutlineSprite;
 
     public bool IsOpen => rootModal != null && rootModal.activeSelf;
 
@@ -131,18 +152,15 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         {
             rootModal.SetActive(true);
             rootCanvasGroup.alpha = 1f;
+            SyncPanelsStageScale(force: true);
         }
 
-        // Mở Panel 1, Panel 2 chỉ mở khi người chơi nhấp vào avatar lục giác
         currentSelectedResident = null;
         currentSelectedAnimal = null;
+        CloseRankPopover();
         if (panelDetailRect != null)
         {
             panelDetailRect.gameObject.SetActive(false);
-        }
-        if (CreatureModelPreviewer.Instance != null)
-        {
-            CreatureModelPreviewer.Instance.ClearModel();
         }
 
         RefreshPanel1();
@@ -151,38 +169,46 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     public void ClosePanels()
     {
         CloseRenameModal();
+        CloseRankPopover();
         if (rootModal != null)
         {
             rootModal.SetActive(false);
         }
         currentSelectedResident = null;
         currentSelectedAnimal = null;
+    }
 
-        if (CreatureModelPreviewer.Instance != null)
+    private void CloseDetailPanelOnly()
+    {
+        CloseRenameModal();
+        CloseRankPopover();
+        currentSelectedResident = null;
+        currentSelectedAnimal = null;
+        if (panelDetailRect != null)
         {
-            CreatureModelPreviewer.Instance.ClearModel();
+            panelDetailRect.gameObject.SetActive(false);
         }
+        RefreshPanel1();
     }
 
     private void HandleCareProgressChanged(string id, int newCare)
     {
         if (!IsOpen) return;
         RefreshPanel1();
-        if (panelDetailRect != null && panelDetailRect.gameObject.activeSelf) RefreshPanel2();
+        if (panelDetailRect != null && panelDetailRect.gameObject.activeSelf) RefreshPanel2(false);
     }
 
     private void HandleRankUpgraded(string id, CreatureQualityRank newRank)
     {
         if (!IsOpen) return;
         RefreshPanel1();
-        if (panelDetailRect != null && panelDetailRect.gameObject.activeSelf) RefreshPanel2();
+        if (panelDetailRect != null && panelDetailRect.gameObject.activeSelf) RefreshPanel2(false);
     }
 
     #region UI Construction
 
     private void BuildUI()
     {
-        // 1. Root Modal
         rootModal = new GameObject("HabitatCreaturePanelModal", typeof(RectTransform), typeof(CanvasGroup));
         rootModal.transform.SetParent(transform, false);
         RectTransform modalRect = rootModal.GetComponent<RectTransform>();
@@ -190,762 +216,746 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
         rootCanvasGroup = rootModal.GetComponent<CanvasGroup>();
 
+        // Transparent click-outside backdrop so the 3D island remains clearly visible while P-05/P-06 are docked on the right
         GameObject backdropObj = new GameObject("Backdrop", typeof(RectTransform), typeof(Image), typeof(Button));
         backdropObj.transform.SetParent(rootModal.transform, false);
         EconomyHUD.Stretch(backdropObj.GetComponent<RectTransform>());
 
         Image bdImg = backdropObj.GetComponent<Image>();
-        bdImg.color = new Color(0.02f, 0.04f, 0.06f, 0.45f);
+        bdImg.color = new Color(0.10f, 0.09f, 0.08f, 0.14f);
 
         Button bdBtn = backdropObj.GetComponent<Button>();
+        bdBtn.transition = Selectable.Transition.None;
         bdBtn.onClick.AddListener(ClosePanels);
 
-        // 2. PANEL 1: Danh sách thú đang sinh sống
-        BuildPanel1(rootModal.transform);
+        GameObject stageObj = new GameObject("PanelsStage", typeof(RectTransform));
+        stageObj.transform.SetParent(rootModal.transform, false);
+        panelsStageRect = stageObj.GetComponent<RectTransform>();
+        SyncPanelsStageScale(force: true);
 
-        // 3. PANEL 2: Chi tiết sinh vật
-        BuildPanel2(rootModal.transform);
+        BuildPanel1(panelsStageRect);
+        BuildPanel2(panelsStageRect);
 
         rootModal.SetActive(false);
     }
 
+    private void SyncPanelsStageScale(bool force = false)
+    {
+        if (panelsStageRect == null) return;
+        Canvas rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
+        float parentScale = transform.lossyScale.x;
+        if (parentScale <= 0.0001f)
+        {
+            parentScale = rootCanvas != null && rootCanvas.scaleFactor > 0.01f ? rootCanvas.scaleFactor : 1f;
+        }
+
+        if (!force && lastStageScreenW == Screen.width && lastStageScreenH == Screen.height &&
+            Mathf.Approximately(lastStageParentScale, parentScale))
+        {
+            return;
+        }
+
+        lastStageScreenW = Screen.width;
+        lastStageScreenH = Screen.height;
+        lastStageParentScale = parentScale;
+
+        Vector2 pixels = rootCanvas != null && rootCanvas.scaleFactor > 0.01f
+            ? ((RectTransform)rootCanvas.transform).rect.size * rootCanvas.scaleFactor
+            : new Vector2(Screen.width, Screen.height);
+        float fit = ResourceInventoryUILayout.FitScale(pixels.x, pixels.y);
+        if (fit <= 0.01f) return;
+
+        panelsStageRect.anchorMin = Vector2.zero;
+        panelsStageRect.anchorMax = Vector2.zero;
+        panelsStageRect.pivot = Vector2.zero;
+        panelsStageRect.anchoredPosition = Vector2.zero;
+        panelsStageRect.sizeDelta = pixels / fit;
+        panelsStageRect.localScale = Vector3.one * (fit / parentScale);
+    }
+
     private void BuildPanel1(Transform parent)
     {
-        GameObject p1Obj = new GameObject("Panel1_LivingCreatures", typeof(RectTransform), typeof(Image));
+        // P-05: Top-right docked panel (340 x 524 du -> ~510 x 786 px at 1080p), grows down for 4-6 residents
+        GameObject p1Obj = new GameObject("P05_HabitatPanel", typeof(RectTransform), typeof(Image));
         p1Obj.transform.SetParent(parent, false);
         panelListRect = p1Obj.GetComponent<RectTransform>();
+        panelListRect.anchorMin = new Vector2(1f, 1f);
+        panelListRect.anchorMax = new Vector2(1f, 1f);
+        panelListRect.pivot = new Vector2(1f, 1f);
+        panelListRect.anchoredPosition = new Vector2(-14f, -48f);
+        panelListRect.sizeDelta = new Vector2(P05PanelWidth, P05PanelBaseHeight);
 
-        panelListRect.anchorMin = new Vector2(1f, 0.5f);
-        panelListRect.anchorMax = new Vector2(1f, 0.5f);
-        panelListRect.pivot = new Vector2(1f, 0.5f);
-        panelListRect.anchoredPosition = new Vector2(-12f, 0f);
-        panelListRect.sizeDelta = new Vector2(264f, 620f);
+        Image p1Bg = p1Obj.GetComponent<Image>();
+        p1Bg.sprite = LumiWorldUITheme.WindowSprite;
+        p1Bg.type = Image.Type.Sliced;
+        p1Bg.color = LumiWorldUITheme.Window;
+        p1Bg.raycastTarget = true;
+        p1Obj.AddComponent<ResourceUIInputBlocker>();
+        LumiWorldUITheme.AddSoftElevation(p1Obj, 6f, 0.24f);
 
-        panelListBg = p1Obj.GetComponent<Image>();
-        Sprite bg1 = HabitatCreaturePanelStyle.PanelBackground;
-        if (bg1 != null)
-        {
-            panelListBg.sprite = bg1;
-            panelListBg.type = Image.Type.Simple;
-        }
-        else
-        {
-            panelListBg.color = new Color(0.10f, 0.14f, 0.20f, 0.96f);
-        }
+        // --- 1. HEADER: Biome Emblem (B-01..B-07) + Biome Name + Footprint + [x] ---
+        GameObject emblemObj = new GameObject("BiomeEmblem", typeof(RectTransform), typeof(Image));
+        emblemObj.transform.SetParent(panelListRect, false);
+        RectTransform emRect = emblemObj.GetComponent<RectTransform>();
+        SetTopLeft(emRect, new Vector2(16f, -12f), new Vector2(54f, 54f));
+        biomeEmblemImg = emblemObj.GetComponent<Image>();
+        biomeEmblemImg.preserveAspect = true;
+        biomeEmblemImg.raycastTarget = false;
 
-        // --- Header ---
-        GameObject weatherObj = new GameObject("WeatherPill", typeof(RectTransform), typeof(TextMeshProUGUI));
-        weatherObj.transform.SetParent(panelListRect, false);
-        RectTransform wRect = weatherObj.GetComponent<RectTransform>();
-        wRect.anchorMin = new Vector2(0f, 1f);
-        wRect.anchorMax = new Vector2(0f, 1f);
-        wRect.pivot = new Vector2(0f, 1f);
-        wRect.anchoredPosition = new Vector2(16f, -14f);
-        wRect.sizeDelta = new Vector2(100f, 24f);
+        habitatNameText = CreateLabel(panelListRect, "BiomeName", "Leafwood", 20f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        habitatNameText.font = LumiWorldUITheme.Heading ?? habitatNameText.font;
+        habitatNameText.enableAutoSizing = true;
+        habitatNameText.fontSizeMin = 14f;
+        habitatNameText.fontSizeMax = 21f;
+        habitatNameText.overflowMode = TextOverflowModes.Overflow;
+        SetTopLeft(habitatNameText.rectTransform, new Vector2(78f, -12f), new Vector2(210f, 34f));
 
-        weatherText = weatherObj.GetComponent<TextMeshProUGUI>();
-        weatherText.text = "Sunny";
-        weatherText.fontSize = 13f;
-        weatherText.fontStyle = FontStyles.Bold;
-        weatherText.color = new Color(1f, 0.95f, 0.65f, 1f);
+        // Footprint row under Biome Name
+        GameObject fpRow = new GameObject("FootprintRow", typeof(RectTransform));
+        fpRow.transform.SetParent(panelListRect, false);
+        RectTransform fpRect = fpRow.GetComponent<RectTransform>();
+        SetTopLeft(fpRect, new Vector2(78f, -44f), new Vector2(204f, 22f));
 
-        GameObject closeBtnObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Button), typeof(Image));
-        closeBtnObj.transform.SetParent(panelListRect, false);
-        RectTransform closeRect = closeBtnObj.GetComponent<RectTransform>();
-        closeRect.anchorMin = new Vector2(1f, 1f);
-        closeRect.anchorMax = new Vector2(1f, 1f);
-        closeRect.pivot = new Vector2(1f, 1f);
-        closeRect.anchoredPosition = new Vector2(-12f, -12f);
-        closeRect.sizeDelta = new Vector2(28f, 28f);
+        GameObject fpIcObj = new GameObject("FootprintGlyph", typeof(RectTransform), typeof(Image));
+        fpIcObj.transform.SetParent(fpRect, false);
+        RectTransform fpIcRect = fpIcObj.GetComponent<RectTransform>();
+        SetTopLeft(fpIcRect, new Vector2(0f, -2f), new Vector2(18f, 18f));
+        footprintGlyphImg = fpIcObj.GetComponent<Image>();
+        footprintGlyphImg.preserveAspect = true;
+        footprintGlyphImg.color = LumiWorldUITheme.Muted;
+        footprintGlyphImg.raycastTarget = false;
 
-        Image closeImg = closeBtnObj.GetComponent<Image>();
-        closeImg.sprite = HabitatCreaturePanelStyle.ButtonExit;
-        closeImg.type = Image.Type.Simple;
-        closeImg.preserveAspect = true;
-        closeImg.color = Color.white;
+        footprintCountText = CreateLabel(fpRect, "FootprintText", "3 hex", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        footprintCountText.overflowMode = TextOverflowModes.Overflow;
+        SetTopLeft(footprintCountText.rectTransform, new Vector2(23f, 0f), new Vector2(176f, 22f));
 
-        Button closeBtn = closeBtnObj.GetComponent<Button>();
-        closeBtn.onClick.AddListener(() => PlayCloseWithAnimation(closeRect, ClosePanels));
+        // Close [x] button
+        CreateCloseButton(panelListRect, new Vector2(-14f, -14f), () => PlayCloseWithAnimation(panelListRect, ClosePanels), 28f);
 
-        // Tên cụm Habitat
-        GameObject nameObj = new GameObject("HabitatName", typeof(RectTransform), typeof(TextMeshProUGUI));
-        nameObj.transform.SetParent(panelListRect, false);
-        RectTransform nameRect = nameObj.GetComponent<RectTransform>();
-        nameRect.anchorMin = new Vector2(0.5f, 1f);
-        nameRect.anchorMax = new Vector2(0.5f, 1f);
-        nameRect.pivot = new Vector2(0.5f, 1f);
-        nameRect.anchoredPosition = new Vector2(0f, -48f);
-        nameRect.sizeDelta = new Vector2(230f, 26f);
+        // --- 2. RESIDENTS SECTION ---
+        residentsHeaderText = CreateLabel(panelListRect, "ResidentsHeader", "Residents (0/2)", 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        residentsHeaderText.overflowMode = TextOverflowModes.Overflow;
+        SetTopLeft(residentsHeaderText.rectTransform, new Vector2(16f, -74f), new Vector2(240f, 24f));
 
-        habitatNameText = nameObj.GetComponent<TextMeshProUGUI>();
-        habitatNameText.alignment = TextAlignmentOptions.Center;
-        habitatNameText.fontSize = 15f;
-        habitatNameText.fontStyle = FontStyles.Bold;
-        habitatNameText.color = Color.white;
-        habitatNameText.text = "Bloomfield Plains";
+        GameObject resBoxObj = new GameObject("ResidentsContainer", typeof(RectTransform), typeof(Image));
+        resBoxObj.transform.SetParent(panelListRect, false);
+        creatureGridRoot = resBoxObj.GetComponent<RectTransform>();
+        SetTopLeft(creatureGridRoot, new Vector2(16f, -100f), new Vector2(P05ResidentsWidth, P05ResidentsBaseHeight));
 
-        // --- YÊU CẦU 1: THANH TIẾN TRÌNH CÔNG NGHỆ CHILL (100% khi đủ 6 thú) ---
-        GameObject capBarObj = new GameObject("EnergyBar", typeof(RectTransform), typeof(Slider));
-        capBarObj.transform.SetParent(panelListRect, false);
-        RectTransform capRect = capBarObj.GetComponent<RectTransform>();
-        capRect.anchorMin = new Vector2(0.5f, 1f);
-        capRect.anchorMax = new Vector2(0.5f, 1f);
-        capRect.pivot = new Vector2(0.5f, 1f);
-        capRect.anchoredPosition = new Vector2(0f, -78f);
-        capRect.sizeDelta = new Vector2(226f, 22f);
+        Image resBoxBg = resBoxObj.GetComponent<Image>();
+        resBoxBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        resBoxBg.type = Image.Type.Sliced;
+        resBoxBg.color = LumiWorldUITheme.Surface;
+        resBoxBg.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(resBoxObj, 2.5f, 0.14f);
 
-        capacitySlider = capBarObj.GetComponent<Slider>();
-        capacitySlider.interactable = false;
-        capacitySlider.minValue = 0f;
-        capacitySlider.maxValue = 1f;
+        // --- 3. PRODUCTION SECTION ---
+        TextMeshProUGUI prodHdr = CreateLabel(panelListRect, "ProductionHeader", "Production", 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        prodHdr.overflowMode = TextOverflowModes.Overflow;
+        productionHeaderRect = prodHdr.rectTransform;
+        SetTopLeft(productionHeaderRect, new Vector2(16f, -238f), new Vector2(140f, 26f));
 
-        // Khung năng lượng hình hộp công nghệ cao
-        GameObject capBg = new GameObject("EnergyTrack", typeof(RectTransform), typeof(Image));
-        capBg.transform.SetParent(capBarObj.transform, false);
-        EconomyHUD.Stretch(capBg.GetComponent<RectTransform>());
-        Image capBgImg = capBg.GetComponent<Image>();
-        capBgImg.sprite = HabitatCreaturePanelStyle.EnergyTrackSprite;
-        capBgImg.type = Image.Type.Sliced;
-        capBgImg.color = Color.white;
+        // "[Refresh] Change resource" button on right of Production header
+        GameObject chgObj = new GameObject("ChangeResourceBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        chgObj.transform.SetParent(panelListRect, false);
+        changeResourceBtnRect = chgObj.GetComponent<RectTransform>();
+        changeResourceBtnRect.anchorMin = changeResourceBtnRect.anchorMax = changeResourceBtnRect.pivot = new Vector2(1f, 1f);
+        changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -236f);
+        changeResourceBtnRect.sizeDelta = new Vector2(144f, 26f);
 
-        // Vùng lõi năng lượng phát sáng
-        GameObject fillArea = new GameObject("FillArea", typeof(RectTransform));
-        fillArea.transform.SetParent(capBarObj.transform, false);
-        RectTransform faRect = fillArea.GetComponent<RectTransform>();
-        faRect.anchorMin = Vector2.zero;
-        faRect.anchorMax = Vector2.one;
-        faRect.offsetMin = new Vector2(3f, 3f);
-        faRect.offsetMax = new Vector2(-3f, -3f);
+        Image chgBg = chgObj.GetComponent<Image>();
+        chgBg.sprite = LumiWorldUITheme.PillSprite;
+        chgBg.type = Image.Type.Sliced;
+        chgBg.color = LumiWorldUITheme.Inset;
+        LumiWorldUITheme.AddSoftElevation(chgObj, 2f, 0.14f);
 
-        GameObject fillObj = new GameObject("EnergyCore", typeof(RectTransform), typeof(Image));
-        fillObj.transform.SetParent(fillArea.transform, false);
-        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.sizeDelta = Vector2.zero;
-        capacityFillImg = fillObj.GetComponent<Image>();
-        capacityFillImg.sprite = HabitatCreaturePanelStyle.EnergyFillSprite;
-        capacityFillImg.type = Image.Type.Sliced;
-        capacityFillImg.color = Color.white;
-        capacitySlider.fillRect = fillRect;
+        GameObject chgIcObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        chgIcObj.transform.SetParent(changeResourceBtnRect, false);
+        RectTransform chgIcRect = chgIcObj.GetComponent<RectTransform>();
+        chgIcRect.anchorMin = chgIcRect.anchorMax = new Vector2(0f, 0.5f);
+        chgIcRect.pivot = new Vector2(0f, 0.5f);
+        chgIcRect.anchoredPosition = new Vector2(10f, 0f);
+        chgIcRect.sizeDelta = new Vector2(13f, 13f);
+        Image chgIcImg = chgIcObj.GetComponent<Image>();
+        chgIcImg.sprite = LumiWorldUITheme.Glyph("Refresh");
+        chgIcImg.preserveAspect = true;
+        chgIcImg.color = LumiWorldUITheme.Text;
+        chgIcImg.raycastTarget = false;
 
-        // Nhãn text năng lượng (không ký tự ô vuông lỗi)
-        GameObject capLblObj = new GameObject("EnergyLabel", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(Shadow));
-        capLblObj.transform.SetParent(capBarObj.transform, false);
-        EconomyHUD.Stretch(capLblObj.GetComponent<RectTransform>());
-        capacityLabel = capLblObj.GetComponent<TextMeshProUGUI>();
-        capacityLabel.alignment = TextAlignmentOptions.Center;
-        capacityLabel.fontSize = 11f;
-        capacityLabel.fontStyle = FontStyles.Bold;
-        capacityLabel.color = Color.white;
-        capacityLabel.text = "0/6 Residents (0%)";
+        TextMeshProUGUI chgLbl = CreateLabel(changeResourceBtnRect, "Label", "Change resource", 11f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        chgLbl.rectTransform.anchorMin = Vector2.zero;
+        chgLbl.rectTransform.anchorMax = Vector2.one;
+        chgLbl.rectTransform.offsetMin = new Vector2(27f, 0f);
+        chgLbl.rectTransform.offsetMax = new Vector2(-8f, 0f);
 
-        var capShadow = capLblObj.GetComponent<Shadow>();
-        capShadow.effectColor = new Color(0.04f, 0.08f, 0.15f, 0.90f);
-        capShadow.effectDistance = new Vector2(1f, -1f);
+        changeResourceBtn = chgObj.GetComponent<Button>();
+        changeResourceBtn.targetGraphic = chgBg;
+        changeResourceBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+        changeResourceBtn.onClick.AddListener(OnChangePrimaryResourceClicked);
 
-        // --- Khu vực lưới tổ ong lục giác ---
-        GameObject gridObj = new GameObject("CreatureGrid", typeof(RectTransform));
-        gridObj.transform.SetParent(panelListRect, false);
-        RectTransform gridRect = gridObj.GetComponent<RectTransform>();
-        gridRect.anchorMin = new Vector2(0.5f, 1f);
-        gridRect.anchorMax = new Vector2(0.5f, 1f);
-        gridRect.pivot = new Vector2(0.5f, 1f);
-        gridRect.anchoredPosition = new Vector2(0f, -112f);
-        gridRect.sizeDelta = new Vector2(230f, 210f);
-        creatureGridRoot = gridObj.transform;
+        // Production Slots Container
+        GameObject resSlotsObj = new GameObject("ResourceSlotsContainer", typeof(RectTransform));
+        resSlotsObj.transform.SetParent(panelListRect, false);
+        resourceSlotsRoot = resSlotsObj.GetComponent<RectTransform>();
+        SetTopLeft(resourceSlotsRoot, new Vector2(16f, -270f), new Vector2(P05ResidentsWidth, 180f));
 
-        // --- Header mục Khai Thác Tài Nguyên ---
-        GameObject resHeaderObj = new GameObject("ResourceHeader", typeof(RectTransform), typeof(TextMeshProUGUI));
-        resHeaderObj.transform.SetParent(panelListRect, false);
-        RectTransform rhRect = resHeaderObj.GetComponent<RectTransform>();
-        rhRect.anchorMin = new Vector2(0.5f, 1f);
-        rhRect.anchorMax = new Vector2(0.5f, 1f);
-        rhRect.pivot = new Vector2(0.5f, 1f);
-        rhRect.anchoredPosition = new Vector2(0f, -330f);
-        rhRect.sizeDelta = new Vector2(230f, 20f);
-
-        var rhText = resHeaderObj.GetComponent<TextMeshProUGUI>();
-        rhText.alignment = TextAlignmentOptions.Center;
-        rhText.fontSize = 11.5f;
-        rhText.fontStyle = FontStyles.Bold;
-        rhText.color = new Color(0.22f, 0.75f, 0.98f, 1f);
-        rhText.text = "HARVESTABLE RESOURCES";
-
-        // --- Container các ô tài nguyên ---
-        GameObject resGridObj = new GameObject("ResourceSlotsContainer", typeof(RectTransform));
-        resGridObj.transform.SetParent(panelListRect, false);
-        RectTransform resGridRect = resGridObj.GetComponent<RectTransform>();
-        resGridRect.anchorMin = new Vector2(0.5f, 1f);
-        resGridRect.anchorMax = new Vector2(0.5f, 1f);
-        resGridRect.pivot = new Vector2(0.5f, 1f);
-        resGridRect.anchoredPosition = new Vector2(0f, -358f);
-        resGridRect.sizeDelta = new Vector2(236f, 155f);
-        resourceSlotsRoot = resGridObj.transform;
-
-        // --- Nút Thu Hoạch Tất Cả (Sát hàng Quy mô ô đất, không chạm) ---
-        GameObject hBarObj = new GameObject("HarvestBar", typeof(RectTransform), typeof(Button), typeof(Image));
+        // --- 4. BOTTOM PRIMARY CTA: "[G-24] Collect all (N)" ---
+        GameObject hBarObj = new GameObject("CollectAllBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         hBarObj.transform.SetParent(panelListRect, false);
         RectTransform hbRect = hBarObj.GetComponent<RectTransform>();
-        hbRect.anchorMin = new Vector2(0.5f, 1f);
-        hbRect.anchorMax = new Vector2(0.5f, 1f);
-        hbRect.pivot = new Vector2(0.5f, 1f);
-        hbRect.anchoredPosition = new Vector2(0f, -524f);
-        hbRect.sizeDelta = new Vector2(236f, 36f);
+        hbRect.anchorMin = hbRect.anchorMax = hbRect.pivot = new Vector2(0.5f, 0f);
+        hbRect.anchoredPosition = new Vector2(0f, 16f);
+        hbRect.sizeDelta = new Vector2(P05ResidentsWidth, 42f);
 
         Image hbImg = hBarObj.GetComponent<Image>();
-        hbImg.sprite = HabitatCreaturePanelStyle.TechPillEmeraldSprite;
+        hbImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
         hbImg.type = Image.Type.Sliced;
-        hbImg.color = Color.white;
+        hbImg.color = LumiWorldUITheme.Primary;
+        LumiWorldUITheme.AddSoftElevation(hBarObj, 3f, 0.20f);
 
         harvestAllButton = hBarObj.GetComponent<Button>();
         harvestAllButton.targetGraphic = hbImg;
         harvestAllButton.navigation = new Navigation { mode = Navigation.Mode.None };
+        ColorBlock hbColors = harvestAllButton.colors;
+        hbColors.disabledColor = Color.white;
+        harvestAllButton.colors = hbColors;
         harvestAllButton.onClick.AddListener(OnHarvestAllClicked);
 
-        GameObject hbLblObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        hbLblObj.transform.SetParent(hBarObj.transform, false);
-        EconomyHUD.Stretch(hbLblObj.GetComponent<RectTransform>());
-        harvestAllButtonText = hbLblObj.GetComponent<TextMeshProUGUI>();
-        harvestAllButtonText.alignment = TextAlignmentOptions.Center;
-        harvestAllButtonText.fontSize = 11.5f;
-        harvestAllButtonText.fontStyle = FontStyles.Bold;
-        harvestAllButtonText.color = Color.white;
-        harvestAllButtonText.text = "No pending resources";
+        GameObject hbIcObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        hbIcObj.transform.SetParent(hbRect, false);
+        RectTransform hbIcRect = hbIcObj.GetComponent<RectTransform>();
+        hbIcRect.anchorMin = hbIcRect.anchorMax = hbIcRect.pivot = new Vector2(0.5f, 0.5f);
+        hbIcRect.anchoredPosition = new Vector2(-62f, 0f);
+        hbIcRect.sizeDelta = new Vector2(16f, 16f);
+        harvestAllIconImg = hbIcObj.GetComponent<Image>();
+        harvestAllIconImg.sprite = LumiWorldUITheme.Glyph("G-24");
+        harvestAllIconImg.preserveAspect = true;
+        harvestAllIconImg.color = Color.white;
+        harvestAllIconImg.raycastTarget = false;
 
-        // --- YÊU CẦU 2: BANNER CHỮ NHẬT DƯỚI CÙNG (pannel_footer_banner.png) TỈ LỆ CHUẨN ĐÚNG MẪU ẢNH 3 ---
-        GameObject footerObj = new GameObject("FooterBar", typeof(RectTransform), typeof(Image));
-        footerObj.transform.SetParent(panelListRect, false);
-        RectTransform footerRect = footerObj.GetComponent<RectTransform>();
-        footerRect.anchorMin = new Vector2(0.5f, 0f);
-        footerRect.anchorMax = new Vector2(0.5f, 0f);
-        footerRect.pivot = new Vector2(0.5f, 0f);
-        footerRect.anchoredPosition = new Vector2(0f, 13f);
-        footerRect.sizeDelta = new Vector2(236f, 28.5f);
+        harvestAllButtonText = CreateLabel(hbRect, "Label", "Collect all (0)", 13.5f, Color.white, true, TextAlignmentOptions.Center);
+        harvestAllButtonText.overflowMode = TextOverflowModes.Overflow;
+        EconomyHUD.Stretch(harvestAllButtonText.rectTransform);
+    }
 
-        Image footImg = footerObj.GetComponent<Image>();
-        footImg.sprite = HabitatCreaturePanelStyle.RectBannerSprite;
-        footImg.type = Image.Type.Simple;
-        footImg.preserveAspect = true;
-        footImg.color = Color.white;
-
-        // Text 1: Quy mô ô đất (đặt sau icon lập phương của ảnh)
-        GameObject scaleTxtObj = new GameObject("ScaleText", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(Shadow));
-        scaleTxtObj.transform.SetParent(footerObj.transform, false);
-        RectTransform stRect = scaleTxtObj.GetComponent<RectTransform>();
-        stRect.anchorMin = new Vector2(0f, 0f);
-        stRect.anchorMax = new Vector2(0f, 1f);
-        stRect.pivot = new Vector2(0f, 0.5f);
-        stRect.anchoredPosition = new Vector2(32f, 0.5f);
-        stRect.sizeDelta = new Vector2(104f, 28.5f);
-
-        footerScaleText = scaleTxtObj.GetComponent<TextMeshProUGUI>();
-        footerScaleText.alignment = TextAlignmentOptions.Center;
-        footerScaleText.fontSize = 10.5f;
-        footerScaleText.fontStyle = FontStyles.Bold;
-        footerScaleText.color = new Color(0.98f, 0.96f, 0.92f, 1f);
-        footerScaleText.text = "Scale: 3 Hexes";
-
-        var stShadow = scaleTxtObj.GetComponent<Shadow>();
-        stShadow.effectColor = new Color(0.06f, 0.10f, 0.18f, 0.90f);
-        stShadow.effectDistance = new Vector2(1f, -1f);
-
-        // Text 2: Cư dân (đặt sau icon người/nhà của ảnh)
-        GameObject resTxtObj = new GameObject("ResidentText", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(Shadow));
-        resTxtObj.transform.SetParent(footerObj.transform, false);
-        RectTransform rtRect = resTxtObj.GetComponent<RectTransform>();
-        rtRect.anchorMin = new Vector2(1f, 0f);
-        rtRect.anchorMax = new Vector2(1f, 1f);
-        rtRect.pivot = new Vector2(1f, 0.5f);
-        rtRect.anchoredPosition = new Vector2(-4f, 0.5f);
-        rtRect.sizeDelta = new Vector2(72f, 28.5f);
-
-        footerResidentText = resTxtObj.GetComponent<TextMeshProUGUI>();
-        footerResidentText.alignment = TextAlignmentOptions.Center;
-        footerResidentText.fontSize = 10.5f;
-        footerResidentText.fontStyle = FontStyles.Bold;
-        footerResidentText.color = new Color(0.98f, 0.96f, 0.92f, 1f);
-        footerResidentText.text = "2/2 Residents";
-
-        var rtShadow = resTxtObj.GetComponent<Shadow>();
-        rtShadow.effectColor = new Color(0.06f, 0.10f, 0.18f, 0.90f);
-        rtShadow.effectDistance = new Vector2(1f, -1f);
+    private void UpdatePanel1DynamicLayout(int residentCount)
+    {
+        float extraY = residentCount >= 4 ? P05ResidentsExtraRowHeight : 0f;
+        if (panelListRect != null)
+        {
+            panelListRect.sizeDelta = new Vector2(P05PanelWidth, P05PanelBaseHeight + extraY);
+        }
+        if (creatureGridRoot != null)
+        {
+            creatureGridRoot.sizeDelta = new Vector2(P05ResidentsWidth, P05ResidentsBaseHeight + extraY);
+        }
+        if (productionHeaderRect != null)
+        {
+            productionHeaderRect.anchoredPosition = new Vector2(16f, -(238f + extraY));
+        }
+        if (changeResourceBtnRect != null)
+        {
+            changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -(236f + extraY));
+        }
+        if (resourceSlotsRoot != null)
+        {
+            resourceSlotsRoot.anchoredPosition = new Vector2(16f, -(270f + extraY));
+        }
     }
 
     private void BuildPanel2(Transform parent)
     {
-        GameObject p2Obj = new GameObject("Panel2_CreatureDetail", typeof(RectTransform), typeof(Image));
+        // P-06: Docked immediately left of P-05 (262 x 476 du -> bottom stays cleanly above P-03 Card Tray)
+        GameObject p2Obj = new GameObject("P06_CreatureDetailPanel", typeof(RectTransform), typeof(Image));
         p2Obj.transform.SetParent(parent, false);
         panelDetailRect = p2Obj.GetComponent<RectTransform>();
+        panelDetailRect.anchorMin = new Vector2(1f, 1f);
+        panelDetailRect.anchorMax = new Vector2(1f, 1f);
+        panelDetailRect.pivot = new Vector2(1f, 1f);
+        panelDetailRect.anchoredPosition = new Vector2(-364f, -48f);
+        panelDetailRect.sizeDelta = new Vector2(P06PanelWidth, P06PanelHeight);
 
-        panelDetailRect.anchorMin = new Vector2(1f, 0.5f);
-        panelDetailRect.anchorMax = new Vector2(1f, 0.5f);
-        panelDetailRect.pivot = new Vector2(1f, 0.5f);
-        panelDetailRect.anchoredPosition = new Vector2(-284f, 0f);
-        panelDetailRect.sizeDelta = new Vector2(280f, 620f);
+        Image p2Bg = p2Obj.GetComponent<Image>();
+        p2Bg.sprite = LumiWorldUITheme.WindowSprite;
+        p2Bg.type = Image.Type.Sliced;
+        p2Bg.color = LumiWorldUITheme.Window;
+        p2Bg.raycastTarget = true;
+        p2Obj.AddComponent<ResourceUIInputBlocker>();
+        LumiWorldUITheme.AddSoftElevation(p2Obj, 6f, 0.24f);
 
-        panelDetailBg = p2Obj.GetComponent<Image>();
-        panelDetailBg.type = Image.Type.Simple;
+        // --- 1. HEADER: "[<- Back to <Biome>]" pill + "[x]" close button ---
+        GameObject backBtnObj = new GameObject("BackToBiomeBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        backBtnObj.transform.SetParent(panelDetailRect, false);
+        RectTransform backRect = backBtnObj.GetComponent<RectTransform>();
+        SetTopLeft(backRect, new Vector2(16f, -14f), new Vector2(166f, 28f));
 
-        // Nút đóng Panel 2
-        GameObject close2Obj = new GameObject("ClosePanel2Btn", typeof(RectTransform), typeof(Button), typeof(Image));
-        close2Obj.transform.SetParent(panelDetailRect, false);
-        RectTransform c2Rect = close2Obj.GetComponent<RectTransform>();
-        c2Rect.anchorMin = new Vector2(1f, 1f);
-        c2Rect.anchorMax = new Vector2(1f, 1f);
-        c2Rect.pivot = new Vector2(1f, 1f);
-        c2Rect.anchoredPosition = new Vector2(-12f, -12f);
-        c2Rect.sizeDelta = new Vector2(28f, 28f);
+        Image backBg = backBtnObj.GetComponent<Image>();
+        backBg.sprite = LumiWorldUITheme.PillSprite;
+        backBg.type = Image.Type.Sliced;
+        backBg.color = LumiWorldUITheme.Inset;
 
-        Image c2Img = close2Obj.GetComponent<Image>();
-        c2Img.sprite = HabitatCreaturePanelStyle.ButtonExit;
-        c2Img.type = Image.Type.Simple;
-        c2Img.preserveAspect = true;
-        c2Img.color = Color.white;
+        GameObject backIcObj = new GameObject("ArrowIcon", typeof(RectTransform), typeof(Image));
+        backIcObj.transform.SetParent(backRect, false);
+        RectTransform backIcRect = backIcObj.GetComponent<RectTransform>();
+        backIcRect.anchorMin = backIcRect.anchorMax = new Vector2(0f, 0.5f);
+        backIcRect.pivot = new Vector2(0f, 0.5f);
+        backIcRect.anchoredPosition = new Vector2(10f, 0f);
+        backIcRect.sizeDelta = new Vector2(13f, 13f);
+        Image backIcImg = backIcObj.GetComponent<Image>();
+        backIcImg.sprite = LumiWorldUITheme.Glyph("ArrowLeft");
+        backIcImg.preserveAspect = true;
+        backIcImg.color = LumiWorldUITheme.Text;
+        backIcImg.raycastTarget = false;
 
-        Button close2Btn = close2Obj.GetComponent<Button>();
-        close2Btn.onClick.AddListener(() => PlayCloseWithAnimation(c2Rect, () =>
-        {
-            CloseRenameModal();
-            panelDetailRect.gameObject.SetActive(false);
-        }));
+        backToBiomeText = CreateLabel(backRect, "Label", "Back to Leafwood", 11.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        backToBiomeText.rectTransform.anchorMin = Vector2.zero;
+        backToBiomeText.rectTransform.anchorMax = Vector2.one;
+        backToBiomeText.rectTransform.offsetMin = new Vector2(28f, 0f);
+        backToBiomeText.rectTransform.offsetMax = new Vector2(-8f, 0f);
 
-        // --- HIỂN THỊ 3D MODEL ĐỨNG CHÍNH GIỮA Ô CHỮ NHẬT MÀU HỆ MÔI TRƯỜNG ---
-        GameObject modelArea = new GameObject("ModelDisplayArea", typeof(RectTransform));
-        modelArea.transform.SetParent(panelDetailRect, false);
-        RectTransform mRect = modelArea.GetComponent<RectTransform>();
-        mRect.anchorMin = new Vector2(0.5f, 1f);
-        mRect.anchorMax = new Vector2(0.5f, 1f);
-        mRect.pivot = new Vector2(0.5f, 0.5f);
-        mRect.anchoredPosition = new Vector2(0f, -88f); // Đặt trọn vẹn trong vùng chữ nhật màu xanh (y = 0 đến -196px)
-        mRect.sizeDelta = new Vector2(170f, 130f);
+        Button backBtn = backBtnObj.GetComponent<Button>();
+        backBtn.targetGraphic = backBg;
+        backBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+        backBtn.onClick.AddListener(CloseDetailPanelOnly);
 
-        // Hỗ trợ chạm/kéo chuột ngang để xoay ngắm thú 360 độ linh hoạt
-        var trigger = modelArea.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-        var dragEntry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.Drag };
-        dragEntry.callback.AddListener((data) => {
-            var ped = (UnityEngine.EventSystems.PointerEventData)data;
-            if (CreatureModelPreviewer.Instance != null)
-                CreatureModelPreviewer.Instance.OnDragRotate(ped.delta.x);
-        });
-        trigger.triggers.Add(dragEntry);
+        CreateCloseButton(panelDetailRect, new Vector2(-14f, -14f), CloseDetailPanelOnly, 28f);
 
-        var endDragEntry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.EndDrag };
-        endDragEntry.callback.AddListener((data) => {
-            if (CreatureModelPreviewer.Instance != null)
-                CreatureModelPreviewer.Instance.OnEndDragRotate();
-        });
-        trigger.triggers.Add(endDragEntry);
+        // --- 2. CREATURE PORTRAIT STAGE (Official non-background cutout PNG) ---
+        GameObject stageObj = new GameObject("CreatureDisplayStage", typeof(RectTransform), typeof(Image));
+        stageObj.transform.SetParent(panelDetailRect, false);
+        RectTransform mRect = stageObj.GetComponent<RectTransform>();
+        SetTopLeft(mRect, new Vector2(16f, -50f), new Vector2(230f, 166f));
 
-        // 2D Art lót phía dưới (đảm bảo không bao giờ bị trống)
-        GameObject artObj = new GameObject("CreatureArtFallback", typeof(RectTransform), typeof(Image));
-        artObj.transform.SetParent(modelArea.transform, false);
-        EconomyHUD.Stretch(artObj.GetComponent<RectTransform>());
-        creatureArtFallbackImg = artObj.GetComponent<Image>();
-        creatureArtFallbackImg.preserveAspect = true;
+        Image stageBg = stageObj.GetComponent<Image>();
+        stageBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        stageBg.type = Image.Type.Sliced;
+        stageBg.color = LumiWorldUITheme.Surface;
+        stageBg.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(stageObj, 3f, 0.14f);
 
-        // 3D Model RawImage đè lên trên (Render-to-Texture trong suốt từ URP Camera)
-        GameObject rawObj = new GameObject("ModelRawImage", typeof(RectTransform), typeof(RawImage));
-        rawObj.transform.SetParent(modelArea.transform, false);
-        EconomyHUD.Stretch(rawObj.GetComponent<RectTransform>());
-        creatureModelRawImg = rawObj.GetComponent<RawImage>();
-        if (CreatureModelPreviewer.Instance != null && CreatureModelPreviewer.Instance.PreviewTexture != null)
-        {
-            creatureModelRawImg.texture = CreatureModelPreviewer.Instance.PreviewTexture;
-            creatureModelRawImg.color = Color.white;
-        }
+        GameObject artObj = new GameObject("CreatureArtwork", typeof(RectTransform), typeof(Image));
+        artObj.transform.SetParent(stageObj.transform, false);
+        RectTransform artRect = artObj.GetComponent<RectTransform>();
+        artRect.anchorMin = Vector2.zero;
+        artRect.anchorMax = Vector2.one;
+        artRect.offsetMin = new Vector2(10f, 8f);
+        artRect.offsetMax = new Vector2(-10f, -8f);
+        creatureArtImg = artObj.GetComponent<Image>();
+        creatureArtImg.preserveAspect = true;
+        creatureArtImg.raycastTarget = false;
 
-        // --- TIÊU ĐỀ TÊN SINH VẬT NẰM Ở VÙNG MÀU TRẮNG DƯỚI Ô CHỮ NHẬT XANH (CÓ THỂ ĐỔI TÊN) ---
-        GameObject nameHeaderObj = new GameObject("CreatureNameHeader", typeof(RectTransform));
-        nameHeaderObj.transform.SetParent(panelDetailRect, false);
-        RectTransform nhRect = nameHeaderObj.GetComponent<RectTransform>();
-        nhRect.anchorMin = new Vector2(0.5f, 1f);
-        nhRect.anchorMax = new Vector2(0.5f, 1f);
-        nhRect.pivot = new Vector2(0.5f, 1f);
-        nhRect.anchoredPosition = new Vector2(0f, -204f); // Nằm hoàn toàn ở vùng màu trắng dưới ô xanh
-        nhRect.sizeDelta = new Vector2(250f, 28f);
+        // --- 3. CREATURE NAME + RENAME BUTTON + CLICKABLE RANK PILL ---
+        GameObject nameRow = new GameObject("NameAndRankRow", typeof(RectTransform));
+        nameRow.transform.SetParent(panelDetailRect, false);
+        RectTransform nrRect = nameRow.GetComponent<RectTransform>();
+        SetTopLeft(nrRect, new Vector2(16f, -226f), new Vector2(230f, 34f));
 
-        GameObject nameTxtObj = new GameObject("NameText", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(Button));
-        nameTxtObj.transform.SetParent(nameHeaderObj.transform, false);
-        RectTransform ntRect = nameTxtObj.GetComponent<RectTransform>();
-        ntRect.anchorMin = new Vector2(0f, 0f);
-        ntRect.anchorMax = new Vector2(1f, 1f);
-        ntRect.offsetMin = new Vector2(24f, 0f);
-        ntRect.offsetMax = new Vector2(-24f, 0f);
+        creatureNameText = CreateLabel(nrRect, "CreatureName", "Bramblet", 16.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        creatureNameText.font = LumiWorldUITheme.Heading ?? creatureNameText.font;
+        creatureNameText.enableAutoSizing = true;
+        creatureNameText.fontSizeMin = 12f;
+        creatureNameText.fontSizeMax = 17f;
+        creatureNameText.overflowMode = TextOverflowModes.Overflow;
+        SetTopLeft(creatureNameText.rectTransform, new Vector2(0f, -1f), new Vector2(118f, 32f));
 
-        creatureNameText = nameTxtObj.GetComponent<TextMeshProUGUI>();
-        creatureNameText.alignment = TextAlignmentOptions.Center;
-        creatureNameText.fontSize = 16f;
-        creatureNameText.fontStyle = FontStyles.Bold;
-        creatureNameText.color = new Color(0.08f, 0.16f, 0.24f, 1f);
-        creatureNameText.text = "Forest Deer";
-
-        Button nameClickBtn = nameTxtObj.GetComponent<Button>();
+        Button nameClickBtn = creatureNameText.gameObject.AddComponent<Button>();
         nameClickBtn.transition = Selectable.Transition.None;
         nameClickBtn.onClick.AddListener(OnRenameClicked);
 
-        // Nút bút chì đổi tên nhỏ bên cạnh (Sử dụng icon sprite cây bút thực tế, không dùng ký tự emoji tránh lỗi ô vuông)
-        GameObject editBtnObj = new GameObject("EditBtn", typeof(RectTransform), typeof(Button), typeof(Image));
-        editBtnObj.transform.SetParent(nameHeaderObj.transform, false);
+        // Pencil rename button
+        GameObject editBtnObj = new GameObject("EditBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        editBtnObj.transform.SetParent(nrRect, false);
         RectTransform ebRect = editBtnObj.GetComponent<RectTransform>();
-        ebRect.anchorMin = new Vector2(1f, 0.5f);
-        ebRect.anchorMax = new Vector2(1f, 0.5f);
-        ebRect.pivot = new Vector2(1f, 0.5f);
-        ebRect.anchoredPosition = new Vector2(-6f, 0f);
-        ebRect.sizeDelta = new Vector2(18f, 18f);
+        SetTopLeft(ebRect, new Vector2(120f, -4f), new Vector2(24f, 24f));
 
-        Image ebImg = editBtnObj.GetComponent<Image>();
-        ebImg.sprite = HabitatCreaturePanelStyle.PencilIconSprite;
-        ebImg.preserveAspect = true;
-        ebImg.color = Color.white;
+        Image ebBg = editBtnObj.GetComponent<Image>();
+        ebBg.sprite = LumiWorldUITheme.PillSprite;
+        ebBg.type = Image.Type.Sliced;
+        ebBg.color = LumiWorldUITheme.Inset;
+
+        GameObject ebIcObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+        ebIcObj.transform.SetParent(ebRect, false);
+        RectTransform ebIcRect = ebIcObj.GetComponent<RectTransform>();
+        ebIcRect.anchorMin = ebIcRect.anchorMax = ebIcRect.pivot = new Vector2(0.5f, 0.5f);
+        ebIcRect.sizeDelta = new Vector2(13f, 13f);
+        Image ebIcImg = ebIcObj.GetComponent<Image>();
+        ebIcImg.sprite = LumiWorldUITheme.Glyph("Pencil");
+        ebIcImg.preserveAspect = true;
+        ebIcImg.color = LumiWorldUITheme.Text;
+        ebIcImg.raycastTarget = false;
 
         renameButton = editBtnObj.GetComponent<Button>();
-        renameButton.targetGraphic = ebImg;
-        renameButton.transition = Selectable.Transition.ColorTint;
-        ColorBlock ebColors = renameButton.colors;
-        ebColors.normalColor = Color.white;
-        ebColors.highlightedColor = new Color(1.2f, 1.2f, 1.2f, 1f);
-        ebColors.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-        renameButton.colors = ebColors;
+        renameButton.targetGraphic = ebBg;
+        renameButton.navigation = new Navigation { mode = Navigation.Mode.None };
         renameButton.onClick.AddListener(OnRenameClicked);
 
-        // Huy hiệu hệ môi trường & phẩm cấp dưới tên sinh vật (trong vùng màu trắng)
-        GameObject badgeObj = new GameObject("CreatureBadge", typeof(RectTransform), typeof(TextMeshProUGUI));
-        badgeObj.transform.SetParent(panelDetailRect, false);
-        RectTransform badgeRect = badgeObj.GetComponent<RectTransform>();
-        badgeRect.anchorMin = new Vector2(0.5f, 1f);
-        badgeRect.anchorMax = new Vector2(0.5f, 1f);
-        badgeRect.pivot = new Vector2(0.5f, 1f);
-        badgeRect.anchoredPosition = new Vector2(0f, -232f);
-        badgeRect.sizeDelta = new Vector2(260f, 18f);
+        // Clickable Rank Pill on the right (Rank I / II / III with 1 / 2 / 3 hex glyph)
+        GameObject rankPillObj = new GameObject("RankPillBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        rankPillObj.transform.SetParent(nrRect, false);
+        RectTransform rpRect = rankPillObj.GetComponent<RectTransform>();
+        rpRect.anchorMin = rpRect.anchorMax = rpRect.pivot = new Vector2(1f, 0.5f);
+        rpRect.anchoredPosition = new Vector2(0f, 0f);
+        rpRect.sizeDelta = new Vector2(82f, 28f);
 
-        creatureBadgeText = badgeObj.GetComponent<TextMeshProUGUI>();
-        creatureBadgeText.alignment = TextAlignmentOptions.Center;
-        creatureBadgeText.fontSize = 11.5f;
-        creatureBadgeText.fontStyle = FontStyles.Bold;
-        creatureBadgeText.color = new Color(0.24f, 0.32f, 0.40f, 1f);
+        Image rpBg = rankPillObj.GetComponent<Image>();
+        rpBg.sprite = LumiWorldUITheme.PillSprite;
+        rpBg.type = Image.Type.Sliced;
+        rpBg.color = LumiWorldUITheme.Surface;
+        LumiWorldUITheme.AddSoftElevation(rankPillObj, 2f, 0.16f);
 
-        // --- THANH CUỘN SCROLLRECT ĐẢM BẢO MỌI THÔNG TIN NẰM GỌN TRONG PHẦN MÀU TRẮNG ---
-        GameObject scrollObj = new GameObject("InfoScrollView", typeof(RectTransform), typeof(ScrollRect));
-        scrollObj.transform.SetParent(panelDetailRect, false);
-        RectTransform scrollRectTransform = scrollObj.GetComponent<RectTransform>();
-        scrollRectTransform.anchorMin = new Vector2(0f, 0f);
-        scrollRectTransform.anchorMax = new Vector2(1f, 1f);
-        scrollRectTransform.offsetMin = new Vector2(12f, 96f); // Chừa chỗ phía dưới cho bộ nút bấm
-        scrollRectTransform.offsetMax = new Vector2(-12f, -254f); // Bắt đầu từ dưới nhãn thông tin, hoàn toàn trong phần màu trắng
+        GameObject rpIcObj = new GameObject("RankHexGlyph", typeof(RectTransform), typeof(Image));
+        rpIcObj.transform.SetParent(rpRect, false);
+        RectTransform rpIcRect = rpIcObj.GetComponent<RectTransform>();
+        rpIcRect.anchorMin = rpIcRect.anchorMax = new Vector2(0f, 0.5f);
+        rpIcRect.pivot = new Vector2(0f, 0.5f);
+        rpIcRect.anchoredPosition = new Vector2(8f, 0f);
+        rpIcRect.sizeDelta = new Vector2(15f, 15f);
+        rankPillGlyphImg = rpIcObj.GetComponent<Image>();
+        rankPillGlyphImg.sprite = LumiWorldUITheme.RankGlyph(1);
+        rankPillGlyphImg.preserveAspect = true;
+        rankPillGlyphImg.color = LumiWorldUITheme.Text;
+        rankPillGlyphImg.raycastTarget = false;
 
-        infoScrollRect = scrollObj.GetComponent<ScrollRect>();
-        infoScrollRect.horizontal = false;
-        infoScrollRect.vertical = true;
-        infoScrollRect.movementType = ScrollRect.MovementType.Clamped;
-        infoScrollRect.scrollSensitivity = 25f;
+        rankPillText = CreateLabel(rpRect, "RankLabel", "Rank I", 11.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        rankPillText.rectTransform.anchorMin = Vector2.zero;
+        rankPillText.rectTransform.anchorMax = Vector2.one;
+        rankPillText.rectTransform.offsetMin = new Vector2(27f, 0f);
+        rankPillText.rectTransform.offsetMax = new Vector2(-6f, 0f);
 
-        // Viewport
-        GameObject viewportObj = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
-        viewportObj.transform.SetParent(scrollObj.transform, false);
-        EconomyHUD.Stretch(viewportObj.GetComponent<RectTransform>());
-        infoScrollRect.viewport = viewportObj.GetComponent<RectTransform>();
+        rankPillButton = rankPillObj.GetComponent<Button>();
+        rankPillButton.targetGraphic = rpBg;
+        rankPillButton.navigation = new Navigation { mode = Navigation.Mode.None };
+        rankPillButton.onClick.AddListener(ToggleRankPopover);
 
-        // Content
-        GameObject contentObj = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-        contentObj.transform.SetParent(viewportObj.transform, false);
-        RectTransform contentRect = contentObj.GetComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0f, 1f);
-        contentRect.anchorMax = new Vector2(1f, 1f);
-        contentRect.pivot = new Vector2(0.5f, 1f);
-        contentRect.sizeDelta = new Vector2(0f, 180f);
+        // --- 4. FULLNESS & STATUS CARD ---
+        GameObject fullCard = new GameObject("FullnessCard", typeof(RectTransform), typeof(Image));
+        fullCard.transform.SetParent(panelDetailRect, false);
+        RectTransform fcRect = fullCard.GetComponent<RectTransform>();
+        SetTopLeft(fcRect, new Vector2(16f, -268f), new Vector2(230f, 76f));
 
-        VerticalLayoutGroup vLayout = contentObj.GetComponent<VerticalLayoutGroup>();
-        vLayout.spacing = 4f;
-        vLayout.childControlHeight = true; // BẮT BUỘC ĐỂ CHIỀU CAO Ô CO VỀ ĐÚNG 28-30PX NHƯ ẢNH 4
-        vLayout.childControlWidth = true;
-        vLayout.childForceExpandHeight = false;
-        vLayout.childForceExpandWidth = true;
+        Image fcBg = fullCard.GetComponent<Image>();
+        fcBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        fcBg.type = Image.Type.Sliced;
+        fcBg.color = LumiWorldUITheme.Surface;
+        LumiWorldUITheme.AddSoftElevation(fullCard, 2.5f, 0.14f);
 
-        ContentSizeFitter csf = contentObj.GetComponent<ContentSizeFitter>();
-        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        TextMeshProUGUI fullTitle = CreateLabel(fcRect, "FullnessLabel", "Fullness", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(fullTitle.rectTransform, new Vector2(14f, -8f), new Vector2(96f, 20f));
 
-        infoScrollRect.content = contentRect;
+        hungerProgressLabel = CreateLabel(fcRect, "FullnessValue", "50 / 100", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineRight);
+        SetTopLeft(hungerProgressLabel.rectTransform, new Vector2(120f, -8f), new Vector2(96f, 20f));
 
-        // --- CÁC TRƯỜNG THÔNG TIN DÀI (ochitiet_thu) THON GỌN CAO 28PX THEO CHUẨN ẢNH 4 ---
-        // 1. Tình trạng hiện tại (Hàng ngang thon gọn cao 28px)
-        GameObject statusCard = CreateGlassCard(contentObj.transform, "StatusCard", 28f);
+        // Progress Bar Track
+        GameObject barTrack = new GameObject("ProgressTrack", typeof(RectTransform), typeof(Image));
+        barTrack.transform.SetParent(fcRect, false);
+        RectTransform btRect = barTrack.GetComponent<RectTransform>();
+        SetTopLeft(btRect, new Vector2(14f, -33f), new Vector2(202f, 10f));
+        Image btImg = barTrack.GetComponent<Image>();
+        btImg.sprite = LumiWorldUITheme.PillSprite;
+        btImg.type = Image.Type.Sliced;
+        btImg.color = LumiWorldUITheme.Inset;
 
-        GameObject stLblObj = new GameObject("StatusLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
-        stLblObj.transform.SetParent(statusCard.transform, false);
-        RectTransform stLRect = stLblObj.GetComponent<RectTransform>();
-        stLRect.anchorMin = new Vector2(0f, 0f);
-        stLRect.anchorMax = new Vector2(0.40f, 1f);
-        stLRect.offsetMin = new Vector2(12f, 0f);
-        stLRect.offsetMax = new Vector2(0f, 0f);
+        GameObject barFill = new GameObject("ProgressFill", typeof(RectTransform), typeof(Image));
+        barFill.transform.SetParent(btRect, false);
+        RectTransform bfRect = barFill.GetComponent<RectTransform>();
+        bfRect.anchorMin = Vector2.zero;
+        bfRect.anchorMax = Vector2.one;
+        bfRect.offsetMin = Vector2.zero;
+        bfRect.offsetMax = Vector2.zero;
+        hungerFillImg = barFill.GetComponent<Image>();
+        hungerFillImg.sprite = LumiWorldUITheme.PillSprite;
+        hungerFillImg.type = Image.Type.Filled;
+        hungerFillImg.fillMethod = Image.FillMethod.Horizontal;
+        hungerFillImg.fillOrigin = 0;
+        hungerFillImg.fillAmount = 0.5f;
+        hungerFillImg.color = LumiWorldUITheme.Success;
 
-        var stLbl = stLblObj.GetComponent<TextMeshProUGUI>();
-        stLbl.fontSize = 12f;
-        stLbl.fontStyle = FontStyles.Bold;
-        stLbl.alignment = TextAlignmentOptions.MidlineLeft;
-        stLbl.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        stLbl.text = "Status:";
+        // Status Pill inside Fullness Card
+        GameObject stPillObj = new GameObject("StatusPill", typeof(RectTransform), typeof(Image));
+        stPillObj.transform.SetParent(fcRect, false);
+        RectTransform stPillRect = stPillObj.GetComponent<RectTransform>();
+        SetTopLeft(stPillRect, new Vector2(14f, -49f), new Vector2(106f, 20f));
+        statusPillBg = stPillObj.GetComponent<Image>();
+        statusPillBg.sprite = LumiWorldUITheme.PillSprite;
+        statusPillBg.type = Image.Type.Sliced;
+        statusPillBg.color = new Color(0.33f, 0.55f, 0.24f, 0.14f);
 
-        GameObject stValObj = new GameObject("StatusValue", typeof(RectTransform), typeof(TextMeshProUGUI));
-        stValObj.transform.SetParent(statusCard.transform, false);
-        RectTransform stVRect = stValObj.GetComponent<RectTransform>();
-        stVRect.anchorMin = new Vector2(0.40f, 0f);
-        stVRect.anchorMax = new Vector2(1f, 1f);
-        stVRect.offsetMin = new Vector2(0f, 0f);
-        stVRect.offsetMax = new Vector2(-12f, 0f);
+        statusPillText = CreateLabel(stPillRect, "StatusText", "Healthy", 10.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(statusPillText.rectTransform);
 
-        statusBannerTitle = stValObj.GetComponent<TextMeshProUGUI>();
-        statusBannerTitle.fontSize = 12f;
-        statusBannerTitle.fontStyle = FontStyles.Bold;
-        statusBannerTitle.alignment = TextAlignmentOptions.MidlineRight;
-        statusBannerTitle.color = new Color(0.12f, 0.65f, 0.28f, 1f);
-        statusBannerTitle.text = "Healthy";
+        // --- 5. FAVORITE / ASSIGNED FOOD CARD ---
+        TextMeshProUGUI foodHdr = CreateLabel(panelDetailRect, "FoodHeader", "Food", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(foodHdr.rectTransform, new Vector2(16f, -352f), new Vector2(140f, 20f));
 
-        // 2. Fullness indicator
-        GameObject hungerCard = CreateGlassCard(contentObj.transform, "HungerCard", 28f);
+        GameObject foodCard = new GameObject("FoodCard", typeof(RectTransform), typeof(Image));
+        foodCard.transform.SetParent(panelDetailRect, false);
+        RectTransform fdRect = foodCard.GetComponent<RectTransform>();
+        SetTopLeft(fdRect, new Vector2(16f, -374f), new Vector2(230f, 44f));
 
-        GameObject hLabelObj = new GameObject("HungerLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
-        hLabelObj.transform.SetParent(hungerCard.transform, false);
-        RectTransform hlRect = hLabelObj.GetComponent<RectTransform>();
-        hlRect.anchorMin = new Vector2(0f, 0f);
-        hlRect.anchorMax = new Vector2(0.40f, 1f);
-        hlRect.offsetMin = new Vector2(12f, 0f);
-        hlRect.offsetMax = new Vector2(0f, 0f);
+        Image fdBg = foodCard.GetComponent<Image>();
+        fdBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        fdBg.type = Image.Type.Sliced;
+        fdBg.color = LumiWorldUITheme.Surface;
+        LumiWorldUITheme.AddSoftElevation(foodCard, 2.5f, 0.14f);
 
-        var hlTxt = hLabelObj.GetComponent<TextMeshProUGUI>();
-        hlTxt.fontSize = 12f;
-        hlTxt.fontStyle = FontStyles.Bold;
-        hlTxt.alignment = TextAlignmentOptions.MidlineLeft;
-        hlTxt.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        hlTxt.text = "Fullness:";
+        GameObject fdIcObj = new GameObject("FoodIcon", typeof(RectTransform), typeof(Image));
+        fdIcObj.transform.SetParent(fdRect, false);
+        RectTransform fdIcRect = fdIcObj.GetComponent<RectTransform>();
+        SetTopLeft(fdIcRect, new Vector2(10f, -6f), new Vector2(32f, 32f));
+        foodIconImg = fdIcObj.GetComponent<Image>();
+        foodIconImg.preserveAspect = true;
+        foodIconImg.raycastTarget = false;
 
-        GameObject hValObj = new GameObject("HungerValue", typeof(RectTransform), typeof(TextMeshProUGUI));
-        hValObj.transform.SetParent(hungerCard.transform, false);
-        RectTransform hvRect = hValObj.GetComponent<RectTransform>();
-        hvRect.anchorMin = new Vector2(0.40f, 0f);
-        hvRect.anchorMax = new Vector2(1f, 1f);
-        hvRect.offsetMin = new Vector2(0f, 0f);
-        hvRect.offsetMax = new Vector2(-12f, 0f);
+        foodNameText = CreateLabel(fdRect, "FoodName", "Raspberries", 13f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(foodNameText.rectTransform, new Vector2(50f, -10f), new Vector2(170f, 24f));
 
-        hungerProgressLabel = hValObj.GetComponent<TextMeshProUGUI>();
-        hungerProgressLabel.fontSize = 12f;
-        hungerProgressLabel.fontStyle = FontStyles.Bold;
-        hungerProgressLabel.alignment = TextAlignmentOptions.MidlineRight;
-        hungerProgressLabel.color = new Color(0.85f, 0.50f, 0.10f, 1f);
-        hungerProgressLabel.text = "50/100 (50%)";
+        // Feedback notification line above buttons
+        feedbackNotifyText = CreateLabel(panelDetailRect, "FeedbackText", "", 10.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        feedbackNotifyText.rectTransform.anchorMin = feedbackNotifyText.rectTransform.anchorMax = feedbackNotifyText.rectTransform.pivot = new Vector2(0.5f, 0f);
+        feedbackNotifyText.rectTransform.anchoredPosition = new Vector2(0f, 54f);
+        feedbackNotifyText.rectTransform.sizeDelta = new Vector2(230f, 16f);
 
-        // Mini slider ở đáy ô chỉ số
-        GameObject hSliderObj = new GameObject("HungerSlider", typeof(RectTransform), typeof(Slider));
-        hSliderObj.transform.SetParent(hungerCard.transform, false);
-        RectTransform hsRect = hSliderObj.GetComponent<RectTransform>();
-        hsRect.anchorMin = new Vector2(0f, 0f);
-        hsRect.anchorMax = new Vector2(1f, 0f);
-        hsRect.pivot = new Vector2(0.5f, 0f);
-        hsRect.anchoredPosition = new Vector2(0f, 2f);
-        hsRect.sizeDelta = new Vector2(-24f, 3f);
-
-        hungerSlider = hSliderObj.GetComponent<Slider>();
-        hungerSlider.interactable = false;
-        hungerSlider.minValue = 0f;
-        hungerSlider.maxValue = 100f;
-
-        GameObject hsBg = new GameObject("Bg", typeof(RectTransform), typeof(Image));
-        hsBg.transform.SetParent(hSliderObj.transform, false);
-        EconomyHUD.Stretch(hsBg.GetComponent<RectTransform>());
-        Image hsBgImg = hsBg.GetComponent<Image>();
-        hsBgImg.color = new Color(0f, 0f, 0f, 0.10f);
-
-        GameObject hsFillArea = new GameObject("FillArea", typeof(RectTransform));
-        hsFillArea.transform.SetParent(hSliderObj.transform, false);
-        EconomyHUD.Stretch(hsFillArea.GetComponent<RectTransform>());
-
-        GameObject hsFill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-        hsFill.transform.SetParent(hsFillArea.transform, false);
-        RectTransform hsFillRect = hsFill.GetComponent<RectTransform>();
-        hsFillRect.anchorMin = Vector2.zero;
-        hsFillRect.anchorMax = Vector2.one;
-        hsFillRect.sizeDelta = Vector2.zero;
-        Image hsFillImg = hsFill.GetComponent<Image>();
-        hsFillImg.color = new Color(0.95f, 0.65f, 0.15f, 0.95f);
-        hungerSlider.fillRect = hsFillRect;
-
-        // 3. Món ăn ưa thích (Hàng ngang thon gọn cao 28px như Ảnh 4, không biểu tượng ô vuông lỗi)
-        GameObject foodCard = CreateGlassCard(contentObj.transform, "FoodCard", 28f);
-
-        GameObject fLblObj = new GameObject("FoodLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
-        fLblObj.transform.SetParent(foodCard.transform, false);
-        RectTransform fLRect = fLblObj.GetComponent<RectTransform>();
-        fLRect.anchorMin = new Vector2(0f, 0f);
-        fLRect.anchorMax = new Vector2(0.35f, 1f);
-        fLRect.offsetMin = new Vector2(12f, 0f);
-        fLRect.offsetMax = new Vector2(0f, 0f);
-
-        var fLbl = fLblObj.GetComponent<TextMeshProUGUI>();
-        foodLabelText = fLbl;
-        fLbl.fontSize = 12f;
-        fLbl.fontStyle = FontStyles.Bold;
-        fLbl.alignment = TextAlignmentOptions.MidlineLeft;
-        fLbl.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        fLbl.text = "Food:";
-
-        GameObject fValObj = new GameObject("FoodValue", typeof(RectTransform), typeof(TextMeshProUGUI));
-        fValObj.transform.SetParent(foodCard.transform, false);
-        RectTransform fVRect = fValObj.GetComponent<RectTransform>();
-        fVRect.anchorMin = new Vector2(0.35f, 0f);
-        fVRect.anchorMax = new Vector2(1f, 1f);
-        fVRect.offsetMin = new Vector2(0f, 0f);
-        fVRect.offsetMax = new Vector2(-12f, 0f);
-
-        favoriteFoodText = fValObj.GetComponent<TextMeshProUGUI>();
-        favoriteFoodText.fontSize = 11.5f;
-        favoriteFoodText.fontStyle = FontStyles.Bold;
-        favoriteFoodText.alignment = TextAlignmentOptions.MidlineRight;
-        favoriteFoodText.color = new Color(0.18f, 0.22f, 0.28f, 1f);
-        favoriteFoodText.text = "Sweet Sprout & Forest Berries";
-
-        // --- STAT CHIPS 2x2 ---
-        GameObject chipsGrid = new GameObject("StatChipsGrid", typeof(RectTransform), typeof(GridLayoutGroup), typeof(LayoutElement));
-        chipsGrid.transform.SetParent(contentObj.transform, false);
-        LayoutElement leGrid = chipsGrid.GetComponent<LayoutElement>();
-        leGrid.preferredHeight = 62f;
-        leGrid.minHeight = 62f;
-
-        GridLayoutGroup glg = chipsGrid.GetComponent<GridLayoutGroup>();
-        glg.cellSize = new Vector2(124f, 28f);
-        glg.spacing = new Vector2(8f, 4f);
-
-        CreateStatChip(chipsGrid.transform, "ChipSpecies", "Petaluff", out chipSpeciesText);
-        CreateStatChip(chipsGrid.transform, "ChipRank", "Rank I", out chipRankText);
-        CreateStatChip(chipsGrid.transform, "ChipStars", "Leafwood Forest", out chipStarsText);
-        CreateStatChip(chipsGrid.transform, "ChipTrait", "Friendly", out chipTraitText);
-
-        // Feedback notification text
-        GameObject fbObj = new GameObject("FeedbackText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        fbObj.transform.SetParent(panelDetailRect, false);
-        RectTransform fbRect = fbObj.GetComponent<RectTransform>();
-        fbRect.anchorMin = new Vector2(0.5f, 0f);
-        fbRect.anchorMax = new Vector2(0.5f, 0f);
-        fbRect.pivot = new Vector2(0.5f, 0f);
-        fbRect.anchoredPosition = new Vector2(0f, 88f);
-        fbRect.sizeDelta = new Vector2(256f, 16f);
-
-        feedbackNotifyText = fbObj.GetComponent<TextMeshProUGUI>();
-        feedbackNotifyText.alignment = TextAlignmentOptions.Center;
-        feedbackNotifyText.fontSize = 11f;
-        feedbackNotifyText.fontStyle = FontStyles.Bold;
-        feedbackNotifyText.color = new Color(0.12f, 0.65f, 0.28f, 1f);
-        feedbackNotifyText.text = "";
-
-        // --- ACTION BUTTONS (Feed, Treat, Rank Up) ---
-        GameObject buttonBar = new GameObject("ButtonBar", typeof(RectTransform));
-        buttonBar.transform.SetParent(panelDetailRect, false);
-        RectTransform btnBarRect = buttonBar.GetComponent<RectTransform>();
-        btnBarRect.anchorMin = new Vector2(0.5f, 0f);
-        btnBarRect.anchorMax = new Vector2(0.5f, 0f);
-        btnBarRect.pivot = new Vector2(0.5f, 0f);
-        btnBarRect.anchoredPosition = new Vector2(0f, 8f);
-        btnBarRect.sizeDelta = new Vector2(256f, 78f);
-
-        // Row 1: Feed (Left) & Medicine / Treat (Right)
-        feedButton = CreateActionCardButton(buttonBar.transform, "FeedBtn", new Vector2(-66f, 42f), new Vector2(124f, 36f),
-            HabitatCreaturePanelStyle.ButtonChoAn, "Deposit Food", 13.5f, out feedButtonText);
+        // --- 6. SIDE-BY-SIDE FEED (G-22) & TREAT (G-23) BUTTONS ---
+        feedButton = CreateActionPillButton(
+            panelDetailRect,
+            "FeedBtn",
+            new Vector2(-59f, 14f),
+            new Vector2(110f, 36f),
+            isPrimary: true,
+            glyphCode: "G-22",
+            label: "Feed",
+            out feedButtonText);
         feedButton.onClick.AddListener(OnFeedClicked);
 
-        medicineButton = CreateActionCardButton(buttonBar.transform, "MedicineBtn", new Vector2(66f, 42f), new Vector2(124f, 36f),
-            HabitatCreaturePanelStyle.ButtonTriLieu, "Treat", 13.5f, out medicineButtonText);
+        medicineButton = CreateActionPillButton(
+            panelDetailRect,
+            "TreatBtn",
+            new Vector2(59f, 14f),
+            new Vector2(110f, 36f),
+            isPrimary: false,
+            glyphCode: "G-23",
+            label: "Treat",
+            out medicineButtonText);
         medicineButton.onClick.AddListener(OnMedicineClicked);
 
-        // Row 2: Rank Up (Full width)
-        rankUpButton = CreateActionCardButton(buttonBar.transform, "RankUpBtn", new Vector2(0f, 2f), new Vector2(256f, 36f),
-            HabitatCreaturePanelStyle.ButtonNang, "Rank Up", 14f, out rankUpButtonText);
-        rankUpButton.onClick.AddListener(OnRankUpClicked);
+        // --- 7. RANK POPOVER ---
+        BuildRankPopover(panelDetailRect);
 
-        // Modal đổi tên sinh vật
+        // --- 8. RENAME MODAL ---
         BuildRenameModal(panelDetailRect);
     }
 
-    private GameObject CreateGlassCard(Transform parent, string name, float height)
+    private void BuildRankPopover(RectTransform parent)
     {
-        GameObject card = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(LayoutElement));
-        card.transform.SetParent(parent, false);
+        rankPopoverObj = new GameObject("RankPopover", typeof(RectTransform), typeof(Image), typeof(Button));
+        rankPopoverObj.transform.SetParent(parent, false);
+        RectTransform overlayRect = rankPopoverObj.GetComponent<RectTransform>();
+        EconomyHUD.Stretch(overlayRect);
 
-        RectTransform rt = card.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(0f, height);
+        Image overlayImg = rankPopoverObj.GetComponent<Image>();
+        overlayImg.color = new Color(0.14f, 0.12f, 0.10f, 0.12f);
+        overlayImg.raycastTarget = true;
 
-        LayoutElement le = card.GetComponent<LayoutElement>();
-        le.preferredHeight = height;
-        le.minHeight = height;
+        Button dismissBtn = rankPopoverObj.GetComponent<Button>();
+        dismissBtn.transition = Selectable.Transition.None;
+        dismissBtn.onClick.AddListener(CloseRankPopover);
 
-        Image img = card.GetComponent<Image>();
-        img.sprite = HabitatCreaturePanelStyle.OChiTietThu;
-        img.type = Image.Type.Sliced;
-        img.color = Color.white;
+        GameObject cardObj = new GameObject("PopoverCard", typeof(RectTransform), typeof(Image));
+        cardObj.transform.SetParent(rankPopoverObj.transform, false);
+        RectTransform cardRect = cardObj.GetComponent<RectTransform>();
+        SetTopLeft(cardRect, new Vector2(24f, -264f), new Vector2(214f, 134f));
 
-        return card;
+        Image cardBg = cardObj.GetComponent<Image>();
+        cardBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        cardBg.type = Image.Type.Sliced;
+        cardBg.color = LumiWorldUITheme.Surface;
+        cardBg.raycastTarget = true;
+        cardObj.AddComponent<ResourceUIInputBlocker>();
+        LumiWorldUITheme.AddSoftElevation(cardObj, 5f, 0.24f);
+
+        rankPopoverTitleText = CreateLabel(cardRect, "Title", "Rank I", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        rankPopoverTitleText.overflowMode = TextOverflowModes.Overflow;
+        SetTopLeft(rankPopoverTitleText.rectTransform, new Vector2(14f, -10f), new Vector2(146f, 24f));
+
+        CreateCloseButton(cardRect, new Vector2(-10f, -10f), CloseRankPopover, 24f);
+
+        rankPopoverCareText = CreateLabel(cardRect, "CareLabel", "Care progress: 100 / 100", 11.5f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(rankPopoverCareText.rectTransform, new Vector2(14f, -38f), new Vector2(186f, 18f));
+
+        GameObject careTrack = new GameObject("CareTrack", typeof(RectTransform), typeof(Image));
+        careTrack.transform.SetParent(cardRect, false);
+        RectTransform ctRect = careTrack.GetComponent<RectTransform>();
+        SetTopLeft(ctRect, new Vector2(14f, -60f), new Vector2(186f, 10f));
+        Image ctImg = careTrack.GetComponent<Image>();
+        ctImg.sprite = LumiWorldUITheme.PillSprite;
+        ctImg.type = Image.Type.Sliced;
+        ctImg.color = LumiWorldUITheme.Inset;
+
+        GameObject careFill = new GameObject("CareFill", typeof(RectTransform), typeof(Image));
+        careFill.transform.SetParent(ctRect, false);
+        RectTransform cfRect = careFill.GetComponent<RectTransform>();
+        EconomyHUD.Stretch(cfRect);
+        rankPopoverCareFill = careFill.GetComponent<Image>();
+        rankPopoverCareFill.sprite = LumiWorldUITheme.PillSprite;
+        rankPopoverCareFill.type = Image.Type.Filled;
+        rankPopoverCareFill.fillMethod = Image.FillMethod.Horizontal;
+        rankPopoverCareFill.fillOrigin = 0;
+        rankPopoverCareFill.fillAmount = 1f;
+        rankPopoverCareFill.color = LumiWorldUITheme.Success;
+
+        GameObject rBtnObj = new GameObject("RankUpBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        rBtnObj.transform.SetParent(cardRect, false);
+        RectTransform rbRect = rBtnObj.GetComponent<RectTransform>();
+        rbRect.anchorMin = rbRect.anchorMax = rbRect.pivot = new Vector2(0.5f, 0f);
+        rbRect.anchoredPosition = new Vector2(0f, 12f);
+        rbRect.sizeDelta = new Vector2(186f, 34f);
+
+        Image rbImg = rBtnObj.GetComponent<Image>();
+        rbImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
+        rbImg.type = Image.Type.Sliced;
+        rbImg.color = LumiWorldUITheme.Primary;
+
+        rankUpButton = rBtnObj.GetComponent<Button>();
+        rankUpButton.targetGraphic = rbImg;
+        rankUpButton.navigation = new Navigation { mode = Navigation.Mode.None };
+        ColorBlock rbColors = rankUpButton.colors;
+        rbColors.disabledColor = Color.white;
+        rankUpButton.colors = rbColors;
+        rankUpButton.onClick.AddListener(OnRankUpClicked);
+
+        rankUpButtonText = CreateLabel(rbRect, "Label", "Rank Up", 12.5f, Color.white, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(rankUpButtonText.rectTransform);
+
+        rankPopoverObj.SetActive(false);
     }
 
-    private void CreateStatChip(Transform parent, string name, string defaultText, out TextMeshProUGUI textComp)
+    private void ToggleRankPopover()
     {
-        GameObject chip = new GameObject(name, typeof(RectTransform), typeof(Image));
-        chip.transform.SetParent(parent, false);
-
-        Image img = chip.GetComponent<Image>();
-        img.sprite = HabitatCreaturePanelStyle.OChiTietNhoThu;
-        img.type = Image.Type.Sliced;
-        img.color = Color.white;
-
-        GameObject txtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-        txtObj.transform.SetParent(chip.transform, false);
-        EconomyHUD.Stretch(txtObj.GetComponent<RectTransform>());
-
-        textComp = txtObj.GetComponent<TextMeshProUGUI>();
-        textComp.text = defaultText;
-        textComp.alignment = TextAlignmentOptions.Center;
-        textComp.fontSize = 12f;
-        textComp.fontStyle = FontStyles.Bold;
-        textComp.color = new Color(0.15f, 0.20f, 0.26f, 1f);
+        if (rankPopoverObj == null) return;
+        bool next = !rankPopoverObj.activeSelf;
+        rankPopoverObj.SetActive(next);
+        if (next)
+        {
+            rankPopoverObj.transform.SetAsLastSibling();
+            RefreshPanel2(false);
+        }
+        GameAudioManager.Instance?.PlayClick();
     }
 
-    private Button CreateActionCardButton(Transform parent, string name, Vector2 pos, Vector2 size, Sprite btnSprite, string label, float fontSize, out TextMeshProUGUI labelTmp)
+    private void CloseRankPopover()
     {
-        GameObject btnObj = new GameObject(name, typeof(RectTransform), typeof(Button), typeof(Image));
+        if (rankPopoverObj != null && rankPopoverObj.activeSelf)
+        {
+            rankPopoverObj.SetActive(false);
+        }
+    }
+
+    private Button CreateActionPillButton(
+        Transform parent,
+        string name,
+        Vector2 bottomPos,
+        Vector2 size,
+        bool isPrimary,
+        string glyphCode,
+        string label,
+        out TextMeshProUGUI labelTmp)
+    {
+        GameObject btnObj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
         btnObj.transform.SetParent(parent, false);
         RectTransform rt = btnObj.GetComponent<RectTransform>();
-        rt.anchoredPosition = pos;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0f);
+        rt.anchoredPosition = bottomPos;
         rt.sizeDelta = size;
 
         Image img = btnObj.GetComponent<Image>();
-        img.sprite = btnSprite ?? HabitatCreaturePanelStyle.GameButtonSprite;
+        img.sprite = isPrimary ? LumiWorldUITheme.ButtonPrimarySprite : LumiWorldUITheme.ButtonSecondarySprite;
         img.type = Image.Type.Sliced;
-        img.color = Color.white;
+        img.color = isPrimary ? LumiWorldUITheme.Primary : LumiWorldUITheme.Inset;
+        LumiWorldUITheme.AddSoftElevation(btnObj, 2.5f, 0.16f);
+
+        Color fg = isPrimary ? Color.white : LumiWorldUITheme.Text;
+
+        GameObject icObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(rt, false);
+        RectTransform icRect = icObj.GetComponent<RectTransform>();
+        icRect.anchorMin = icRect.anchorMax = icRect.pivot = new Vector2(0.5f, 0.5f);
+        icRect.anchoredPosition = new Vector2(-22f, 0f);
+        icRect.sizeDelta = new Vector2(15f, 15f);
+        Image icImg = icObj.GetComponent<Image>();
+        icImg.sprite = LumiWorldUITheme.Glyph(glyphCode);
+        icImg.preserveAspect = true;
+        icImg.color = fg;
+        icImg.raycastTarget = false;
+
+        labelTmp = CreateLabel(rt, "Label", label, 13f, fg, true, TextAlignmentOptions.MidlineLeft);
+        labelTmp.rectTransform.anchorMin = Vector2.zero;
+        labelTmp.rectTransform.anchorMax = Vector2.one;
+        labelTmp.rectTransform.offsetMin = new Vector2(44f, 0f);
+        labelTmp.rectTransform.offsetMax = new Vector2(-6f, 0f);
 
         Button btn = btnObj.GetComponent<Button>();
-        ColorBlock cb = btn.colors;
-        cb.normalColor = Color.white;
-        cb.highlightedColor = new Color(1.15f, 1.15f, 1.15f, 1f);
-        cb.pressedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
-        cb.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.55f);
-        btn.colors = cb;
-
-        // Tự động kích hoạt hiệu ứng nháy nảy (Flash & Punch) khi bấm nút
+        btn.targetGraphic = img;
+        btn.navigation = new Navigation { mode = Navigation.Mode.None };
         btn.onClick.AddListener(() => StartCoroutine(AnimateButtonPunch(rt)));
-
-        GameObject txtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-        txtObj.transform.SetParent(btnObj.transform, false);
-        EconomyHUD.Stretch(txtObj.GetComponent<RectTransform>());
-
-        labelTmp = txtObj.GetComponent<TextMeshProUGUI>();
-        labelTmp.text = label;
-        labelTmp.alignment = TextAlignmentOptions.Center;
-        labelTmp.fontSize = fontSize;
-        labelTmp.fontStyle = FontStyles.Bold;
-        labelTmp.color = Color.white;
-
-        var shadow = txtObj.AddComponent<UnityEngine.UI.Shadow>();
-        shadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
-        shadow.effectDistance = new Vector2(1f, -1.2f);
-
         return btn;
+    }
+
+    private static Button CreateCloseButton(Transform parent, Vector2 topRightPos, Action onClick, float size = 34f)
+    {
+        GameObject closeBtnObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        closeBtnObj.transform.SetParent(parent, false);
+        RectTransform closeRect = closeBtnObj.GetComponent<RectTransform>();
+        closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = new Vector2(1f, 1f);
+        closeRect.anchoredPosition = topRightPos;
+        closeRect.sizeDelta = new Vector2(size, size);
+
+        Image closeBg = closeBtnObj.GetComponent<Image>();
+        closeBg.sprite = LumiWorldUITheme.PillSprite;
+        closeBg.type = Image.Type.Sliced;
+        closeBg.color = LumiWorldUITheme.Inset;
+
+        GameObject icObj = new GameObject("X", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(closeRect, false);
+        RectTransform icRect = icObj.GetComponent<RectTransform>();
+        icRect.anchorMin = icRect.anchorMax = icRect.pivot = new Vector2(0.5f, 0.5f);
+        icRect.sizeDelta = new Vector2(size * 0.45f, size * 0.45f);
+        Image icImg = icObj.GetComponent<Image>();
+        icImg.sprite = LumiWorldUITheme.Glyph("Close");
+        icImg.preserveAspect = true;
+        icImg.color = LumiWorldUITheme.Text;
+        icImg.raycastTarget = false;
+
+        Button btn = closeBtnObj.GetComponent<Button>();
+        btn.targetGraphic = closeBg;
+        btn.navigation = new Navigation { mode = Navigation.Mode.None };
+        btn.onClick.AddListener(() => onClick?.Invoke());
+        return btn;
+    }
+
+    private static TextMeshProUGUI CreateLabel(Transform parent, string name, string text, float size, Color color, bool bold, TextAlignmentOptions align)
+    {
+        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+        obj.transform.SetParent(parent, false);
+        TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
+        tmp.font = LumiWorldUITheme.Body;
+        tmp.text = text;
+        tmp.fontSize = size;
+        tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+        tmp.color = color;
+        tmp.alignment = align;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.raycastTarget = false;
+        return tmp;
+    }
+
+    private static void SetTopLeft(RectTransform rect, Vector2 pos, Vector2 size)
+    {
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = pos;
+        rect.sizeDelta = size;
     }
 
     private void PlayCloseWithAnimation(RectTransform btnRect, Action closeAction)
@@ -962,151 +972,88 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
 
         Vector3 originalScale = targetRect.localScale;
-        Image img = targetRect.GetComponent<Image>();
-        Color originalColor = img != null ? img.color : Color.white;
-        Color flashColor = new Color(1.3f, 1.3f, 1.3f, 1f);
-
-        float halfDuration = 0.08f;
+        float halfDuration = 0.07f;
         float elapsed = 0f;
 
-        // Thu nhỏ và phát sáng nháy một cái
         while (elapsed < halfDuration)
         {
             elapsed += Time.unscaledDeltaTime;
             float t = elapsed / halfDuration;
-            targetRect.localScale = Vector3.Lerp(originalScale, originalScale * 0.86f, t);
-            if (img != null) img.color = Color.Lerp(originalColor, flashColor, t);
+            targetRect.localScale = Vector3.Lerp(originalScale, originalScale * 0.94f, t);
             yield return null;
         }
 
         elapsed = 0f;
-        // Nảy về ban đầu
         while (elapsed < halfDuration)
         {
             elapsed += Time.unscaledDeltaTime;
             float t = elapsed / halfDuration;
-            targetRect.localScale = Vector3.Lerp(originalScale * 0.86f, originalScale, t);
-            if (img != null) img.color = Color.Lerp(flashColor, originalColor, t);
+            targetRect.localScale = Vector3.Lerp(originalScale * 0.94f, originalScale, t);
             yield return null;
         }
 
         targetRect.localScale = originalScale;
-        if (img != null) img.color = originalColor;
-
         onComplete?.Invoke();
     }
 
     private void BuildRenameModal(Transform parent)
     {
-        renameModal = new GameObject("RenameModal", typeof(RectTransform), typeof(Image));
+        renameModal = new GameObject("RenameModal", typeof(RectTransform), typeof(Image), typeof(Button));
         renameModal.transform.SetParent(parent, false);
         RectTransform modalRect = renameModal.GetComponent<RectTransform>();
         EconomyHUD.Stretch(modalRect);
 
         Image modalBg = renameModal.GetComponent<Image>();
-        modalBg.color = new Color(0.04f, 0.08f, 0.14f, 0.75f);
+        modalBg.color = LumiWorldUITheme.Backdrop;
         modalBg.raycastTarget = true;
 
-        // Bấm nền mờ để đóng modal
-        Button modalDimmerBtn = renameModal.AddComponent<Button>();
+        Button modalDimmerBtn = renameModal.GetComponent<Button>();
         modalDimmerBtn.transition = Selectable.Transition.None;
         modalDimmerBtn.onClick.AddListener(CloseRenameModal);
 
-        // Khung hộp hội thoại trung tâm (Dialog Box)
         GameObject boxObj = new GameObject("DialogBox", typeof(RectTransform), typeof(Image));
         boxObj.transform.SetParent(renameModal.transform, false);
         RectTransform boxRect = boxObj.GetComponent<RectTransform>();
-        boxRect.anchorMin = new Vector2(0.5f, 0.5f);
-        boxRect.anchorMax = new Vector2(0.5f, 0.5f);
-        boxRect.pivot = new Vector2(0.5f, 0.5f);
-        boxRect.anchoredPosition = new Vector2(0f, 20f);
-        boxRect.sizeDelta = new Vector2(250f, 175f);
+        boxRect.anchorMin = boxRect.anchorMax = boxRect.pivot = new Vector2(0.5f, 0.5f);
+        boxRect.anchoredPosition = new Vector2(0f, 12f);
+        boxRect.sizeDelta = new Vector2(232f, 160f);
 
         Image boxBg = boxObj.GetComponent<Image>();
-        boxBg.sprite = HabitatCreaturePanelStyle.ResourceCardNormalSprite ?? EconomyHUD.RoundedSprite;
+        boxBg.sprite = LumiWorldUITheme.SurfaceSprite;
         boxBg.type = Image.Type.Sliced;
-        boxBg.color = Color.white;
+        boxBg.color = LumiWorldUITheme.Surface;
+        boxObj.AddComponent<ResourceUIInputBlocker>();
+        LumiWorldUITheme.AddSoftElevation(boxObj, 5f, 0.24f);
 
-        // Chặn click xuyên qua box ra dimmer
-        boxObj.AddComponent<CanvasGroup>();
+        TextMeshProUGUI titleTmp = CreateLabel(boxRect, "Title", "Rename creature", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        SetTopLeft(titleTmp.rectTransform, new Vector2(12f, -14f), new Vector2(208f, 22f));
 
-        // Tiêu đề: ĐỔI TÊN SINH VẬT
-        GameObject titleObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
-        titleObj.transform.SetParent(boxObj.transform, false);
-        RectTransform tRect = titleObj.GetComponent<RectTransform>();
-        tRect.anchorMin = new Vector2(0.5f, 1f);
-        tRect.anchorMax = new Vector2(0.5f, 1f);
-        tRect.pivot = new Vector2(0.5f, 1f);
-        tRect.anchoredPosition = new Vector2(0f, -14f);
-        tRect.sizeDelta = new Vector2(220f, 22f);
+        TextMeshProUGUI descTmp = CreateLabel(boxRect, "Desc", "Enter creature nickname:", 11f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
+        SetTopLeft(descTmp.rectTransform, new Vector2(12f, -36f), new Vector2(208f, 16f));
 
-        var titleTmp = titleObj.GetComponent<TextMeshProUGUI>();
-        titleTmp.text = "RENAME CREATURE";
-        titleTmp.fontSize = 13.5f;
-        titleTmp.fontStyle = FontStyles.Bold;
-        titleTmp.alignment = TextAlignmentOptions.Center;
-        titleTmp.color = new Color(0.22f, 0.75f, 0.98f, 1f);
-
-        // Mô tả phụ: Nhập tên hoặc biệt danh mới
-        GameObject descObj = new GameObject("Desc", typeof(RectTransform), typeof(TextMeshProUGUI));
-        descObj.transform.SetParent(boxObj.transform, false);
-        RectTransform dRect = descObj.GetComponent<RectTransform>();
-        dRect.anchorMin = new Vector2(0.5f, 1f);
-        dRect.anchorMax = new Vector2(0.5f, 1f);
-        dRect.pivot = new Vector2(0.5f, 1f);
-        dRect.anchoredPosition = new Vector2(0f, -38f);
-        dRect.sizeDelta = new Vector2(220f, 18f);
-
-        var descTmp = descObj.GetComponent<TextMeshProUGUI>();
-        descTmp.text = "Enter creature nickname:";
-        descTmp.fontSize = 11f;
-        descTmp.alignment = TextAlignmentOptions.Center;
-        descTmp.color = new Color(0.70f, 0.78f, 0.88f, 1f);
-
-        // Khung ô nhập văn bản (TMP_InputField)
         GameObject inputObj = new GameObject("InputField", typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
         inputObj.transform.SetParent(boxObj.transform, false);
         RectTransform inRect = inputObj.GetComponent<RectTransform>();
-        inRect.anchorMin = new Vector2(0.5f, 1f);
-        inRect.anchorMax = new Vector2(0.5f, 1f);
-        inRect.pivot = new Vector2(0.5f, 1f);
-        inRect.anchoredPosition = new Vector2(0f, -66f);
-        inRect.sizeDelta = new Vector2(216f, 34f);
+        SetTopLeft(inRect, new Vector2(16f, -60f), new Vector2(200f, 34f));
 
         Image inBg = inputObj.GetComponent<Image>();
-        inBg.sprite = HabitatCreaturePanelStyle.TechArtBoxSprite ?? EconomyHUD.RoundedSprite;
+        inBg.sprite = LumiWorldUITheme.SurfaceSprite;
         inBg.type = Image.Type.Sliced;
-        inBg.color = Color.white;
+        inBg.color = LumiWorldUITheme.Window;
 
-        // TextArea Viewport
         GameObject textArea = new GameObject("TextArea", typeof(RectTransform), typeof(RectMask2D));
         textArea.transform.SetParent(inputObj.transform, false);
         RectTransform taRect = textArea.GetComponent<RectTransform>();
         taRect.anchorMin = Vector2.zero;
         taRect.anchorMax = Vector2.one;
-        taRect.offsetMin = new Vector2(8f, 2f);
-        taRect.offsetMax = new Vector2(-8f, -2f);
+        taRect.offsetMin = new Vector2(10f, 2f);
+        taRect.offsetMax = new Vector2(-10f, -2f);
 
-        // Placeholder Text
-        GameObject phObj = new GameObject("Placeholder", typeof(RectTransform), typeof(TextMeshProUGUI));
-        phObj.transform.SetParent(textArea.transform, false);
-        EconomyHUD.Stretch(phObj.GetComponent<RectTransform>());
-        TextMeshProUGUI phComp = phObj.GetComponent<TextMeshProUGUI>();
-        phComp.text = "Enter new name...";
-        phComp.fontSize = 12f;
-        phComp.fontStyle = FontStyles.Italic;
-        phComp.alignment = TextAlignmentOptions.MidlineLeft;
-        phComp.color = new Color(0.55f, 0.65f, 0.75f, 0.65f);
+        TextMeshProUGUI phComp = CreateLabel(taRect, "Placeholder", "Enter new name...", 11.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        EconomyHUD.Stretch(phComp.rectTransform);
 
-        // Value Text
-        GameObject valObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-        valObj.transform.SetParent(textArea.transform, false);
-        EconomyHUD.Stretch(valObj.GetComponent<RectTransform>());
-        TextMeshProUGUI valComp = valObj.GetComponent<TextMeshProUGUI>();
-        valComp.fontSize = 12.5f;
-        valComp.fontStyle = FontStyles.Bold;
-        valComp.alignment = TextAlignmentOptions.MidlineLeft;
-        valComp.color = Color.white;
+        TextMeshProUGUI valComp = CreateLabel(taRect, "Text", "", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        EconomyHUD.Stretch(valComp.rectTransform);
 
         renameInputField = inputObj.GetComponent<TMP_InputField>();
         renameInputField.textViewport = taRect;
@@ -1114,71 +1061,34 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         renameInputField.placeholder = phComp;
         renameInputField.characterLimit = 20;
 
-        // Bộ nút Hủy & Lưu
-        GameObject btnGroup = new GameObject("ButtonGroup", typeof(RectTransform));
-        btnGroup.transform.SetParent(boxObj.transform, false);
-        RectTransform bgRect = btnGroup.GetComponent<RectTransform>();
-        bgRect.anchorMin = new Vector2(0.5f, 0f);
-        bgRect.anchorMax = new Vector2(0.5f, 0f);
-        bgRect.pivot = new Vector2(0.5f, 0f);
-        bgRect.anchoredPosition = new Vector2(0f, 14f);
-        bgRect.sizeDelta = new Vector2(216f, 32f);
-
-        // Nút Hủy
-        GameObject cancelBtnObj = new GameObject("CancelBtn", typeof(RectTransform), typeof(Button), typeof(Image));
-        cancelBtnObj.transform.SetParent(btnGroup.transform, false);
+        // Cancel & Save buttons
+        GameObject cancelBtnObj = new GameObject("CancelBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        cancelBtnObj.transform.SetParent(boxRect, false);
         RectTransform cbRect = cancelBtnObj.GetComponent<RectTransform>();
-        cbRect.anchorMin = new Vector2(0f, 0.5f);
-        cbRect.anchorMax = new Vector2(0f, 0.5f);
-        cbRect.pivot = new Vector2(0f, 0.5f);
-        cbRect.anchoredPosition = new Vector2(0f, 0f);
-        cbRect.sizeDelta = new Vector2(100f, 30f);
-
+        cbRect.anchorMin = cbRect.anchorMax = cbRect.pivot = new Vector2(0f, 0f);
+        cbRect.anchoredPosition = new Vector2(16f, 14f);
+        cbRect.sizeDelta = new Vector2(94f, 32f);
         Image cbImg = cancelBtnObj.GetComponent<Image>();
-        cbImg.sprite = HabitatCreaturePanelStyle.ResourceCardLockedSprite ?? EconomyHUD.RoundedSprite;
+        cbImg.sprite = LumiWorldUITheme.ButtonSecondarySprite;
         cbImg.type = Image.Type.Sliced;
-        cbImg.color = Color.white;
+        cbImg.color = LumiWorldUITheme.Inset;
+        TextMeshProUGUI cbTxt = CreateLabel(cbRect, "Label", "Cancel", 12f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(cbTxt.rectTransform);
+        cancelBtnObj.GetComponent<Button>().onClick.AddListener(CloseRenameModal);
 
-        GameObject cbTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cbTxtObj.transform.SetParent(cancelBtnObj.transform, false);
-        EconomyHUD.Stretch(cbTxtObj.GetComponent<RectTransform>());
-        var cbTxt = cbTxtObj.GetComponent<TextMeshProUGUI>();
-        cbTxt.text = "Cancel";
-        cbTxt.fontSize = 11.5f;
-        cbTxt.fontStyle = FontStyles.Bold;
-        cbTxt.alignment = TextAlignmentOptions.Center;
-        cbTxt.color = new Color(0.80f, 0.85f, 0.90f, 1f);
-
-        Button cancelBtn = cancelBtnObj.GetComponent<Button>();
-        cancelBtn.onClick.AddListener(CloseRenameModal);
-
-        // Nút Lưu
-        GameObject confirmBtnObj = new GameObject("ConfirmBtn", typeof(RectTransform), typeof(Button), typeof(Image));
-        confirmBtnObj.transform.SetParent(btnGroup.transform, false);
+        GameObject confirmBtnObj = new GameObject("ConfirmBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        confirmBtnObj.transform.SetParent(boxRect, false);
         RectTransform cfbRect = confirmBtnObj.GetComponent<RectTransform>();
-        cfbRect.anchorMin = new Vector2(1f, 0.5f);
-        cfbRect.anchorMax = new Vector2(1f, 0.5f);
-        cfbRect.pivot = new Vector2(1f, 0.5f);
-        cfbRect.anchoredPosition = new Vector2(0f, 0f);
-        cfbRect.sizeDelta = new Vector2(100f, 30f);
-
+        cfbRect.anchorMin = cfbRect.anchorMax = cfbRect.pivot = new Vector2(1f, 0f);
+        cfbRect.anchoredPosition = new Vector2(-16f, 14f);
+        cfbRect.sizeDelta = new Vector2(94f, 32f);
         Image cfbImg = confirmBtnObj.GetComponent<Image>();
-        cfbImg.sprite = HabitatCreaturePanelStyle.TechPillCyanSprite ?? EconomyHUD.RoundedSprite;
+        cfbImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
         cfbImg.type = Image.Type.Sliced;
-        cfbImg.color = Color.white;
-
-        GameObject cfbTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cfbTxtObj.transform.SetParent(confirmBtnObj.transform, false);
-        EconomyHUD.Stretch(cfbTxtObj.GetComponent<RectTransform>());
-        var cfbTxt = cfbTxtObj.GetComponent<TextMeshProUGUI>();
-        cfbTxt.text = "Save";
-        cfbTxt.fontSize = 11.5f;
-        cfbTxt.fontStyle = FontStyles.Bold;
-        cfbTxt.alignment = TextAlignmentOptions.Center;
-        cfbTxt.color = Color.white;
-
-        Button confirmBtn = confirmBtnObj.GetComponent<Button>();
-        confirmBtn.onClick.AddListener(OnConfirmRename);
+        cfbImg.color = LumiWorldUITheme.Primary;
+        TextMeshProUGUI cfbTxt = CreateLabel(cfbRect, "Label", "Save", 12f, Color.white, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(cfbTxt.rectTransform);
+        confirmBtnObj.GetComponent<Button>().onClick.AddListener(OnConfirmRename);
 
         renameModal.SetActive(false);
     }
@@ -1192,7 +1102,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private void Update()
     {
-        if (!IsOpen || currentHabitat == null) return;
+        if (!IsOpen) return;
+        SyncPanelsStageScale();
+        if (currentHabitat == null) return;
         if (Time.unscaledTime >= nextResourceRefresh)
         {
             nextResourceRefresh = Time.unscaledTime + 1f;
@@ -1228,21 +1140,20 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             }
         }
 
-        if (harvestAllButton != null && harvestAllButtonText != null)
-        {
-            if (totalPending > 0)
-            {
-                harvestAllButton.interactable = true;
-                harvestAllButton.image.color = Color.white;
-                harvestAllButtonText.text = $"Harvest ({totalPending})";
-            }
-            else
-            {
-                harvestAllButton.interactable = false;
-                harvestAllButton.image.color = new Color(0.6f, 0.7f, 0.75f, 0.45f);
-                harvestAllButtonText.text = "No pending resources";
-            }
-        }
+        UpdateCollectAllButtonState(totalPending);
+    }
+
+    private void UpdateCollectAllButtonState(long totalPending)
+    {
+        if (harvestAllButton == null || harvestAllButtonText == null) return;
+        bool active = totalPending > 0;
+        harvestAllButton.interactable = active;
+        harvestAllButton.image.color = active
+            ? LumiWorldUITheme.Primary
+            : new Color(0.62f, 0.59f, 0.55f, 1f);
+        harvestAllButtonText.color = Color.white;
+        if (harvestAllIconImg != null) harvestAllIconImg.color = Color.white;
+        harvestAllButtonText.text = $"Collect all ({totalPending})";
     }
 
     public void RefreshCurrentHabitat()
@@ -1263,7 +1174,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RefreshPanel1();
         if (currentSelectedResident != null)
         {
-            RefreshPanel2();
+            RefreshPanel2(false);
         }
     }
 
@@ -1278,45 +1189,105 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
     }
 
+    private void OnChangePrimaryResourceClicked()
+    {
+        if (currentHabitat == null || ResourceInventoryUIController.Instance == null) return;
+        ResourceInventoryUIController.Instance.OpenSelectorFor(currentHabitat.habitatId, ResourceTier.Tier1, 0);
+    }
+
     private void RefreshPanel1()
     {
         if (currentHabitat == null) return;
 
         string affName = HabitatCreaturePanelStyle.GetAffinityDisplayName(currentHabitat.affinity);
-        habitatNameText.text = affName;
+        if (habitatNameText != null) habitatNameText.text = affName;
+
+        if (biomeEmblemImg != null)
+        {
+            biomeEmblemImg.sprite = LumiWorldUITheme.BiomeEmblem(affName);
+            biomeEmblemImg.color = biomeEmblemImg.sprite != null ? Color.white : Color.clear;
+        }
+
+        int hexCount = currentHabitat.HexCount;
+        if (footprintGlyphImg != null)
+        {
+            footprintGlyphImg.sprite = LumiWorldUITheme.FootprintGlyph(hexCount);
+        }
+        if (footprintCountText != null)
+        {
+            footprintCountText.text = $"{hexCount} hex";
+        }
 
         int currentResidents = currentHabitat.residents != null ? currentHabitat.residents.Count : 0;
-        int maxCapacity = currentHabitat.CreatureCapacity; // 0, 2, 4, 6
-        
-        // YÊU CẦU: Full 100% khi đủ 6 thú (mốc tối đa toàn môi trường). Chưa đủ 6 thú sẽ không đạt 100%
-        float capRatio = Mathf.Clamp01((float)currentResidents / 6f);
+        int maxCapacity = Mathf.Max(1, currentHabitat.CreatureCapacity);
+        if (residentsHeaderText != null)
+        {
+            residentsHeaderText.text = $"Residents ({currentResidents}/{maxCapacity})";
+        }
 
-        capacitySlider.value = capRatio;
-        capacityLabel.text = $"{currentResidents}/6 Residents ({Mathf.RoundToInt(capRatio * 100f)}%)";
+        // If selected resident was removed from habitat, close P-06 cleanly
+        if (currentSelectedResident != null &&
+            (currentHabitat.residents == null ||
+             !currentHabitat.residents.Exists(r => r != null && r.individualId == currentSelectedResident.individualId)))
+        {
+            currentSelectedResident = null;
+            currentSelectedAnimal = null;
+            if (panelDetailRect != null) panelDetailRect.gameObject.SetActive(false);
+        }
 
-        // --- 1. Honeycomb grid slots ---
+        // --- 1. RENDER RESIDENTS WITH SYMMETRIC ROW CENTERING & EXPAND FOR 4-6 RESIDENTS ---
+        UpdatePanel1DynamicLayout(currentResidents);
+
         foreach (var old in spawnedSlotButtons)
         {
             if (old != null) Destroy(old);
         }
         spawnedSlotButtons.Clear();
 
-        Sprite hexFrame = HabitatCreaturePanelStyle.HexButtonFrame;
-
-        // Capacity: 3 -> 6 -> 10 hexes, capacity: 2 -> 4 -> 6
-        const int totalSlots = 6;
-        for (int i = 0; i < totalSlots; i++)
+        if (currentResidents == 0)
         {
-            bool hasResident = currentHabitat.residents != null && i < currentHabitat.residents.Count;
-            HabitatResident resident = hasResident ? currentHabitat.residents[i] : null;
-            bool isSlotUnlocked = i < maxCapacity;
-            int requiredHexes = i < 2 ? 3 : (i < 4 ? 6 : 10);
+            TextMeshProUGUI emptyLbl = CreateLabel(
+                creatureGridRoot,
+                "EmptyResidents",
+                "No residents placed in this biome yet",
+                12f,
+                LumiWorldUITheme.Muted,
+                true,
+                TextAlignmentOptions.Center);
+            EconomyHUD.Stretch(emptyLbl.rectTransform);
+            spawnedSlotButtons.Add(emptyLbl.gameObject);
+        }
+        else
+        {
+            const float cardW = 90f;
+            const float cardH = 108f;
+            const float gapX = 8f;
+            const float gapY = 8f;
+            const float topPad = 10f;
 
-            GameObject slotObj = CreateHoneycombSlotButton(i, resident, isSlotUnlocked, requiredHexes, hexFrame);
-            spawnedSlotButtons.Add(slotObj);
+            List<HabitatResident> validResidents = new List<HabitatResident>();
+            for (int i = 0; i < currentHabitat.residents.Count && validResidents.Count < 6; i++)
+            {
+                if (currentHabitat.residents[i] != null) validResidents.Add(currentHabitat.residents[i]);
+            }
+
+            int totalToShow = validResidents.Count;
+            for (int i = 0; i < totalToShow; i++)
+            {
+                int row = i / 3;
+                int col = i % 3;
+                int itemsInRow = Mathf.Min(3, totalToShow - row * 3);
+                float rowWidth = itemsInRow * cardW + Mathf.Max(0, itemsInRow - 1) * gapX;
+                float startX = (P05ResidentsWidth - rowWidth) * 0.5f;
+                float cardX = startX + col * (cardW + gapX);
+                float cardY = -(topPad + row * (cardH + gapY));
+
+                GameObject cardObj = CreateResidentPortraitCard(i, validResidents[i], cardX, cardY, cardW, cardH);
+                spawnedSlotButtons.Add(cardObj);
+            }
         }
 
-        // --- 2. Resource production cards below avatar grid ---
+        // --- 2. PRODUCTION SLOTS ---
         foreach (var old in spawnedResourceCards)
         {
             if (old != null) Destroy(old);
@@ -1348,11 +1319,17 @@ public class HabitatCreaturePanelUI : MonoBehaviour
                 slotData = habModel.slots.Find(s => s != null && s.tier == tier && s.index == subIndex);
             }
 
-            GameObject cardObj = CreateResourceSlotCard(i, tier, subIndex, slotData, resourceSlotsRoot);
+            long pendingForSlot = 0;
+            if (slotData != null && !string.IsNullOrEmpty(slotData.resourceId) && habModel?.buffers != null)
+            {
+                var buf = habModel.buffers.Find(b => b != null && string.Equals(b.resourceId, slotData.resourceId, StringComparison.OrdinalIgnoreCase));
+                if (buf != null) pendingForSlot = buf.amount;
+            }
+
+            GameObject cardObj = CreateResourceSlotCard(i, tier, subIndex, slotData, pendingForSlot, resourceSlotsRoot);
             spawnedResourceCards.Add(cardObj);
         }
 
-        // Update collect all button
         long totalPending = 0;
         if (habModel != null && habModel.buffers != null)
         {
@@ -1361,186 +1338,217 @@ public class HabitatCreaturePanelUI : MonoBehaviour
                 if (b != null) totalPending += b.amount;
             }
         }
-
-        if (harvestAllButton != null && harvestAllButtonText != null)
-        {
-            if (totalPending > 0)
-            {
-                harvestAllButton.interactable = true;
-                harvestAllButton.image.color = Color.white;
-                harvestAllButtonText.text = $"Harvest ({totalPending})";
-            }
-            else
-            {
-                harvestAllButton.interactable = false;
-                harvestAllButton.image.color = new Color(0.6f, 0.7f, 0.75f, 0.45f);
-                harvestAllButtonText.text = "No pending resources";
-            }
-        }
-
-        int hexCount = currentHabitat.HexCount;
-        if (footerScaleText != null)
-        {
-            footerScaleText.text = $"Scale: {hexCount} Hexes";
-        }
-        if (footerResidentText != null)
-        {
-            footerResidentText.text = $"{currentResidents}/{maxCapacity} Residents";
-        }
-        if (footerSummaryText != null)
-        {
-            footerSummaryText.text = $"Scale: {hexCount} Hexes  |  {currentResidents}/{maxCapacity} Residents";
-        }
+        UpdateCollectAllButtonState(totalPending);
     }
 
-    private GameObject CreateResourceSlotCard(int slotIndex, ResourceTier tier, int subIndex, ResourceUISlot slotData, Transform parent)
+    private GameObject CreateResidentPortraitCard(int index, HabitatResident resident, float x, float y, float cardW, float cardH)
+    {
+        GameObject cardObj = new GameObject($"Resident_{index}", typeof(RectTransform), typeof(Image), typeof(Button));
+        cardObj.transform.SetParent(creatureGridRoot, false);
+        RectTransform rt = cardObj.GetComponent<RectTransform>();
+        SetTopLeft(rt, new Vector2(x, y), new Vector2(cardW, cardH));
+
+        Image cardBg = cardObj.GetComponent<Image>();
+        cardBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        cardBg.type = Image.Type.Sliced;
+        cardBg.color = LumiWorldUITheme.Slot;
+        LumiWorldUITheme.AddSoftElevation(cardObj, 3f, 0.16f);
+
+        // Official zoomed portrait from Creatures/Portraits/
+        Sprite portrait = HabitatCreaturePanelStyle.GetCreatureAvatar(resident.speciesId, resident.qualityRank);
+        if (portrait != null)
+        {
+            GameObject avtObj = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+            avtObj.transform.SetParent(rt, false);
+            RectTransform avtRect = avtObj.GetComponent<RectTransform>();
+            SetTopLeft(avtRect, new Vector2((cardW - 58f) * 0.5f, -6f), new Vector2(58f, 58f));
+            Image avtImg = avtObj.GetComponent<Image>();
+            avtImg.sprite = portrait;
+            avtImg.preserveAspect = true;
+            avtImg.raycastTarget = false;
+        }
+
+        var resData = HabitatCreaturePanelStyle.ResolveCreatureData(resident.speciesId);
+        string defaultName = !string.IsNullOrEmpty(resData.canonicalAvt) ? resData.canonicalAvt : resData.displayName;
+        string cName = GetCreatureName(resident, defaultName);
+
+        TextMeshProUGUI nameLbl = CreateLabel(rt, "Name", cName, 11.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        nameLbl.enableAutoSizing = true;
+        nameLbl.fontSizeMin = 9.5f;
+        nameLbl.fontSizeMax = 12f;
+        SetTopLeft(nameLbl.rectTransform, new Vector2(4f, -66f), new Vector2(cardW - 8f, 18f));
+
+        // Status ("Working" vs "Needs care") + "!" warning badge when hungry
+        var hunger = ResourceProductionRuntime.Instance != null
+            ? ResourceProductionRuntime.Instance.GetCareState(resident.individualId)
+            : null;
+        bool needsCare = hunger != null && hunger.Status != CreatureHungerStatus.Healthy;
+
+        TextMeshProUGUI statusLbl = CreateLabel(
+            rt,
+            "Status",
+            needsCare ? "● Needs care" : "● Working",
+            9.8f,
+            needsCare ? LumiWorldUITheme.Warning : LumiWorldUITheme.Success,
+            true,
+            TextAlignmentOptions.Center);
+        statusLbl.overflowMode = TextOverflowModes.Overflow;
+        SetTopLeft(statusLbl.rectTransform, new Vector2(4f, -85f), new Vector2(cardW - 8f, 16f));
+
+        if (needsCare)
+        {
+            GameObject warnObj = new GameObject("WarningBadge", typeof(RectTransform), typeof(Image));
+            warnObj.transform.SetParent(rt, false);
+            RectTransform warnRect = warnObj.GetComponent<RectTransform>();
+            warnRect.anchorMin = warnRect.anchorMax = warnRect.pivot = new Vector2(1f, 1f);
+            warnRect.anchoredPosition = new Vector2(-5f, -5f);
+            warnRect.sizeDelta = new Vector2(16f, 16f);
+            Image warnImg = warnObj.GetComponent<Image>();
+            warnImg.sprite = LumiWorldUITheme.StatusLowSprite;
+            warnImg.preserveAspect = true;
+            warnImg.raycastTarget = false;
+        }
+
+        // Selected border (3px dark graphite #403F3C, no checkmark per P-05 spec)
+        bool isSelected = currentSelectedResident != null &&
+                          string.Equals(currentSelectedResident.individualId, resident.individualId, StringComparison.Ordinal);
+        if (isSelected)
+        {
+            GameObject selObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
+            selObj.transform.SetParent(rt, false);
+            EconomyHUD.Stretch(selObj.GetComponent<RectTransform>());
+            Image selImg = selObj.GetComponent<Image>();
+            selImg.sprite = GetSelectionOutlineSprite();
+            selImg.type = Image.Type.Sliced;
+            selImg.color = Color.white;
+            selImg.raycastTarget = false;
+        }
+
+        Button btn = cardObj.GetComponent<Button>();
+        btn.targetGraphic = cardBg;
+        btn.navigation = new Navigation { mode = Navigation.Mode.None };
+        HabitatResident capturedResident = resident;
+        btn.onClick.AddListener(() => SelectResident(capturedResident));
+
+        return cardObj;
+    }
+
+    private GameObject CreateResourceSlotCard(int slotIndex, ResourceTier tier, int subIndex, ResourceUISlot slotData, long pendingAmount, Transform parent)
     {
         bool isUnlocked = slotData != null ? slotData.unlocked : HabitatEligibilityService.IsSlotUnlocked(currentHabitat, tier, subIndex);
-        string resName = slotData != null ? slotData.name : (isUnlocked ? "Unselected" : "Locked");
+        bool hasAssignedResource = isUnlocked && slotData != null && !string.IsNullOrEmpty(slotData.resourceId);
+        string resName = hasAssignedResource ? slotData.name : (isUnlocked ? "Unassigned slot" : "Locked slot");
         Sprite icon = slotData != null ? slotData.icon : null;
         double rate = slotData != null ? slotData.rate : 0.0;
-        string reason = slotData != null ? slotData.reason : (!isUnlocked ? "Unlocks at " + (tier == ResourceTier.Tier2 ? "6" : (subIndex == 0 ? "3" : "4")) + " Hexes" : "");
+        string reason = slotData != null ? slotData.reason : (!isUnlocked ? "Unlocks at " + (tier == ResourceTier.Tier2 ? "6" : (subIndex == 0 ? "3" : "4")) + " hex" : "");
         bool isProducing = isUnlocked && rate > 0.001;
 
         GameObject cardObj = new GameObject($"ResSlot_{slotIndex}", typeof(RectTransform), typeof(Image));
         cardObj.transform.SetParent(parent, false);
         RectTransform rt = cardObj.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 1f);
-        rt.anchorMax = new Vector2(0.5f, 1f);
-        rt.pivot = new Vector2(0.5f, 1f);
-        rt.anchoredPosition = new Vector2(0f, -slotIndex * 48f);
-        rt.sizeDelta = new Vector2(236f, 44f);
+        SetTopLeft(rt, new Vector2(0f, -slotIndex * 58f), new Vector2(P05ResidentsWidth, 52f));
 
         Image bg = cardObj.GetComponent<Image>();
-        bg.sprite = isProducing ? HabitatCreaturePanelStyle.ResourceCardProducingSprite :
-                    (isUnlocked ? HabitatCreaturePanelStyle.ResourceCardNormalSprite : HabitatCreaturePanelStyle.ResourceCardLockedSprite);
+        bg.sprite = LumiWorldUITheme.SurfaceSprite;
         bg.type = Image.Type.Sliced;
-        bg.color = Color.white;
+        bg.color = isUnlocked ? LumiWorldUITheme.Surface : LumiWorldUITheme.Inset;
+        if (isUnlocked) LumiWorldUITheme.AddSoftElevation(cardObj, 2.5f, 0.14f);
 
-        // 1. Icon Box bên trái (36x36px)
+        // 1. Icon Box (38x38)
         GameObject iconBox = new GameObject("IconBox", typeof(RectTransform), typeof(Image));
-        iconBox.transform.SetParent(cardObj.transform, false);
+        iconBox.transform.SetParent(rt, false);
         RectTransform ibRect = iconBox.GetComponent<RectTransform>();
-        ibRect.anchorMin = new Vector2(0f, 0.5f);
-        ibRect.anchorMax = new Vector2(0f, 0.5f);
-        ibRect.pivot = new Vector2(0f, 0.5f);
-        ibRect.anchoredPosition = new Vector2(6f, 0f);
-        ibRect.sizeDelta = new Vector2(36f, 36f);
-
+        SetTopLeft(ibRect, new Vector2(8f, -7f), new Vector2(38f, 38f));
         Image ibImg = iconBox.GetComponent<Image>();
-        ibImg.sprite = HabitatCreaturePanelStyle.TechArtBoxSprite;
+        ibImg.sprite = LumiWorldUITheme.SurfaceSprite;
         ibImg.type = Image.Type.Sliced;
-        ibImg.color = Color.white;
+        ibImg.color = LumiWorldUITheme.Slot;
 
         if (icon != null && isUnlocked)
         {
             GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-            icObj.transform.SetParent(iconBox.transform, false);
-            EconomyHUD.Stretch(icObj.GetComponent<RectTransform>());
+            icObj.transform.SetParent(ibRect, false);
+            RectTransform icRect = icObj.GetComponent<RectTransform>();
+            icRect.anchorMin = Vector2.zero;
+            icRect.anchorMax = Vector2.one;
+            icRect.offsetMin = new Vector2(4f, 4f);
+            icRect.offsetMax = new Vector2(-4f, -4f);
             Image icImg = icObj.GetComponent<Image>();
             icImg.sprite = icon;
             icImg.preserveAspect = true;
             icImg.raycastTarget = false;
         }
-        else if (!isUnlocked)
+        else
         {
-            GameObject lockObj = new GameObject("LockIcon", typeof(RectTransform), typeof(Image));
-            lockObj.transform.SetParent(iconBox.transform, false);
+            GameObject lockObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+            lockObj.transform.SetParent(ibRect, false);
             RectTransform lockRect = lockObj.GetComponent<RectTransform>();
-            lockRect.anchorMin = new Vector2(0.5f, 0.5f);
-            lockRect.anchorMax = new Vector2(0.5f, 0.5f);
-            lockRect.pivot = new Vector2(0.5f, 0.5f);
-            lockRect.anchoredPosition = Vector2.zero;
-            lockRect.sizeDelta = new Vector2(20f, 20f);
-
+            lockRect.anchorMin = lockRect.anchorMax = lockRect.pivot = new Vector2(0.5f, 0.5f);
+            lockRect.sizeDelta = new Vector2(16f, 16f);
             Image lockImg = lockObj.GetComponent<Image>();
-            lockImg.sprite = PreserveDiamondStyle.LockWhiteSprite;
+            lockImg.sprite = LumiWorldUITheme.Glyph(isUnlocked ? "Plus" : "Lock");
             lockImg.preserveAspect = true;
-            lockImg.color = new Color(0.70f, 0.76f, 0.88f, 0.90f);
+            lockImg.color = LumiWorldUITheme.Muted;
             lockImg.raycastTarget = false;
         }
 
-        // 2. Center Text (Tag + Tên tài nguyên & Tốc độ / Lý do)
-        string tierLabel = (tier == ResourceTier.Tier1 ? "T1" : "T2") + $" · Slot {subIndex + 1}";
-        GameObject infoObj = new GameObject("Info", typeof(RectTransform));
-        infoObj.transform.SetParent(cardObj.transform, false);
-        RectTransform infoRect = infoObj.GetComponent<RectTransform>();
-        infoRect.anchorMin = new Vector2(0f, 0f);
-        infoRect.anchorMax = new Vector2(1f, 1f);
-        infoRect.offsetMin = new Vector2(48f, 4f);
-        infoRect.offsetMax = new Vector2(isUnlocked ? -54f : -6f, -4f);
+        // 2. Title & Status lines
+        TextMeshProUGUI l1Text = CreateLabel(rt, "Title", resName, 12.5f, isUnlocked ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(l1Text.rectTransform, new Vector2(54f, -6f), new Vector2(174f, 20f));
 
-        // Line 1: Tag + Name
-        GameObject line1Obj = new GameObject("TitleLine", typeof(RectTransform), typeof(TextMeshProUGUI));
-        line1Obj.transform.SetParent(infoObj.transform, false);
-        RectTransform l1Rect = line1Obj.GetComponent<RectTransform>();
-        l1Rect.anchorMin = new Vector2(0f, 1f);
-        l1Rect.anchorMax = new Vector2(1f, 1f);
-        l1Rect.pivot = new Vector2(0f, 1f);
-        l1Rect.anchoredPosition = new Vector2(0f, 0f);
-        l1Rect.sizeDelta = new Vector2(0f, 20f);
-
-        var l1Text = line1Obj.GetComponent<TextMeshProUGUI>();
-        l1Text.fontSize = 11.5f;
-        l1Text.fontStyle = FontStyles.Bold;
-        l1Text.overflowMode = TextOverflowModes.Ellipsis;
-        l1Text.text = isUnlocked ? $"<color=#38BDF8>{tierLabel}</color>  <color=#FFFFFF>{resName}</color>" :
-                                  $"<color=#64748B>{tierLabel}</color>  <color=#94A3B8>{reason}</color>";
-
-        // Line 2: Rate / Subtitle
-        GameObject line2Obj = new GameObject("SubtitleLine", typeof(RectTransform), typeof(TextMeshProUGUI));
-        line2Obj.transform.SetParent(infoObj.transform, false);
-        RectTransform l2Rect = line2Obj.GetComponent<RectTransform>();
-        l2Rect.anchorMin = new Vector2(0f, 0f);
-        l2Rect.anchorMax = new Vector2(1f, 0f);
-        l2Rect.pivot = new Vector2(0f, 0f);
-        l2Rect.anchoredPosition = new Vector2(0f, 0f);
-        l2Rect.sizeDelta = new Vector2(0f, 18f);
-
-        var l2Text = line2Obj.GetComponent<TextMeshProUGUI>();
-        l2Text.fontSize = 10f;
-        l2Text.overflowMode = TextOverflowModes.Ellipsis;
-        if (isProducing)
+        string subStr;
+        Color subCol = LumiWorldUITheme.Muted;
+        if (!isUnlocked)
         {
-            l2Text.text = $"<color=#4ADE80>● {rate:0.##}/min</color>";
+            subStr = reason;
         }
-        else if (isUnlocked)
+        else if (pendingAmount > 0)
         {
-            l2Text.text = string.IsNullOrEmpty(slotData?.resourceId) ?
-                "<color=#94A3B8>No resource selected</color>" :
-                $"<color=#F87171>{reason}</color>";
+            subStr = $"Ready · ×{pendingAmount}";
+            subCol = LumiWorldUITheme.Success;
+        }
+        else if (isProducing)
+        {
+            subStr = $"Producing · {rate:0.##}/min";
+            subCol = LumiWorldUITheme.Success;
+        }
+        else if (!hasAssignedResource)
+        {
+            subStr = "Tap to assign resource";
         }
         else
         {
-            l2Text.text = "<color=#64748B>Locked</color>";
+            subStr = reason;
+            subCol = LumiWorldUITheme.Warning;
         }
 
-        // 3. Right Button ("Select")
+        TextMeshProUGUI l2Text = CreateLabel(rt, "Subtitle", subStr, 10.5f, subCol, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(l2Text.rectTransform, new Vector2(54f, -26f), new Vector2(174f, 18f));
+
+        // 3. Action button on the right ("Assign" / "Change")
         if (isUnlocked)
         {
-            GameObject btnObj = new GameObject("ChooseBtn", typeof(RectTransform), typeof(Button), typeof(Image));
-            btnObj.transform.SetParent(cardObj.transform, false);
+            GameObject btnObj = new GameObject("SlotActionBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+            btnObj.transform.SetParent(rt, false);
             RectTransform bRect = btnObj.GetComponent<RectTransform>();
-            bRect.anchorMin = new Vector2(1f, 0.5f);
-            bRect.anchorMax = new Vector2(1f, 0.5f);
-            bRect.pivot = new Vector2(1f, 0.5f);
-            bRect.anchoredPosition = new Vector2(-6f, 0f);
-            bRect.sizeDelta = new Vector2(48f, 26f);
+            bRect.anchorMin = bRect.anchorMax = bRect.pivot = new Vector2(1f, 0.5f);
+            bRect.anchoredPosition = new Vector2(-8f, 0f);
+            bRect.sizeDelta = new Vector2(66f, 28f);
 
             Image btnImg = btnObj.GetComponent<Image>();
-            btnImg.sprite = HabitatCreaturePanelStyle.TechPillCyanSprite;
+            btnImg.sprite = LumiWorldUITheme.PillSprite;
             btnImg.type = Image.Type.Sliced;
-            btnImg.color = Color.white;
+            btnImg.color = hasAssignedResource ? LumiWorldUITheme.Inset : LumiWorldUITheme.Primary;
 
-            GameObject lblObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            lblObj.transform.SetParent(btnObj.transform, false);
-            EconomyHUD.Stretch(lblObj.GetComponent<RectTransform>());
-            var lblText = lblObj.GetComponent<TextMeshProUGUI>();
-            lblText.text = "Select";
-            lblText.fontSize = 11f;
-            lblText.fontStyle = FontStyles.Bold;
-            lblText.alignment = TextAlignmentOptions.Center;
-            lblText.color = Color.white;
+            TextMeshProUGUI lblText = CreateLabel(
+                bRect,
+                "Label",
+                hasAssignedResource ? "Change" : "Assign",
+                11f,
+                hasAssignedResource ? LumiWorldUITheme.Text : Color.white,
+                true,
+                TextAlignmentOptions.Center);
+            EconomyHUD.Stretch(lblText.rectTransform);
 
             Button btn = btnObj.GetComponent<Button>();
             btn.targetGraphic = btnImg;
@@ -1559,292 +1567,158 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         return cardObj;
     }
 
-    /// <summary>
-    /// Tạo nút tổ ong lục giác với tọa độ 3 hàng x 2 cột đối xứng tuyệt đối (Mốc 3 Ô -> 6 Ô -> 10 Ô)
-    /// </summary>
-    private GameObject CreateHoneycombSlotButton(int slotIndex, HabitatResident resident, bool isUnlocked, int requiredHexes, Sprite hexFrame)
-    {
-        GameObject slotObj = new GameObject($"Slot_{slotIndex}", typeof(RectTransform));
-        slotObj.transform.SetParent(creatureGridRoot, false);
-        RectTransform rt = slotObj.GetComponent<RectTransform>();
-
-        // Tọa độ 3 hàng x 2 cột đối xứng hoàn hảo trong khung 230px, khoảng cách giữa các hàng rộng rãi không bị dính vào nhau:
-        // Hàng 0 (Slot 0, 1 - Mốc 3 Ô):  x = -38f, +38f; y = -4f (đáy -58f)
-        // Hàng 1 (Slot 2, 3 - Mốc 6 Ô):  x = -38f, +38f; y = -68f (đáy -122f, cách hàng 0: 10px)
-        // Hàng 2 (Slot 4, 5 - Mốc 10 Ô): x = -38f, +38f; y = -132f (đáy -186f, cách hàng 1: 10px)
-        int row = slotIndex / 2;
-        int col = slotIndex % 2;
-        float posX = (col == 0) ? -38f : 38f;
-        float posY = -4f - row * 64f;
-
-        rt.anchorMin = new Vector2(0.5f, 1f);
-        rt.anchorMax = new Vector2(0.5f, 1f);
-        rt.pivot = new Vector2(0.5f, 1f);
-        rt.anchoredPosition = new Vector2(posX, posY);
-        rt.sizeDelta = new Vector2(48f, 54f);
-
-        GameObject btnObj = new GameObject("Button", typeof(RectTransform), typeof(Button), typeof(Image));
-        btnObj.transform.SetParent(slotObj.transform, false);
-        EconomyHUD.Stretch(btnObj.GetComponent<RectTransform>());
-
-        Image frameImg = btnObj.GetComponent<Image>();
-        frameImg.sprite = hexFrame ?? EconomyHUD.RoundedSprite;
-        frameImg.color = isUnlocked ? Color.white : new Color(0.6f, 0.6f, 0.65f, 0.6f);
-
-        Button btn = btnObj.GetComponent<Button>();
-
-        if (resident != null && isUnlocked)
-        {
-            GameObject avtObj = new GameObject("Avatar", typeof(RectTransform), typeof(Image));
-            avtObj.transform.SetParent(btnObj.transform, false);
-            RectTransform avtRect = avtObj.GetComponent<RectTransform>();
-            avtRect.anchorMin = new Vector2(0.5f, 0.5f);
-            avtRect.anchorMax = new Vector2(0.5f, 0.5f);
-            avtRect.pivot = new Vector2(0.5f, 0.5f);
-            avtRect.sizeDelta = new Vector2(44f, 44f);
-
-            Image avtImg = avtObj.GetComponent<Image>();
-            avtImg.preserveAspect = true;
-            avtImg.raycastTarget = false;
-
-            Sprite avtSprite = HabitatCreaturePanelStyle.GetCreatureAvatar(resident.speciesId, resident.qualityRank);
-            if (avtSprite != null)
-            {
-                avtImg.sprite = avtSprite;
-                avtImg.color = Color.white;
-                avtImg.enabled = true;
-            }
-            else
-            {
-                avtImg.enabled = false;
-            }
-
-            bool isSelected = currentSelectedResident != null && currentSelectedResident.individualId == resident.individualId;
-            if (isSelected)
-            {
-                frameImg.color = new Color(1f, 0.88f, 0.35f, 1f);
-            }
-
-            HabitatResident capturedResident = resident;
-            btn.onClick.AddListener(() =>
-            {
-                SelectResident(capturedResident);
-            });
-        }
-        else if (!isUnlocked)
-        {
-            GameObject lockObj = new GameObject("LockIcon", typeof(RectTransform), typeof(Image));
-            lockObj.transform.SetParent(btnObj.transform, false);
-            RectTransform lockRect = lockObj.GetComponent<RectTransform>();
-            lockRect.anchoredPosition = new Vector2(0f, 7f);
-            lockRect.sizeDelta = new Vector2(16f, 18f);
-
-            Image lockImg = lockObj.GetComponent<Image>();
-            lockImg.sprite = PreserveDiamondStyle.LockWhiteSprite;
-            lockImg.color = new Color(0.9f, 0.92f, 0.96f, 0.85f);
-            lockImg.raycastTarget = false;
-
-            GameObject lockTxtObj = new GameObject("LockText", typeof(RectTransform), typeof(TextMeshProUGUI));
-            lockTxtObj.transform.SetParent(btnObj.transform, false);
-            RectTransform ltRect = lockTxtObj.GetComponent<RectTransform>();
-            ltRect.anchoredPosition = new Vector2(0f, -11f);
-            ltRect.sizeDelta = new Vector2(52f, 16f);
-
-            TextMeshProUGUI ltTxt = lockTxtObj.GetComponent<TextMeshProUGUI>();
-            ltTxt.text = $"{requiredHexes} Hexes";
-            ltTxt.alignment = TextAlignmentOptions.Center;
-            ltTxt.fontSize = 9.5f;
-            ltTxt.fontStyle = FontStyles.Bold;
-            ltTxt.color = new Color(1f, 0.85f, 0.35f, 0.95f);
-
-            btn.interactable = false;
-        }
-        else
-        {
-            GameObject plusObj = new GameObject("EmptyIcon", typeof(RectTransform), typeof(TextMeshProUGUI));
-            plusObj.transform.SetParent(btnObj.transform, false);
-            EconomyHUD.Stretch(plusObj.GetComponent<RectTransform>());
-
-            TextMeshProUGUI plusTxt = plusObj.GetComponent<TextMeshProUGUI>();
-            plusTxt.text = "+";
-            plusTxt.alignment = TextAlignmentOptions.Center;
-            plusTxt.fontSize = 18f;
-            plusTxt.color = new Color(1f, 1f, 1f, 0.35f);
-
-            btn.interactable = false;
-        }
-
-        return slotObj;
-    }
-
     private void SelectResident(HabitatResident resident)
     {
         if (resident == null) return;
         currentSelectedResident = resident;
-
         currentSelectedAnimal = FindAnimalIndividual(resident.individualId, resident.speciesId);
+        CloseRankPopover();
 
         if (panelDetailRect != null)
         {
             panelDetailRect.gameObject.SetActive(true);
-            RefreshPanel2();
+            RefreshPanel2(true);
         }
 
         RefreshPanel1();
     }
 
-    private void RefreshPanel2(bool resetScroll = true)
+    private void RefreshPanel2(bool reloadModel = true)
     {
         if (currentSelectedResident == null || currentHabitat == null) return;
 
-        // 1. Background theo hệ môi trường
-        Sprite detailBg = HabitatCreaturePanelStyle.GetDetailBackground(currentHabitat.affinity);
-        if (detailBg != null)
+        string affName = HabitatCreaturePanelStyle.GetAffinityDisplayName(currentHabitat.affinity);
+        if (backToBiomeText != null)
         {
-            panelDetailBg.sprite = detailBg;
-            panelDetailBg.color = Color.white;
+            backToBiomeText.text = $"Back to {affName}";
         }
 
         var resData = HabitatCreaturePanelStyle.ResolveCreatureData(currentSelectedResident.speciesId);
-
-        // Tiêu đề tên sinh vật (Mặc định là tên file avatar canonical, người chơi có thể đổi tên tự do)
         string defaultName = !string.IsNullOrEmpty(resData.canonicalAvt) ? resData.canonicalAvt : resData.displayName;
         if (creatureNameText != null)
         {
             creatureNameText.text = GetCreatureName(currentSelectedResident, defaultName);
         }
 
-        // Không tạo lại model 3D khi chỉ làm mới độ no theo thời gian.
-        if (resetScroll)
+        if (reloadModel && creatureArtImg != null)
         {
-            // 2. Tải trực tiếp 3D Model sinh vật lên sân khấu xoay
-            bool modelLoaded = false;
-            GameObject targetPrefabOrInstance = resData.modelPrefab;
-
-        // Ưu tiên dùng trực tiếp Prefab, nếu chưa có thì dùng GameObject đang đứng trong bản đồ
-            if (targetPrefabOrInstance == null && currentSelectedAnimal != null)
+            Sprite detailSprite = HabitatCreaturePanelStyle.GetCreatureDetailSprite(currentSelectedResident.speciesId);
+            if (detailSprite == null)
             {
-                targetPrefabOrInstance = currentSelectedAnimal.gameObject;
+                detailSprite = HabitatCreaturePanelStyle.GetCreatureAvatar(currentSelectedResident.speciesId, currentSelectedResident.qualityRank);
             }
-
-            if (CreatureModelPreviewer.Instance != null && targetPrefabOrInstance != null)
-            {
-                modelLoaded = CreatureModelPreviewer.Instance.ShowModel(targetPrefabOrInstance);
-            }
-
-            if (modelLoaded)
-            {
-                creatureModelRawImg.enabled = true;
-                creatureModelRawImg.color = Color.white;
-                creatureArtFallbackImg.enabled = false;
-            }
-            else
-            {
-                // Dự phòng 2D art nếu model 3D chưa nạp
-                creatureModelRawImg.enabled = false;
-                Sprite fullArt = HabitatCreaturePanelStyle.GetCreatureAvatar(currentSelectedResident.speciesId, currentSelectedResident.qualityRank);
-                if (fullArt != null)
-                {
-                    creatureArtFallbackImg.sprite = fullArt;
-                    creatureArtFallbackImg.enabled = true;
-                }
-                else
-                {
-                    creatureArtFallbackImg.enabled = false;
-                }
-            }
+            creatureArtImg.sprite = detailSprite;
+            creatureArtImg.enabled = detailSprite != null;
+            creatureArtImg.color = Color.white;
         }
 
-        // 3. Huy hiệu hệ & cấp sao
-        string affName = HabitatCreaturePanelStyle.GetAffinityDisplayName(currentHabitat.affinity);
-        int stars = currentSelectedAnimal != null ? currentSelectedAnimal.StarLevel : 2;
-        string starStr = new string('★', stars) + new string('☆', Mathf.Max(0, 5 - stars));
+        // Rank Pill (1/2/3 hex glyph + Rank I/II/III)
+        int rankNum = currentSelectedResident.qualityRank == CreatureQualityRank.RankI ? 1
+            : (currentSelectedResident.qualityRank == CreatureQualityRank.RankII ? 2 : 3);
+        string rankLabel = rankNum == 1 ? "Rank I" : (rankNum == 2 ? "Rank II" : "Rank III");
 
-        creatureBadgeText.text = $"<color=#1B5E20>[{affName.ToUpper()}]</color>  <color=#E65100>[{currentSelectedResident.qualityRank}]</color>";
+        if (rankPillGlyphImg != null)
+        {
+            rankPillGlyphImg.sprite = LumiWorldUITheme.RankGlyph(rankNum);
+        }
+        if (rankPillText != null)
+        {
+            rankPillText.text = rankLabel;
+        }
 
-        // Care Progress dùng cho nâng rank; độ no và trạng thái sản xuất thuộc production runtime.
         string indId = currentSelectedResident.individualId;
         int care = CreatureCareManager.Instance != null ? CreatureCareManager.Instance.GetCareProgress(indId) : 100;
         var hunger = ResourceProductionRuntime.Instance != null ? ResourceProductionRuntime.Instance.GetCareState(indId) : null;
-        int satiety = hunger != null ? Mathf.Clamp(Mathf.RoundToInt((float)hunger.Satiety), 0, 100) : 0;
+        int satiety = hunger != null ? Mathf.Clamp(Mathf.RoundToInt((float)hunger.Satiety), 0, 100) : 100;
 
-        // 5. Current status banner
-        if (hunger != null && hunger.Status == CreatureHungerStatus.Hungry)
+        // Fullness & Status
+        if (hungerProgressLabel != null)
         {
-            statusBannerTitle.text = "Hungry · Stopped";
-            statusBannerTitle.color = new Color(0.90f, 0.45f, 0.15f, 1f);
+            hungerProgressLabel.text = $"{satiety} / 100";
         }
-        else if (hunger != null && hunger.Status == CreatureHungerStatus.Eating)
+        if (hungerFillImg != null)
         {
-            statusBannerTitle.text = hunger.WaitingForFood ? "Waiting for Food · Stopped" : "Eating · Stopped";
-            statusBannerTitle.color = new Color(0.85f, 0.55f, 0.05f, 1f);
-        }
-        else if (hunger != null && care >= 100)
-        {
-            statusBannerTitle.text = "Ready to Rank Up";
-            statusBannerTitle.color = new Color(0.85f, 0.55f, 0.05f, 1f);
-        }
-        else if (hunger != null)
-        {
-            statusBannerTitle.text = "Healthy";
-            statusBannerTitle.color = new Color(0.12f, 0.65f, 0.28f, 1f);
-        }
-        else
-        {
-            statusBannerTitle.text = "No status data";
-            statusBannerTitle.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+            hungerFillImg.fillAmount = Mathf.Clamp01(satiety / 100f);
+            bool isHungry = hunger != null && hunger.Status != CreatureHungerStatus.Healthy;
+            hungerFillImg.color = isHungry ? LumiWorldUITheme.Warning : LumiWorldUITheme.Success;
         }
 
-        // 6. Stat Chips
-        string traitStr = currentSelectedAnimal != null ? currentSelectedAnimal.Trait.ToString() : "Friendly";
-        chipSpeciesText.text = resData.displayName;
-        chipRankText.text = currentSelectedResident.qualityRank.ToString();
-        chipStarsText.text = affName;
-        chipTraitText.text = traitStr;
+        if (statusPillText != null && statusPillBg != null)
+        {
+            bool isHungry = hunger != null && hunger.Status != CreatureHungerStatus.Healthy;
+            statusPillText.text = isHungry ? "Needs food" : "Healthy";
+            statusPillText.color = isHungry ? LumiWorldUITheme.Warning : LumiWorldUITheme.Success;
+            statusPillBg.color = isHungry
+                ? new Color(0.84f, 0.51f, 0.16f, 0.14f)
+                : new Color(0.33f, 0.55f, 0.24f, 0.14f);
+        }
 
-        // 7. Fullness slider & progress
-        hungerSlider.value = satiety;
-        hungerProgressLabel.text = hunger != null ? $"{satiety}/100 ({satiety}%)" : "No data";
-
-        // 8. Food status
+        // Food Card (Icon + Name only, no pantry/warehouse rows per P-06 spec)
         var production = ResourceProductionRuntime.Instance;
-        string foodId = ResolveBestFoodForCreature(indId, out string foodName, out int warehouseFood, out long pantryFood);
-        if (foodLabelText != null) foodLabelText.text = foodName + ":";
-        favoriteFoodText.text = $"Warehouse {warehouseFood} · Pantry {pantryFood}";
+        string foodId = production != null && production.CareSettings != null
+            ? production.CareSettings.FoodResourceId : string.Empty;
+        ResourceData foodData = production != null && production.CareSettings != null &&
+            production.CareSettings.food != null ? production.CareSettings.food : ResourceCatalog.Find(foodId);
+        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(foodId, foodData != null ? foodData.resourceName : "Raspberries");
 
-        // 9. Action buttons
-        if (feedButton != null)
+        if (foodIconImg != null)
         {
-            feedButton.interactable = hunger != null;
-            if (warehouseFood > 0) feedButtonText.text = "Deposit Food";
-            else if (pantryFood > 0) feedButtonText.text = "Feed";
-            else feedButtonText.text = "Out of Food";
+            foodIconImg.sprite = foodData != null ? foodData.icon : null;
+            foodIconImg.color = foodIconImg.sprite != null ? Color.white : Color.clear;
+        }
+        if (foodNameText != null)
+        {
+            foodNameText.text = foodName;
         }
 
-        if (medicineButton != null)
-        {
-            medicineButtonText.text = "Treat";
-        }
+        // Rank Popover refresh
+        if (rankPopoverTitleText != null) rankPopoverTitleText.text = rankLabel;
+        if (rankPopoverCareText != null) rankPopoverCareText.text = $"Care progress: {care} / 100";
+        if (rankPopoverCareFill != null) rankPopoverCareFill.fillAmount = Mathf.Clamp01(care / 100f);
 
-        if (rankUpButton != null)
+        if (rankUpButton != null && rankUpButtonText != null)
         {
             bool canRankUp = care >= 100 && currentSelectedResident.qualityRank < CreatureQualityRank.RankIII;
             rankUpButton.interactable = canRankUp;
-            if (currentSelectedResident.qualityRank >= CreatureQualityRank.RankIII)
+            rankUpButton.image.color = canRankUp ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
+            rankUpButtonText.color = Color.white;
+            rankUpButtonText.text = currentSelectedResident.qualityRank >= CreatureQualityRank.RankIII
+                ? "Max Rank"
+                : "Rank Up";
+        }
+    }
+
+    private static Sprite GetSelectionOutlineSprite()
+    {
+        if (s_SelectionOutlineSprite != null) return s_SelectionOutlineSprite;
+
+        int w = 64, h = 64, r = 12;
+        float stroke = 3f;
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        tex.wrapMode = TextureWrapMode.Clamp;
+        Color[] px = new Color[w * h];
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
             {
-                rankUpButtonText.text = "Max Rank Reached";
-            }
-            else
-            {
-                rankUpButtonText.text = "Rank Up";
+                float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
+                float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                if (dist > r)
+                    px[y * w + x] = Color.clear;
+                else if (dist >= r - stroke || x < stroke || x >= w - stroke || y < stroke || y >= h - stroke)
+                    px[y * w + x] = LumiWorldUITheme.Primary;
+                else
+                    px[y * w + x] = Color.clear;
             }
         }
 
-        // Reset scroll position về trên cùng
-        if (resetScroll && infoScrollRect != null)
-        {
-            infoScrollRect.normalizedPosition = new Vector2(0f, 1f);
-        }
+        tex.SetPixels(px);
+        tex.Apply();
+        s_SelectionOutlineSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r + 2, r + 2, r + 2, r + 2));
+        return s_SelectionOutlineSprite;
     }
 
     #endregion
@@ -1929,28 +1803,25 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     {
         if (currentSelectedResident == null || currentHabitat == null) return;
         var production = ResourceProductionRuntime.Instance;
-        if (production == null) return;
+        if (production == null || production.CareSettings == null) return;
 
-        string foodId = ResolveBestFoodForCreature(currentSelectedResident.individualId, out string foodName, out int available, out long pantryBefore);
-        if (string.IsNullOrEmpty(foodId)) return;
-
-        int amount = Mathf.Min(available, 20);
+        string foodId = production.CareSettings.FoodResourceId;
+        ResourceData foodData = production.CareSettings.food != null
+            ? production.CareSettings.food : ResourceCatalog.Find(foodId);
+        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(foodId, foodData != null ? foodData.resourceName : "food");
+        int available = production.Inventory != null ? production.Inventory.GetAmount(foodId) : 0;
+        int amount = Mathf.Min(available, production.CareSettings.seedFoodUnitsToFull);
         string reason = string.Empty;
         bool deposited = amount > 0 && production.DepositCreatureFood(currentHabitat.habitatId,
             currentSelectedResident.individualId, foodId, amount, out reason);
 
-        if (deposited || pantryBefore > 0)
-        {
-            AutoFeedUI.Instance?.DistributeFoodToResident(currentHabitat, currentSelectedResident);
-            production.SettleNow();
-            ShowFeedback($"Fed {foodName}! Fullness restored.", new Color(0.2f, 0.85f, 0.4f, 1f));
-        }
-        else
-        {
-            ShowFeedback(available == 0 ? "Warehouse is out of food." : reason, new Color(0.95f, 0.35f, 0.35f, 1f));
-        }
+        string feedback = deposited
+            ? $"Fed {amount} {foodName}."
+            : (available == 0 ? "Out of food in Inventory." : reason);
 
-        RefreshPanel2();
+        ShowFeedback(feedback, deposited ? LumiWorldUITheme.Success : LumiWorldUITheme.Error);
+        RefreshPanel1();
+        RefreshPanel2(false);
     }
 
     private void OnMedicineClicked()
@@ -1960,7 +1831,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         const int medCost = 1;
         if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.CanAfford(medCost))
         {
-            ShowFeedback("Not enough Coins for treatment!", new Color(0.95f, 0.35f, 0.35f, 1f));
+            ShowFeedback("Not enough Coins for treatment!", LumiWorldUITheme.Error);
             return;
         }
 
@@ -1969,8 +1840,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             CurrencyWallet.Instance.TrySpend(medCost, CoinReason.CardPurchase);
         }
 
-        ShowFeedback("Medicine applied! Creature is vigorous and joyful!", new Color(0.3f, 0.75f, 1f, 1f));
-        RefreshPanel2();
+        ShowFeedback("Treated! Creature is healthy.", LumiWorldUITheme.Success);
+        RefreshPanel1();
+        RefreshPanel2(false);
     }
 
     private void OnRankUpClicked()
@@ -1990,13 +1862,14 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             else if (currentSelectedResident.qualityRank == CreatureQualityRank.RankII)
                 currentSelectedResident.qualityRank = CreatureQualityRank.RankIII;
 
-            ShowFeedback(resultInfo, new Color(1f, 0.85f, 0.25f, 1f));
+            ShowFeedback(resultInfo, LumiWorldUITheme.Success);
+            CloseRankPopover();
             RefreshPanel1();
-            RefreshPanel2();
+            RefreshPanel2(false);
         }
         else
         {
-            ShowFeedback(resultInfo, new Color(0.95f, 0.35f, 0.35f, 1f));
+            ShowFeedback(resultInfo, LumiWorldUITheme.Error);
         }
     }
 
@@ -2012,7 +1885,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private IEnumerator FadeFeedbackRoutine()
     {
-        yield return new WaitForSeconds(3.2f);
+        yield return new WaitForSeconds(3.0f);
         if (feedbackNotifyText != null)
         {
             feedbackNotifyText.text = "";
@@ -2025,7 +1898,6 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         foreach (var a in allAnimals)
         {
             if (a == null) continue;
-            // individualId của habitat là placementId; UniqueID chỉ khớp với dữ liệu cũ
             if (string.Equals(CreatureCareManager.KeyOf(a, null), individualId, StringComparison.Ordinal) ||
                 string.Equals(a.UniqueID, individualId, StringComparison.OrdinalIgnoreCase)) return a;
             if (a.SpeciesData != null && string.Equals(a.SpeciesData.speciesID, speciesId, StringComparison.OrdinalIgnoreCase)) return a;
@@ -2049,6 +1921,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         if (renameModal != null)
         {
             renameModal.SetActive(true);
+            renameModal.transform.SetAsLastSibling();
         }
     }
 
@@ -2076,7 +1949,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             {
                 creatureNameText.text = newName;
             }
-            ShowFeedback($"Renamed to: {newName}", new Color(0.12f, 0.85f, 0.4f, 1f));
+            RefreshPanel1();
+            ShowFeedback($"Renamed to: {newName}", LumiWorldUITheme.Success);
         }
 
         CloseRenameModal();
@@ -2090,11 +1964,9 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             return resident.customName;
         }
 
-        // Tên đặt nằm trong bản lưu đảo (qua CreatureCareManager)
         string saved = CreatureCareManager.Instance != null ? CreatureCareManager.Instance.GetCustomName(resident.individualId) : null;
         if (string.IsNullOrEmpty(saved))
         {
-            // Tên cũ lưu bằng PlayerPrefs (theo máy): chuyển một lần sang bản lưu đảo rồi xóa khóa
             string legacyKey = $"CreatureCustomName_{resident.individualId}";
             saved = PlayerPrefs.GetString(legacyKey, "");
             if (!string.IsNullOrEmpty(saved) && CreatureCareManager.Instance != null && !WorldLaunch.IsVisit)

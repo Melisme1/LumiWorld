@@ -2,6 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using LumiWorld.Acs;
 
 public class CardUI : MonoBehaviour
 {
@@ -12,7 +13,7 @@ public class CardUI : MonoBehaviour
     [SerializeField] private Image cardImage;
 
     [Header("Count Badge")]
-    [Tooltip("Text hiển thị số lượng card cùng loại. Để trống = tự sinh badge nổi bật ở góc dưới-trái (7h) khi cần.")]
+    [Tooltip("Text hiển thị số lượng card cùng loại. Để trống = tự sinh badge P-03 ở góc dưới-phải khi cần.")]
     [SerializeField] private TMP_Text countText;
 
     [Tooltip("Tự sinh badge số nếu Count Text chưa được gán.")]
@@ -22,34 +23,26 @@ public class CardUI : MonoBehaviour
     [SerializeField] private Image badgeBackgroundImage;
 
     [Header("Count Badge Juice")]
-    [Tooltip("Số lượng hiển thị badge khi đạt mức này (1 = luôn hiện, giúp người chơi biết mình có gì).")]
     [SerializeField] private int badgeShowFromCount = 1;
-
-    [Tooltip("Hệ số phóng to khi badge vừa tăng số lượng (punch).")]
-    [SerializeField] private float badgePunchScale = 1.6f;
-
-    [Tooltip("Thời gian badge nhảy (giây).")]
-    [SerializeField] private float badgePunchDuration = 0.26f;
-
-    [Tooltip("Màu badge khi vừa tăng số lượng, sau đó trả về màu gốc.")]
-    [SerializeField] private Color badgeHighlightColor = new Color(1f, 0.94f, 0.45f, 1f);
+    [SerializeField] private float badgePunchScale = 1.35f;
+    [SerializeField] private float badgePunchDuration = 0.24f;
+    [SerializeField] private Color badgeHighlightColor = new Color(0.33f, 0.55f, 0.24f, 1f);
 
     [Header("Lock / Escrow Badge")]
     [SerializeField] private Image lockBadgeImage;
 
     public CardData CardData => cardData;
 
-    /// <summary>
-    /// Trạng thái khóa của lá bài (Marketplace Escrow, Breeding, hoặc Account-Bound)
-    /// </summary>
     public bool IsLocked { get; private set; }
     public CardLockType CurrentLockType { get; private set; }
     public string CurrentLockReason { get; private set; }
 
-    /// <summary>
-    /// Số lượng card cùng loại đang có trong chồng (do CardDeskController quản lý).
-    /// </summary>
     public int Count { get; private set; } = 1;
+
+    private Coroutine badgePunchCoroutine;
+    private Color badgeBaseColor = new Color(0.21f, 0.16f, 0.12f, 1f);
+    private bool cardChromeApplied;
+    private static Sprite s_BadgeSprite;
 
     private void OnEnable()
     {
@@ -78,11 +71,6 @@ public class CardUI : MonoBehaviour
         Refresh();
     }
 
-    /// <summary>
-    /// Cập nhật số lượng hiển thị trên badge. Badge luôn hiện khi Count >= badgeShowFromCount
-    /// (mặc định 1) để người chơi luôn nhận biết được mình đang có bao nhiêu lá.
-    /// Nếu số lượng TĂNG, badge sẽ nhảy + sáng lên để báo hiệu vừa nhận thêm card.
-    /// </summary>
     public void SetCount(int count)
     {
         int clampedCount = Mathf.Max(1, count);
@@ -91,7 +79,7 @@ public class CardUI : MonoBehaviour
         Count = clampedCount;
         UpdateCountBadge();
 
-        if (increased)
+        if (increased && isActiveAndEnabled)
         {
             PlayBadgePunch();
         }
@@ -99,12 +87,10 @@ public class CardUI : MonoBehaviour
 
     public void Refresh()
     {
+        EnsureCardChrome();
+
         if (cardData == null)
         {
-            Debug.LogWarning(
-                "CardUI: CardData is not assigned.",
-                this
-            );
             return;
         }
 
@@ -133,6 +119,28 @@ public class CardUI : MonoBehaviour
         UpdateLockBadge();
     }
 
+    private void EnsureCardChrome()
+    {
+        if (cardChromeApplied || cardImage == null)
+        {
+            return;
+        }
+        cardChromeApplied = true;
+
+        if (cardImage.GetComponent<Outline>() == null)
+        {
+            Outline rim = cardImage.gameObject.AddComponent<Outline>();
+            rim.effectColor = new Color(0.86f, 0.82f, 0.76f, 0.90f);
+            rim.effectDistance = new Vector2(1.5f, -1.5f);
+            rim.useGraphicAlpha = true;
+        }
+
+        if (cardImage.GetComponent<Shadow>() == null)
+        {
+            LumiWorldUITheme.AddSoftElevation(cardImage.gameObject, 4.5f, 0.22f);
+        }
+    }
+
     private void UpdateLockBadge()
     {
         CardLockType lockType = CardLockType.None;
@@ -153,7 +161,7 @@ public class CardUI : MonoBehaviour
             }
             if (cardImage != null)
             {
-                cardImage.color = new Color(0.72f, 0.72f, 0.72f, 0.88f); // Hơi tối màu để biểu thị đang bị khóa
+                cardImage.color = new Color(0.72f, 0.72f, 0.72f, 0.88f);
             }
         }
         else
@@ -178,12 +186,12 @@ public class CardUI : MonoBehaviour
         rt.anchorMin = new Vector2(0f, 1f);
         rt.anchorMax = new Vector2(0f, 1f);
         rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(4f, -4f);
-        rt.sizeDelta = new Vector2(26f, 26f);
+        rt.anchoredPosition = new Vector2(6f, -6f);
+        rt.sizeDelta = new Vector2(24f, 24f);
 
         Image img = lockObj.GetComponent<Image>();
-        img.sprite = PreserveDiamondStyle.LockIcon;
-        img.color = Color.white;
+        img.sprite = LumiWorldUITheme.Glyph("Lock") ?? PreserveDiamondStyle.LockIcon;
+        img.color = LumiWorldUITheme.Text;
         img.raycastTarget = false;
         return img;
     }
@@ -218,33 +226,33 @@ public class CardUI : MonoBehaviour
 
         if (show)
         {
-            countText.text = Count.ToString();
+            // P-03 style: "×N" warm ivory pill at bottom-right of card
+            countText.text = "×" + Count;
+            countText.font = LumiWorldUITheme.Body ?? countText.font;
+            countText.color = LumiWorldUITheme.Text;
+            countText.outlineWidth = 0f;
 
             if (badgeRootRect != null)
             {
-                float width = Count >= 10 ? 48f : 38f;
-                badgeRootRect.sizeDelta = new Vector2(width, 38f);
-                badgeRootRect.anchoredPosition = new Vector2(7f + width * 0.5f, 26f);
-            }
-            else
-            {
-                RectTransform rt = countText.rectTransform;
-                rt.anchorMin = new Vector2(0f, 0f);
-                rt.anchorMax = new Vector2(0f, 0f);
-                rt.pivot = new Vector2(0f, 0f);
-                rt.anchoredPosition = new Vector2(7f, 7f);
-                countText.alignment = TextAlignmentOptions.BottomLeft;
+                float width = Count >= 10 ? 48f : 40f;
+                badgeRootRect.anchorMin = new Vector2(1f, 0f);
+                badgeRootRect.anchorMax = new Vector2(1f, 0f);
+                badgeRootRect.pivot = new Vector2(1f, 0f);
+                badgeRootRect.sizeDelta = new Vector2(width, 28f);
+                badgeRootRect.anchoredPosition = new Vector2(-8f, 8f);
+                if (badgeBackgroundImage != null)
+                {
+                    badgeBackgroundImage.sprite = GetBadgeSprite();
+                    badgeBackgroundImage.type = Image.Type.Sliced;
+                    badgeBackgroundImage.color = Color.white;
+                }
             }
         }
     }
 
-    /// <summary>
-    /// Badge nhảy lên (punch scale) + loé màu vàng rồi trả về bình thường.
-    /// Dùng coroutine thuần để không cần setup Animator trong prefab.
-    /// </summary>
     private void PlayBadgePunch()
     {
-        if (countText == null)
+        if (countText == null || !isActiveAndEnabled)
         {
             return;
         }
@@ -261,7 +269,7 @@ public class CardUI : MonoBehaviour
     {
         RectTransform targetRect = badgeRootRect != null ? badgeRootRect : countText.rectTransform;
         Vector3 baseScale = Vector3.one;
-        Color baseTextColor = badgeBaseColor;
+        Color baseTextColor = LumiWorldUITheme.Text;
 
         float duration = Mathf.Max(0.05f, badgePunchDuration);
         float time = 0f;
@@ -271,7 +279,6 @@ public class CardUI : MonoBehaviour
             time += Time.deltaTime;
             float t = Mathf.Clamp01(time / duration);
 
-            // Phóng to nhanh ở 40% đầu rồi thu về, kèm nhún nhẹ.
             float scaleT = t < 0.4f
                 ? Mathf.Lerp(1f, badgePunchScale, Mathf.SmoothStep(0f, 1f, t / 0.4f))
                 : Mathf.Lerp(badgePunchScale, 1f, Mathf.SmoothStep(0f, 1f, (t - 0.4f) / 0.6f));
@@ -299,15 +306,6 @@ public class CardUI : MonoBehaviour
         badgePunchCoroutine = null;
     }
 
-    private Coroutine badgePunchCoroutine;
-    private Color badgeBaseColor = Color.white;
-    private static Sprite s_BadgeSprite;
-
-    /// <summary>
-    /// Tự sinh một badge số nổi bật ở góc dưới-trái thẻ (hướng 7h).
-    /// Gồm khung nền viền vàng kim loại sắc nét + nền tối than bóng tương phản cao,
-    /// bên trong là chữ số trắng rõ nét, không bị che khuất khi các lá bài xếp chồng lên nhau.
-    /// </summary>
     private TMP_Text CreateCountBadge()
     {
         if (!TryGetComponent(out RectTransform cardRect))
@@ -319,16 +317,18 @@ public class CardUI : MonoBehaviour
         badgeObj.transform.SetParent(cardRect, false);
 
         badgeRootRect = badgeObj.GetComponent<RectTransform>();
-        badgeRootRect.anchorMin = new Vector2(0f, 0f);
-        badgeRootRect.anchorMax = new Vector2(0f, 0f);
-        badgeRootRect.pivot = new Vector2(0.5f, 0.5f);
-        badgeRootRect.sizeDelta = new Vector2(38f, 38f);
-        badgeRootRect.anchoredPosition = new Vector2(26f, 26f); // Cách lề trái 7px, cách lề dưới 7px
+        badgeRootRect.anchorMin = new Vector2(1f, 0f);
+        badgeRootRect.anchorMax = new Vector2(1f, 0f);
+        badgeRootRect.pivot = new Vector2(1f, 0f);
+        badgeRootRect.sizeDelta = new Vector2(40f, 28f);
+        badgeRootRect.anchoredPosition = new Vector2(-8f, 8f);
 
         badgeBackgroundImage = badgeObj.GetComponent<Image>();
         badgeBackgroundImage.sprite = GetBadgeSprite();
         badgeBackgroundImage.type = Image.Type.Sliced;
+        badgeBackgroundImage.color = Color.white;
         badgeBackgroundImage.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(badgeObj, 2f, 0.20f);
 
         GameObject textObj = new GameObject("CountText", typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(badgeRootRect, false);
@@ -338,22 +338,20 @@ public class CardUI : MonoBehaviour
         textRect.anchorMax = Vector2.one;
         textRect.pivot = new Vector2(0.5f, 0.5f);
         textRect.sizeDelta = Vector2.zero;
-        textRect.anchoredPosition = new Vector2(0f, 0.5f);
+        textRect.anchoredPosition = Vector2.zero;
 
         TextMeshProUGUI tmp = textObj.GetComponent<TextMeshProUGUI>();
-        tmp.text = "1";
+        tmp.font = LumiWorldUITheme.Body ?? tmp.font;
+        tmp.text = "×1";
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.enableAutoSizing = true;
-        tmp.fontSizeMin = 13f;
-        tmp.fontSizeMax = 24f;
+        tmp.fontSizeMin = 12f;
+        tmp.fontSizeMax = 16.5f;
         tmp.fontStyle = FontStyles.Bold;
-        tmp.color = Color.white;
+        tmp.color = LumiWorldUITheme.Text;
         tmp.raycastTarget = false;
-        tmp.outlineWidth = 0.22f;
-        tmp.outlineColor = new Color(0f, 0f, 0f, 0.95f);
 
-        badgeBaseColor = Color.white;
-
+        badgeBaseColor = LumiWorldUITheme.Text;
         badgeObj.SetActive(false);
         return tmp;
     }
@@ -362,66 +360,39 @@ public class CardUI : MonoBehaviour
     {
         if (s_BadgeSprite != null) return s_BadgeSprite;
 
-        int size = 64;
-        float radius = 29.5f;
-        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        texture.name = "CardBadgeTexture";
-        texture.wrapMode = TextureWrapMode.Clamp;
-        texture.filterMode = FilterMode.Bilinear;
-        Color[] pixels = new Color[size * size];
+        int w = 48, h = 32, r = 13;
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.name = "CardCountPillSprite";
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        Color[] px = new Color[w * h];
 
-        Color rimColor = new Color(1.0f, 0.85f, 0.35f, 1.0f);     // Vàng kim sáng
-        Color rimOuter = new Color(0.04f, 0.04f, 0.06f, 0.92f);    // Viền tối ngoài tương phản
-        Color fillTop = new Color(0.22f, 0.22f, 0.28f, 0.96f);     // Mặt trong trên
-        Color fillBottom = new Color(0.08f, 0.09f, 0.13f, 0.96f);  // Mặt trong dưới
+        Color fill = LumiWorldUITheme.Slot;
+        Color border = LumiWorldUITheme.Edge;
 
-        int cornerR = 29;
-        for (int y = 0; y < size; y++)
+        for (int y = 0; y < h; y++)
         {
-            for (int x = 0; x < size; x++)
+            for (int x = 0; x < w; x++)
             {
-                float px = x + 0.5f;
-                float py = y + 0.5f;
-                float dx = Mathf.Max(cornerR - px, px - (size - cornerR), 0f);
-                float dy = Mathf.Max(cornerR - py, py - (size - cornerR), 0f);
+                float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
+                float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
                 float dist = Mathf.Sqrt(dx * dx + dy * dy);
-
-                float alpha = Mathf.Clamp01(radius - dist + 0.5f);
+                float alpha = Mathf.Clamp01(r - dist + 0.5f);
                 if (alpha <= 0.005f)
                 {
-                    pixels[y * size + x] = Color.clear;
+                    px[y * w + x] = Color.clear;
                     continue;
                 }
 
-                Color c;
-                if (dist > radius - 2.5f)
-                {
-                    c = rimOuter;
-                }
-                else if (dist > radius - 6.5f)
-                {
-                    float t = Mathf.Clamp01((dist - (radius - 6.5f)) / 4.0f);
-                    c = Color.Lerp(rimColor, rimOuter, t * 0.5f);
-                }
-                else
-                {
-                    float gradY = (float)y / size;
-                    Color inner = Color.Lerp(fillBottom, fillTop, gradY);
-                    float edgeBlend = Mathf.Clamp01((radius - 6.5f - dist) / 2.0f);
-                    c = Color.Lerp(rimColor, inner, edgeBlend);
-                }
-
+                Color c = (dist >= r - 1.5f) ? border : fill;
                 c.a *= alpha;
-                pixels[y * size + x] = c;
+                px[y * w + x] = c;
             }
         }
 
-        texture.SetPixels(pixels);
-        texture.Apply();
-
-        Vector4 border = new Vector4(cornerR, cornerR, cornerR, cornerR);
-        s_BadgeSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
-        s_BadgeSprite.name = "CardBadgeSprite";
+        tex.SetPixels(px);
+        tex.Apply();
+        s_BadgeSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r, r, r, r));
         return s_BadgeSprite;
     }
 }

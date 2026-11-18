@@ -133,6 +133,12 @@ public class OrderBoardUI : MonoBehaviour
 
     private void Start()
     {
+        hudColor = deliverColor = LumiWorld.Acs.LumiWorldUITheme.Primary;
+        panelColor = LumiWorld.Acs.LumiWorldUITheme.Window;
+        cardColor = LumiWorld.Acs.LumiWorldUITheme.Surface;
+        sectionColor = secondaryColor = LumiWorld.Acs.LumiWorldUITheme.Inset;
+        textColor = LumiWorld.Acs.LumiWorldUITheme.Text; mutedColor = LumiWorld.Acs.LumiWorldUITheme.Muted;
+        enoughColor = LumiWorld.Acs.LumiWorldUITheme.Success; missingColor = LumiWorld.Acs.LumiWorldUITheme.Error;
         // Lần đầu gọi Instance sẽ tạo bảng đơn, ví và kho rồi nạp dữ liệu đã lưu
         board = OrderBoardSystem.Instance;
         inventory = ResourceInventory.Instance;
@@ -331,7 +337,7 @@ public class OrderBoardUI : MonoBehaviour
 
             row.icon.sprite = BiomeHarvestIndicator.GetResourceSprite(resource);
             row.name.text = resource != null ? resource.resourceName : need.resourceId;
-            row.count.text = have + "/" + need.amount;
+            row.count.text = Mathf.Min(have, need.amount) + "/" + need.amount;
             row.count.color = have >= need.amount ? enoughColor : missingColor;
         }
 
