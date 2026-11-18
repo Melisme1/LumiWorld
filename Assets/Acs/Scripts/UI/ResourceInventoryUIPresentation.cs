@@ -306,10 +306,10 @@ namespace LumiWorld.Acs
             foreach (var requirement in definition.requirements)
             {
                 if (!registry.TryGetByGddKey(requirement.gddSpeciesKey, out var entry)) continue;
-                var individuals = new HashSet<string>(); var homes = new HashSet<HexCoordinates>(); int count = 0;
+                var individuals = new HashSet<string>(); int count = 0;
                 foreach (var resident in habitat.residents)
                     if (resident.speciesId == entry.SpeciesId && resident.role == requirement.role && habitat.ContainsHex(resident.homeHex) &&
-                        !string.IsNullOrEmpty(resident.individualId) && individuals.Add(resident.individualId) && homes.Add(resident.homeHex)) count++;
+                        !string.IsNullOrEmpty(resident.individualId) && individuals.Add(resident.individualId)) count++;
                 (requirement.role == AffinityRole.Primary ? primary : secondary).Add(entry.displayName + " " + count + "/" + requirement.minimumCount);
             }
             return "Primary: " + (primary.Count == 0 ? "—" : string.Join(", ", primary)) +

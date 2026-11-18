@@ -39,12 +39,11 @@ namespace LumiWorld.Acs
                 return Reject("Invalid requirements.");
 
             var residentIds = new HashSet<string>(StringComparer.Ordinal);
-            var residentHomes = new HashSet<HexCoordinates>();
             if (habitat.residents != null)
                 foreach (var resident in habitat.residents)
                     if (resident != null && habitat.ContainsHex(resident.homeHex) &&
-                        (!residentIds.Add(resident.individualId) || !residentHomes.Add(resident.homeHex)))
-                        return Reject("Duplicate resident ID or multiple creatures on same home hex.");
+                        !residentIds.Add(resident.individualId))
+                        return Reject("Duplicate resident ID.");
 
             var requiredSpecies = new HashSet<string>(StringComparer.Ordinal);
             var missing = new List<string>();
@@ -62,12 +61,11 @@ namespace LumiWorld.Acs
                 int count = 0;
                 int residentCount = 0;
                 var individuals = new HashSet<string>(StringComparer.Ordinal);
-                var homes = new HashSet<HexCoordinates>();
                 if (habitat.residents != null)
                     foreach (var resident in habitat.residents)
                         if (resident != null && resident.speciesId == entry.SpeciesId && resident.role == requirement.role &&
                             !string.IsNullOrEmpty(resident.individualId) && habitat.ContainsHex(resident.homeHex) &&
-                            individuals.Add(resident.individualId) && homes.Add(resident.homeHex))
+                            individuals.Add(resident.individualId))
                         {
                             residentCount++;
                             if (canProduce == null || canProduce(resident.individualId)) count++;

@@ -258,6 +258,13 @@ public class HexPlacementValidator : MonoBehaviour
         }
         else if (cardData != null && cardData.IsSettlementCard())
         {
+            // Bắt buộc ô phải có thẻ bài địa hình (Terrain) trước khi đặt Building
+            if (!HasPlacedTerrain(tileObj))
+            {
+                lastValidationError = "Must place a Terrain card before placing a building.";
+                return false;
+            }
+
             // Bắt buộc ô phải được tưới nước trước (đất tươi tốt / Lush) bằng thẻ Mưa (Rain)
             if (!IsWateredTile(tileObj))
             {
@@ -275,13 +282,6 @@ public class HexPlacementValidator : MonoBehaviour
             bool hasCreatureOnTile = HasPlacedCreature(tileObj);
             CardData existingTerrain = GetPlacedTerrainCard(tileObj);
 
-            // Nếu không có nền Biome bên dưới mà lại có sinh vật -> chặn theo luật tách biệt
-            if (existingTerrain == null && hasCreatureOnTile)
-            {
-                lastValidationError = BuildingsCreaturesSeparateError;
-                return false;
-            }
-
             // Kiểm tra 2 chiều: nếu ô này đang nằm trong cụm Biome, việc tách ô để xây Building
             // phải đảm bảo cụm Biome còn lại (hoặc bị cắt đôi) vẫn đủ ô duy trì toàn bộ thú (kể cả thú cần dời từ ô này).
             if (existingTerrain != null &&
@@ -289,12 +289,16 @@ public class HexPlacementValidator : MonoBehaviour
             {
                 return false;
             }
-
-            // Cho phép xây dựng trên cả: Ô đã có Biome, Ô chưa có Biome, và Ô có Suối (River)
         }
         else
         {
-            // Các thẻ khác (Building...): Tuân theo quy tắc kiểm tra chiếm ô thông thường
+            // Các thẻ Building khác không thuộc Settlement: vẫn bắt buộc ô phải có Terrain
+            if (cardData != null && cardData.cardType == CardType.Building && !HasPlacedTerrain(tileObj))
+            {
+                lastValidationError = "Must place a Terrain card before placing a building.";
+                return false;
+            }
+
             if (IsTileOccupied(tileObj))
             {
                 lastValidationError = "This tile is already occupied.";
