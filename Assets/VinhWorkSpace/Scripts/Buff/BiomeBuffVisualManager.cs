@@ -37,14 +37,14 @@ public class BiomeBuffVisualManager : MonoBehaviour
     [SerializeField] private float hoverAffectedBiomeAlpha = 0.34f;
 
     [Header("Perimeter Border (Tầng 1 & 2 - Viền địa hình + Rim đứng nhẹ)")]
-    [SerializeField] private float borderAmbientAlpha = 0.36f;
-    [SerializeField] private float borderIncidentAlpha = 0.78f;
-    [SerializeField] private float borderPulseAlpha = 0.78f;
+    [SerializeField] private float borderAmbientAlpha = 0.48f;
+    [SerializeField] private float borderIncidentAlpha = 0.82f;
+    [SerializeField] private float borderPulseAlpha = 0.82f;
     [SerializeField] private float borderPulseDuration = 0.85f;
-    [SerializeField] private float borderInnerRadiusRatio = 0.86f;
-    [SerializeField] private float borderOuterRadiusRatio = 0.96f;
-    [SerializeField] private float borderYOffset = 0.045f;
-    [SerializeField] private float borderRimHeight = 0.10f;
+    [SerializeField] private float borderInnerRadiusRatio = 0.84f;
+    [SerializeField] private float borderOuterRadiusRatio = 0.97f;
+    [SerializeField] private float borderYOffset = 0.055f;
+    [SerializeField] private float borderRimHeight = 0.13f;
 
     private sealed class ClusterBorderVisual
     {
