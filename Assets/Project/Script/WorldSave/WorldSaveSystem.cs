@@ -322,6 +322,7 @@ public class WorldSaveSystem : MonoBehaviour
         ReconcileOccupancy(generator);
         LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
         if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitat)) habitat.RefreshNow();
+        if (BiomeBuffVisualManager.Instance != null) BiomeBuffVisualManager.Instance.RefreshAllBuffs(generator);
         if (ScoreCalculator.Instance != null && ScoreManager.Instance != null && HexGroupDetector.Instance != null)
             ScoreManager.Instance.RestoreScoreWithoutRewards(ScoreCalculator.Instance.CalculateTotalScore());
         Debug.Log($"[LumiWorld World] Đã dựng lại {restored} thẻ đã đặt và cư dân từ bản lưu.", this);

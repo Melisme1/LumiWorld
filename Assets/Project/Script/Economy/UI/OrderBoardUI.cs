@@ -385,7 +385,7 @@ public class OrderBoardUI : MonoBehaviour
                 int have = inventory != null ? inventory.GetAmount(need.resourceId) : 0;
                 bool ok = have >= need.amount;
 
-                req.icon.sprite = BiomeHarvestIndicator.GetResourceSprite(res);
+                req.icon.sprite = ResourceIconUtility.GetResourceSprite(res);
                 req.name.text = ResourceInventoryUIPresentation.LocalizeResourceName(need.resourceId, res != null ? res.resourceName : need.resourceId);
                 ApplyReqFractionPill(req, have, need.amount, ok);
             }
@@ -420,7 +420,7 @@ public class OrderBoardUI : MonoBehaviour
         {
             ResourceStack first = order.requirements[0];
             ResourceData firstRes = ResourceCatalog.Find(first.resourceId);
-            detailHeroArt.sprite = BiomeHarvestIndicator.GetResourceSprite(firstRes);
+            detailHeroArt.sprite = ResourceIconUtility.GetResourceSprite(firstRes);
             detailHeroName.text = ResourceInventoryUIPresentation.LocalizeResourceName(
                 first.resourceId,
                 firstRes != null ? firstRes.resourceName : first.resourceId);
@@ -439,7 +439,7 @@ public class OrderBoardUI : MonoBehaviour
             int have = inventory != null ? inventory.GetAmount(need.resourceId) : 0;
             bool ok = have >= need.amount;
 
-            req.icon.sprite = BiomeHarvestIndicator.GetResourceSprite(res);
+            req.icon.sprite = ResourceIconUtility.GetResourceSprite(res);
             req.name.text = ResourceInventoryUIPresentation.LocalizeResourceName(need.resourceId, res != null ? res.resourceName : need.resourceId);
             ApplyReqFractionPill(req, have, need.amount, ok);
         }
@@ -602,7 +602,7 @@ public class OrderBoardUI : MonoBehaviour
             sellQtyInput.SetTextWithoutNotify(sellQuantity.ToString(CultureInfo.InvariantCulture));
         }
 
-        sellDetailArt.sprite = BiomeHarvestIndicator.GetResourceSprite(selectedSellResource);
+        sellDetailArt.sprite = ResourceIconUtility.GetResourceSprite(selectedSellResource);
         sellDetailName.text = ResourceInventoryUIPresentation.LocalizeResourceName(selectedSellResource.resourceID, selectedSellResource.resourceName);
 
         int unit = NpcMerchant.GetUnitPrice(selectedSellResource);
@@ -1185,7 +1185,7 @@ public class OrderBoardUI : MonoBehaviour
         icObj.transform.SetParent(view.rect, false);
         LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 12f, 8f, 38f, 38f);
         Image ic = icObj.GetComponent<Image>();
-        ic.sprite = BiomeHarvestIndicator.GetResourceSprite(resource);
+        ic.sprite = ResourceIconUtility.GetResourceSprite(resource);
         ic.preserveAspect = true;
         ic.raycastTarget = false;
 
