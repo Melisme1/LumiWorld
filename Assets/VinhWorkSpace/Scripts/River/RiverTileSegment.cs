@@ -16,8 +16,15 @@ public class RiverTileSegment : MonoBehaviour
     public RiverPieceType pieceType = RiverPieceType.PondBasin;
     public float currentRotationY = 0f;
     public int connectedPortsMask = 0;
+    public int approvedPortsMask = 0; // Các cổng đã được duyệt nối (chống vòng khép kín và giữ đúng thứ tự nối)
     public int primaryPortA = -1; // Cổng dòng chính A (Thượng nguồn / Inflow)
     public int primaryPortB = -1; // Cổng dòng chính B (Hạ lưu / Outflow)
+
+    public bool HasApprovedPort(int dir)
+    {
+        int d = ((dir % 6) + 6) % 6;
+        return (approvedPortsMask & (1 << d)) != 0;
+    }
 
     [Header("3D Bed & Accent Elements")]
     [SerializeField] private GameObject visualInstance;
@@ -78,14 +85,14 @@ public class RiverTileSegment : MonoBehaviour
         transform.rotation = targetRotation;
 
         GameObject prefab = config != null ? config.GetPrefabForPiece(pieceType) : null;
-        if (prefab == null && pieceType != RiverPieceType.Straight && pieceType != RiverPieceType.Curve120)
+        if (prefab == null && pieceType != RiverPieceType.Straight && pieceType != RiverPieceType.Curve120 && pieceType != RiverPieceType.Curve60)
         {
             Debug.LogError($"[RiverTileSegment] Không tìm thấy prefab cho pieceType: {pieceType} trong RiverConfig!");
             return;
         }
 
-        // Suối thẳng Straight và khúc cua Curve120 rải các đoạn mương ghép qua UpdateConnectingTrenches
-        if (pieceType == RiverPieceType.Straight || pieceType == RiverPieceType.Curve120)
+        // Suối thẳng Straight và khúc cua Curve120, Curve60 rải các đoạn mương ghép qua UpdateConnectingTrenches
+        if (pieceType == RiverPieceType.Straight || pieceType == RiverPieceType.Curve120 || pieceType == RiverPieceType.Curve60)
         {
             if (visualInstance != null)
             {
@@ -501,6 +508,19 @@ public class RiverTileSegment : MonoBehaviour
                     Vector3 edgeB = RiverSplinePath.GetEdgeMidpointLocal(p1) - norm1 * in1;
 
                     SpawnTrenchLine(edgeA, edgeB, _trenchContainer, config, baseWorldPos);
+
+                    // Vẽ thêm các nhánh phụ (Tributary Branches) nếu có >= 3 cổng kết nối
+                    Vector3 trunkMid = (edgeA + edgeB) * 0.5f;
+                    foreach (int extraPort in connectedPorts)
+                    {
+                        if (extraPort == p0 || extraPort == p1) continue;
+                        if (IsWaterfallInflow(extraPort, worldGen)) continue;
+
+                        Vector3 extraNorm = RiverSplinePath.GetEdgeNormalLocal(extraPort);
+                        float extraIn = GetWaterfallInwardOffset(extraPort, config);
+                        Vector3 extraEdge = RiverSplinePath.GetEdgeMidpointLocal(extraPort) - extraNorm * extraIn;
+                        SpawnTrenchLine(extraEdge, trunkMid, _trenchContainer, config, baseWorldPos);
+                    }
                 }
                 break;
             }
@@ -522,67 +542,23 @@ public class RiverTileSegment : MonoBehaviour
 
                     var curvePath = RiverSplinePath.BuildThroughPath(inPort, outPort, 0f, 20, inOffset, outOffset);
                     SpawnTrenchCurve(curvePath, _trenchContainer, config, baseWorldPos, pieceType);
-                }
-                break;
-            }
-        }
 
-        // TỰ ĐỘNG SINH CÁC NHÁNH RẼ PHỤ (Tributary Branches):
-        // Giữ nguyên dòng chính (Straight/Curve120/Curve60), bất kỳ cổng kết nối thứ 3, thứ 4...
-        // đều được nối bằng một đoạn mương từ mép ô cắm vào tâm giao lộ!
-        if (pieceType == RiverPieceType.Straight || pieceType == RiverPieceType.Curve120 || pieceType == RiverPieceType.Curve60)
-        {
-            int pMainA = primaryPortA >= 0 ? primaryPortA : (connectedPorts.Count > 0 ? connectedPorts[0] : -1);
-            int pMainB = primaryPortB >= 0 ? primaryPortB : (connectedPorts.Count > 1 ? connectedPorts[1] : -1);
-
-            List<RiverWaypoint> mainPath = (_cachedPaths != null && _cachedPaths.Count > 0) ? _cachedPaths[0] : null;
-
-            foreach (int p in connectedPorts)
-            {
-                if (p == pMainA || p == pMainB) continue;
-
-                Vector3 norm = RiverSplinePath.GetEdgeNormalLocal(p);
-                float inw = IsWaterfallInflow(p, worldGen) 
-                    ? (config != null ? config.waterfallBottomOffset : 0.38f) 
-                    : GetWaterfallInwardOffset(p, config);
-                Vector3 edgeMid = RiverSplinePath.GetEdgeMidpointLocal(p) - norm * inw;
-                Vector3 junctionPoint = Vector3.zero;
-                if (mainPath != null && mainPath.Count > 0)
-                {
-                    junctionPoint = GetClosestPointOnPath(mainPath, edgeMid);
-                }
-                else
-                {
-                    Vector3 midA = RiverSplinePath.GetEdgeMidpointLocal(pMainA);
-                    Vector3 midB = RiverSplinePath.GetEdgeMidpointLocal(pMainB);
-                    junctionPoint = ProjectPointOnSegment(edgeMid, midA, midB);
-                }
-
-                Vector3 toJunction = junctionPoint - edgeMid;
-                float branchDist = toJunction.magnitude;
-                float bankOffset = 0.16f;
-                Vector3 branchEnd = (branchDist > bankOffset + 0.05f)
-                    ? edgeMid + toJunction.normalized * (branchDist - bankOffset)
-                    : junctionPoint;
-
-                bool isBranchInflow = false;
-                if (RiverNetworkManager.Instance != null)
-                {
-                    var nSeg = RiverNetworkManager.Instance.GetRiver(placedHex.GetNeighbor(p));
-                    if (nSeg != null && nSeg.flowStep < flowStep)
+                    // Vẽ thêm các nhánh phụ (Tributary Branches) nối vào điểm giữa của khúc cua chính
+                    Vector3 junctionLocal = (curvePath != null && curvePath.Count > 0)
+                        ? curvePath[curvePath.Count / 2].position
+                        : Vector3.zero;
+                    foreach (int extraPort in connectedPorts)
                     {
-                        isBranchInflow = true;
+                        if (extraPort == inPort || extraPort == outPort) continue;
+                        if (IsWaterfallInflow(extraPort, worldGen)) continue;
+
+                        Vector3 extraNorm = RiverSplinePath.GetEdgeNormalLocal(extraPort);
+                        float extraIn = GetWaterfallInwardOffset(extraPort, config);
+                        Vector3 extraEdge = RiverSplinePath.GetEdgeMidpointLocal(extraPort) - extraNorm * extraIn;
+                        SpawnTrenchLine(extraEdge, junctionLocal, _trenchContainer, config, baseWorldPos);
                     }
                 }
-
-                if (isBranchInflow)
-                {
-                    SpawnTrenchLine(edgeMid, branchEnd, _trenchContainer, config, baseWorldPos);
-                }
-                else
-                {
-                    SpawnTrenchLine(branchEnd, edgeMid, _trenchContainer, config, baseWorldPos);
-                }
+                break;
             }
         }
     }
@@ -709,7 +685,7 @@ public class RiverTileSegment : MonoBehaviour
         float rotOffset = config.straightRotationOffset + config.globalRotationOffset;
 
         float unitLength = Mathf.Max(0.05f, pieceScale.x);
-        float stepDist = unitLength * 0.85f;
+        float stepDist = unitLength * (pieceType == RiverPieceType.Curve60 ? 1.05f : 0.88f);
         int count = Mathf.Max(2, Mathf.CeilToInt(totalDist / stepDist));
 
         float firstDist = unitLength * 0.5f;

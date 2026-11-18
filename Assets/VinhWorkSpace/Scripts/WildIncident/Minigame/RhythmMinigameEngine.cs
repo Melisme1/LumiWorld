@@ -161,7 +161,7 @@ public class RhythmMinigameEngine
                 if (!beatAlreadyStruck)
                 {
                     beatAlreadyStruck = true;
-                    string reason = IsSequenceCompleted ? "Bỏ lỡ nhịp" : "Chưa kịp gõ nốt";
+                    string reason = IsSequenceCompleted ? "Missed beat" : "Incomplete notes";
                     EvaluateBeatStrike(1.0f, isTimeoutMiss: true, missReason: reason);
                 }
             }
@@ -174,7 +174,7 @@ public class RhythmMinigameEngine
             {
                 if (HarmonyProgress >= 1.0f)
                 {
-                    FinishSession(true, "Tuyệt vời! Giai điệu đã cộng hưởng hoàn hảo với Thú Đầu Đàn.");
+                    FinishSession(true, "Tamed!");
                 }
                 else
                 {
@@ -206,7 +206,7 @@ public class RhythmMinigameEngine
             int failedIndex = CurrentSequenceIndex;
             CurrentSequenceIndex = 0;
             OnNoteStepValidated?.Invoke(failedIndex, dir, false);
-            OnPromptHint?.Invoke("Sai hướng! Hãy gõ lại từ đầu chuỗi.");
+            OnPromptHint?.Invoke("Wrong key! Retry sequence.");
             return false;
         }
     }
@@ -233,7 +233,7 @@ public class RhythmMinigameEngine
             // Nếu người chơi bấm Space khi CHƯA gõ xong nốt: KHÔNG PHẠT MISS, ngọc vẫn tiếp tục bay!
             if (!IsSequenceCompleted)
             {
-                OnPromptHint?.Invoke("Hãy gõ xong các phím mũi tên trước!");
+                OnPromptHint?.Invoke("Finish arrows first!");
                 return RhythmHitGrade.None;
             }
 
@@ -323,22 +323,14 @@ public class RhythmMinigameEngine
         Phase = RhythmPhase.OrbGliding;
         OnPhaseChanged?.Invoke(Phase);
         OnNewSequence?.Invoke(currentSequence);
-        OnPromptHint?.Invoke("Gõ các phím mũi tên rồi bấm Space khi ngọc chạm hoa!");
+        OnPromptHint?.Invoke("Press arrows, then SPACE on the star!");
     }
 
     private void GenerateSequenceForRank(AnimalRank rank)
     {
         currentSequence.Clear();
 
-        int noteCount = rank switch
-        {
-            AnimalRank.Common => 3,
-            AnimalRank.Uncommon => 4,
-            AnimalRank.Rare => random.Next(4, 6),
-            AnimalRank.Epic => 5,
-            AnimalRank.Legendary => 6,
-            _ => 3
-        };
+        int noteCount = random.Next(3, 6); // Random từ 3 đến 5 nhịp mỗi lượt
 
         RhythmDirection prev = (RhythmDirection)(-1);
         int repeatCount = 0;

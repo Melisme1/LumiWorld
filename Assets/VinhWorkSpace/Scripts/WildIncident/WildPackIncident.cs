@@ -12,23 +12,19 @@ public class IncidentClusterTarget
     public string ClusterId { get; set; } = "";
     public string BiomeName { get; set; } = "Biome";
     public int HexCount { get; set; } = 3;
+    public List<HexCoordinates> Hexes { get; set; } = new List<HexCoordinates>();
     public Vector3 CenterPosition { get; set; } = Vector3.zero;
     public CardData TerrainCard { get; set; }
     public string NatureKey { get; set; } = "";
     public bool IsDisrupted { get; set; } = false;
+    public bool IsProducing { get; set; } = false;
 
     public Action<bool> SetDisruptedAction { get; set; }
-    public Action<float> SetSpeedMultiplierAction { get; set; }
 
     public void SetDisrupted(bool disrupted)
     {
         IsDisrupted = disrupted;
         SetDisruptedAction?.Invoke(disrupted);
-    }
-
-    public void SetSpeedMultiplier(float mult)
-    {
-        SetSpeedMultiplierAction?.Invoke(mult);
     }
 }
 
@@ -57,8 +53,7 @@ public class WildPackIncident
         AnimalRank rank,
         GameObject alphaObj,
         List<IncidentClusterTarget> satellites,
-        List<GameObject> minions,
-        float speedDebuff)
+        List<GameObject> minions)
     {
         this.IncidentID = id;
         this.HostCluster = host;
@@ -74,12 +69,12 @@ public class WildPackIncident
             HostCluster.SetDisrupted(true);
         }
 
-        // 2. Áp dụng hiệu ứng làm chậm cho các Cụm Vệ Tinh
+        // 2. Khóa luôn các Cụm Vệ Tinh liền kề có thú con quấy phá
         foreach (var sat in SatelliteClusters)
         {
             if (sat != null)
             {
-                sat.SetSpeedMultiplier(speedDebuff);
+                sat.SetDisrupted(true);
             }
         }
     }
@@ -103,7 +98,7 @@ public class WildPackIncident
         {
             if (sat != null)
             {
-                sat.SetSpeedMultiplier(1.0f);
+                sat.SetDisrupted(false);
             }
         }
 

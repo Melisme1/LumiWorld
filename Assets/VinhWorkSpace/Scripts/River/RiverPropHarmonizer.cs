@@ -58,7 +58,8 @@ public static class RiverPropHarmonizer
             if (container == null) continue;
 
             string cName = container.name;
-            if (cName.StartsWith("River_") || cName.StartsWith("Water_") || cName.StartsWith("Waterfall_")) continue;
+            if (cName.StartsWith("River_") || cName.StartsWith("Water_") || cName.StartsWith("Waterfall_") ||
+                cName == "Settlement_Content" || cName.StartsWith("PlacedSettlement_") || cName.StartsWith("ConnectingTrenches")) continue;
 
             CollectLeafProps(container, allProps);
         }
@@ -164,28 +165,44 @@ public static class RiverPropHarmonizer
                 continue;
             }
 
-            // Các prop nối cạnh (Connector props từ Biome cluster) nếu nằm trong hành lang sông: XÓA BỎ NGAY
-            // Cây lớn hoặc cỏ dại/lúa mọc ngập sâu trong lòng nước: XÓA BỎ để không che vòm trời và không mọc chắn giữa dòng suối
+            // 1. BẢO VỆ TUYỆT ĐỐI CÔNG TRÌNH XÂY DỰNG & ĐÔ THỊ (Settlement Buildings & Props)
+            // Tuyệt đối không bao giờ xóa nhà ở, chợ, lâu đài hay tường rào do người chơi tạo dựng!
+            if (IsSettlementOrBuilding(prop))
+            {
+                // Nếu là phụ kiện nhỏ phố thị (thùng, sọt, xe cút kít) nằm trong lòng suối sâu:
+                // Dạt nhẹ ra mép bờ (riverbank) để không ngập nước
+                string propName = prop.name.ToLowerInvariant();
+                if (isDeepWater && !propName.Contains("building_") && !propName.Contains("wall_") && !propName.Contains("fence_") && !propName.Contains("tower_"))
+                {
+                    propsToReposition.Add(prop);
+                    targetWorldPositions.Add(targetWorldPos);
+                }
+                // Các công trình kiến trúc lớn giữ nguyên vị trí, suối uốn lượn ven nhà tạo vẻ đẹp kênh đào hữu tình
+                continue;
+            }
+
+            // 2. CÂY CỐI & HOA CỎ (Flora, Bushes, Shade Trees)
+            // ƯU TIÊN ĐẨY DẠT RA VEN BỜ (Riverbank Repulsion) THAY VÌ XÓA BỎ!
+            // Cây cối ven suối tạo nên khung cảnh suối rừng / suối hoa thơ mộng rực rỡ sắc màu
+            Vector2 delta2D = new Vector2(targetWorldPos.x - tileCenter.x, targetWorldPos.z - tileCenter.z);
+            float maxR = HEX_INNER_RADIUS * 0.90f;
+            bool canFitOnBank = delta2D.magnitude <= maxR;
+
+            if (canFitOnBank)
+            {
+                // Đẩy dạt ra hai bên bờ suối tạo hàng cây và thảm hoa ven sông sinh thái!
+                propsToReposition.Add(prop);
+                targetWorldPositions.Add(targetWorldPos);
+                continue;
+            }
+
+            // Chỉ xóa bỏ khi vật thể nằm trực tiếp giữa lòng suối sâu VÀ điểm dạt bờ vượt ra ngoài ranh giới ô hex
             bool isConnectorProp = (prop.name.StartsWith("Connector") || prop.name.StartsWith("ClusterEdge") || prop.name.StartsWith("BorderMicroGrass"));
-            if (isConnectorProp || isHeavy || (isGrass && isDeepWater))
+            if (isConnectorProp || isDeepWater)
             {
                 propsToRemove.Add(prop);
                 continue;
             }
-
-            // Bụi hoa dại, cây bụi con, sỏi đá ven bờ:
-            // ĐẨY DẠT RA HAI BÊN BỜ SUỐI / ÔM VIỀN SƯỜN ĐÁ (Riverbank Repulsion)
-            // Giữ lại tối đa hoa cỏ sinh thái trên ô, không xóa trụi!
-            Vector2 delta2D = new Vector2(targetWorldPos.x - tileCenter.x, targetWorldPos.z - tileCenter.z);
-            float maxR = HEX_INNER_RADIUS * 0.95f;
-            if (delta2D.magnitude > maxR)
-            {
-                delta2D = delta2D.normalized * (HEX_INNER_RADIUS * 0.88f);
-                targetWorldPos = new Vector3(tileCenter.x + delta2D.x, prop.position.y, tileCenter.z + delta2D.y);
-            }
-
-            propsToReposition.Add(prop);
-            targetWorldPositions.Add(targetWorldPos);
         }
 
         // Thực thi di chuyển dạt bờ mềm mại
@@ -209,11 +226,14 @@ public static class RiverPropHarmonizer
         foreach (var prop in propsToRemove)
         {
             if (prop == null) continue;
+            if (IsSettlementOrBuilding(prop)) continue; // Bảo vệ 100% không xóa nhầm công trình
 
             Transform toDestroy = prop;
             while (toDestroy.parent != null && 
                    toDestroy.parent != tileObj.transform && 
                    toDestroy.parent != connRoot &&
+                   !toDestroy.parent.name.StartsWith("Settlement") &&
+                   !toDestroy.parent.name.StartsWith("Borders_") &&
                    !toDestroy.parent.name.StartsWith("Habitat_") && 
                    !toDestroy.parent.name.StartsWith("FilledGround_") &&
                    !toDestroy.parent.name.StartsWith("Hex_"))
@@ -459,20 +479,20 @@ public static class RiverPropHarmonizer
             return;
         }
 
-        // 3. SUỐI THẲNG (Straight - scale 0.28)
+        // 3. SUỐI THẲNG (Straight - scale thanh mảnh 0.18 - 0.27)
         if (pieceType == RiverPieceType.Straight)
         {
-            float corridorHalfWidth = isHeavy ? 0.38f : 0.18f;
+            float corridorHalfWidth = isHeavy ? 0.28f : 0.13f;
             bool isSingleEndInlet = connectionCount <= 1;
             bool inCorridorY = isSingleEndInlet ? (localPos.y > -0.05f && localPos.y < 1.05f) : (Mathf.Abs(localPos.y) < 1.05f);
 
             if (Mathf.Abs(localPos.x) < corridorHalfWidth && inCorridorY)
             {
                 isInWater = true;
-                isDeepWater = Mathf.Abs(localPos.x) < 0.12f;
+                isDeepWater = Mathf.Abs(localPos.x) < 0.08f;
 
                 float signX = (localPos.x >= 0f) ? 1f : -1f;
-                suggestedShorelineLocal = new Vector2(signX * 0.22f, localPos.y);
+                suggestedShorelineLocal = new Vector2(signX * 0.15f, localPos.y);
             }
             return;
         }
@@ -480,14 +500,14 @@ public static class RiverPropHarmonizer
         // 4. SUỐI CUA (Curve60, Curve120) VÀ GIAO LỘ PHÂN NHÁNH
         {
             float centerDist = localPos.magnitude;
-            float clearR = isHeavy ? 0.45f : 0.35f;
+            float clearR = isHeavy ? 0.32f : 0.22f;
             if (centerDist < clearR)
             {
                 isInWater = true;
-                isDeepWater = centerDist < 0.18f;
+                isDeepWater = centerDist < 0.12f;
 
                 Vector2 dir = (centerDist > 0.01f) ? localPos.normalized : Vector2.up;
-                suggestedShorelineLocal = dir * 0.38f;
+                suggestedShorelineLocal = dir * 0.25f;
             }
         }
     }
@@ -504,11 +524,46 @@ public static class RiverPropHarmonizer
     }
 
     /// <summary>
+    /// Kiểm tra xem một đối tượng có thuộc về công trình xây dựng / đô thị / thẻ bài làng hay không.
+    /// Bảo vệ 100% không bao giờ xóa nhầm nhà ở, lâu đài, chợ, tường rào do người chơi tạo dựng.
+    /// </summary>
+    public static bool IsSettlementOrBuilding(Transform prop)
+    {
+        if (prop == null) return false;
+
+        string name = prop.name.ToLowerInvariant();
+        if (name.Contains("settlement") || name.Contains("building_") || name.Contains("home_") || 
+            name.Contains("house") || name.Contains("market") || name.Contains("castle") || 
+            name.Contains("church") || name.Contains("windmill") || name.Contains("blacksmith") || 
+            name.Contains("tavern") || name.Contains("barracks") || name.Contains("archery") || 
+            name.Contains("wall_") || name.Contains("fence_") || name.Contains("gate_") || 
+            name.Contains("tower_") || name.Contains("well_") || name.Contains("placedcard") ||
+            name.Contains("placedsettlement") || name.Contains("borders_"))
+        {
+            return true;
+        }
+
+        Transform p = prop.parent;
+        while (p != null)
+        {
+            string pName = p.name.ToLowerInvariant();
+            if (pName.Contains("settlement") || pName.Contains("borders_") || pName.Contains("placedcard") || pName.Contains("placedsettlement"))
+                return true;
+            if (p.GetComponent<SettlementTile>() != null)
+                return true;
+            p = p.parent;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Kiểm tra xem một prop có phải là cây gỗ lớn / đá tảng (không thể mọc trong lòng suối/hồ)
     /// </summary>
     private static bool IsHeavyObstacle(Transform prop)
     {
         if (prop == null) return false;
+        if (IsSettlementOrBuilding(prop)) return false; // Không bao giờ coi công trình kiến trúc là vật cản thiên nhiên để xóa
 
         string name = prop.name.ToLowerInvariant();
         if (name.Contains("tree") || name.Contains("oak") || name.Contains("birch") || 

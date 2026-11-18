@@ -93,6 +93,8 @@ public static class WildIncidentEvaluator
         foreach (var c in allClusters)
         {
             if (c == null || c == hostCluster || c.IsDisrupted) continue;
+            if (!c.IsProducing) continue;
+            if (!AreClustersAdjacent(hostCluster, c)) continue;
 
             float dist = Vector3.Distance(hostCluster.CenterPosition, c.CenterPosition);
             candidates.Add((c, dist));
@@ -107,5 +109,22 @@ public static class WildIncidentEvaluator
         }
 
         return result;
+    }
+
+    private static bool AreClustersAdjacent(IncidentClusterTarget a, IncidentClusterTarget b)
+    {
+        if (a?.Hexes == null || b?.Hexes == null) return false;
+        for (int i = 0; i < a.Hexes.Count; i++)
+        {
+            HexCoordinates ha = a.Hexes[i];
+            for (int j = 0; j < b.Hexes.Count; j++)
+            {
+                if (HexCoordinates.Distance(ha, b.Hexes[j]) == 1)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

@@ -1,10 +1,11 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Acs/UberStylizedWater/Guide.txt.meta
-guid: 0f73c1d40f24b72488bfff4062daa801
+<<<<<<<< HEAD:Assets/Data/Cards/Pufferfish.asset.meta
+guid: b1c2d3e4f5a600020002000000000011
+NativeFormatImporter:
 ========
 guid: c74c76c3b0a62b7429b32bc3f4d532bc
->>>>>>>> Acs:Assets/Acs/Art/UI/Fonts/OFL.txt.meta
 TextScriptImporter:
+>>>>>>>> origin/Acs:Assets/Acs/Art/UI/Fonts/OFL.txt.meta
   externalObjects: {}
   userData: 
   assetBundleName: 
