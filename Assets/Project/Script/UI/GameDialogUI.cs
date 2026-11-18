@@ -1,697 +1,313 @@
 using System;
-using System.Collections;
+using LumiWorld.Acs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
-/// Hệ thống Modal Dialog & Notification tập trung chuẩn mỹ thuật LumiWorld.
-/// Quản lý 2 loại giao diện:
-/// 1. Panel Xác Nhận (Confirmation Panel):
-///    - Dùng cho các thao tác quan trọng (đắp thêm mảnh đất trống mới, mua thẻ bài, nâng rank thú...).
-///    - 2 nút bấm lục giác phía dưới: "HỦY BỎ" (trái) và "XÁC NHẬN" (phải).
-/// 2. Panel Thông Báo (Notification Panel):
-///    - Dùng cho mọi thông báo trong game (lỗi đặt thẻ, hoàn thành nhiệm vụ, phản hồi gameplay...).
-///    - Nút "OK" ở đáy giữa để người chơi đóng thông báo.
+/// Shared modal confirmation and notification dialogs styled with LumiWorldUITheme.
 /// </summary>
+[DisallowMultipleComponent]
 public class GameDialogUI : MonoBehaviour
 {
-    private static GameDialogUI instance;
-    public static GameDialogUI Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                EnsureInstance();
-            }
-            return instance;
-        }
-    }
+    private static GameDialogUI _instance;
 
-    [Header("Sprite References")]
-    [SerializeField] private Sprite confirmationPanelSprite;
-    [SerializeField] private Sprite notificationPanelSprite;
+    private Canvas _canvas;
+    private GameObject _backdropGo;
+    private RectTransform _dialogWindowRect;
 
-    private Canvas dialogCanvas;
-    private CanvasGroup backdropGroup;
-    private GameObject backdropObj;
+    public static bool IsAnyOpen => _instance != null && _instance._backdropGo != null && _instance._backdropGo.activeSelf;
 
-    // --- Modal 1: Confirmation Panel ---
-    private GameObject confirmModalObj;
-    private RectTransform confirmPanelRect;
-    private CanvasGroup confirmCanvasGroup;
-    private TextMeshProUGUI confirmTitleText;
-    private TextMeshProUGUI confirmMessageText;
-    private Button cancelButton;
-    private Button confirmButton;
-    private TextMeshProUGUI cancelButtonText;
-    private TextMeshProUGUI confirmButtonText;
-
-    private Action onConfirmCallback;
-    private Action onCancelCallback;
-
-    // --- Modal 2: Notification Panel ---
-    private GameObject noticeModalObj;
-    private RectTransform noticePanelRect;
-    private CanvasGroup noticeCanvasGroup;
-    private TextMeshProUGUI noticeTitleText;
-    private TextMeshProUGUI noticeMessageText;
-    private Button okButton;
-
-    private Action onOkCallback;
-    private Coroutine currentAnimRoutine;
-
-    public static void EnsureInstance()
-    {
-        if (instance != null) return;
-
-        instance = FindAnyObjectByType<GameDialogUI>();
-        if (instance != null) return;
-
-        GameObject go = new GameObject("GameDialogUI");
-        instance = go.AddComponent<GameDialogUI>();
-        DontDestroyOnLoad(go);
-    }
-
-    private void Awake()
-    {
-        if (instance != null && instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        instance = this;
-
-        LoadResources();
-        BuildUI();
-    }
-
-    private TMP_FontAsset vietnameseFont;
-
-    private void LoadResources()
-    {
-        if (confirmationPanelSprite == null)
-        {
-            confirmationPanelSprite = Resources.Load<Sprite>("UI_Panels/ConfirmationPanel");
-        }
-        if (notificationPanelSprite == null)
-        {
-            notificationPanelSprite = Resources.Load<Sprite>("UI_Panels/NotificationPanel");
-        }
-        if (vietnameseFont == null)
-        {
-            vietnameseFont = Resources.Load<TMP_FontAsset>("Fonts/LumiWorldVietnameseSDF");
-        }
-    }
-
-    private void BuildUI()
-    {
-        dialogCanvas = gameObject.GetComponent<Canvas>();
-        if (dialogCanvas == null)
-        {
-            dialogCanvas = gameObject.AddComponent<Canvas>();
-            dialogCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            dialogCanvas.sortingOrder = 9999;
-        }
-
-        var scaler = gameObject.GetComponent<CanvasScaler>();
-        if (scaler == null)
-        {
-            scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 0.5f;
-        }
-
-        if (gameObject.GetComponent<GraphicRaycaster>() == null)
-        {
-            gameObject.AddComponent<GraphicRaycaster>();
-        }
-
-        // --- BACKDROP OVERLAY ---
-        backdropObj = new GameObject("BackdropOverlay", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
-        backdropObj.transform.SetParent(transform, false);
-        RectTransform bdRect = backdropObj.GetComponent<RectTransform>();
-        bdRect.anchorMin = Vector2.zero;
-        bdRect.anchorMax = Vector2.one;
-        bdRect.sizeDelta = Vector2.zero;
-
-        Image bdImg = backdropObj.GetComponent<Image>();
-        bdImg.color = new Color(0f, 0f, 0f, 0.45f);
-
-        backdropGroup = backdropObj.GetComponent<CanvasGroup>();
-        backdropObj.SetActive(false);
-
-        // --- 1. BUILD CONFIRMATION MODAL ---
-        confirmModalObj = new GameObject("ConfirmationModal", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
-        confirmModalObj.transform.SetParent(transform, false);
-        confirmPanelRect = confirmModalObj.GetComponent<RectTransform>();
-        confirmPanelRect.anchorMin = new Vector2(0.5f, 0.5f);
-        confirmPanelRect.anchorMax = new Vector2(0.5f, 0.5f);
-        confirmPanelRect.pivot = new Vector2(0.5f, 0.5f);
-        confirmPanelRect.sizeDelta = new Vector2(700f, 208f);
-
-        Image confirmBg = confirmModalObj.GetComponent<Image>();
-        confirmBg.sprite = confirmationPanelSprite;
-        confirmBg.color = Color.white;
-        confirmBg.preserveAspect = true;
-        confirmCanvasGroup = confirmModalObj.GetComponent<CanvasGroup>();
-
-        // Tiêu đề Confirmation
-        GameObject cTitleObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cTitleObj.transform.SetParent(confirmPanelRect, false);
-        RectTransform cTitleRect = cTitleObj.GetComponent<RectTransform>();
-        cTitleRect.anchoredPosition = new Vector2(0f, 54f);
-        cTitleRect.sizeDelta = new Vector2(600f, 32f);
-
-        confirmTitleText = cTitleObj.GetComponent<TextMeshProUGUI>();
-        confirmTitleText.alignment = TextAlignmentOptions.Center;
-        confirmTitleText.fontSize = 24f;
-        confirmTitleText.fontStyle = FontStyles.Bold;
-        confirmTitleText.color = new Color(0.08f, 0.22f, 0.10f, 1f); // Xanh rêu đậm sắc nét
-
-        // Nội dung Message Confirmation
-        GameObject cMsgObj = new GameObject("Message", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cMsgObj.transform.SetParent(confirmPanelRect, false);
-        RectTransform cMsgRect = cMsgObj.GetComponent<RectTransform>();
-        cMsgRect.anchoredPosition = new Vector2(0f, 12f);
-        cMsgRect.sizeDelta = new Vector2(600f, 60f);
-
-        confirmMessageText = cMsgObj.GetComponent<TextMeshProUGUI>();
-        confirmMessageText.alignment = TextAlignmentOptions.Center;
-        confirmMessageText.verticalAlignment = VerticalAlignmentOptions.Middle;
-        confirmMessageText.horizontalAlignment = HorizontalAlignmentOptions.Center;
-        confirmMessageText.fontSize = 19f;
-        confirmMessageText.fontStyle = FontStyles.Bold;
-        confirmMessageText.color = new Color(0.10f, 0.18f, 0.12f, 1f); // Đậm rõ nét, không bị mờ
-        confirmMessageText.enableWordWrapping = true;
-
-        // Nút HỦY BỎ (Bên trái) - Canh chuẩn tâm lục giác trái (-109f)
-        GameObject cancelBtnObj = new GameObject("CancelButton", typeof(RectTransform), typeof(Image), typeof(Button));
-        cancelBtnObj.transform.SetParent(confirmPanelRect, false);
-        RectTransform cancelRect = cancelBtnObj.GetComponent<RectTransform>();
-        cancelRect.anchoredPosition = new Vector2(-109f, -63f);
-        cancelRect.sizeDelta = new Vector2(215f, 62f);
-
-        Image cancelImg = cancelBtnObj.GetComponent<Image>();
-        cancelImg.color = Color.clear; // Phủ lên ô lục giác có sẵn trong ảnh
-        cancelButton = cancelBtnObj.GetComponent<Button>();
-        cancelButton.targetGraphic = cancelImg;
-        cancelButton.onClick.AddListener(OnCancelClicked);
-
-        // Hiệu ứng nháy đậm khi ấn (Flash Overlay)
-        GameObject cancelFlashObj = new GameObject("FlashOverlay", typeof(RectTransform), typeof(Image));
-        cancelFlashObj.transform.SetParent(cancelBtnObj.transform, false);
-        RectTransform cancelFlashRect = cancelFlashObj.GetComponent<RectTransform>();
-        cancelFlashRect.anchorMin = Vector2.zero;
-        cancelFlashRect.anchorMax = Vector2.one;
-        cancelFlashRect.sizeDelta = new Vector2(-16f, -10f); // Khớp gọn bên trong viền lục giác
-        Image cancelFlashImg = cancelFlashObj.GetComponent<Image>();
-        cancelFlashImg.sprite = EconomyHUD.RoundedSprite;
-        cancelFlashImg.type = Image.Type.Sliced;
-        cancelFlashImg.color = Color.clear;
-        cancelFlashImg.raycastTarget = false;
-
-        GameObject cancelTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cancelTxtObj.transform.SetParent(cancelBtnObj.transform, false);
-        RectTransform cancelTxtRect = cancelTxtObj.GetComponent<RectTransform>();
-        cancelTxtRect.anchoredPosition = Vector2.zero;
-        cancelTxtRect.sizeDelta = new Vector2(190f, 40f);
-
-        cancelButtonText = cancelTxtObj.GetComponent<TextMeshProUGUI>();
-        cancelButtonText.text = "CANCEL";
-        cancelButtonText.alignment = TextAlignmentOptions.Center;
-        cancelButtonText.verticalAlignment = VerticalAlignmentOptions.Middle;
-        cancelButtonText.horizontalAlignment = HorizontalAlignmentOptions.Center;
-        cancelButtonText.fontSize = 20f;
-        cancelButtonText.fontStyle = FontStyles.Bold;
-        cancelButtonText.color = new Color(0.06f, 0.18f, 0.05f, 1f); // Xanh rêu đậm nét, rất đậm và rõ
-        cancelButtonText.raycastTarget = false;
-
-        DialogButtonJuice cancelJuice = cancelBtnObj.AddComponent<DialogButtonJuice>();
-        cancelJuice.Initialize(cancelFlashImg, new Color(0.04f, 0.08f, 0.04f, 0.32f));
-
-        // Nút XÁC NHẬN (Bên phải) - Canh chuẩn tâm lục giác phải (+152f)
-        GameObject confirmBtnObj = new GameObject("ConfirmButton", typeof(RectTransform), typeof(Image), typeof(Button));
-        confirmBtnObj.transform.SetParent(confirmPanelRect, false);
-        RectTransform confirmRect = confirmBtnObj.GetComponent<RectTransform>();
-        confirmRect.anchoredPosition = new Vector2(152f, -63f);
-        confirmRect.sizeDelta = new Vector2(215f, 62f);
-
-        Image confirmBtnImg = confirmBtnObj.GetComponent<Image>();
-        confirmBtnImg.color = Color.clear;
-        confirmButton = confirmBtnObj.GetComponent<Button>();
-        confirmButton.targetGraphic = confirmBtnImg;
-        confirmButton.onClick.AddListener(OnConfirmClicked);
-
-        // Hiệu ứng nháy đậm khi ấn (Flash Overlay)
-        GameObject confirmFlashObj = new GameObject("FlashOverlay", typeof(RectTransform), typeof(Image));
-        confirmFlashObj.transform.SetParent(confirmBtnObj.transform, false);
-        RectTransform confirmFlashRect = confirmFlashObj.GetComponent<RectTransform>();
-        confirmFlashRect.anchorMin = Vector2.zero;
-        confirmFlashRect.anchorMax = Vector2.one;
-        confirmFlashRect.sizeDelta = new Vector2(-16f, -10f);
-        Image confirmFlashImg = confirmFlashObj.GetComponent<Image>();
-        confirmFlashImg.sprite = EconomyHUD.RoundedSprite;
-        confirmFlashImg.type = Image.Type.Sliced;
-        confirmFlashImg.color = Color.clear;
-        confirmFlashImg.raycastTarget = false;
-
-        GameObject confirmTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        confirmTxtObj.transform.SetParent(confirmBtnObj.transform, false);
-        RectTransform confirmTxtRect = confirmTxtObj.GetComponent<RectTransform>();
-        confirmTxtRect.anchoredPosition = Vector2.zero;
-        confirmTxtRect.sizeDelta = new Vector2(190f, 40f);
-
-        confirmButtonText = confirmTxtObj.GetComponent<TextMeshProUGUI>();
-        confirmButtonText.text = "CONFIRM";
-        confirmButtonText.alignment = TextAlignmentOptions.Center;
-        confirmButtonText.verticalAlignment = VerticalAlignmentOptions.Middle;
-        confirmButtonText.horizontalAlignment = HorizontalAlignmentOptions.Center;
-        confirmButtonText.fontSize = 20f;
-        confirmButtonText.fontStyle = FontStyles.Bold;
-        confirmButtonText.color = new Color(0.06f, 0.18f, 0.05f, 1f); // Xanh rêu đậm nét, rất đậm và rõ
-        confirmButtonText.raycastTarget = false;
-
-        DialogButtonJuice confirmJuice = confirmBtnObj.AddComponent<DialogButtonJuice>();
-        confirmJuice.Initialize(confirmFlashImg, new Color(0.04f, 0.08f, 0.04f, 0.32f));
-
-        confirmModalObj.SetActive(false);
-
-        // --- 2. BUILD NOTIFICATION MODAL ---
-        noticeModalObj = new GameObject("NotificationModal", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
-        noticeModalObj.transform.SetParent(transform, false);
-        noticePanelRect = noticeModalObj.GetComponent<RectTransform>();
-        noticePanelRect.anchorMin = new Vector2(0.5f, 0.5f);
-        noticePanelRect.anchorMax = new Vector2(0.5f, 0.5f);
-        noticePanelRect.pivot = new Vector2(0.5f, 0.5f);
-        noticePanelRect.sizeDelta = new Vector2(860f, 211f);
-
-        Image noticeBg = noticeModalObj.GetComponent<Image>();
-        noticeBg.sprite = notificationPanelSprite;
-        noticeBg.color = Color.white;
-        noticeBg.preserveAspect = true;
-        noticeCanvasGroup = noticeModalObj.GetComponent<CanvasGroup>();
-
-        // Tiêu đề Notification (Sát trên đầu mép trên panel)
-        GameObject nTitleObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
-        nTitleObj.transform.SetParent(noticePanelRect, false);
-        RectTransform nTitleRect = nTitleObj.GetComponent<RectTransform>();
-        nTitleRect.anchoredPosition = new Vector2(0f, 72f);
-        nTitleRect.sizeDelta = new Vector2(760f, 34f);
-
-        noticeTitleText = nTitleObj.GetComponent<TextMeshProUGUI>();
-        noticeTitleText.alignment = TextAlignmentOptions.Center;
-        noticeTitleText.fontSize = 21f;
-        noticeTitleText.fontStyle = FontStyles.Bold;
-        noticeTitleText.characterSpacing = 1.2f;
-        noticeTitleText.color = new Color(0.06f, 0.12f, 0.22f, 1f); // Deep Slate Navy sắc nét
-
-        // Nội dung Message Notification (Nằm bên dưới tiêu đề, khoảng cách hàng thoáng đãng, in đậm toàn bộ)
-        GameObject nMsgObj = new GameObject("Message", typeof(RectTransform), typeof(TextMeshProUGUI));
-        nMsgObj.transform.SetParent(noticePanelRect, false);
-        RectTransform nMsgRect = nMsgObj.GetComponent<RectTransform>();
-        nMsgRect.anchoredPosition = new Vector2(0f, 6f);
-        nMsgRect.sizeDelta = new Vector2(740f, 96f);
-
-        noticeMessageText = nMsgObj.GetComponent<TextMeshProUGUI>();
-        noticeMessageText.alignment = TextAlignmentOptions.Center;
-        noticeMessageText.verticalAlignment = VerticalAlignmentOptions.Middle;
-        noticeMessageText.horizontalAlignment = HorizontalAlignmentOptions.Center;
-        noticeMessageText.lineSpacing = 12f; // Giãn dòng cân đối, rõ ràng
-        noticeMessageText.enableAutoSizing = true;
-        noticeMessageText.fontSizeMin = 11.5f;
-        noticeMessageText.fontSizeMax = 15f;
-        noticeMessageText.fontSize = 14f;
-        noticeMessageText.fontStyle = FontStyles.Bold; // In đậm toàn bộ
-        noticeMessageText.color = new Color(0.06f, 0.10f, 0.18f, 1f); // Đậm và rõ nét
-        noticeMessageText.enableWordWrapping = true;
-
-        // Nút OK ở đáy giữa
-        GameObject okBtnObj = new GameObject("OkButton", typeof(RectTransform), typeof(Image), typeof(Button));
-        okBtnObj.transform.SetParent(noticePanelRect, false);
-        RectTransform okRect = okBtnObj.GetComponent<RectTransform>();
-        okRect.anchoredPosition = new Vector2(0f, -77f);
-        okRect.sizeDelta = new Vector2(195f, 56f);
-
-        Image okImg = okBtnObj.GetComponent<Image>();
-        okImg.color = Color.clear; // Đè trực tiếp lên nút OK có sẵn trên ảnh
-        okButton = okBtnObj.GetComponent<Button>();
-        okButton.targetGraphic = okImg;
-        okButton.onClick.AddListener(OnOkClicked);
-
-        // Hiệu ứng nháy đậm khi ấn nút OK (Flash Overlay)
-        GameObject okFlashObj = new GameObject("FlashOverlay", typeof(RectTransform), typeof(Image));
-        okFlashObj.transform.SetParent(okBtnObj.transform, false);
-        RectTransform okFlashRect = okFlashObj.GetComponent<RectTransform>();
-        okFlashRect.anchorMin = Vector2.zero;
-        okFlashRect.anchorMax = Vector2.one;
-        okFlashRect.sizeDelta = new Vector2(-12f, -8f);
-        Image okFlashImg = okFlashObj.GetComponent<Image>();
-        okFlashImg.sprite = EconomyHUD.RoundedSprite;
-        okFlashImg.type = Image.Type.Sliced;
-        okFlashImg.color = Color.clear;
-        okFlashImg.raycastTarget = false;
-
-        DialogButtonJuice okJuice = okBtnObj.AddComponent<DialogButtonJuice>();
-        okJuice.Initialize(okFlashImg, new Color(0.02f, 0.05f, 0.10f, 0.35f));
-
-        noticeModalObj.SetActive(false);
-
-        if (vietnameseFont != null)
-        {
-            confirmTitleText.font = vietnameseFont;
-            confirmMessageText.font = vietnameseFont;
-            cancelButtonText.font = vietnameseFont;
-            confirmButtonText.font = vietnameseFont;
-            noticeTitleText.font = vietnameseFont;
-            noticeMessageText.font = vietnameseFont;
-        }
-    }
-
-    private static string SanitizeText(string raw)
-    {
-        if (string.IsNullOrEmpty(raw)) return string.Empty;
-        return raw.Replace("★", "").Replace("✖", "").Replace("✔", "").Replace("[!]", "").Trim();
-    }
-
-    // =========================================================
-    // STATIC PUBLIC API
-    // =========================================================
-
-    /// <summary>
-    /// Hiển thị Panel Thông Báo (Notification Panel) kèm nút OK để tắt
-    /// </summary>
-    public static void ShowNotice(string message, Action onOk = null, string title = "NOTICE")
-    {
-        EnsureInstance();
-        instance.InternalShowNotice(message, onOk, title);
-    }
-
-    /// <summary>
-    /// Hiển thị Panel Xác Nhận (Confirmation Panel) với 2 nút CANCEL và CONFIRM
-    /// </summary>
     public static void ShowConfirm(
         string message,
         Action onConfirm,
         Action onCancel = null,
-        string confirmText = "CONFIRM",
-        string cancelText = "CANCEL",
-        string title = "CONFIRM")
+        string title = "Confirmation",
+        string confirmText = "Confirm",
+        string cancelText = "Cancel")
     {
-        EnsureInstance();
-        instance.InternalShowConfirm(message, onConfirm, onCancel, confirmText, cancelText, title);
+        GameDialogUI host = EnsureInstance();
+        host.OpenConfirmInternal(
+            string.IsNullOrEmpty(title) ? "Confirmation" : title,
+            message ?? string.Empty,
+            onConfirm,
+            onCancel,
+            string.IsNullOrEmpty(confirmText) ? "Confirm" : confirmText,
+            string.IsNullOrEmpty(cancelText) ? "Cancel" : cancelText);
     }
 
-    // =========================================================
-    // INTERNAL IMPLEMENTATION
-    // =========================================================
-
-    private void InternalShowNotice(string message, Action onOk, string title)
-    {
-        CloseAllImmediate();
-
-        this.onOkCallback = onOk;
-
-        noticeTitleText.text = SanitizeText(!string.IsNullOrEmpty(title) ? title : "NOTICE");
-        noticeMessageText.text = SanitizeText(message);
-
-        backdropObj.SetActive(true);
-        noticeModalObj.SetActive(true);
-
-        if (currentAnimRoutine != null) StopCoroutine(currentAnimRoutine);
-        currentAnimRoutine = StartCoroutine(AnimateModalIn(noticePanelRect, noticeCanvasGroup));
-    }
-
-    private void InternalShowConfirm(
+    public static void ShowNotice(
         string message,
-        Action onConfirm,
-        Action onCancel,
-        string confirmText,
-        string cancelText,
-        string title)
+        Action onOk = null,
+        string title = "Notice",
+        string okText = "OK")
     {
-        CloseAllImmediate();
-
-        this.onConfirmCallback = onConfirm;
-        this.onCancelCallback = onCancel;
-
-        confirmTitleText.text = SanitizeText(!string.IsNullOrEmpty(title) ? title : "CONFIRM");
-        confirmMessageText.text = SanitizeText(message);
-
-        confirmButtonText.text = SanitizeText(!string.IsNullOrEmpty(confirmText) ? confirmText : "CONFIRM");
-        cancelButtonText.text = SanitizeText(!string.IsNullOrEmpty(cancelText) ? cancelText : "CANCEL");
-
-        backdropObj.SetActive(true);
-        confirmModalObj.SetActive(true);
-
-        if (currentAnimRoutine != null) StopCoroutine(currentAnimRoutine);
-        currentAnimRoutine = StartCoroutine(AnimateModalIn(confirmPanelRect, confirmCanvasGroup));
+        GameDialogUI host = EnsureInstance();
+        host.OpenNoticeInternal(
+            string.IsNullOrEmpty(title) ? "Notice" : title,
+            message ?? string.Empty,
+            onOk,
+            string.IsNullOrEmpty(okText) ? "OK" : okText);
     }
 
-    private void OnOkClicked()
+    private static GameDialogUI EnsureInstance()
     {
-        var cb = onOkCallback;
-        onOkCallback = null;
+        if (_instance != null)
+            return _instance;
 
-        StartCoroutine(AnimateModalOut(noticePanelRect, noticeCanvasGroup, () =>
+        _instance = FindAnyObjectByType<GameDialogUI>(FindObjectsInactive.Include);
+        if (_instance == null)
         {
-            noticeModalObj.SetActive(false);
-            backdropObj.SetActive(false);
-            cb?.Invoke();
-        }));
+            GameObject go = new GameObject("GameDialogUI");
+            _instance = go.AddComponent<GameDialogUI>();
+            DontDestroyOnLoad(go);
+        }
+        return _instance;
     }
 
-    private void OnConfirmClicked()
+    private void Awake()
     {
-        var cb = onConfirmCallback;
-        onConfirmCallback = null;
-        onCancelCallback = null;
-
-        StartCoroutine(AnimateModalOut(confirmPanelRect, confirmCanvasGroup, () =>
+        if (_instance != null && _instance != this)
         {
-            confirmModalObj.SetActive(false);
-            backdropObj.SetActive(false);
-            cb?.Invoke();
-        }));
+            Destroy(gameObject);
+            return;
+        }
+        _instance = this;
+        DontDestroyOnLoad(gameObject);
+        EnsureCanvasAndBackdrop();
+        if (_backdropGo != null)
+            _backdropGo.SetActive(false);
     }
 
-    private void OnCancelClicked()
+    private void Update()
     {
-        var cb = onCancelCallback;
-        onConfirmCallback = null;
-        onCancelCallback = null;
+        if (!IsAnyOpen)
+            return;
 
-        StartCoroutine(AnimateModalOut(confirmPanelRect, confirmCanvasGroup, () =>
-        {
-            confirmModalObj.SetActive(false);
-            backdropObj.SetActive(false);
-            cb?.Invoke();
-        }));
+        if (Input.GetKeyDown(KeyCode.Escape))
+            CloseCurrent();
     }
 
-    private void CloseAllImmediate()
+    private void EnsureCanvasAndBackdrop()
     {
-        if (currentAnimRoutine != null)
+        if (_canvas == null)
         {
-            StopCoroutine(currentAnimRoutine);
-            currentAnimRoutine = null;
+            GameObject cGo = new GameObject("GameDialogCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            cGo.transform.SetParent(transform, false);
+            _canvas = cGo.GetComponent<Canvas>();
+            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _canvas.sortingOrder = 500;
+            CanvasScaler scaler = cGo.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
         }
 
-        if (confirmModalObj != null) confirmModalObj.SetActive(false);
-        if (noticeModalObj != null) noticeModalObj.SetActive(false);
-        if (backdropObj != null) backdropObj.SetActive(false);
+        if (_backdropGo == null)
+        {
+            _backdropGo = new GameObject("DialogBackdrop", typeof(RectTransform), typeof(Image), typeof(Button));
+            _backdropGo.transform.SetParent(_canvas.transform, false);
+            LumiWorldUITheme.Stretch(_backdropGo.GetComponent<RectTransform>());
+            _backdropGo.GetComponent<Image>().color = LumiWorldUITheme.Backdrop;
+            Button bgBtn = _backdropGo.GetComponent<Button>();
+            bgBtn.transition = Selectable.Transition.None;
+            bgBtn.onClick.AddListener(() => { });
+        }
     }
 
-    private IEnumerator AnimateModalIn(RectTransform panel, CanvasGroup group)
+    private void ClearDialogBody()
     {
-        panel.localScale = Vector3.one * 0.85f;
-        group.alpha = 0f;
-        backdropGroup.alpha = 0f;
-
-        float elapsed = 0f;
-        const float duration = 0.22f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-
-            // Pop-in bounce
-            float scale = Mathf.Lerp(0.85f, 1.05f, Mathf.SmoothStep(0f, 1f, t));
-            panel.localScale = Vector3.one * scale;
-
-            group.alpha = t;
-            backdropGroup.alpha = t;
-
-            yield return null;
-        }
-
-        // Settle về 1.0f
-        elapsed = 0f;
-        const float settleDuration = 0.08f;
-        while (elapsed < settleDuration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / settleDuration);
-            panel.localScale = Vector3.one * Mathf.Lerp(1.05f, 1.0f, t);
-            yield return null;
-        }
-
-        panel.localScale = Vector3.one;
-        group.alpha = 1f;
-        backdropGroup.alpha = 1f;
-        currentAnimRoutine = null;
+        EnsureCanvasAndBackdrop();
+        for (int i = _backdropGo.transform.childCount - 1; i >= 0; i--)
+            Destroy(_backdropGo.transform.GetChild(i).gameObject);
+        _dialogWindowRect = null;
     }
 
-    private IEnumerator AnimateModalOut(RectTransform panel, CanvasGroup group, Action onComplete)
+    private void OpenConfirmInternal(
+        string title, string message, Action onConfirm, Action onCancel, string confirmText, string cancelText)
     {
-        float elapsed = 0f;
-        const float duration = 0.14f;
+        ClearDialogBody();
+        _backdropGo.SetActive(true);
+        _backdropGo.transform.SetAsLastSibling();
 
-        while (elapsed < duration)
+        float winW = 476f;
+        float msgH = Mathf.Clamp(EstimateWrappedHeight(message, 404f, 14.5f), 58f, 210f);
+        float winH = 148f + msgH;
+
+        Image winImg = LumiWorldUITheme.CreateRoundedSurface(
+            _backdropGo.transform, "ConfirmWindow", LumiWorldUITheme.Window, LumiWorldUITheme.Edge,
+            radius: 22, borderThickness: 1.5f, shadowDepth: 6f, shadowAlpha: 0.25f, raycastTarget: true);
+        _dialogWindowRect = winImg.rectTransform;
+        _dialogWindowRect.anchorMin = new Vector2(0.5f, 0.5f);
+        _dialogWindowRect.anchorMax = new Vector2(0.5f, 0.5f);
+        _dialogWindowRect.pivot = new Vector2(0.5f, 0.5f);
+        _dialogWindowRect.anchoredPosition = Vector2.zero;
+        _dialogWindowRect.sizeDelta = new Vector2(winW, winH);
+        ApplyFitScale();
+
+        // Title
+        TextMeshProUGUI titleTxt = LumiWorldUITheme.CreateLabel(
+            _dialogWindowRect, "Title", title, 19f, LumiWorldUITheme.Text,
+            headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(titleTxt.rectTransform, 24f, 18f, winW - 84f, 34f);
+
+        LumiWorldUITheme.CreateCloseButton(_dialogWindowRect, 20f, 19f, () =>
         {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
+            CloseCurrent();
+            onCancel?.Invoke();
+        }, 32f);
 
-            panel.localScale = Vector3.one * Mathf.Lerp(1.0f, 0.90f, t);
-            group.alpha = 1f - t;
-            backdropGroup.alpha = 1f - t;
+        // Inner Surface Message Card
+        Image msgCard = LumiWorldUITheme.CreateRoundedSurface(
+            _dialogWindowRect, "MessageSurface", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge,
+            radius: 16, borderThickness: 1.2f, shadowDepth: 1.5f, shadowAlpha: 0.06f, raycastTarget: false);
+        RectTransform msgCardRt = msgCard.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(msgCardRt, 22f, 64f, winW - 44f, msgH + 14f);
 
-            yield return null;
-        }
+        TextMeshProUGUI msgTxt = LumiWorldUITheme.CreateLabel(
+            msgCardRt, "Message", message, 14.5f, LumiWorldUITheme.Text,
+            headingFont: false, align: TextAlignmentOptions.Center, wrap: true);
+        LumiWorldUITheme.Stretch(msgTxt.rectTransform, 16f);
 
-        group.alpha = 0f;
-        backdropGroup.alpha = 0f;
-        currentAnimRoutine = null;
-        onComplete?.Invoke();
+        // Bottom Buttons
+        float btnY = 64f + msgH + 28f;
+        float halfW = (winW - 56f) * 0.5f;
+
+        Button cancelBtn = LumiWorldUITheme.CreatePillButton(
+            _dialogWindowRect, "CancelBtn", cancelText, null, false, 15f,
+            () =>
+            {
+                CloseCurrent();
+                onCancel?.Invoke();
+            },
+            out _, out _, out _, radius: 14);
+        LumiWorldUITheme.PlaceTopLeft(cancelBtn.GetComponent<RectTransform>(), 22f, btnY, halfW, 44f);
+        cancelBtn.gameObject.AddComponent<DialogButtonJuice>();
+
+        Button confirmBtn = LumiWorldUITheme.CreatePillButton(
+            _dialogWindowRect, "ConfirmBtn", confirmText, null, true, 15f,
+            () =>
+            {
+                CloseCurrent();
+                onConfirm?.Invoke();
+            },
+            out _, out _, out _, radius: 14);
+        LumiWorldUITheme.PlaceTopRight(confirmBtn.GetComponent<RectTransform>(), 22f, btnY, halfW, 44f);
+        confirmBtn.gameObject.AddComponent<DialogButtonJuice>();
+    }
+
+    private void OpenNoticeInternal(string title, string message, Action onOk, string okText)
+    {
+        ClearDialogBody();
+        _backdropGo.SetActive(true);
+        _backdropGo.transform.SetAsLastSibling();
+
+        float winW = 456f;
+        float msgH = Mathf.Clamp(EstimateWrappedHeight(message, 384f, 14.5f), 58f, 220f);
+        float winH = 148f + msgH;
+
+        Image winImg = LumiWorldUITheme.CreateRoundedSurface(
+            _backdropGo.transform, "NoticeWindow", LumiWorldUITheme.Window, LumiWorldUITheme.Edge,
+            radius: 22, borderThickness: 1.5f, shadowDepth: 6f, shadowAlpha: 0.25f, raycastTarget: true);
+        _dialogWindowRect = winImg.rectTransform;
+        _dialogWindowRect.anchorMin = new Vector2(0.5f, 0.5f);
+        _dialogWindowRect.anchorMax = new Vector2(0.5f, 0.5f);
+        _dialogWindowRect.pivot = new Vector2(0.5f, 0.5f);
+        _dialogWindowRect.anchoredPosition = Vector2.zero;
+        _dialogWindowRect.sizeDelta = new Vector2(winW, winH);
+        ApplyFitScale();
+
+        TextMeshProUGUI titleTxt = LumiWorldUITheme.CreateLabel(
+            _dialogWindowRect, "Title", title, 19f, LumiWorldUITheme.Text,
+            headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(titleTxt.rectTransform, 24f, 18f, winW - 84f, 34f);
+
+        LumiWorldUITheme.CreateCloseButton(_dialogWindowRect, 20f, 19f, () =>
+        {
+            CloseCurrent();
+            onOk?.Invoke();
+        }, 32f);
+
+        Image msgCard = LumiWorldUITheme.CreateRoundedSurface(
+            _dialogWindowRect, "MessageSurface", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge,
+            radius: 16, borderThickness: 1.2f, shadowDepth: 1.5f, shadowAlpha: 0.06f, raycastTarget: false);
+        RectTransform msgCardRt = msgCard.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(msgCardRt, 22f, 64f, winW - 44f, msgH + 14f);
+
+        TextMeshProUGUI msgTxt = LumiWorldUITheme.CreateLabel(
+            msgCardRt, "Message", message, 14.5f, LumiWorldUITheme.Text,
+            headingFont: false, align: TextAlignmentOptions.Center, wrap: true);
+        LumiWorldUITheme.Stretch(msgTxt.rectTransform, 16f);
+
+        float btnY = 64f + msgH + 28f;
+        Button okBtn = LumiWorldUITheme.CreatePillButton(
+            _dialogWindowRect, "OkBtn", okText, null, true, 15f,
+            () =>
+            {
+                CloseCurrent();
+                onOk?.Invoke();
+            },
+            out _, out _, out _, radius: 14);
+        LumiWorldUITheme.PlaceTopLeft(okBtn.GetComponent<RectTransform>(), (winW - 180f) * 0.5f, btnY, 180f, 44f);
+        okBtn.gameObject.AddComponent<DialogButtonJuice>();
+    }
+
+    private void CloseCurrent()
+    {
+        if (_backdropGo != null)
+            _backdropGo.SetActive(false);
+    }
+
+    private void ApplyFitScale()
+    {
+        if (_canvas == null || _dialogWindowRect == null)
+            return;
+        RectTransform canvasRt = _canvas.GetComponent<RectTransform>();
+        float fit = LumiWorldUITheme.ComputeFitScale(canvasRt, out _);
+        _dialogWindowRect.localScale = new Vector3(fit, fit, 1f);
+    }
+
+    private static float EstimateWrappedHeight(string msg, float width, float fontSize)
+    {
+        if (string.IsNullOrEmpty(msg))
+            return 58f;
+        float charsPerLine = Mathf.Max(18f, width / (fontSize * 0.52f));
+        string[] rawLines = msg.Split('\n');
+        int lines = 0;
+        for (int i = 0; i < rawLines.Length; i++)
+            lines += Mathf.Max(1, Mathf.CeilToInt(rawLines[i].Length / charsPerLine));
+        return lines * (fontSize * 1.45f) + 22f;
     }
 }
 
 /// <summary>
-/// Hiệu ứng xúc giác chuyên nghiệp cho các nút bấm trong dialog:
-/// - Khi nhấn xuống: nháy đậm lên (flash dark tint) và co nhẹ scale (0.94f) mang lại cảm giác phản hồi vật lý.
-/// - Khi thả / click: nhả về kèm độ nảy micro-bounce và fade out màu nháy mượt mà.
-/// - Khi rê chuột qua: sáng/đậm nhẹ (hover feedback).
+/// Preserved lightweight pointer hover/press scale animation for dialog action buttons.
 /// </summary>
-public class DialogButtonJuice : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerEnterHandler, IPointerExitHandler
+public class DialogButtonJuice : MonoBehaviour,
+    IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
 {
-    private RectTransform rectTransform;
-    private Image flashOverlay;
-    private Color flashColor = new Color(0.04f, 0.08f, 0.04f, 0.32f);
-    private Vector3 baseScale = Vector3.one;
-    private Coroutine currentRoutine;
+    private Vector3 _baseScale = Vector3.one;
+    private float _targetScale = 1f;
 
-    public void Initialize(Image overlay = null, Color? targetFlashColor = null)
+    private void Awake()
     {
-        rectTransform = GetComponent<RectTransform>();
-        flashOverlay = overlay;
-        flashColor = targetFlashColor ?? new Color(0.04f, 0.08f, 0.04f, 0.32f);
-        baseScale = Vector3.one;
-        if (flashOverlay != null)
-        {
-            flashOverlay.color = Color.clear;
-            flashOverlay.raycastTarget = false;
-        }
+        _baseScale = transform.localScale;
     }
 
-    public void OnPointerDown(PointerEventData eventData)
+    private void OnEnable()
     {
-        if (currentRoutine != null) StopCoroutine(currentRoutine);
-        currentRoutine = StartCoroutine(AnimateDown());
+        _targetScale = 1f;
+        transform.localScale = _baseScale;
     }
 
-    public void OnPointerUp(PointerEventData eventData)
+    private void Update()
     {
-        if (currentRoutine != null) StopCoroutine(currentRoutine);
-        currentRoutine = StartCoroutine(AnimateUp());
+        Vector3 desired = _baseScale * _targetScale;
+        if ((transform.localScale - desired).sqrMagnitude > 0.00001f)
+            transform.localScale = Vector3.Lerp(transform.localScale, desired, Time.unscaledDeltaTime * 18f);
     }
 
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        if (currentRoutine != null) StopCoroutine(currentRoutine);
-        currentRoutine = StartCoroutine(AnimateHover(true));
-    }
-
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        if (currentRoutine != null) StopCoroutine(currentRoutine);
-        currentRoutine = StartCoroutine(AnimateHover(false));
-    }
-
-    private IEnumerator AnimateDown()
-    {
-        float elapsed = 0f;
-        const float duration = 0.05f;
-        Vector3 startScale = rectTransform.localScale;
-        float startAlpha = flashOverlay != null ? flashOverlay.color.a : 0f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            rectTransform.localScale = Vector3.Lerp(startScale, baseScale * 0.94f, t);
-            if (flashOverlay != null)
-            {
-                flashOverlay.color = new Color(flashColor.r, flashColor.g, flashColor.b, Mathf.Lerp(startAlpha, flashColor.a, t));
-            }
-            yield return null;
-        }
-
-        rectTransform.localScale = baseScale * 0.94f;
-        if (flashOverlay != null) flashOverlay.color = flashColor;
-    }
-
-    private IEnumerator AnimateUp()
-    {
-        float elapsed = 0f;
-        const float duration = 0.16f;
-        Vector3 startScale = rectTransform.localScale;
-        float startAlpha = flashOverlay != null ? flashOverlay.color.a : 0f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float bounce = Mathf.Sin(t * Mathf.PI) * 0.04f;
-            rectTransform.localScale = Vector3.Lerp(startScale, baseScale, t) + Vector3.one * bounce;
-            if (flashOverlay != null)
-            {
-                flashOverlay.color = new Color(flashColor.r, flashColor.g, flashColor.b, Mathf.Lerp(startAlpha, 0f, t));
-            }
-            yield return null;
-        }
-
-        rectTransform.localScale = baseScale;
-        if (flashOverlay != null) flashOverlay.color = Color.clear;
-        currentRoutine = null;
-    }
-
-    private IEnumerator AnimateHover(bool isHover)
-    {
-        float elapsed = 0f;
-        const float duration = 0.1f;
-        Vector3 startScale = rectTransform.localScale;
-        Vector3 targetScale = isHover ? baseScale * 1.025f : baseScale;
-        float startAlpha = flashOverlay != null ? flashOverlay.color.a : 0f;
-        float targetAlpha = isHover ? flashColor.a * 0.35f : 0f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            rectTransform.localScale = Vector3.Lerp(startScale, targetScale, t);
-            if (flashOverlay != null)
-            {
-                flashOverlay.color = new Color(flashColor.r, flashColor.g, flashColor.b, Mathf.Lerp(startAlpha, targetAlpha, t));
-            }
-            yield return null;
-        }
-
-        rectTransform.localScale = targetScale;
-        if (flashOverlay != null) flashOverlay.color = new Color(flashColor.r, flashColor.g, flashColor.b, targetAlpha);
-        currentRoutine = null;
-    }
+    public void OnPointerEnter(PointerEventData eventData) => _targetScale = 1.03f;
+    public void OnPointerExit(PointerEventData eventData) => _targetScale = 1f;
+    public void OnPointerDown(PointerEventData eventData) => _targetScale = 0.96f;
+    public void OnPointerUp(PointerEventData eventData) => _targetScale = 1.03f;
 }

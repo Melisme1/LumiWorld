@@ -2,101 +2,81 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using LumiWorld.Acs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 /// <summary>
-/// Bảng Đơn Hàng trên màn chơi. Nút "Đơn hàng" nằm ngay dưới số Coins, kèm huy hiệu xanh đếm số đơn đang giao được.
-/// Bấm vào mở bảng: mỗi thẻ đơn hiện khách NPC, tài nguyên có/cần (7/10), thưởng Coins, nút Giao (chỉ bật khi đủ hàng)
-/// và nút Bỏ. Bên dưới là quầy thương nhân mua tài nguyên dư theo giá sàn.
-/// Bảng đang mở thì chặn chuột tới thẻ bài và bản đồ phía sau. Đóng bằng nút X, bấm ra ngoài bảng hoặc phím Esc.
-/// EconomyHUD tự tạo script này, không cần gắn tay.
+/// P-10 Orders & P-11 Sell Resources — LumiWorld UI Production Pack:
+/// - Header icon + "Orders" + Coin balance + [×] (no LumiWorld logo).
+/// - Two sub-tabs: Orders (P-10) | Sell resources (P-11).
+/// - P-10 Orders:
+///   + Left list shows NPC portraits (N-01..N-12 deterministic per template/order), order type tag,
+///     resource requirements with clamped green/red bordered min(owned, req)/req fraction pills (NO "Ready/Short" text labels).
+///   + Right inspector shows selected customer, large resource art + name + fraction (NO "owned" count), Reward coins, and Deliver button.
+/// - P-11 Sell resources:
+///   + Left list shows stocked/catalog resources with coin price (NO "coins each" text word).
+///   + Right detail sidebar shows art + name + unit price + quantity stepper + Total received + direct Sell CTA (NO "owned" on right, NO "Remaining", NO P-16 popup),
+///     and a "← Back" button that collapses the sidebar so the list widens cleanly.
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class OrderBoardUI : MonoBehaviour
 {
-    // Kích thước tính bằng pixel màn hình (EconomyHUD bù Scale Factor của Canvas)
-    private const float PanelPadding = 24f;
-    private const float HeaderHeight = 84f;
-    private const float CardWidth = 236f;
-    private const float CardHeight = 270f;
-    private const float CardSpacing = 14f;
-    private const float SectionGap = 16f;
-    // Quầy thương nhân: danh sách cuộn 2 cột, thấy 3 hàng (6 tài nguyên) cùng lúc
-    private const float MerchantHeight = 202f;
-    private const float MerchantHeaderHeight = 40f;
-    private const int MerchantColumns = 2;
-    private const float MerchantRowHeight = 44f;
-    private const float MerchantRowGap = 8f;
-    private const float MerchantColumnGap = 12f;
-    private const float MerchantScrollbarWidth = 8f;
-    private const float MerchantScrollbarGap = 10f;
-    private const int RequirementRows = 3;
+    private enum ModeTab
+    {
+        Orders,
+        SellResources
+    }
 
-    // Giao xong, ô có ngay đơn mới: trong khoảng này nút Giao của ô đó không nhận bấm,
-    // để cú bấm thứ hai của một lần bấm đúp không giao luôn đơn mới khi người chơi chưa kịp xem
+    private const float PanelWidth = 880f;
+    private const float PanelHeight = 560f;
+    private const float LeftPaneWidth = 532f;
+    private const float RightPaneWidth = 290f;
     private const float DeliverLockSeconds = 0.6f;
 
-    [Header("Nút mở bảng")]
-    [Tooltip("Góc trên phải của nút, tính từ góc trên phải màn hình (mặc định nằm ngay dưới CoinHUD)")]
+    [Header("Legacy / Scene References")]
     [SerializeField] private Vector2 buttonCorner = new Vector2(-20f, -76f);
     [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
-    [Header("Look")]
-    [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
-    [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
-    [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
-    [SerializeField] private Color cardColor = new Color(1f, 1f, 1f, 0.95f);
-    [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
-    [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
-    [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
-    [SerializeField] private Color enoughColor = new Color(0.05f, 0.65f, 0.35f, 1f);
-    [SerializeField] private Color missingColor = new Color(0.90f, 0.35f, 0.25f, 1f);
-    [SerializeField] private Color coinColor = new Color(0.85f, 0.58f, 0.05f, 1f);
-    [SerializeField] private Color baselineColor = new Color(0.85f, 0.58f, 0.05f, 1f);
-    [SerializeField] private Color deliverColor = new Color(0.01f, 0.60f, 0.90f, 1f);
-    [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
-
-    private class CardView
+    private class OrderRowView
     {
         public int slot;
         public RectTransform rect;
-        public GameObject orderContent;
+        public Image selectionBorder;
+        public GameObject activeContent;
         public Image portrait;
-        public TextMeshProUGUI initials;
-        public TextMeshProUGUI customer;
-        public TextMeshProUGUI tag;
-        public readonly List<RequirementRow> rows = new List<RequirementRow>();
-        public TextMeshProUGUI reward;
-        public Button deliver;
-        public TextMeshProUGUI deliverLabel;
+        public TextMeshProUGUI customerName;
+        public TextMeshProUGUI tagText;
+        public readonly List<ReqPillView> reqRows = new List<ReqPillView>();
+        public TextMeshProUGUI rewardText;
+        public Button skipButton;
+        public GameObject emptyContent;
         public TextMeshProUGUI emptyText;
         public RectTransform floatLayer;
         public Coroutine punch;
         public float deliverLockedUntil;
     }
 
-    private class RequirementRow
+    private class ReqPillView
     {
         public GameObject root;
         public Image icon;
         public TextMeshProUGUI name;
+        public Image pillBg;
         public TextMeshProUGUI count;
     }
 
-    private class MerchantView
+    private class SellRowView
     {
         public ResourceData resource;
-        public RectTransform row;
-        public TextMeshProUGUI stock;
-        public Button sellOne;
-        public TextMeshProUGUI sellOneLabel;
-        public Button sellTen;
-        public TextMeshProUGUI sellTenLabel;
+        public RectTransform rect;
+        public Image selectionBorder;
+        public TextMeshProUGUI nameText;
+        public TextMeshProUGUI qtyText;
+        public TextMeshProUGUI priceText;
         public RectTransform floatLayer;
     }
 
@@ -107,22 +87,75 @@ public class OrderBoardUI : MonoBehaviour
     private RectTransform openButton;
     private GameObject badge;
     private TextMeshProUGUI badgeText;
-    private int shownReadyCount;
-    private Coroutine buttonPunch;
 
     private GameObject window;
+    private RectTransform stageRect;
     private RectTransform panel;
     private RectTransform balanceChip;
     private TextMeshProUGUI balanceText;
+
+    private Button ordersTabBtn;
+    private Image ordersTabBg;
+    private Image ordersTabIcon;
+    private TextMeshProUGUI ordersTabLabel;
+    private Shadow ordersTabShadow;
+
+    private Button sellTabBtn;
+    private Image sellTabBg;
+    private Image sellTabIcon;
+    private TextMeshProUGUI sellTabLabel;
+    private Shadow sellTabShadow;
+
+    // P-10 Orders Pane
+    private GameObject ordersPane;
+    private readonly List<OrderRowView> orderRows = new List<OrderRowView>();
+    private RectTransform orderDetailPane;
+    private Image detailPortrait;
+    private TextMeshProUGUI detailCustomerName;
+    private TextMeshProUGUI detailOrderTag;
+    private readonly List<ReqPillView> detailReqs = new List<ReqPillView>();
+    private Image detailHeroArt;
+    private TextMeshProUGUI detailHeroName;
+    private TextMeshProUGUI detailRewardValue;
+    private Button deliverButton;
+    private Image deliverBg;
+    private TextMeshProUGUI deliverLabel;
+    private Button discardButton;
+    private TextMeshProUGUI orderDetailEmptyLabel;
+
+    // P-11 Sell Resources Pane
+    private GameObject sellPane;
+    private RectTransform sellListWellRect;
+    private RectTransform sellListContent;
+    private TextMeshProUGUI sellListEmpty;
+    private readonly List<SellRowView> sellRows = new List<SellRowView>();
+    private RectTransform sellDetailPane;
+    private Image sellDetailArt;
+    private TextMeshProUGUI sellDetailName;
+    private TextMeshProUGUI sellDetailUnitPrice;
+    private TMP_InputField sellQtyInput;
+    private TextMeshProUGUI sellTotalReceivedText;
+    private Button sellExecuteButton;
+    private Image sellExecuteBg;
+    private Image sellExecuteIcon;
+    private TextMeshProUGUI sellExecuteLabel;
+    private RectTransform sellDetailFloatLayer;
+
+    private ModeTab activeTab = ModeTab.Orders;
+    private int selectedOrderSlot = 0;
+    private ResourceData selectedSellResource;
+    private int sellQuantity = 1;
+    private bool sellSidebarVisible = true;
+    private float countdownTimer;
     private float panelScale = 1f;
+    private int lastScreenW;
+    private int lastScreenH;
+    private float lastLossyScale;
     private Coroutine popRoutine;
     private Coroutine balancePunch;
-    private readonly List<CardView> cards = new List<CardView>();
-    private readonly List<MerchantView> merchant = new List<MerchantView>();
-    private RectTransform merchantContent;
-    private TextMeshProUGUI merchantEmpty;
-    private float merchantCellWidth;
-    private float countdownTimer;
+
+    private Sprite greenReqPillSprite;
+    private Sprite redReqPillSprite;
 
     public bool IsOpen => window != null && window.activeSelf;
 
@@ -133,13 +166,6 @@ public class OrderBoardUI : MonoBehaviour
 
     private void Start()
     {
-        hudColor = deliverColor = LumiWorld.Acs.LumiWorldUITheme.Primary;
-        panelColor = LumiWorld.Acs.LumiWorldUITheme.Window;
-        cardColor = LumiWorld.Acs.LumiWorldUITheme.Surface;
-        sectionColor = secondaryColor = LumiWorld.Acs.LumiWorldUITheme.Inset;
-        textColor = LumiWorld.Acs.LumiWorldUITheme.Text; mutedColor = LumiWorld.Acs.LumiWorldUITheme.Muted;
-        enoughColor = LumiWorld.Acs.LumiWorldUITheme.Success; missingColor = LumiWorld.Acs.LumiWorldUITheme.Error;
-        // Lần đầu gọi Instance sẽ tạo bảng đơn, ví và kho rồi nạp dữ liệu đã lưu
         board = OrderBoardSystem.Instance;
         inventory = ResourceInventory.Instance;
         wallet = CurrencyWallet.Instance;
@@ -147,9 +173,9 @@ public class OrderBoardUI : MonoBehaviour
         BuildOpenButton();
         BuildWindow();
 
-        board.OnBoardChanged += Refresh;
-        inventory.OnInventoryChanged += HandleInventoryChanged;
-        wallet.OnBalanceChanged += HandleBalanceChanged;
+        if (board != null) board.OnBoardChanged += Refresh;
+        if (inventory != null) inventory.OnInventoryChanged += HandleInventoryChanged;
+        if (wallet != null) wallet.OnBalanceChanged += HandleBalanceChanged;
 
         ShowBalance();
         Refresh();
@@ -158,37 +184,37 @@ public class OrderBoardUI : MonoBehaviour
     private void Update()
     {
         if (!IsOpen) return;
+        SyncStageScale();
 
-
-        // Cập nhật đồng hồ đếm ngược của các ô trống
-        countdownTimer -= Time.unscaledDeltaTime;
-        if (countdownTimer > 0f) return;
-
-        countdownTimer = 0.25f;
-        foreach (CardView card in cards)
+        if (activeTab == ModeTab.Orders && board != null)
         {
-            if (board.GetOrder(card.slot) == null) ShowEmptyCard(card);
+            countdownTimer -= Time.unscaledDeltaTime;
+            if (countdownTimer <= 0f)
+            {
+                countdownTimer = 0.25f;
+                foreach (var row in orderRows)
+                {
+                    if (board.GetOrder(row.slot) == null) UpdateEmptyOrderRow(row);
+                }
+            }
         }
     }
 
     private void OnDisable()
     {
-        // Coroutine dừng khi object bị tắt: trả mọi thứ về kích thước chuẩn và bỏ số bay còn dở
-        if (openButton != null) openButton.localScale = Vector3.one;
-        if (panel != null) panel.localScale = new Vector3(panelScale, panelScale, 1f);
+        if (panel != null) panel.localScale = Vector3.one;
         if (balanceChip != null) balanceChip.localScale = Vector3.one;
-
-        foreach (CardView card in cards)
+        foreach (var row in orderRows)
         {
-            card.punch = null;
-            if (card.rect != null) card.rect.localScale = Vector3.one;
-            EconomyHUD.ClearChildren(card.floatLayer);
+            row.punch = null;
+            if (row.rect != null) row.rect.localScale = Vector3.one;
+            EconomyHUD.ClearChildren(row.floatLayer);
         }
-
-        foreach (MerchantView view in merchant)
+        foreach (var s in sellRows)
         {
-            EconomyHUD.ClearChildren(view.floatLayer);
+            EconomyHUD.ClearChildren(s.floatLayer);
         }
+        EconomyHUD.ClearChildren(sellDetailFloatLayer);
     }
 
     private void OnDestroy()
@@ -198,26 +224,16 @@ public class OrderBoardUI : MonoBehaviour
         if (wallet != null) wallet.OnBalanceChanged -= HandleBalanceChanged;
     }
 
-    // =========================================================
-    // MỞ VÀ ĐÓNG BẢNG
-    // =========================================================
-
     public void Open()
     {
         if (window == null || IsOpen) return;
-
-        // Lên trên cùng Canvas để phủ cả thẻ bài và thông báo đang hiện
         transform.SetAsLastSibling();
         window.SetActive(true);
         EconomyHUD.BringWindowToFront(window);
-
-        // Màn hình nhỏ (ví dụ cửa sổ Game trong Editor) thì thu nhỏ bảng cho vừa
-        Rect area = ((RectTransform)transform).rect;
-        panelScale = area.width > 0f && area.height > 0f
-            ? Mathf.Clamp(Mathf.Min((area.width - 32f) / panel.sizeDelta.x, (area.height - 32f) / panel.sizeDelta.y), 0.5f, 1f)
-            : 1f;
+        SyncStageScale(force: true);
         countdownTimer = 0f;
-        Refresh();
+        ShowBalance();
+        SelectModeTab(activeTab);
 
         if (popRoutine != null) StopCoroutine(popRoutine);
         popRoutine = StartCoroutine(PopIn());
@@ -244,18 +260,31 @@ public class OrderBoardUI : MonoBehaviour
         {
             time += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(time / duration);
-            float scale = panelScale * Mathf.Lerp(0.92f, 1f, 1f - (1f - t) * (1f - t));
-            panel.localScale = new Vector3(scale, scale, 1f);
+            float scale = Mathf.Lerp(0.93f, 1f, 1f - (1f - t) * (1f - t));
+            if (panel != null) panel.localScale = new Vector3(scale, scale, 1f);
             yield return null;
         }
-
-        panel.localScale = new Vector3(panelScale, panelScale, 1f);
+        if (panel != null) panel.localScale = Vector3.one;
         popRoutine = null;
     }
 
-    // =========================================================
-    // CẬP NHẬT THEO DỮ LIỆU
-    // =========================================================
+    private void SyncStageScale(bool force = false)
+    {
+        if (stageRect == null) return;
+        float parentScale = transform.lossyScale.x;
+        if (!force && lastScreenW == Screen.width && lastScreenH == Screen.height && Mathf.Approximately(lastLossyScale, parentScale))
+            return;
+
+        lastScreenW = Screen.width;
+        lastScreenH = Screen.height;
+        lastLossyScale = parentScale;
+
+        panelScale = LumiWorldUITheme.ComputeFitScale(this, out Vector2 stageSize);
+        stageRect.anchorMin = stageRect.anchorMax = stageRect.pivot = Vector2.zero;
+        stageRect.anchoredPosition = Vector2.zero;
+        stageRect.sizeDelta = stageSize;
+        stageRect.localScale = Vector3.one * panelScale;
+    }
 
     private void HandleInventoryChanged(string resourceId, int amount, int delta)
     {
@@ -265,193 +294,370 @@ public class OrderBoardUI : MonoBehaviour
     private void HandleBalanceChanged(int balance, int delta, CoinReason reason)
     {
         ShowBalance();
-        if (IsOpen && isActiveAndEnabled) Punch(ref balancePunch, balanceChip, 1.1f);
+        if (IsOpen && isActiveAndEnabled) Punch(ref balancePunch, balanceChip, 1.08f);
     }
 
     private void ShowBalance()
     {
-        balanceText.text = FormatNumber(wallet.Balance);
+        if (balanceText != null && wallet != null)
+        {
+            balanceText.text = FormatNumber(wallet.Balance);
+        }
+    }
+
+    private void SelectModeTab(ModeTab tab)
+    {
+        activeTab = tab;
+        if (ordersPane != null) ordersPane.SetActive(tab == ModeTab.Orders);
+        if (sellPane != null) sellPane.SetActive(tab == ModeTab.SellResources);
+
+        LumiWorldUITheme.SetSubTabActive(ordersTabBg, ordersTabIcon, ordersTabLabel, ordersTabShadow, tab == ModeTab.Orders);
+        LumiWorldUITheme.SetSubTabActive(sellTabBg, sellTabIcon, sellTabLabel, sellTabShadow, tab == ModeTab.SellResources);
+
+        Refresh();
     }
 
     private void Refresh()
     {
         if (board == null) return;
 
-        RefreshBadge();
+        if (badge != null && badgeText != null)
+        {
+            int ready = board.CountFulfillable();
+            badge.SetActive(ready > 0);
+            badgeText.text = ready.ToString(CultureInfo.InvariantCulture);
+        }
+
         if (!IsOpen) return;
 
-        foreach (CardView card in cards)
-        {
-            RefreshCard(card);
-        }
-        RefreshMerchant();
+        if (activeTab == ModeTab.Orders) RefreshOrdersTab();
+        else RefreshSellTab();
     }
 
-    private void RefreshBadge()
-    {
-        int ready = board.CountFulfillable();
-        badge.SetActive(ready > 0);
-        badgeText.text = ready.ToString(CultureInfo.InvariantCulture);
+    // =========================================================
+    // P-10 ORDERS TAB
+    // =========================================================
 
-        // Có thêm đơn giao được: nút nảy nhẹ để người chơi để ý
-        if (ready > shownReadyCount && isActiveAndEnabled) Punch(ref buttonPunch, openButton, 1.12f);
-        shownReadyCount = ready;
-    }
-
-    private void RefreshCard(CardView card)
+    private void RefreshOrdersTab()
     {
-        ActiveOrder order = board.GetOrder(card.slot);
-        card.orderContent.SetActive(order != null);
-        card.emptyText.gameObject.SetActive(order == null);
-        if (order == null)
+        if (board.GetOrder(selectedOrderSlot) == null)
         {
-            ShowEmptyCard(card);
-            return;
+            for (int i = 0; i < board.SlotCount; i++)
+            {
+                if (board.GetOrder(i) != null) { selectedOrderSlot = i; break; }
+            }
         }
 
-        OrderTemplate template = board.FindTemplate(order.templateId);
-        string customer = template != null && !string.IsNullOrEmpty(template.customerName) ? template.customerName : "Customer";
-        card.customer.text = customer;
-
-        // Mẫu đơn chưa có ảnh khách: chữ cái đầu của tên trên nền tròn màu portraitColor
-        bool hasPortrait = template != null && template.portrait != null;
-        card.portrait.sprite = hasPortrait ? template.portrait : EconomyHUD.CircleSprite;
-        card.portrait.color = hasPortrait ? Color.white : template != null ? template.portraitColor : secondaryColor;
-        card.initials.gameObject.SetActive(!hasPortrait);
-        card.initials.text = Initials(customer);
-
-        bool baseline = card.slot == OrderBoardSystem.BaselineSlot;
-        card.tag.text = baseline ? "Basic order" : order.requirements.Count > 1 ? "Mixed order" : "Regular order";
-        card.tag.color = baseline ? baselineColor : mutedColor;
-
-        for (int i = 0; i < card.rows.Count; i++)
+        foreach (OrderRowView row in orderRows)
         {
-            RequirementRow row = card.rows[i];
+            ActiveOrder order = board.GetOrder(row.slot);
+            row.activeContent.SetActive(order != null);
+            row.emptyContent.gameObject.SetActive(order == null);
+            if (row.selectionBorder != null)
+                row.selectionBorder.enabled = order != null && row.slot == selectedOrderSlot;
+
+            if (order == null)
+            {
+                UpdateEmptyOrderRow(row);
+                continue;
+            }
+
+            OrderTemplate tpl = board.FindTemplate(order.templateId);
+            string customer = tpl != null && !string.IsNullOrEmpty(tpl.customerName) ? tpl.customerName : "Customer";
+            row.customerName.text = customer;
+            row.portrait.sprite = ResolvePortraitSprite(tpl, order.templateId, customer);
+
+            bool baseline = row.slot == OrderBoardSystem.BaselineSlot;
+            row.tagText.text = baseline ? "Basic order" : (order.requirements.Count > 1 ? "Mixed order" : "Regular order");
+            row.tagText.color = baseline ? LumiWorldUITheme.Warning : LumiWorldUITheme.Muted;
+
+            if (row.skipButton != null) row.skipButton.gameObject.SetActive(!baseline);
+
+            for (int i = 0; i < row.reqRows.Count; i++)
+            {
+                ReqPillView req = row.reqRows[i];
+                bool used = i < order.requirements.Count;
+                req.root.SetActive(used);
+                if (!used) continue;
+
+                ResourceStack need = order.requirements[i];
+                ResourceData res = ResourceCatalog.Find(need.resourceId);
+                int have = inventory != null ? inventory.GetAmount(need.resourceId) : 0;
+                bool ok = have >= need.amount;
+
+                req.icon.sprite = BiomeHarvestIndicator.GetResourceSprite(res);
+                req.name.text = ResourceInventoryUIPresentation.LocalizeResourceName(need.resourceId, res != null ? res.resourceName : need.resourceId);
+                ApplyReqFractionPill(req, have, need.amount, ok);
+            }
+
+            row.rewardText.text = FormatNumber(order.rewardCoins) + " coins";
+        }
+
+        RefreshOrderDetail();
+    }
+
+    private void RefreshOrderDetail()
+    {
+        ActiveOrder order = board.GetOrder(selectedOrderSlot);
+        bool hasOrder = order != null;
+        orderDetailEmptyLabel.gameObject.SetActive(!hasOrder);
+        detailPortrait.transform.parent.gameObject.SetActive(hasOrder);
+        detailHeroArt.transform.parent.gameObject.SetActive(hasOrder);
+        deliverButton.gameObject.SetActive(hasOrder);
+        if (discardButton != null) discardButton.gameObject.SetActive(hasOrder && selectedOrderSlot != OrderBoardSystem.BaselineSlot);
+
+        if (!hasOrder) return;
+
+        OrderTemplate tpl = board.FindTemplate(order.templateId);
+        string customer = tpl != null && !string.IsNullOrEmpty(tpl.customerName) ? tpl.customerName : "Customer";
+        detailCustomerName.text = customer;
+        detailOrderTag.text = selectedOrderSlot == OrderBoardSystem.BaselineSlot
+            ? "Basic order"
+            : (order.requirements.Count > 1 ? "Mixed order" : "Regular order");
+        detailPortrait.sprite = ResolvePortraitSprite(tpl, order.templateId, customer);
+
+        if (order.requirements.Count > 0)
+        {
+            ResourceStack first = order.requirements[0];
+            ResourceData firstRes = ResourceCatalog.Find(first.resourceId);
+            detailHeroArt.sprite = BiomeHarvestIndicator.GetResourceSprite(firstRes);
+            detailHeroName.text = ResourceInventoryUIPresentation.LocalizeResourceName(
+                first.resourceId,
+                firstRes != null ? firstRes.resourceName : first.resourceId);
+        }
+
+        // Strict P-10 rule: Art + Resource name + fraction ONLY (NO "owned" label)
+        for (int i = 0; i < detailReqs.Count; i++)
+        {
+            ReqPillView req = detailReqs[i];
             bool used = i < order.requirements.Count;
-            row.root.SetActive(used);
+            req.root.SetActive(used);
             if (!used) continue;
 
             ResourceStack need = order.requirements[i];
-            ResourceData resource = ResourceCatalog.Find(need.resourceId);
-            int have = inventory.GetAmount(need.resourceId);
+            ResourceData res = ResourceCatalog.Find(need.resourceId);
+            int have = inventory != null ? inventory.GetAmount(need.resourceId) : 0;
+            bool ok = have >= need.amount;
 
-            row.icon.sprite = BiomeHarvestIndicator.GetResourceSprite(resource);
-            row.name.text = resource != null ? resource.resourceName : need.resourceId;
-            row.count.text = Mathf.Min(have, need.amount) + "/" + need.amount;
-            row.count.color = have >= need.amount ? enoughColor : missingColor;
+            req.icon.sprite = BiomeHarvestIndicator.GetResourceSprite(res);
+            req.name.text = ResourceInventoryUIPresentation.LocalizeResourceName(need.resourceId, res != null ? res.resourceName : need.resourceId);
+            ApplyReqFractionPill(req, have, need.amount, ok);
         }
 
-        card.reward.text = FormatNumber(order.rewardCoins);
+        detailRewardValue.text = FormatNumber(order.rewardCoins) + " coins";
 
-        bool ready = board.CanFulfill(card.slot);
-        SetButton(card.deliver, card.deliverLabel, ready);
-        card.deliverLabel.text = ready ? "Deliver" : "Not enough";
+        bool ready = board.CanFulfill(selectedOrderSlot);
+        deliverButton.interactable = ready;
+        deliverBg.color = ready ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
+        deliverLabel.color = Color.white;
+        deliverLabel.text = ready ? "Deliver" : "Not enough";
     }
 
-    private void ShowEmptyCard(CardView card)
+    private void ApplyReqFractionPill(ReqPillView pill, int have, int required, bool met)
     {
-        TimeSpan wait = board.GetTimeUntilRefill(card.slot);
+        int clamped = Mathf.Min(have, required);
+        pill.count.text = $"{clamped} / {required}";
+        pill.count.color = met ? LumiWorldUITheme.Success : LumiWorldUITheme.Error;
+        if (pill.pillBg != null)
+        {
+            pill.pillBg.sprite = met ? GetGreenReqPillSprite() : GetRedReqPillSprite();
+            pill.pillBg.type = Image.Type.Sliced;
+            pill.pillBg.color = Color.white;
+        }
+    }
+
+    private void UpdateEmptyOrderRow(OrderRowView row)
+    {
+        TimeSpan wait = board.GetTimeUntilRefill(row.slot);
         if (wait > TimeSpan.Zero)
         {
-            card.emptyText.text = "New order in\n<size=34><color=#FFFFFF>" + FormatWait(wait) + "</color></size>";
+            row.emptyText.text = $"New order in  {FormatWait(wait)}";
         }
-        else if (board.IsWaitingForResources(card.slot))
+        else if (board.IsWaitingForResources(row.slot))
         {
-            card.emptyText.text = "No orders yet\n<size=14>Place animals on your land to produce resources, then customers will order.</size>";
+            row.emptyText.text = "Place creatures on habitats to unlock customer orders";
         }
         else
         {
-            card.emptyText.text = "A customer is on the way...";
+            row.emptyText.text = "A customer is on the way...";
         }
     }
 
-    private void RefreshMerchant()
+    private void OnDeliverClicked()
     {
-        if (merchantContent == null) return;
+        OrderRowView row = orderRows.Find(r => r.slot == selectedOrderSlot);
+        if (row != null && Time.unscaledTime < row.deliverLockedUntil) return;
 
-        // Chỉ hiện tài nguyên đang có trong kho, xếp lại thành lưới 2 cột theo thứ tự danh mục
-        int shown = 0;
-        foreach (MerchantView view in merchant)
-        {
-            int stock = inventory.GetAmount(view.resource);
-            bool visible = stock > 0;
-            view.row.gameObject.SetActive(visible);
-            if (!visible) continue;
-
-            int column = shown % MerchantColumns;
-            int row = shown / MerchantColumns;
-            view.row.anchoredPosition = new Vector2(column * (merchantCellWidth + MerchantColumnGap),
-                -row * (MerchantRowHeight + MerchantRowGap));
-            shown++;
-
-            view.stock.text = "Owned " + FormatNumber(stock) + "  ·  " + NpcMerchant.GetUnitPrice(view.resource) + " Coins each";
-            SetButton(view.sellOne, view.sellOneLabel, stock >= 1);
-            SetButton(view.sellTen, view.sellTenLabel, stock >= 10);
-        }
-
-        int rows = (shown + MerchantColumns - 1) / MerchantColumns;
-        merchantContent.sizeDelta = new Vector2(0f, Mathf.Max(0f, rows * (MerchantRowHeight + MerchantRowGap) - MerchantRowGap));
-        merchantEmpty.gameObject.SetActive(shown == 0);
-    }
-
-    private void SetButton(Button button, TextMeshProUGUI label, bool on)
-    {
-        button.interactable = on;
-        label.color = on ? Color.white : mutedColor;
-    }
-
-    // =========================================================
-    // NÚT BẤM
-    // =========================================================
-
-    private void Deliver(CardView card)
-    {
-        if (Time.unscaledTime < card.deliverLockedUntil) return;
-
-        ActiveOrder order = board.GetOrder(card.slot);
+        ActiveOrder order = board.GetOrder(selectedOrderSlot);
         if (order == null) return;
 
         int reward = order.rewardCoins;
-        if (!board.TryFulfill(card.slot)) return;
+        if (!board.TryFulfill(selectedOrderSlot)) return;
 
-        card.deliverLockedUntil = Time.unscaledTime + DeliverLockSeconds;
-
-        // Thẻ đã chuyển sang đơn mới (qua OnBoardChanged); thêm hiệu ứng nhận thưởng
-        Punch(ref card.punch, card.rect, 1.06f);
-        StartCoroutine(EconomyHUD.FloatText(card.floatLayer, "+" + FormatNumber(reward) + " Coins", coinColor, 26f,
-            new Vector2(0f, 64f), new Vector2(0f, 124f), 1.2f));
+        if (row != null)
+        {
+            row.deliverLockedUntil = Time.unscaledTime + DeliverLockSeconds;
+            Punch(ref row.punch, row.rect, 1.04f);
+            StartCoroutine(EconomyHUD.FloatText(row.floatLayer, "+" + FormatNumber(reward) + " coins", LumiWorldUITheme.Success, 20f,
+                new Vector2(120f, 10f), new Vector2(120f, 44f), 1.1f));
+        }
     }
 
-    private void Discard(CardView card)
+    private void OnDiscardSlot(int slot)
     {
-        if (board.Discard(card.slot)) Punch(ref card.punch, card.rect, 0.95f);
+        if (board.Discard(slot))
+        {
+            OrderRowView row = orderRows.Find(r => r.slot == slot);
+            if (row != null) Punch(ref row.punch, row.rect, 0.96f);
+        }
     }
 
-    private void Sell(MerchantView view, int amount)
-    {
-        int coins = amount * NpcMerchant.GetUnitPrice(view.resource);
-        if (!NpcMerchant.TrySell(view.resource, amount)) return;
+    // =========================================================
+    // P-11 SELL RESOURCES TAB
+    // =========================================================
 
-        // Số bay mọc lên từ chỗ hai nút bán (gọn trong hàng vì danh sách cắt phần tràn)
-        float x = view.floatLayer.rect.width * 0.5f - 60f;
-        StartCoroutine(EconomyHUD.FloatText(view.floatLayer, "+" + FormatNumber(coins), coinColor, 20f,
-            new Vector2(x, 0f), new Vector2(x, 14f), 0.9f));
+    private void RefreshSellTab()
+    {
+        float targetWellW = sellSidebarVisible ? LeftPaneWidth : (PanelWidth - 48f);
+        if (sellListWellRect != null)
+        {
+            sellListWellRect.sizeDelta = new Vector2(targetWellW, sellListWellRect.sizeDelta.y);
+        }
+        if (sellDetailPane != null)
+        {
+            sellDetailPane.gameObject.SetActive(sellSidebarVisible);
+        }
+
+        int shown = 0;
+        const float rowH = 54f;
+        const float rowGap = 8f;
+        ResourceData firstAvailable = null;
+
+        foreach (SellRowView view in sellRows)
+        {
+            int stock = inventory != null ? inventory.GetAmount(view.resource) : 0;
+            bool visible = stock > 0;
+            view.rect.gameObject.SetActive(visible);
+            if (!visible) continue;
+
+            if (firstAvailable == null) firstAvailable = view.resource;
+            view.rect.sizeDelta = new Vector2(targetWellW - 24f, rowH);
+            view.rect.anchoredPosition = new Vector2(12f, -(10f + shown * (rowH + rowGap)));
+            shown++;
+
+            view.nameText.text = ResourceInventoryUIPresentation.LocalizeResourceName(view.resource.resourceID, view.resource.resourceName);
+            view.qtyText.text = "×" + FormatNumber(stock);
+            view.priceText.text = FormatNumber(NpcMerchant.GetUnitPrice(view.resource));
+        }
+
+        sellListContent.sizeDelta = new Vector2(0f, Mathf.Max(200f, shown * (rowH + rowGap) + 16f));
+        sellListEmpty.gameObject.SetActive(shown == 0);
+
+        if (selectedSellResource == null || (inventory != null && inventory.GetAmount(selectedSellResource) <= 0))
+        {
+            selectedSellResource = firstAvailable;
+            sellQuantity = 1;
+        }
+
+        foreach (SellRowView view in sellRows)
+        {
+            if (view.selectionBorder != null)
+            {
+                view.selectionBorder.enabled = view.resource == selectedSellResource;
+            }
+        }
+
+        RefreshSellDetail();
+    }
+
+    private void SelectSellResource(ResourceData res)
+    {
+        selectedSellResource = res;
+        sellSidebarVisible = true;
+        int stock = inventory != null && res != null ? inventory.GetAmount(res) : 0;
+        sellQuantity = stock > 0 ? Mathf.Min(10, stock) : 1;
+        if (sellQtyInput != null) sellQtyInput.SetTextWithoutNotify(sellQuantity.ToString(CultureInfo.InvariantCulture));
+        RefreshSellTab();
+    }
+
+    private void RefreshSellDetail()
+    {
+        if (!sellSidebarVisible || sellDetailPane == null) return;
+
+        if (selectedSellResource == null)
+        {
+            sellDetailName.text = "No resources available";
+            sellDetailUnitPrice.text = "-";
+            sellTotalReceivedText.text = "-";
+            sellExecuteButton.interactable = false;
+            sellExecuteBg.color = new Color(0.62f, 0.59f, 0.55f, 1f);
+            sellExecuteLabel.text = "Sell";
+            return;
+        }
+
+        int stock = inventory != null ? inventory.GetAmount(selectedSellResource) : 0;
+        sellQuantity = stock > 0 ? Mathf.Clamp(sellQuantity, 1, stock) : 1;
+        if (sellQtyInput != null && !sellQtyInput.isFocused)
+        {
+            sellQtyInput.SetTextWithoutNotify(sellQuantity.ToString(CultureInfo.InvariantCulture));
+        }
+
+        sellDetailArt.sprite = BiomeHarvestIndicator.GetResourceSprite(selectedSellResource);
+        sellDetailName.text = ResourceInventoryUIPresentation.LocalizeResourceName(selectedSellResource.resourceID, selectedSellResource.resourceName);
+
+        int unit = NpcMerchant.GetUnitPrice(selectedSellResource);
+        sellDetailUnitPrice.text = $"{FormatNumber(unit)} coins each";
+
+        int totalCoins = unit * sellQuantity;
+        sellTotalReceivedText.text = $"{FormatNumber(totalCoins)} coins";
+
+        bool canSell = stock > 0 && sellQuantity > 0 && sellQuantity <= stock;
+        sellExecuteButton.interactable = canSell;
+        sellExecuteBg.color = canSell ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
+        sellExecuteIcon.color = Color.white;
+        sellExecuteLabel.color = Color.white;
+        sellExecuteLabel.text = $"Sell {sellQuantity}";
+    }
+
+    private void StepSellQuantity(int delta)
+    {
+        if (selectedSellResource == null || inventory == null) return;
+        int stock = Mathf.Max(1, inventory.GetAmount(selectedSellResource));
+        sellQuantity = Mathf.Clamp(sellQuantity + delta, 1, stock);
+        if (sellQtyInput != null) sellQtyInput.SetTextWithoutNotify(sellQuantity.ToString(CultureInfo.InvariantCulture));
+        RefreshSellDetail();
+    }
+
+    private void OnExecuteDirectSell()
+    {
+        if (selectedSellResource == null || inventory == null) return;
+        int stock = inventory.GetAmount(selectedSellResource);
+        int amount = Mathf.Clamp(sellQuantity, 1, Mathf.Max(1, stock));
+        if (stock < amount || amount <= 0) return;
+
+        int coins = amount * NpcMerchant.GetUnitPrice(selectedSellResource);
+        // P-11 & P-16: Execute directly without confirmation popup
+        if (!NpcMerchant.TrySell(selectedSellResource, amount)) return;
+
+        StartCoroutine(EconomyHUD.FloatText(sellDetailFloatLayer, "+" + FormatNumber(coins) + " coins", LumiWorldUITheme.Success, 20f,
+            new Vector2(0f, 30f), new Vector2(0f, 70f), 1.0f));
+        RefreshSellTab();
     }
 
     private void Punch(ref Coroutine routine, Transform target, float peak)
     {
+        if (target == null || !isActiveAndEnabled) return;
         if (routine != null) StopCoroutine(routine);
         target.localScale = Vector3.one;
-        routine = StartCoroutine(EconomyHUD.Punch(target, peak, 0.25f));
+        routine = StartCoroutine(EconomyHUD.Punch(target, peak, 0.22f));
     }
 
     // =========================================================
-    // DỰNG UI BẰNG CODE
+    // BUILD UI
     // =========================================================
 
     private void BuildOpenButton()
     {
-        // Neo góc trên phải, pivot ở giữa để nút nảy quanh tâm
         openButton = EconomyHUD.CreateRect("OrdersButton", transform);
         openButton.anchorMin = new Vector2(1f, 1f);
         openButton.anchorMax = new Vector2(1f, 1f);
@@ -459,398 +665,605 @@ public class OrderBoardUI : MonoBehaviour
         openButton.sizeDelta = buttonSize;
         openButton.anchoredPosition = buttonCorner - buttonSize * 0.5f;
 
-        EconomyHUD.AddButton(openButton, hudColor).onClick.AddListener(Toggle);
-        CreateLabel(openButton, "Orders", 20f);
+        var cg = openButton.gameObject.AddComponent<CanvasGroup>();
+        cg.alpha = 0f;
+        cg.blocksRaycasts = false;
+        cg.interactable = false;
 
-        // Huy hiệu xanh ở góc trái: số đơn đang đủ hàng để giao
         RectTransform badgeRect = EconomyHUD.CreateRect("ReadyBadge", openButton);
-        badgeRect.anchorMin = new Vector2(0f, 1f);
-        badgeRect.anchorMax = new Vector2(0f, 1f);
-        badgeRect.pivot = new Vector2(0.5f, 0.5f);
-        badgeRect.sizeDelta = new Vector2(26f, 26f);
-        badgeRect.anchoredPosition = new Vector2(4f, -4f);
-
-        Image badgeImage = badgeRect.gameObject.AddComponent<Image>();
-        badgeImage.sprite = EconomyHUD.CircleSprite;
-        badgeImage.color = deliverColor;
-        badgeImage.raycastTarget = false;
-
-        badgeText = CreateLabel(badgeRect, "0", 15f);
+        Image badgeImg = badgeRect.gameObject.AddComponent<Image>();
+        badgeImg.color = Color.clear;
+        badgeText = LumiWorldUITheme.CreateLabel(badgeRect, "0", "0", 12f, Color.clear);
         badge = badgeRect.gameObject;
         badge.SetActive(false);
     }
 
     private void BuildWindow()
     {
-        int slots = board.SlotCount;
-        float panelWidth = PanelPadding * 2f + slots * CardWidth + (slots - 1) * CardSpacing;
-        float panelHeight = HeaderHeight + CardHeight + SectionGap + MerchantHeight + PanelPadding;
-
         RectTransform windowRect = EconomyHUD.CreateRect("Window", transform);
-        EconomyHUD.Stretch(windowRect);
+        LumiWorldUITheme.Stretch(windowRect);
         window = windowRect.gameObject;
         EconomyHUD.RegisterWindow(window, Close);
 
-        // Nền mờ phủ cả màn hình: chặn chuột tới thẻ bài và bản đồ, bấm vào thì đóng bảng
-        RectTransform backdropRect = EconomyHUD.CreateRect("Backdrop", windowRect);
-        EconomyHUD.Stretch(backdropRect);
-        Image backdrop = backdropRect.gameObject.AddComponent<Image>();
-        backdrop.color = backdropColor;
-        Button backdropButton = backdropRect.gameObject.AddComponent<Button>();
-        backdropButton.transition = Selectable.Transition.None;
-        backdropButton.navigation = new Navigation { mode = Navigation.Mode.None };
-        backdropButton.onClick.AddListener(Close);
+        GameObject bdObj = new GameObject("Backdrop", typeof(RectTransform), typeof(Image), typeof(Button));
+        bdObj.transform.SetParent(windowRect, false);
+        LumiWorldUITheme.Stretch(bdObj.GetComponent<RectTransform>());
+        bdObj.GetComponent<Image>().color = LumiWorldUITheme.Backdrop;
+        Button bdBtn = bdObj.GetComponent<Button>();
+        bdBtn.transition = Selectable.Transition.None;
+        bdBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+        bdBtn.onClick.AddListener(Close);
 
-        // Bảng nằm giữa màn hình; nền bảng nhận chuột nên bấm bên trong không đóng bảng
-        panel = EconomyHUD.CreateRect("Panel", windowRect);
-        panel.sizeDelta = new Vector2(panelWidth, panelHeight);
-        EconomyHUD.CreatePanel(panel, panelColor).raycastTarget = true;
+        GameObject stageObj = new GameObject("FitStage", typeof(RectTransform));
+        stageObj.transform.SetParent(windowRect, false);
+        stageRect = stageObj.GetComponent<RectTransform>();
+        SyncStageScale(force: true);
 
-        BuildHeader();
-        for (int slot = 0; slot < slots; slot++)
-        {
-            cards.Add(BuildCard(slot));
-        }
-        BuildMerchant(panelWidth - PanelPadding * 2f);
+        Image panelImg = LumiWorldUITheme.CreateRoundedSurface(stageRect, "Panel", LumiWorldUITheme.Window, LumiWorldUITheme.Edge, 24, 1.5f, 6f, 0.22f, true);
+        panel = panelImg.rectTransform;
+        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
+        panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+        panel.anchoredPosition = Vector2.zero;
+
+        // Header
+        GameObject hdrIc = new GameObject("HeaderIcon", typeof(RectTransform), typeof(Image));
+        hdrIc.transform.SetParent(panel, false);
+        LumiWorldUITheme.PlaceTopLeft(hdrIc.GetComponent<RectTransform>(), 24f, 18f, 24f, 24f);
+        Image hdrIcImg = hdrIc.GetComponent<Image>();
+        hdrIcImg.sprite = LumiWorldUITheme.Glyph("G-04");
+        hdrIcImg.color = LumiWorldUITheme.Text;
+        hdrIcImg.preserveAspect = true;
+        hdrIcImg.raycastTarget = false;
+
+        TextMeshProUGUI titleTmp = LumiWorldUITheme.CreateLabel(panel, "Title", "Orders", 20f, LumiWorldUITheme.Text, true);
+        LumiWorldUITheme.PlaceTopLeft(titleTmp.rectTransform, 56f, 13f, 220f, 34f);
+
+        LumiWorldUITheme.CreateCoinChip(panel, 64f, 14f, out balanceText, EconomyHUD.CoinSprite, 118f, 34f);
+        balanceChip = panel.Find("CoinBalanceChip") as RectTransform;
+        LumiWorldUITheme.CreateCloseButton(panel, 22f, 14f, Close, 34f);
+
+        // Mode Tabs: Orders | Sell resources
+        ordersTabBtn = LumiWorldUITheme.CreateSubTabButton(panel, "Tab_Orders", "Orders", "G-04", 13.5f, () => SelectModeTab(ModeTab.Orders),
+            out ordersTabBg, out ordersTabIcon, out ordersTabLabel, out ordersTabShadow);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)ordersTabBtn.transform, 24f, 60f, 128f, 32f);
+
+        sellTabBtn = LumiWorldUITheme.CreateSubTabButton(panel, "Tab_SellResources", "Sell resources", "G-26", 13.5f, () => SelectModeTab(ModeTab.SellResources),
+            out sellTabBg, out sellTabIcon, out sellTabLabel, out sellTabShadow);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)sellTabBtn.transform, 160f, 60f, 164f, 32f);
+
+        BuildOrdersPane();
+        BuildSellPane();
 
         window.SetActive(false);
     }
 
-    private void BuildHeader()
+    private void BuildOrdersPane()
     {
-        TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 26f, textColor, TextAlignmentOptions.Left);
-        Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -16f), new Vector2(420f, 36f));
-        title.text = "Order Board";
+        ordersPane = new GameObject("OrdersPane", typeof(RectTransform));
+        ordersPane.transform.SetParent(panel, false);
+        LumiWorldUITheme.Stretch(ordersPane.GetComponent<RectTransform>());
 
-        TextMeshProUGUI subtitle = EconomyHUD.CreateText("Subtitle", panel, 15f, mutedColor, TextAlignmentOptions.Left);
-        subtitle.fontStyle = FontStyles.Normal;
-        Place(subtitle.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -52f), new Vector2(460f, 22f));
-        subtitle.text = "Deliver resources to customers to earn Coins";
+        // Left scrollable list
+        Image well = LumiWorldUITheme.CreateRoundedSurface(ordersPane.transform, "OrdersWell", LumiWorldUITheme.Well, new Color(0.84f, 0.80f, 0.75f, 1f), 18, 1.2f, 0f, 0f, true);
+        LumiWorldUITheme.PlaceTopLeft(well.rectTransform, 24f, 102f, LeftPaneWidth, 434f);
 
-        // Nút đóng ở góc phải, số dư Coins nằm ngay bên trái nút
-        RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
-        Place(closeRect, new Vector2(1f, 1f), new Vector2(-PanelPadding, -18f), new Vector2(44f, 40f));
-        EconomyHUD.AddButton(closeRect, secondaryColor).onClick.AddListener(Close);
-        CreateLabel(closeRect, "X", 20f, textColor);
+        int slots = board != null ? board.SlotCount : 3;
+        const float rowH = 126f;
+        const float rowGap = 12f;
 
-        balanceChip = EconomyHUD.CreateRect("Balance", panel);
-        balanceChip.anchorMin = new Vector2(1f, 1f);
-        balanceChip.anchorMax = new Vector2(1f, 1f);
-        balanceChip.pivot = new Vector2(0.5f, 0.5f);
-        balanceChip.sizeDelta = new Vector2(150f, 40f);
-        balanceChip.anchoredPosition = new Vector2(-(PanelPadding + 44f + 10f + 75f), -38f);
-        EconomyHUD.CreateBorderedPanel(balanceChip, new Color(0.06f, 0.09f, 0.16f, 0.92f), new Color(0.08f, 0.58f, 0.95f, 0.60f));
-        EconomyHUD.CreateIcon("CoinIcon", balanceChip, EconomyHUD.CoinSprite, 26f, 10f);
+        orderRows.Clear();
+        for (int i = 0; i < slots; i++)
+        {
+            orderRows.Add(CreateOrderRow(well.rectTransform, i, 14f + i * (rowH + rowGap), LeftPaneWidth - 24f, rowH));
+        }
 
-        balanceText = EconomyHUD.CreateText("Value", balanceChip, 20f, Color.white, TextAlignmentOptions.Right);
-        balanceText.fontStyle = FontStyles.Bold;
-        RectTransform valueRect = balanceText.rectTransform;
-        valueRect.anchorMin = Vector2.zero;
-        valueRect.anchorMax = Vector2.one;
-        valueRect.offsetMin = new Vector2(42f, 0f);
-        valueRect.offsetMax = new Vector2(-12f, 0f);
+        // Right Order Inspector
+        Image inspImg = LumiWorldUITheme.CreateRoundedSurface(ordersPane.transform, "OrderInspector", LumiWorldUITheme.Surface, new Color(0.87f, 0.84f, 0.79f, 1f), 20, 1.4f, 4f, 0.16f, true);
+        orderDetailPane = inspImg.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(orderDetailPane, 568f, 60f, RightPaneWidth, 476f);
+
+        orderDetailEmptyLabel = LumiWorldUITheme.CreateLabel(orderDetailPane, "Empty", "Select an order to inspect.", 14f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(orderDetailEmptyLabel.rectTransform);
+
+        GameObject npcRow = new GameObject("NpcHeader", typeof(RectTransform));
+        npcRow.transform.SetParent(orderDetailPane, false);
+        LumiWorldUITheme.PlaceTopLeft(npcRow.GetComponent<RectTransform>(), 16f, 16f, RightPaneWidth - 32f, 64f);
+
+        Image pBg = LumiWorldUITheme.CreateRoundedSurface(npcRow.transform, "PortraitBg", LumiWorldUITheme.Window, LumiWorldUITheme.Edge, 32, 1.5f, 2f, 0.10f);
+        LumiWorldUITheme.PlaceTopLeft(pBg.rectTransform, 0f, 0f, 62f, 62f);
+
+        GameObject dpObj = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+        dpObj.transform.SetParent(pBg.rectTransform, false);
+        LumiWorldUITheme.Stretch(dpObj.GetComponent<RectTransform>(), 4f);
+        detailPortrait = dpObj.GetComponent<Image>();
+        detailPortrait.preserveAspect = true;
+        detailPortrait.raycastTarget = false;
+
+        detailCustomerName = LumiWorldUITheme.CreateLabel(npcRow.transform, "CustomerName", "Customer", 17f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(detailCustomerName.rectTransform, 74f, 4f, RightPaneWidth - 110f, 28f);
+
+        detailOrderTag = LumiWorldUITheme.CreateLabel(npcRow.transform, "OrderTag", "Basic order", 12f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(detailOrderTag.rectTransform, 74f, 34f, RightPaneWidth - 110f, 20f);
+
+        // Hero resource art & name (NO "owned" text per P-10 rule)
+        GameObject heroGroup = new GameObject("HeroResource", typeof(RectTransform));
+        heroGroup.transform.SetParent(orderDetailPane, false);
+        LumiWorldUITheme.PlaceTopLeft(heroGroup.GetComponent<RectTransform>(), 16f, 92f, RightPaneWidth - 32f, 118f);
+
+        Image heroCard = LumiWorldUITheme.CreateRoundedSurface(heroGroup.transform, "Bg", LumiWorldUITheme.Slot, LumiWorldUITheme.Edge, 14, 1.2f, 0f, 0f);
+        LumiWorldUITheme.Stretch(heroCard.rectTransform);
+
+        GameObject haObj = new GameObject("Art", typeof(RectTransform), typeof(Image));
+        haObj.transform.SetParent(heroGroup.transform, false);
+        RectTransform haRt = haObj.GetComponent<RectTransform>();
+        haRt.anchorMin = haRt.anchorMax = haRt.pivot = new Vector2(0.5f, 1f);
+        haRt.anchoredPosition = new Vector2(0f, -8f);
+        haRt.sizeDelta = new Vector2(76f, 76f);
+        detailHeroArt = haObj.GetComponent<Image>();
+        detailHeroArt.preserveAspect = true;
+        detailHeroArt.raycastTarget = false;
+
+        detailHeroName = LumiWorldUITheme.CreateLabel(heroGroup.transform, "Name", "Oak Wood", 15.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.PlaceTopLeft(detailHeroName.rectTransform, 10f, 88f, RightPaneWidth - 52f, 26f);
+
+        // Requirements stack (each shows Art + Name + min(have,req)/req pill, no "owned")
+        detailReqs.Clear();
+        for (int i = 0; i < 3; i++)
+        {
+            detailReqs.Add(CreateDetailRequirementRow(orderDetailPane, 222f + i * 38f, RightPaneWidth - 32f));
+        }
+
+        // Reward pill
+        Image rewBg = LumiWorldUITheme.CreateRoundedSurface(orderDetailPane, "RewardPill", LumiWorldUITheme.Well, LumiWorldUITheme.Edge, 12, 1f, 0f, 0f);
+        LumiWorldUITheme.PlaceTopLeft(rewBg.rectTransform, 16f, 344f, RightPaneWidth - 32f, 38f);
+        TextMeshProUGUI rewLbl = LumiWorldUITheme.CreateLabel(rewBg.rectTransform, "Label", "Reward", 13f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(rewLbl.rectTransform, 14f, 7f, 80f, 24f);
+
+        GameObject rcObj = new GameObject("Coin", typeof(RectTransform), typeof(Image));
+        rcObj.transform.SetParent(rewBg.rectTransform, false);
+        LumiWorldUITheme.PlaceTopLeft(rcObj.GetComponent<RectTransform>(), 122f, 10f, 18f, 18f);
+        Image rcImg = rcObj.GetComponent<Image>();
+        rcImg.sprite = EconomyHUD.CoinSprite;
+        rcImg.preserveAspect = true;
+        rcImg.raycastTarget = false;
+
+        detailRewardValue = LumiWorldUITheme.CreateLabel(rewBg.rectTransform, "Value", "0 coins", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
+        LumiWorldUITheme.PlaceTopLeft(detailRewardValue.rectTransform, 142f, 7f, RightPaneWidth - 186f, 24f);
+
+        // Primary Deliver CTA
+        deliverButton = LumiWorldUITheme.CreatePillButton(
+            orderDetailPane,
+            "DeliverBtn",
+            "Deliver",
+            null,
+            true,
+            15f,
+            OnDeliverClicked,
+            out deliverBg,
+            out _,
+            out deliverLabel,
+            18);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)deliverButton.transform, 16f, 394f, RightPaneWidth - 32f, 44f);
+
+        discardButton = LumiWorldUITheme.CreatePillButton(
+            orderDetailPane,
+            "DiscardBtn",
+            "Discard order",
+            null,
+            false,
+            12f,
+            () => OnDiscardSlot(selectedOrderSlot),
+            out Image discBg,
+            out _,
+            out _,
+            12);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)discardButton.transform, 16f, 443f, RightPaneWidth - 32f, 24f);
+        discBg.color = LumiWorldUITheme.Window;
     }
 
-    private CardView BuildCard(int slot)
+    private OrderRowView CreateOrderRow(Transform parent, int slot, float y, float width, float height)
     {
-        CardView card = new CardView { slot = slot };
-        bool baseline = slot == OrderBoardSystem.BaselineSlot;
+        OrderRowView row = new OrderRowView { slot = slot };
+        Image cardBg = LumiWorldUITheme.CreateRoundedSurface(parent, "OrderSlot_" + slot, LumiWorldUITheme.Slot, new Color(0.88f, 0.85f, 0.80f, 1f), 16, 1.2f, 2.5f, 0.13f, true);
+        row.rect = cardBg.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(row.rect, 12f, y, width, height);
 
-        // Pivot ở giữa để thẻ nảy quanh tâm
-        card.rect = EconomyHUD.CreateRect("OrderCard" + (slot + 1), panel);
-        card.rect.anchorMin = new Vector2(0f, 1f);
-        card.rect.anchorMax = new Vector2(0f, 1f);
-        card.rect.pivot = new Vector2(0.5f, 0.5f);
-        card.rect.sizeDelta = new Vector2(CardWidth, CardHeight);
-        card.rect.anchoredPosition = new Vector2(
-            PanelPadding + slot * (CardWidth + CardSpacing) + CardWidth * 0.5f,
-            -HeaderHeight - CardHeight * 0.5f);
-        EconomyHUD.CreateBorderedPanel(card.rect, cardColor);
+        Button selectBtn = cardBg.gameObject.AddComponent<Button>();
+        selectBtn.targetGraphic = cardBg;
+        LumiWorldUITheme.ApplyButtonDisabledNeutral(selectBtn);
+        int captured = slot;
+        selectBtn.onClick.AddListener(() => { selectedOrderSlot = captured; RefreshOrdersTab(); });
 
-        RectTransform content = EconomyHUD.CreateRect("Order", card.rect);
-        EconomyHUD.Stretch(content);
-        card.orderContent = content.gameObject;
+        GameObject activeObj = new GameObject("Active", typeof(RectTransform));
+        activeObj.transform.SetParent(row.rect, false);
+        LumiWorldUITheme.Stretch(activeObj.GetComponent<RectTransform>());
+        row.activeContent = activeObj;
 
-        // Khách NPC: ảnh (hoặc chữ cái đầu trên nền tròn), tên và loại đơn
-        RectTransform portraitRect = EconomyHUD.CreateRect("Portrait", content);
-        Place(portraitRect, new Vector2(0f, 1f), new Vector2(12f, -12f), new Vector2(48f, 48f));
-        card.portrait = portraitRect.gameObject.AddComponent<Image>();
-        card.portrait.preserveAspect = true;
-        card.portrait.raycastTarget = false;
-        card.initials = CreateLabel(portraitRect, "", 19f);
+        Image pBg = LumiWorldUITheme.CreateRoundedSurface(activeObj.transform, "PortraitFrame", LumiWorldUITheme.Window, LumiWorldUITheme.Edge, 32, 1.5f, 0f, 0f);
+        LumiWorldUITheme.PlaceTopLeft(pBg.rectTransform, 14f, 14f, 64f, 64f);
+        GameObject pImgObj = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+        pImgObj.transform.SetParent(pBg.rectTransform, false);
+        LumiWorldUITheme.Stretch(pImgObj.GetComponent<RectTransform>(), 4f);
+        row.portrait = pImgObj.GetComponent<Image>();
+        row.portrait.preserveAspect = true;
+        row.portrait.raycastTarget = false;
 
-        card.customer = EconomyHUD.CreateText("Customer", content, 18f, textColor, TextAlignmentOptions.Left);
-        Place(card.customer.rectTransform, new Vector2(0f, 1f), new Vector2(70f, -12f), new Vector2(CardWidth - 82f, 26f));
-        card.customer.enableAutoSizing = true;
-        card.customer.fontSizeMin = 12f;
-        card.customer.fontSizeMax = 18f;
+        row.customerName = LumiWorldUITheme.CreateLabel(activeObj.transform, "Customer", "Customer", 15f, LumiWorldUITheme.Text, true);
+        LumiWorldUITheme.PlaceTopLeft(row.customerName.rectTransform, 90f, 10f, 240f, 24f);
 
-        card.tag = EconomyHUD.CreateText("Tag", content, 13f, mutedColor, TextAlignmentOptions.Left);
-        Place(card.tag.rectTransform, new Vector2(0f, 1f), new Vector2(70f, -40f), new Vector2(CardWidth - 82f, 20f));
+        row.tagText = LumiWorldUITheme.CreateLabel(activeObj.transform, "Tag", "Basic order", 11f, LumiWorldUITheme.Muted, false);
+        LumiWorldUITheme.PlaceTopLeft(row.tagText.rectTransform, 90f, 88f, 180f, 18f);
 
-        // Mỗi dòng yêu cầu: icon, tên tài nguyên, số có/cần
-        for (int i = 0; i < RequirementRows; i++)
+        // Requirements inside row (art + name + min(have, req)/req pill; NO "Ready/Short")
+        for (int i = 0; i < 3; i++)
         {
-            RectTransform rowRect = EconomyHUD.CreateRect("Requirement" + (i + 1), content);
-            Place(rowRect, new Vector2(0f, 1f), new Vector2(12f, -72f - i * 34f), new Vector2(CardWidth - 24f, 30f));
-
-            RequirementRow row = new RequirementRow { root = rowRect.gameObject };
-            row.icon = EconomyHUD.CreateIcon("Icon", rowRect, null, 26f, 0f);
-
-            row.name = EconomyHUD.CreateText("Name", rowRect, 16f, textColor, TextAlignmentOptions.Left);
-            row.name.fontStyle = FontStyles.Normal;
-            RectTransform nameRect = row.name.rectTransform;
-            nameRect.anchorMin = Vector2.zero;
-            nameRect.anchorMax = Vector2.one;
-            nameRect.offsetMin = new Vector2(34f, 0f);
-            nameRect.offsetMax = new Vector2(-76f, 0f);
-
-            row.count = EconomyHUD.CreateText("Count", rowRect, 18f, enoughColor, TextAlignmentOptions.Right);
-            RectTransform countRect = row.count.rectTransform;
-            countRect.anchorMin = new Vector2(1f, 0f);
-            countRect.anchorMax = new Vector2(1f, 1f);
-            countRect.pivot = new Vector2(1f, 0.5f);
-            countRect.sizeDelta = new Vector2(76f, 0f);
-            countRect.anchoredPosition = Vector2.zero;
-
-            card.rows.Add(row);
+            ReqPillView req = CreateCompactRequirementRow(activeObj.transform, 90f, 36f + i * 24f, 276f);
+            row.reqRows.Add(req);
         }
 
-        // Thưởng: chữ "Thưởng" bên trái, số Coins và đồng xu bên phải
-        RectTransform rewardRect = EconomyHUD.CreateRect("Reward", content);
-        Place(rewardRect, new Vector2(0f, 1f), new Vector2(12f, -176f), new Vector2(CardWidth - 24f, 30f));
+        // Right Reward column inside row
+        TextMeshProUGUI rewLbl = LumiWorldUITheme.CreateLabel(activeObj.transform, "RewardLabel", "Reward", 11f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineRight);
+        LumiWorldUITheme.PlaceTopLeft(rewLbl.rectTransform, width - 140f, 16f, 122f, 18f);
 
-        TextMeshProUGUI rewardLabel = EconomyHUD.CreateText("Label", rewardRect, 15f, mutedColor, TextAlignmentOptions.Left);
-        rewardLabel.fontStyle = FontStyles.Normal;
-        EconomyHUD.Stretch(rewardLabel.rectTransform);
-        rewardLabel.text = "Reward";
+        GameObject cObj = new GameObject("Coin", typeof(RectTransform), typeof(Image));
+        cObj.transform.SetParent(activeObj.transform, false);
+        LumiWorldUITheme.PlaceTopLeft(cObj.GetComponent<RectTransform>(), width - 120f, 38f, 18f, 18f);
+        Image cImg = cObj.GetComponent<Image>();
+        cImg.sprite = EconomyHUD.CoinSprite;
+        cImg.preserveAspect = true;
+        cImg.raycastTarget = false;
 
-        RectTransform coinRect = EconomyHUD.CreateRect("CoinIcon", rewardRect);
-        Place(coinRect, new Vector2(1f, 0.5f), Vector2.zero, new Vector2(24f, 24f));
-        Image coin = coinRect.gameObject.AddComponent<Image>();
-        coin.sprite = EconomyHUD.CoinSprite;
-        coin.raycastTarget = false;
+        row.rewardText = LumiWorldUITheme.CreateLabel(activeObj.transform, "RewardVal", "60 coins", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
+        LumiWorldUITheme.PlaceTopLeft(row.rewardText.rectTransform, width - 98f, 35f, 80f, 24f);
 
-        card.reward = EconomyHUD.CreateText("Value", rewardRect, 22f, coinColor, TextAlignmentOptions.Right);
-        RectTransform valueRect = card.reward.rectTransform;
-        valueRect.anchorMin = new Vector2(1f, 0f);
-        valueRect.anchorMax = new Vector2(1f, 1f);
-        valueRect.pivot = new Vector2(1f, 0.5f);
-        valueRect.sizeDelta = new Vector2(100f, 0f);
-        valueRect.anchoredPosition = new Vector2(-30f, 0f);
-
-        // Nút Giao, và nút Bỏ cho mọi ô trừ đơn cơ bản
-        const float discardWidth = 64f;
-        RectTransform deliverRect = EconomyHUD.CreateRect("DeliverButton", content);
-        float deliverWidth = CardWidth - 24f - (baseline ? 0f : discardWidth + 8f);
-        Place(deliverRect, Vector2.zero, new Vector2(12f, 12f), new Vector2(deliverWidth, 42f));
-        card.deliver = EconomyHUD.AddButton(deliverRect, deliverColor);
-        card.deliver.onClick.AddListener(() => Deliver(card));
-        card.deliverLabel = CreateLabel(deliverRect, "Deliver", 18f);
-
-        if (!baseline)
+        if (slot != OrderBoardSystem.BaselineSlot)
         {
-            RectTransform discardRect = EconomyHUD.CreateRect("DiscardButton", content);
-            Place(discardRect, new Vector2(1f, 0f), new Vector2(-12f, 12f), new Vector2(discardWidth, 42f));
-            EconomyHUD.AddButton(discardRect, secondaryColor).onClick.AddListener(() => Discard(card));
-            CreateLabel(discardRect, "Drop", 17f, textColor);
+            row.skipButton = LumiWorldUITheme.CreatePillButton(activeObj.transform, "Skip", "Skip", null, false, 11f, () => OnDiscardSlot(captured),
+                out Image skBg, out _, out _, 10);
+            LumiWorldUITheme.PlaceTopLeft((RectTransform)row.skipButton.transform, width - 74f, 86f, 58f, 24f);
+            skBg.color = LumiWorldUITheme.Window;
         }
 
-        // Ô trống: đếm ngược tới đơn mới, hoặc hướng dẫn cách có đơn
-        card.emptyText = EconomyHUD.CreateText("Empty", card.rect, 17f, mutedColor, TextAlignmentOptions.Center);
-        RectTransform emptyRect = card.emptyText.rectTransform;
-        emptyRect.anchorMin = Vector2.zero;
-        emptyRect.anchorMax = Vector2.one;
-        emptyRect.offsetMin = new Vector2(18f, 18f);
-        emptyRect.offsetMax = new Vector2(-18f, -18f);
+        GameObject emptyObj = new GameObject("Empty", typeof(RectTransform));
+        emptyObj.transform.SetParent(row.rect, false);
+        LumiWorldUITheme.Stretch(emptyObj.GetComponent<RectTransform>());
+        row.emptyContent = emptyObj;
+        row.emptyText = LumiWorldUITheme.CreateLabel(emptyObj.transform, "EmptyLabel", "Refilling...", 13.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center, wrap: true);
+        LumiWorldUITheme.Stretch(row.emptyText.rectTransform, 16f);
 
-        card.floatLayer = EconomyHUD.CreateRect("FloatingNumbers", card.rect);
-        EconomyHUD.Stretch(card.floatLayer);
-        return card;
+        row.selectionBorder = LumiWorldUITheme.CreateSelectionBorder(row.rect, 16, 2.5f);
+        row.selectionBorder.enabled = false;
+
+        row.floatLayer = EconomyHUD.CreateRect("Floating", row.rect);
+        LumiWorldUITheme.Stretch(row.floatLayer);
+
+        return row;
     }
 
-    private void BuildMerchant(float width)
+    private ReqPillView CreateCompactRequirementRow(Transform parent, float x, float y, float width)
     {
-        RectTransform section = EconomyHUD.CreateRect("Merchant", panel);
-        Place(section, Vector2.zero, new Vector2(PanelPadding, PanelPadding), new Vector2(width, MerchantHeight));
-        EconomyHUD.CreateBorderedPanel(section, sectionColor);
+        GameObject root = new GameObject("Req", typeof(RectTransform));
+        root.transform.SetParent(parent, false);
+        LumiWorldUITheme.PlaceTopLeft(root.GetComponent<RectTransform>(), x, y, width, 22f);
 
-        TextMeshProUGUI title = EconomyHUD.CreateText("Title", section, 16f, textColor, TextAlignmentOptions.Left);
-        Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(16f, -10f), new Vector2(width * 0.5f, 24f));
-        title.text = "The merchant buys spare resources";
+        GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(root.transform, false);
+        LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 0f, 2f, 18f, 18f);
+        Image ic = icObj.GetComponent<Image>();
+        ic.preserveAspect = true;
+        ic.raycastTarget = false;
 
-        TextMeshProUGUI hint = EconomyHUD.CreateText("Hint", section, 13f, mutedColor, TextAlignmentOptions.Right);
-        hint.fontStyle = FontStyles.Normal;
-        Place(hint.rectTransform, new Vector2(1f, 1f), new Vector2(-16f, -12f), new Vector2(width * 0.5f - 24f, 22f));
-        hint.text = "Base price, orders pay more Coins";
+        TextMeshProUGUI nameTxt = LumiWorldUITheme.CreateLabel(root.transform, "Name", "Resource", 12.5f, LumiWorldUITheme.Text, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(nameTxt.rectTransform, 24f, 0f, width - 92f, 22f);
 
-        IReadOnlyList<ResourceData> resources = ResourceCatalog.All;
-        if (resources.Count == 0)
-        {
-            section.gameObject.SetActive(false);
-            return;
-        }
+        GameObject pillObj = new GameObject("FracPill", typeof(RectTransform), typeof(Image));
+        pillObj.transform.SetParent(root.transform, false);
+        LumiWorldUITheme.PlaceTopLeft(pillObj.GetComponent<RectTransform>(), width - 64f, 1f, 64f, 20f);
+        Image pillBg = pillObj.GetComponent<Image>();
+        pillBg.raycastTarget = false;
 
-        // Vùng cuộn dọc dưới tiêu đề: viewport cắt phần thừa, lăn chuột để cuộn.
-        // Camera không zoom theo vì EconomyHUD.IsWindowOpen chặn input bản đồ khi bảng đang mở.
-        Vector2 listSize = new Vector2(width - 32f, MerchantHeight - MerchantHeaderHeight - 12f);
-        RectTransform scrollRect = EconomyHUD.CreateRect("List", section);
-        Place(scrollRect, new Vector2(0f, 1f), new Vector2(16f, -MerchantHeaderHeight), listSize);
-        ScrollRect scroll = scrollRect.gameObject.AddComponent<ScrollRect>();
+        TextMeshProUGUI countTxt = LumiWorldUITheme.CreateLabel(pillObj.transform, "Count", "0 / 10", 11.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(countTxt.rectTransform);
 
-        RectTransform viewport = EconomyHUD.CreateRect("Viewport", scrollRect);
-        EconomyHUD.Stretch(viewport);
-        viewport.offsetMax = new Vector2(-(MerchantScrollbarGap + MerchantScrollbarWidth), 0f);
-        viewport.gameObject.AddComponent<RectMask2D>();
-        Image hitArea = viewport.gameObject.AddComponent<Image>();
-        hitArea.color = Color.clear;   // lăn chuột ở khe giữa các hàng vẫn cuộn được
+        return new ReqPillView { root = root, icon = ic, name = nameTxt, pillBg = pillBg, count = countTxt };
+    }
 
-        merchantContent = EconomyHUD.CreateRect("Content", viewport);
-        merchantContent.anchorMin = new Vector2(0f, 1f);
-        merchantContent.anchorMax = new Vector2(1f, 1f);
-        merchantContent.pivot = new Vector2(0.5f, 1f);
-        merchantContent.sizeDelta = Vector2.zero;
-        merchantContent.anchoredPosition = Vector2.zero;
+    private ReqPillView CreateDetailRequirementRow(Transform parent, float y, float width)
+    {
+        GameObject root = new GameObject("DetailReq", typeof(RectTransform));
+        root.transform.SetParent(parent, false);
+        LumiWorldUITheme.PlaceTopLeft(root.GetComponent<RectTransform>(), 16f, y, width, 32f);
 
-        scroll.viewport = viewport;
-        scroll.content = merchantContent;
+        Image rowBg = root.AddComponent<Image>();
+        rowBg.sprite = LumiWorldUITheme.PillSprite;
+        rowBg.type = Image.Type.Sliced;
+        rowBg.color = LumiWorldUITheme.Window;
+        rowBg.raycastTarget = false;
+
+        GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(root.transform, false);
+        LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 8f, 5f, 22f, 22f);
+        Image ic = icObj.GetComponent<Image>();
+        ic.preserveAspect = true;
+        ic.raycastTarget = false;
+
+        TextMeshProUGUI nameTxt = LumiWorldUITheme.CreateLabel(root.transform, "Name", "Resource", 12.5f, LumiWorldUITheme.Text, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(nameTxt.rectTransform, 36f, 4f, width - 114f, 24f);
+
+        GameObject pillObj = new GameObject("FracPill", typeof(RectTransform), typeof(Image));
+        pillObj.transform.SetParent(root.transform, false);
+        LumiWorldUITheme.PlaceTopLeft(pillObj.GetComponent<RectTransform>(), width - 74f, 5f, 66f, 22f);
+        Image pillBg = pillObj.GetComponent<Image>();
+        pillBg.raycastTarget = false;
+
+        TextMeshProUGUI countTxt = LumiWorldUITheme.CreateLabel(pillObj.transform, "Count", "0 / 10", 12f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(countTxt.rectTransform);
+
+        return new ReqPillView { root = root, icon = ic, name = nameTxt, pillBg = pillBg, count = countTxt };
+    }
+
+    private void BuildSellPane()
+    {
+        sellPane = new GameObject("SellResourcesPane", typeof(RectTransform));
+        sellPane.transform.SetParent(panel, false);
+        LumiWorldUITheme.Stretch(sellPane.GetComponent<RectTransform>());
+
+        // Left resource list
+        Image well = LumiWorldUITheme.CreateRoundedSurface(sellPane.transform, "SellWell", LumiWorldUITheme.Well, new Color(0.84f, 0.80f, 0.75f, 1f), 18, 1.2f, 0f, 0f, true);
+        sellListWellRect = well.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(sellListWellRect, 24f, 102f, LeftPaneWidth, 434f);
+
+        GameObject scrollObj = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
+        scrollObj.transform.SetParent(sellListWellRect, false);
+        RectTransform scrollRt = scrollObj.GetComponent<RectTransform>();
+        LumiWorldUITheme.Stretch(scrollRt, 4f);
+        ScrollRect scroll = scrollObj.GetComponent<ScrollRect>();
+
+        GameObject vpObj = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D), typeof(Image));
+        vpObj.transform.SetParent(scrollRt, false);
+        LumiWorldUITheme.Stretch(vpObj.GetComponent<RectTransform>());
+        vpObj.GetComponent<Image>().color = Color.clear;
+
+        GameObject contentObj = new GameObject("Content", typeof(RectTransform));
+        contentObj.transform.SetParent(vpObj.transform, false);
+        sellListContent = contentObj.GetComponent<RectTransform>();
+        sellListContent.anchorMin = new Vector2(0f, 1f);
+        sellListContent.anchorMax = new Vector2(1f, 1f);
+        sellListContent.pivot = new Vector2(0.5f, 1f);
+        sellListContent.anchoredPosition = Vector2.zero;
+        sellListContent.sizeDelta = new Vector2(0f, 300f);
+
+        scroll.viewport = vpObj.GetComponent<RectTransform>();
+        scroll.content = sellListContent;
         scroll.horizontal = false;
         scroll.vertical = true;
         scroll.movementType = ScrollRect.MovementType.Clamped;
-        scroll.scrollSensitivity = 20f;
-        scroll.verticalScrollbar = BuildMerchantScrollbar(scrollRect);
-        scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+        scroll.scrollSensitivity = 18f;
 
-        merchantEmpty = EconomyHUD.CreateText("Empty", viewport, 14f, mutedColor, TextAlignmentOptions.Center);
-        merchantEmpty.fontStyle = FontStyles.Normal;
-        EconomyHUD.Stretch(merchantEmpty.rectTransform);
-        merchantEmpty.text = "Nothing to sell yet. Harvest or craft resources first.";
+        sellListEmpty = LumiWorldUITheme.CreateLabel(vpObj.transform, "Empty", "No resources in inventory to sell yet.", 14.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(sellListEmpty.rectTransform);
 
-        float viewportWidth = listSize.x - MerchantScrollbarGap - MerchantScrollbarWidth;
-        merchantCellWidth = (viewportWidth - MerchantColumnGap * (MerchantColumns - 1)) / MerchantColumns;
-        const float sellTenWidth = 62f;
-        const float sellOneWidth = 54f;
-        const float buttonGap = 6f;
-        float textLeft = 42f;
-        float textWidth = merchantCellWidth - textLeft - sellOneWidth - sellTenWidth - buttonGap - 14f;
-
-        for (int i = 0; i < resources.Count; i++)
+        sellRows.Clear();
+        IReadOnlyList<ResourceData> catalog = ResourceCatalog.All;
+        for (int i = 0; i < catalog.Count; i++)
         {
-            MerchantView view = new MerchantView { resource = resources[i] };
-
-            // Mỗi tài nguyên một hàng cố định: icon, tên, số đang có và giá, hai nút bán
-            view.row = EconomyHUD.CreateRect(view.resource.resourceID, merchantContent);
-            Place(view.row, new Vector2(0f, 1f), Vector2.zero, new Vector2(merchantCellWidth, MerchantRowHeight));
-            EconomyHUD.CreatePanel(view.row, cardColor);
-
-            RectTransform iconSlot = EconomyHUD.CreateRect("IconSlot", view.row);
-            Place(iconSlot, new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(30f, 30f));
-            EconomyHUD.CreateIcon("Icon", iconSlot, BiomeHarvestIndicator.GetResourceSprite(view.resource), 28f, 0f);
-
-            TextMeshProUGUI name = EconomyHUD.CreateText("Name", view.row, 15f, textColor, TextAlignmentOptions.Left);
-            Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(textLeft, -3f), new Vector2(textWidth, 20f));
-            name.textWrappingMode = TextWrappingModes.NoWrap;
-            name.overflowMode = TextOverflowModes.Ellipsis;
-            name.enableAutoSizing = false;
-            name.text = view.resource.resourceName;
-
-            view.stock = EconomyHUD.CreateText("Stock", view.row, 12f, mutedColor, TextAlignmentOptions.Left);
-            view.stock.fontStyle = FontStyles.Normal;
-            Place(view.stock.rectTransform, new Vector2(0f, 1f), new Vector2(textLeft, -23f), new Vector2(textWidth, 18f));
-            view.stock.textWrappingMode = TextWrappingModes.NoWrap;
-            view.stock.overflowMode = TextOverflowModes.Ellipsis;
-            view.stock.enableAutoSizing = false;
-
-            RectTransform tenRect = EconomyHUD.CreateRect("SellTenButton", view.row);
-            Place(tenRect, new Vector2(1f, 0.5f), new Vector2(-6f, 0f), new Vector2(sellTenWidth, 32f));
-            view.sellTen = EconomyHUD.AddButton(tenRect, secondaryColor);
-            view.sellTen.onClick.AddListener(() => Sell(view, 10));
-            view.sellTenLabel = CreateLabel(tenRect, "Sell 10", 14f);
-
-            RectTransform oneRect = EconomyHUD.CreateRect("SellOneButton", view.row);
-            Place(oneRect, new Vector2(1f, 0.5f), new Vector2(-6f - sellTenWidth - buttonGap, 0f), new Vector2(sellOneWidth, 32f));
-            view.sellOne = EconomyHUD.AddButton(oneRect, secondaryColor);
-            view.sellOne.onClick.AddListener(() => Sell(view, 1));
-            view.sellOneLabel = CreateLabel(oneRect, "Sell 1", 15f, textColor);
-
-            view.floatLayer = EconomyHUD.CreateRect("FloatingNumbers", view.row);
-            EconomyHUD.Stretch(view.floatLayer);
-            merchant.Add(view);
+            ResourceData res = catalog[i];
+            if (res == null) continue;
+            sellRows.Add(CreateSellRow(sellListContent, res));
         }
+
+        // Right Sell Inspector (collapsible via ← Back per P-11)
+        Image inspImg = LumiWorldUITheme.CreateRoundedSurface(sellPane.transform, "SellInspector", LumiWorldUITheme.Surface, new Color(0.87f, 0.84f, 0.79f, 1f), 20, 1.4f, 4f, 0.16f, true);
+        sellDetailPane = inspImg.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(sellDetailPane, 568f, 60f, RightPaneWidth, 476f);
+
+        GameObject artObj = new GameObject("Art", typeof(RectTransform), typeof(Image));
+        artObj.transform.SetParent(sellDetailPane, false);
+        RectTransform artRt = artObj.GetComponent<RectTransform>();
+        artRt.anchorMin = artRt.anchorMax = artRt.pivot = new Vector2(0.5f, 1f);
+        artRt.anchoredPosition = new Vector2(0f, -24f);
+        artRt.sizeDelta = new Vector2(96f, 96f);
+        sellDetailArt = artObj.GetComponent<Image>();
+        sellDetailArt.preserveAspect = true;
+        sellDetailArt.raycastTarget = false;
+
+        sellDetailName = LumiWorldUITheme.CreateLabel(sellDetailPane, "Name", "Oak Wood", 19f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.PlaceTopLeft(sellDetailName.rectTransform, 16f, 132f, RightPaneWidth - 32f, 30f);
+
+        // Unit Price Pill (NO "owned" count on right per P-11)
+        Image upBg = LumiWorldUITheme.CreateRoundedSurface(sellDetailPane, "UnitPricePill", LumiWorldUITheme.Window, LumiWorldUITheme.Edge, 14, 1f, 0f, 0f);
+        LumiWorldUITheme.PlaceTopLeft(upBg.rectTransform, 54f, 170f, RightPaneWidth - 108f, 30f);
+        GameObject upCoin = new GameObject("Coin", typeof(RectTransform), typeof(Image));
+        upCoin.transform.SetParent(upBg.rectTransform, false);
+        LumiWorldUITheme.PlaceTopLeft(upCoin.GetComponent<RectTransform>(), 12f, 6f, 18f, 18f);
+        Image upCoinImg = upCoin.GetComponent<Image>();
+        upCoinImg.sprite = EconomyHUD.CoinSprite;
+        upCoinImg.preserveAspect = true;
+        upCoinImg.raycastTarget = false;
+        sellDetailUnitPrice = LumiWorldUITheme.CreateLabel(upBg.rectTransform, "Val", "3 coins each", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(sellDetailUnitPrice.rectTransform, 36f, 3f, RightPaneWidth - 150f, 24f);
+
+        // Quantity Stepper
+        float stepY = 226f;
+        LumiWorldUITheme.CreatePillButton(sellDetailPane, "MinusBtn", "", "Minus", false, 14f, () => StepSellQuantity(-1), out Image mBg, out _, out _, 14);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)mBg.transform, 40f, stepY, 44f, 38f);
+
+        Image qBox = LumiWorldUITheme.CreateRoundedSurface(sellDetailPane, "QtyInput", LumiWorldUITheme.Slot, LumiWorldUITheme.Edge, 12, 1.2f, 0f, 0f, true);
+        LumiWorldUITheme.PlaceTopLeft(qBox.rectTransform, 92f, stepY, 106f, 38f);
+        TextMeshProUGUI qTxt = LumiWorldUITheme.CreateLabel(qBox.rectTransform, "Text", "1", 17f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(qTxt.rectTransform);
+        sellQtyInput = qBox.gameObject.AddComponent<TMP_InputField>();
+        sellQtyInput.targetGraphic = qBox;
+        sellQtyInput.textComponent = qTxt;
+        sellQtyInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+        sellQtyInput.characterLimit = 4;
+        sellQtyInput.lineType = TMP_InputField.LineType.SingleLine;
+        sellQtyInput.onValueChanged.AddListener(val =>
+        {
+            if (int.TryParse(val, out int parsed))
+            {
+                sellQuantity = Mathf.Max(1, parsed);
+                RefreshSellDetail();
+            }
+        });
+        sellQtyInput.onEndEdit.AddListener(val =>
+        {
+            int stock = selectedSellResource != null && inventory != null ? inventory.GetAmount(selectedSellResource) : 1;
+            sellQuantity = int.TryParse(val, out int parsed) ? Mathf.Clamp(parsed, 1, Mathf.Max(1, stock)) : 1;
+            sellQtyInput.SetTextWithoutNotify(sellQuantity.ToString(CultureInfo.InvariantCulture));
+            RefreshSellDetail();
+        });
+
+        LumiWorldUITheme.CreatePillButton(sellDetailPane, "PlusBtn", "", "Plus", false, 14f, () => StepSellQuantity(1), out Image pBg, out _, out _, 14);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)pBg.transform, 206f, stepY, 44f, 38f);
+
+        // Total Received Inset (NO "Remaining" row per P-11)
+        Image totBg = LumiWorldUITheme.CreateRoundedSurface(sellDetailPane, "TotalReceivedBox", LumiWorldUITheme.Well, LumiWorldUITheme.Edge, 12, 1f, 0f, 0f);
+        LumiWorldUITheme.PlaceTopLeft(totBg.rectTransform, 18f, 290f, RightPaneWidth - 36f, 42f);
+        TextMeshProUGUI totLbl = LumiWorldUITheme.CreateLabel(totBg.rectTransform, "Label", "Total received", 13f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(totLbl.rectTransform, 12f, 9f, 110f, 24f);
+
+        GameObject trCoin = new GameObject("Coin", typeof(RectTransform), typeof(Image));
+        trCoin.transform.SetParent(totBg.rectTransform, false);
+        LumiWorldUITheme.PlaceTopLeft(trCoin.GetComponent<RectTransform>(), 144f, 12f, 18f, 18f);
+        Image trCoinImg = trCoin.GetComponent<Image>();
+        trCoinImg.sprite = EconomyHUD.CoinSprite;
+        trCoinImg.preserveAspect = true;
+        trCoinImg.raycastTarget = false;
+
+        sellTotalReceivedText = LumiWorldUITheme.CreateLabel(totBg.rectTransform, "Val", "0 coins", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
+        LumiWorldUITheme.PlaceTopLeft(sellTotalReceivedText.rectTransform, 164f, 9f, RightPaneWidth - 212f, 24f);
+
+        // Sell CTA (Direct sell, NO P-16 popup)
+        sellExecuteButton = LumiWorldUITheme.CreatePillButton(
+            sellDetailPane,
+            "SellExecuteBtn",
+            "Sell",
+            "G-26",
+            true,
+            15f,
+            OnExecuteDirectSell,
+            out sellExecuteBg,
+            out sellExecuteIcon,
+            out sellExecuteLabel,
+            18);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)sellExecuteButton.transform, 18f, 366f, RightPaneWidth - 36f, 46f);
+
+        // Back button collapses right detail sidebar per P-11
+        Button backBtn = LumiWorldUITheme.CreatePillButton(
+            sellDetailPane,
+            "BackBtn",
+            "Back",
+            "ArrowLeft",
+            false,
+            13.5f,
+            () => { sellSidebarVisible = false; RefreshSellTab(); },
+            out _,
+            out _,
+            out _,
+            16);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)backBtn.transform, 18f, 420f, RightPaneWidth - 36f, 38f);
+
+        sellDetailFloatLayer = EconomyHUD.CreateRect("Floating", sellDetailPane);
+        LumiWorldUITheme.Stretch(sellDetailFloatLayer);
     }
 
-    private Scrollbar BuildMerchantScrollbar(RectTransform parent)
+    private SellRowView CreateSellRow(RectTransform parent, ResourceData resource)
     {
-        RectTransform track = EconomyHUD.CreateRect("Scrollbar", parent);
-        track.anchorMin = new Vector2(1f, 0f);
-        track.anchorMax = new Vector2(1f, 1f);
-        track.pivot = new Vector2(1f, 0.5f);
-        track.sizeDelta = new Vector2(MerchantScrollbarWidth, 0f);
-        track.anchoredPosition = Vector2.zero;
-        EconomyHUD.CreatePanel(track, panelColor).raycastTarget = true;
+        SellRowView view = new SellRowView { resource = resource };
+        Image rowBg = LumiWorldUITheme.CreateRoundedSurface(parent, "SellRow_" + resource.resourceID, LumiWorldUITheme.Slot, new Color(0.88f, 0.85f, 0.80f, 1f), 14, 1.2f, 2f, 0.12f, true);
+        view.rect = rowBg.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(view.rect, 12f, 0f, LeftPaneWidth - 24f, 54f);
 
-        RectTransform slidingArea = EconomyHUD.CreateRect("SlidingArea", track);
-        EconomyHUD.Stretch(slidingArea);
+        Button rowBtn = rowBg.gameObject.AddComponent<Button>();
+        rowBtn.targetGraphic = rowBg;
+        LumiWorldUITheme.ApplyButtonDisabledNeutral(rowBtn);
+        ResourceData captured = resource;
+        rowBtn.onClick.AddListener(() => SelectSellResource(captured));
 
-        RectTransform handle = EconomyHUD.CreateRect("Handle", slidingArea);
-        EconomyHUD.Stretch(handle);
-        Image handleImage = EconomyHUD.CreatePanel(handle, mutedColor);
-        handleImage.raycastTarget = true;
+        GameObject icObj = new GameObject("Art", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(view.rect, false);
+        LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 12f, 8f, 38f, 38f);
+        Image ic = icObj.GetComponent<Image>();
+        ic.sprite = BiomeHarvestIndicator.GetResourceSprite(resource);
+        ic.preserveAspect = true;
+        ic.raycastTarget = false;
 
-        Scrollbar scrollbar = track.gameObject.AddComponent<Scrollbar>();
-        scrollbar.handleRect = handle;
-        scrollbar.targetGraphic = handleImage;
-        scrollbar.direction = Scrollbar.Direction.BottomToTop;
-        scrollbar.navigation = new Navigation { mode = Navigation.Mode.None };
-        return scrollbar;
+        view.nameText = LumiWorldUITheme.CreateLabel(view.rect, "Name", resource.resourceName, 14.5f, LumiWorldUITheme.Text, true);
+        LumiWorldUITheme.PlaceTopLeft(view.nameText.rectTransform, 60f, 14f, 220f, 26f);
+
+        // Quantity pill on listing (NO "owned" / NO "coins each" per P-11)
+        Image qtyPill = LumiWorldUITheme.CreateRoundedSurface(view.rect, "QtyPill", LumiWorldUITheme.Window, LumiWorldUITheme.Edge, 12, 1f, 0f, 0f);
+        qtyPill.rectTransform.anchorMin = qtyPill.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+        qtyPill.rectTransform.pivot = new Vector2(1f, 0.5f);
+        qtyPill.rectTransform.anchoredPosition = new Vector2(-108f, 0f);
+        qtyPill.rectTransform.sizeDelta = new Vector2(72f, 28f);
+        view.qtyText = LumiWorldUITheme.CreateLabel(qtyPill.rectTransform, "Qty", "×0", 13f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(view.qtyText.rectTransform);
+
+        GameObject cObj = new GameObject("Coin", typeof(RectTransform), typeof(Image));
+        cObj.transform.SetParent(view.rect, false);
+        RectTransform cRt = cObj.GetComponent<RectTransform>();
+        cRt.anchorMin = cRt.anchorMax = new Vector2(1f, 0.5f);
+        cRt.pivot = new Vector2(1f, 0.5f);
+        cRt.anchoredPosition = new Vector2(-74f, 0f);
+        cRt.sizeDelta = new Vector2(20f, 20f);
+        Image cImg = cObj.GetComponent<Image>();
+        cImg.sprite = EconomyHUD.CoinSprite;
+        cImg.preserveAspect = true;
+        cImg.raycastTarget = false;
+
+        view.priceText = LumiWorldUITheme.CreateLabel(view.rect, "Price", "0", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
+        view.priceText.rectTransform.anchorMin = view.priceText.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+        view.priceText.rectTransform.pivot = new Vector2(1f, 0.5f);
+        view.priceText.rectTransform.anchoredPosition = new Vector2(-16f, 0f);
+        view.priceText.rectTransform.sizeDelta = new Vector2(54f, 28f);
+
+        view.selectionBorder = LumiWorldUITheme.CreateSelectionBorder(view.rect, 14, 2.5f);
+        view.selectionBorder.enabled = false;
+
+        view.floatLayer = EconomyHUD.CreateRect("Floating", view.rect);
+        LumiWorldUITheme.Stretch(view.floatLayer);
+
+        return view;
     }
 
-    /// <summary>
-    /// Đặt rect theo một góc (hoặc cạnh) của parent: anchor và pivot cùng ở điểm đó, position tính từ điểm đó.
-    /// </summary>
-    private static void Place(RectTransform rect, Vector2 anchor, Vector2 position, Vector2 size)
+    private Sprite ResolvePortraitSprite(OrderTemplate tpl, string templateId, string customerName)
     {
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = anchor;
-        rect.sizeDelta = size;
-        rect.anchoredPosition = position;
+        if (tpl != null && tpl.portrait != null) return tpl.portrait;
+        string npcId = LumiWorldUITheme.ResolveOrderNpcPortraitId(templateId, customerName);
+        return LumiWorldUITheme.NpcPortrait(npcId) ?? EconomyHUD.CircleSprite;
     }
 
-    /// <summary>
-    /// Chữ đậm màu trắng căn giữa, phủ kín parent (nhãn của nút, chữ trong huy hiệu).
-    /// </summary>
-    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize, Color? color = null)
+    private Sprite GetGreenReqPillSprite()
     {
-        Color c = color ?? Color.white;
-        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, c, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(label.rectTransform);
-        label.text = text;
-        return label;
+        if (greenReqPillSprite != null) return greenReqPillSprite;
+        greenReqPillSprite = LumiWorldUITheme.GetBorderedSurfaceSprite(
+            "ReqPillGreen",
+            new Color(0.89f, 0.94f, 0.87f, 1f),
+            new Color(0.54f, 0.72f, 0.48f, 1f),
+            10,
+            1.2f);
+        return greenReqPillSprite;
+    }
+
+    private Sprite GetRedReqPillSprite()
+    {
+        if (redReqPillSprite != null) return redReqPillSprite;
+        redReqPillSprite = LumiWorldUITheme.GetBorderedSurfaceSprite(
+            "ReqPillRed",
+            new Color(0.96f, 0.89f, 0.88f, 1f),
+            new Color(0.80f, 0.45f, 0.42f, 1f),
+            10,
+            1.2f);
+        return redReqPillSprite;
     }
 
     private static void EnsureEventSystem()
     {
         if (FindAnyObjectByType<EventSystem>() != null) return;
-
-        // Project chỉ dùng Input System mới: StandaloneInputModule mặc định sẽ báo lỗi mỗi frame,
-        // nên dùng InputSystemUIInputModule và gán sẵn action giống AuthScreen
         GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
         eventSystem.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
-    }
-
-    /// <summary>
-    /// Chữ cái đầu của hai từ đầu tiên, ví dụ "Thợ mộc làng" thành "TM".
-    /// </summary>
-    private static string Initials(string name)
-    {
-        string initials = string.Empty;
-        foreach (string word in name.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
-        {
-            initials += char.ToUpperInvariant(word[0]);
-            if (initials.Length == 2) break;
-        }
-        return initials.Length > 0 ? initials : "?";
     }
 
     private static string FormatWait(TimeSpan wait)

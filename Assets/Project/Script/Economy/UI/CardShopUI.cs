@@ -2,121 +2,142 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using LumiWorld.Acs;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
-/// Cửa hàng thẻ trên màn chơi. Nút "Cửa hàng" nằm ngay dưới nút "Đơn hàng".
-/// Bấm vào mở bảng: mỗi ô là một thẻ đang bán, kèm loại thẻ, phí đặt, số lá đang có trên tay, giá
-/// và nút Mua (chỉ bật khi đủ Coins cho cả giá thẻ lẫn phí đặt). Thẻ mua xong vào thẳng bài trên tay.
-/// Nhiều thẻ thì cuộn chuột để xem hết.
-/// Bảng đang mở thì chặn chuột tới thẻ bài và bản đồ phía sau. Đóng bằng nút X, bấm ra ngoài bảng hoặc phím Esc.
-/// EconomyHUD tự tạo script này, không cần gắn tay.
+/// P-09 Card Shop — LumiWorld UI Production Pack:
+/// - Tabs: Nature (G-11), Creatures (G-12), and Special (G-14, shown when special cards exist in catalog).
+/// - Nature cards display their shared Island Origin glyph (I-01 Starter plain / I-02 Rainy marsh);
+///   clicking the island glyph reveals the island name popover without purchasing the card.
+/// - Single selection uses crisp #403F3C border (no checkmark).
+/// - Right inspector shows card preview, owned count, Buy price, Placement fee (without "when placing later"),
+///   quantity stepper, total cost, and "[G-25] Buy card".
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class CardShopUI : MonoBehaviour
 {
-    // Kích thước tính bằng pixel màn hình (EconomyHUD bù Scale Factor của Canvas)
-    private const float PanelPadding = 24f;
-    private const float HeaderHeight = 84f;
-    private const int Columns = 2;
-    private const float TileWidth = 356f;
-    private const float TileHeight = 146f;
-    private const float TileSpacing = 12f;
-    private const float ArtWidth = 92f;
-    private const float ArtHeight = 118f;
-    private const int VisibleRows = 3;
-    private const float ScrollbarWidth = 8f;
-    private const float ScrollbarGap = 10f;
+    private enum ShopTab
+    {
+        Nature,
+        Creatures,
+        Special
+    }
 
-    [Header("Nút mở cửa hàng")]
-    [Tooltip("Góc trên phải của nút, tính từ góc trên phải màn hình (mặc định nằm ngay dưới nút Đơn hàng)")]
+    private const float PanelWidth = 880f;
+    private const float PanelHeight = 560f;
+    private const float GridAreaWidth = 556f;
+    private const float TileWidth = 174f;
+    private const float TileHeight = 132f;
+    private const float TileGap = 10f;
+    private const int Columns = 3;
+
+    [Header("Legacy / Scene References")]
     [SerializeField] private Vector2 buttonCorner = new Vector2(-20f, -128f);
     [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
-
-    [Header("Look")]
-    [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
-    [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
-    [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
-    [SerializeField] private Color cardColor = new Color(1f, 1f, 1f, 0.95f);
-    [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
-    [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
-    [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
-    [SerializeField] private Color enoughColor = new Color(0.05f, 0.65f, 0.35f, 1f);
-    [SerializeField] private Color missingColor = new Color(0.90f, 0.35f, 0.25f, 1f);
-    [SerializeField] private Color coinColor = new Color(0.85f, 0.58f, 0.05f, 1f);
-    [SerializeField] private Color buyColor = new Color(0.01f, 0.60f, 0.90f, 1f);
-    [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
-
-    [Header("Màu nền thẻ chưa có ảnh, theo loại thẻ")]
-    [SerializeField] private Color creatureColor = new Color(0.78f, 0.50f, 0.24f, 1f);
-    [SerializeField] private Color terrainColor = new Color(0.30f, 0.62f, 0.36f, 1f);
-    [SerializeField] private Color buildingColor = new Color(0.36f, 0.48f, 0.70f, 1f);
-    [SerializeField] private Color specialColor = new Color(0.50f, 0.40f, 0.78f, 1f);
 
     private class TileView
     {
         public CardData card;
         public RectTransform rect;
-        public TextMeshProUGUI owned;
-        public TextMeshProUGUI price;
-        public Button buy;
-        public TextMeshProUGUI buyLabel;
+        public Image selectionBorder;
+        public TextMeshProUGUI nameText;
+        public TextMeshProUGUI priceText;
+        public Button islandButton;
         public RectTransform floatLayer;
         public Coroutine punch;
-        public int quantity = 1;
-        public TMP_InputField qtyInput;
-        public Button minusBtn;
-        public Button plusBtn;
+    }
+
+    private class TabView
+    {
+        public ShopTab tab;
+        public Button button;
+        public Image bg;
+        public Image icon;
+        public TextMeshProUGUI label;
+        public Shadow shadow;
     }
 
     private CurrencyWallet wallet;
-
     private RectTransform openButton;
     private GameObject window;
+    private RectTransform stageRect;
     private RectTransform panel;
-    private RectTransform balanceChip;
     private TextMeshProUGUI balanceText;
+    private RectTransform balanceChip;
+
+    private readonly List<TabView> tabViews = new List<TabView>();
+    private readonly List<TileView> allTiles = new List<TileView>();
+    private readonly List<TileView> visibleTiles = new List<TileView>();
+
+    private RectTransform gridContent;
+    private TextMeshProUGUI emptyGridLabel;
+
+    // Right detail inspector
+    private Image detailArt;
+    private Image detailFallbackBg;
+    private TextMeshProUGUI detailFallbackInitials;
+    private TextMeshProUGUI detailTitle;
+    private TextMeshProUGUI detailOwned;
+    private Button detailIslandPillBtn;
+    private Image detailIslandGlyph;
+    private TextMeshProUGUI detailIslandLabel;
+    private TextMeshProUGUI detailBuyPriceValue;
+    private TextMeshProUGUI detailFeeValue;
+    private TMP_InputField qtyInput;
+    private Button minusBtn;
+    private Button plusBtn;
+    private TextMeshProUGUI totalPriceText;
+    private Button buyButton;
+    private Image buyBtnBg;
+    private Image buyBtnIcon;
+    private TextMeshProUGUI buyBtnLabel;
+
+    // Island origin popover when clicking I-01 / I-02
+    private GameObject islandPopover;
+    private RectTransform islandPopoverCard;
+    private Image islandPopoverGlyph;
+    private TextMeshProUGUI islandPopoverTitle;
+    private TextMeshProUGUI islandPopoverSub;
+
+    private ShopTab activeTab = ShopTab.Nature;
+    private CardData selectedCard;
+    private int selectedQuantity = 1;
     private float panelScale = 1f;
+    private int lastScreenW;
+    private int lastScreenH;
+    private float lastLossyScale;
     private Coroutine popRoutine;
     private Coroutine balancePunch;
-    private readonly List<TileView> tiles = new List<TileView>();
 
     public bool IsOpen => window != null && window.activeSelf;
 
     private void Start()
     {
-        hudColor = buyColor = LumiWorld.Acs.LumiWorldUITheme.Primary;
-        panelColor = LumiWorld.Acs.LumiWorldUITheme.Window;
-        cardColor = LumiWorld.Acs.LumiWorldUITheme.Surface;
-        sectionColor = secondaryColor = LumiWorld.Acs.LumiWorldUITheme.Inset;
-        textColor = LumiWorld.Acs.LumiWorldUITheme.Text; mutedColor = LumiWorld.Acs.LumiWorldUITheme.Muted;
-        enoughColor = LumiWorld.Acs.LumiWorldUITheme.Success; missingColor = LumiWorld.Acs.LumiWorldUITheme.Error;
-        // Lần đầu gọi Instance sẽ tạo ví và nạp số dư đã lưu
         wallet = CurrencyWallet.Instance;
-
         BuildOpenButton();
         BuildWindow();
 
-        wallet.OnBalanceChanged += HandleBalanceChanged;
+        if (wallet != null)
+        {
+            wallet.OnBalanceChanged += HandleBalanceChanged;
+        }
         ShowBalance();
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         if (!IsOpen) return;
-
+        SyncStageScale();
     }
 
     private void OnDisable()
     {
-        // Coroutine dừng khi object bị tắt: trả mọi thứ về kích thước chuẩn và bỏ số bay còn dở
-        if (panel != null) panel.localScale = new Vector3(panelScale, panelScale, 1f);
+        if (panel != null) panel.localScale = Vector3.one;
         if (balanceChip != null) balanceChip.localScale = Vector3.one;
-
-        foreach (TileView tile in tiles)
+        foreach (TileView tile in allTiles)
         {
             tile.punch = null;
             if (tile.rect != null) tile.rect.localScale = Vector3.one;
@@ -126,28 +147,22 @@ public class CardShopUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (wallet != null) wallet.OnBalanceChanged -= HandleBalanceChanged;
+        if (wallet != null)
+        {
+            wallet.OnBalanceChanged -= HandleBalanceChanged;
+        }
     }
-
-    // =========================================================
-    // MỞ VÀ ĐÓNG CỬA HÀNG
-    // =========================================================
 
     public void Open()
     {
         if (window == null || IsOpen) return;
-
-        // Lên trên cùng Canvas để phủ cả thẻ bài và thông báo đang hiện
         transform.SetAsLastSibling();
         window.SetActive(true);
         EconomyHUD.BringWindowToFront(window);
-
-        // Màn hình nhỏ (ví dụ cửa sổ Game trong Editor) thì thu nhỏ bảng cho vừa
-        Rect area = ((RectTransform)transform).rect;
-        panelScale = area.width > 0f && area.height > 0f
-            ? Mathf.Clamp(Mathf.Min((area.width - 32f) / panel.sizeDelta.x, (area.height - 32f) / panel.sizeDelta.y), 0.5f, 1f)
-            : 1f;
-        Refresh();
+        SyncStageScale(force: true);
+        HideIslandPopover();
+        ShowBalance();
+        SelectTab(activeTab);
 
         if (popRoutine != null) StopCoroutine(popRoutine);
         popRoutine = StartCoroutine(PopIn());
@@ -156,6 +171,7 @@ public class CardShopUI : MonoBehaviour
     public void Close()
     {
         if (!IsOpen) return;
+        HideIslandPopover();
         window.SetActive(false);
         EconomyHUD.MarkWindowClosed();
     }
@@ -174,31 +190,104 @@ public class CardShopUI : MonoBehaviour
         {
             time += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(time / duration);
-            float scale = panelScale * Mathf.Lerp(0.92f, 1f, 1f - (1f - t) * (1f - t));
-            panel.localScale = new Vector3(scale, scale, 1f);
+            float scale = Mathf.Lerp(0.93f, 1f, 1f - (1f - t) * (1f - t));
+            if (panel != null) panel.localScale = new Vector3(scale, scale, 1f);
             yield return null;
         }
-
-        panel.localScale = new Vector3(panelScale, panelScale, 1f);
+        if (panel != null) panel.localScale = Vector3.one;
         popRoutine = null;
     }
 
-    // =========================================================
-    // CẬP NHẬT THEO DỮ LIỆU
-    // =========================================================
+    private void SyncStageScale(bool force = false)
+    {
+        if (stageRect == null) return;
+        float parentScale = transform.lossyScale.x;
+        if (!force && lastScreenW == Screen.width && lastScreenH == Screen.height && Mathf.Approximately(lastLossyScale, parentScale))
+            return;
+
+        lastScreenW = Screen.width;
+        lastScreenH = Screen.height;
+        lastLossyScale = parentScale;
+
+        panelScale = LumiWorldUITheme.ComputeFitScale(this, out Vector2 stageSize);
+        stageRect.anchorMin = stageRect.anchorMax = stageRect.pivot = Vector2.zero;
+        stageRect.anchoredPosition = Vector2.zero;
+        stageRect.sizeDelta = stageSize;
+        stageRect.localScale = Vector3.one * panelScale;
+    }
 
     private void HandleBalanceChanged(int balance, int delta, CoinReason reason)
     {
         ShowBalance();
         if (!IsOpen || !isActiveAndEnabled) return;
-
-        Punch(ref balancePunch, balanceChip, 1.1f);
+        Punch(ref balancePunch, balanceChip, 1.08f);
         Refresh();
     }
 
     private void ShowBalance()
     {
-        balanceText.text = FormatNumber(wallet.Balance);
+        if (balanceText != null && wallet != null)
+        {
+            balanceText.text = FormatNumber(wallet.Balance);
+        }
+    }
+
+    private void SelectTab(ShopTab nextTab)
+    {
+        activeTab = nextTab;
+        HideIslandPopover();
+
+        foreach (var tv in tabViews)
+        {
+            bool active = tv.tab == activeTab;
+            LumiWorldUITheme.SetSubTabActive(tv.bg, tv.icon, tv.label, tv.shadow, active);
+        }
+
+        visibleTiles.Clear();
+        int idx = 0;
+        foreach (TileView tile in allTiles)
+        {
+            bool match = ClassifyShopCard(tile.card) == activeTab;
+            tile.rect.gameObject.SetActive(match);
+            if (!match) continue;
+
+            int col = idx % Columns;
+            int row = idx / Columns;
+            tile.rect.anchoredPosition = new Vector2(
+                col * (TileWidth + TileGap) + TileWidth * 0.5f + 8f,
+                -(row * (TileHeight + TileGap) + TileHeight * 0.5f + 8f));
+            visibleTiles.Add(tile);
+            idx++;
+        }
+
+        int totalRows = Mathf.Max(1, (visibleTiles.Count + Columns - 1) / Columns);
+        float contentH = visibleTiles.Count > 0 ? totalRows * (TileHeight + TileGap) - TileGap + 16f : 200f;
+        gridContent.sizeDelta = new Vector2(0f, contentH);
+        gridContent.anchoredPosition = Vector2.zero;
+
+        if (emptyGridLabel != null)
+        {
+            emptyGridLabel.gameObject.SetActive(visibleTiles.Count == 0);
+        }
+
+        if (selectedCard == null || ClassifyShopCard(selectedCard) != activeTab)
+        {
+            selectedCard = visibleTiles.Count > 0 ? visibleTiles[0].card : null;
+            selectedQuantity = 1;
+            if (qtyInput != null) qtyInput.SetTextWithoutNotify("1");
+        }
+
+        Refresh();
+    }
+
+    private void SelectCard(CardData card)
+    {
+        if (card == null) return;
+        HideIslandPopover();
+        selectedCard = card;
+        selectedQuantity = 1;
+        if (qtyInput != null) qtyInput.SetTextWithoutNotify("1");
+        Refresh();
     }
 
     private void Refresh()
@@ -206,480 +295,698 @@ public class CardShopUI : MonoBehaviour
         if (!IsOpen) return;
 
         Dictionary<string, int> hand = CardShop.CountHand();
-        foreach (TileView tile in tiles)
-        {
-            hand.TryGetValue(CardShop.CardKey(tile.card), out int owned);
-            tile.owned.text = owned > 0 ? "In hand: " + owned : "Not in hand";
+        int balance = wallet != null ? wallet.Balance : 0;
 
-            UpdateTileState(tile);
+        foreach (TileView tile in visibleTiles)
+        {
+            bool isSelected = tile.card == selectedCard;
+            if (tile.selectionBorder != null) tile.selectionBorder.enabled = isSelected;
+
+            int price = CardShop.GetPrice(tile.card);
+            int minRequired = CardShop.GetRequiredCoins(tile.card, 1);
+            tile.priceText.text = FormatNumber(price);
+            tile.priceText.color = balance >= minRequired ? LumiWorldUITheme.Text : LumiWorldUITheme.Error;
+        }
+
+        RefreshInspector(hand);
+    }
+
+    private void RefreshInspector(Dictionary<string, int> hand)
+    {
+        if (selectedCard == null)
+        {
+            detailTitle.text = "No card selected";
+            detailOwned.text = "";
+            detailBuyPriceValue.text = "-";
+            detailFeeValue.text = "-";
+            totalPriceText.text = "-";
+            if (detailIslandPillBtn != null) detailIslandPillBtn.gameObject.SetActive(false);
+            buyButton.interactable = false;
+            buyBtnBg.color = new Color(0.62f, 0.59f, 0.55f, 1f);
+            buyBtnLabel.text = "Buy card";
+            return;
+        }
+
+        if (selectedCard.cardImage != null)
+        {
+            detailArt.sprite = selectedCard.cardImage;
+            detailArt.enabled = true;
+            detailFallbackBg.enabled = false;
+            detailFallbackInitials.gameObject.SetActive(false);
+        }
+        else
+        {
+            detailArt.enabled = false;
+            detailFallbackBg.enabled = true;
+            detailFallbackBg.color = TypeColor(selectedCard.cardType);
+            detailFallbackInitials.gameObject.SetActive(true);
+            detailFallbackInitials.text = Initials(CardShop.CardName(selectedCard));
+        }
+
+        detailTitle.text = CardShop.CardName(selectedCard);
+        hand.TryGetValue(CardShop.CardKey(selectedCard), out int owned);
+        detailOwned.text = "Owned " + FormatNumber(owned);
+
+        bool isNature = ClassifyShopCard(selectedCard) == ShopTab.Nature;
+        if (detailIslandPillBtn != null)
+        {
+            detailIslandPillBtn.gameObject.SetActive(isNature);
+            if (isNature)
+            {
+                string islandName = LumiWorldUITheme.GetCardOriginIslandName(selectedCard);
+                detailIslandGlyph.sprite = LumiWorldUITheme.IslandGlyph(islandName);
+                detailIslandLabel.text = islandName;
+            }
+        }
+
+        int unitPrice = CardShop.GetPrice(selectedCard);
+        int fee = Mathf.Max(0, selectedCard.placementFee);
+        int totalCost = unitPrice * selectedQuantity;
+        int required = CardShop.GetRequiredCoins(selectedCard, selectedQuantity);
+        bool affordable = wallet != null && wallet.CanAfford(required);
+        bool canBuy = CardShop.CanBuy(selectedCard, selectedQuantity);
+
+        detailBuyPriceValue.text = FormatNumber(unitPrice) + " coins";
+        detailFeeValue.text = FormatNumber(fee) + " coins";
+
+        totalPriceText.text = FormatNumber(totalCost) + " coins";
+        totalPriceText.color = affordable ? LumiWorldUITheme.Text : LumiWorldUITheme.Error;
+
+        buyButton.interactable = canBuy;
+        buyBtnBg.color = canBuy ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
+        buyBtnIcon.color = Color.white;
+        buyBtnLabel.color = Color.white;
+        buyBtnLabel.text = affordable ? "Buy card" : "Need " + FormatNumber(required);
+    }
+
+    private void ShowIslandPopover(CardData card, RectTransform anchor)
+    {
+        if (islandPopover == null || card == null || anchor == null) return;
+        string islandName = LumiWorldUITheme.GetCardOriginIslandName(card);
+        islandPopoverGlyph.sprite = LumiWorldUITheme.IslandGlyph(islandName);
+        islandPopoverTitle.text = islandName;
+        islandPopoverSub.text = "Island origin";
+
+        islandPopover.SetActive(true);
+        islandPopover.transform.SetAsLastSibling();
+
+        Vector3 worldPos = anchor.TransformPoint(new Vector3(anchor.rect.width * 0.5f, anchor.rect.height + 6f, 0f));
+        Vector2 localPoint = panel.InverseTransformPoint(worldPos);
+        float halfW = panel.rect.width * 0.5f;
+        float halfH = panel.rect.height * 0.5f;
+        localPoint.x = Mathf.Clamp(localPoint.x, -halfW + 96f, halfW - 96f);
+        localPoint.y = Mathf.Clamp(localPoint.y, -halfH + 40f, halfH - 54f);
+        islandPopoverCard.anchoredPosition = localPoint;
+    }
+
+    private void HideIslandPopover()
+    {
+        if (islandPopover != null && islandPopover.activeSelf)
+        {
+            islandPopover.SetActive(false);
         }
     }
 
-    private void UpdateTileState(TileView tile)
+    private void OnBuyClicked()
     {
-        int unitPrice = CardShop.GetPrice(tile.card);
-        int totalCost = unitPrice * tile.quantity;
-        tile.price.text = FormatNumber(totalCost);
-
-        int required = CardShop.GetRequiredCoins(tile.card, tile.quantity);
-        bool affordable = wallet.CanAfford(required);
-        tile.price.color = affordable ? coinColor : missingColor;
-
-        bool canBuy = CardShop.CanBuy(tile.card, tile.quantity);
-        tile.buy.interactable = canBuy;
-        tile.buyLabel.color = canBuy ? Color.white : mutedColor;
-        tile.buyLabel.text = affordable ? "Buy" : "Need " + FormatNumber(required) + " Coins";
-    }
-
-    private void BindTileStepper(TileView tile)
-    {
-        tile.minusBtn.onClick.AddListener(() =>
-        {
-            if (tile.quantity > 1)
-            {
-                tile.quantity--;
-                tile.qtyInput.text = tile.quantity.ToString();
-                UpdateTileState(tile);
-            }
-        });
-
-        tile.plusBtn.onClick.AddListener(() =>
-        {
-            if (tile.quantity < 99)
-            {
-                tile.quantity++;
-                tile.qtyInput.text = tile.quantity.ToString();
-                UpdateTileState(tile);
-            }
-        });
-
-        tile.qtyInput.onValueChanged.AddListener((val) =>
-        {
-            if (int.TryParse(val, out int q))
-            {
-                tile.quantity = Mathf.Clamp(q, 1, 99);
-                UpdateTileState(tile);
-            }
-        });
-
-        tile.qtyInput.onEndEdit.AddListener((val) =>
-        {
-            if (!int.TryParse(val, out int q) || q < 1)
-            {
-                tile.quantity = 1;
-            }
-            else
-            {
-                tile.quantity = Mathf.Clamp(q, 1, 99);
-            }
-            tile.qtyInput.text = tile.quantity.ToString();
-            UpdateTileState(tile);
-        });
-    }
-
-    // =========================================================
-    // NÚT BẤM
-    // =========================================================
-
-    private void Buy(TileView tile)
-    {
-        string cardName = CardShop.CardName(tile.card);
-        int qty = Mathf.Max(1, tile.quantity);
-        int unitPrice = CardShop.GetPrice(tile.card);
+        if (selectedCard == null) return;
+        CardData cardToBuy = selectedCard;
+        int qty = Mathf.Clamp(selectedQuantity, 1, 99);
+        int unitPrice = CardShop.GetPrice(cardToBuy);
         int totalPrice = unitPrice * qty;
+        string cardName = CardShop.CardName(cardToBuy);
 
         string question = qty == 1
-            ? $"Do you want to buy 1x card \"{cardName}\" for {totalPrice} Coins?"
-            : $"Do you want to buy {qty}x card \"{cardName}\" for {totalPrice} Coins ({unitPrice} Coins each)?";
+            ? $"Buy 1× {cardName} for {totalPrice} Coins?"
+            : $"Buy {qty}× {cardName} for {totalPrice} Coins ({unitPrice} each)?";
 
-        GameDialogUI.ShowConfirm(
-            question,
-            () =>
+        GameDialogUI.ShowConfirm(question, () =>
+        {
+            if (!CardShop.TryBuy(cardToBuy, qty))
             {
-                if (!CardShop.TryBuy(tile.card, qty))
-                {
-                    GameDialogUI.ShowNotice("Not enough Coins to buy this card!");
-                    return;
-                }
-
-                // Thẻ đã vào bài trên tay (kèm tiếng "ding" của bài thưởng); cập nhật số lá đang có
-                Refresh();
-                Punch(ref tile.punch, tile.rect, 1.05f);
-
-                float x = TileWidth * 0.5f - 12f - 56f;
-                string floatTxt = qty == 1 ? "+1 card" : $"+{qty} cards";
-                StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, floatTxt, enoughColor, 22f,
-                    new Vector2(x, 54f), new Vector2(x, 100f), 1f));
+                GameDialogUI.ShowNotice("Not enough Coins to buy this card!");
+                return;
             }
-        );
+
+            TileView tile = visibleTiles.Find(t => t.card == cardToBuy);
+            if (tile != null)
+            {
+                Punch(ref tile.punch, tile.rect, 1.05f);
+                string floatTxt = qty == 1 ? "+1 card" : $"+{qty} cards";
+                StartCoroutine(EconomyHUD.FloatText(tile.floatLayer, floatTxt, LumiWorldUITheme.Success, 20f,
+                    new Vector2(0f, 16f), new Vector2(0f, 54f), 1f));
+            }
+            Refresh();
+        }, title: "BUY CARD");
     }
 
     private void Punch(ref Coroutine routine, Transform target, float peak)
     {
+        if (target == null || !isActiveAndEnabled) return;
         if (routine != null) StopCoroutine(routine);
         target.localScale = Vector3.one;
-        routine = StartCoroutine(EconomyHUD.Punch(target, peak, 0.25f));
+        routine = StartCoroutine(EconomyHUD.Punch(target, peak, 0.22f));
     }
-
-    // =========================================================
-    // DỰNG UI BẰNG CODE
-    // =========================================================
 
     private void BuildOpenButton()
     {
-        // Neo góc trên phải, pivot ở giữa để nút nảy quanh tâm
+        // Legacy hidden anchor kept only for CollapsibleHUDToolbar cleanup compatibility
         openButton = EconomyHUD.CreateRect("ShopButton", transform);
         openButton.anchorMin = new Vector2(1f, 1f);
         openButton.anchorMax = new Vector2(1f, 1f);
         openButton.pivot = new Vector2(0.5f, 0.5f);
         openButton.sizeDelta = buttonSize;
         openButton.anchoredPosition = buttonCorner - buttonSize * 0.5f;
-
-        EconomyHUD.AddButton(openButton, hudColor).onClick.AddListener(Toggle);
-        CreateLabel(openButton, "Shop", 20f);
+        var cg = openButton.gameObject.AddComponent<CanvasGroup>();
+        cg.alpha = 0f;
+        cg.blocksRaycasts = false;
+        cg.interactable = false;
     }
 
     private void BuildWindow()
     {
-        IReadOnlyList<CardData> cards = CardShop.Cards;
-        int rows = Mathf.Max(1, (cards.Count + Columns - 1) / Columns);
-        bool scrolls = rows > VisibleRows;
-
-        float gridWidth = Columns * TileWidth + (Columns - 1) * TileSpacing;
-        float gridHeight = rows * TileHeight + (rows - 1) * TileSpacing;
-
-        // Nhiều thẻ thì chỉ hiện 3 hàng, hàng thứ tư ló ra một phần để người chơi biết là cuộn được
-        float viewHeight = scrolls ? VisibleRows * (TileHeight + TileSpacing) + TileHeight * 0.4f : gridHeight;
-        float scrollWidth = gridWidth + (scrolls ? ScrollbarGap + ScrollbarWidth : 0f);
-        float panelWidth = PanelPadding * 2f + scrollWidth;
-        float panelHeight = HeaderHeight + viewHeight + PanelPadding;
-
         RectTransform windowRect = EconomyHUD.CreateRect("Window", transform);
-        EconomyHUD.Stretch(windowRect);
+        LumiWorldUITheme.Stretch(windowRect);
         window = windowRect.gameObject;
         EconomyHUD.RegisterWindow(window, Close);
 
-        // Nền mờ phủ cả màn hình: chặn chuột tới thẻ bài và bản đồ, bấm vào thì đóng cửa hàng
-        RectTransform backdropRect = EconomyHUD.CreateRect("Backdrop", windowRect);
-        EconomyHUD.Stretch(backdropRect);
-        Image backdrop = backdropRect.gameObject.AddComponent<Image>();
-        backdrop.color = backdropColor;
-        Button backdropButton = backdropRect.gameObject.AddComponent<Button>();
-        backdropButton.transition = Selectable.Transition.None;
-        backdropButton.navigation = new Navigation { mode = Navigation.Mode.None };
-        backdropButton.onClick.AddListener(Close);
+        // Backdrop
+        GameObject bdObj = new GameObject("Backdrop", typeof(RectTransform), typeof(Image), typeof(Button));
+        bdObj.transform.SetParent(windowRect, false);
+        LumiWorldUITheme.Stretch(bdObj.GetComponent<RectTransform>());
+        bdObj.GetComponent<Image>().color = LumiWorldUITheme.Backdrop;
+        Button bdBtn = bdObj.GetComponent<Button>();
+        bdBtn.transition = Selectable.Transition.None;
+        bdBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+        bdBtn.onClick.AddListener(Close);
 
-        // Bảng nằm giữa màn hình; nền bảng nhận chuột nên bấm bên trong không đóng bảng
-        panel = EconomyHUD.CreateRect("Panel", windowRect);
-        panel.sizeDelta = new Vector2(panelWidth, panelHeight);
-        EconomyHUD.CreatePanel(panel, panelColor).raycastTarget = true;
+        // Responsive FitScale stage (matches P-00 / P-01 / P-05)
+        GameObject stageObj = new GameObject("FitStage", typeof(RectTransform));
+        stageObj.transform.SetParent(windowRect, false);
+        stageRect = stageObj.GetComponent<RectTransform>();
+        SyncStageScale(force: true);
 
-        BuildHeader();
+        // Main Window
+        Image panelImg = LumiWorldUITheme.CreateRoundedSurface(
+            stageRect,
+            "Panel",
+            LumiWorldUITheme.Window,
+            LumiWorldUITheme.Edge,
+            24,
+            1.5f,
+            6f,
+            0.22f,
+            raycastTarget: true);
+        panel = panelImg.rectTransform;
+        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
+        panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+        panel.anchoredPosition = Vector2.zero;
 
-        RectTransform content = BuildScrollArea(new Vector2(scrollWidth, viewHeight), gridHeight, scrolls);
-        for (int i = 0; i < cards.Count; i++)
+        // Header (No LumiWorld logo)
+        GameObject hdrIconObj = new GameObject("HeaderIcon", typeof(RectTransform), typeof(Image));
+        hdrIconObj.transform.SetParent(panel, false);
+        LumiWorldUITheme.PlaceTopLeft(hdrIconObj.GetComponent<RectTransform>(), 24f, 18f, 24f, 24f);
+        Image hdrIcon = hdrIconObj.GetComponent<Image>();
+        hdrIcon.sprite = LumiWorldUITheme.Glyph("G-03");
+        hdrIcon.color = LumiWorldUITheme.Text;
+        hdrIcon.preserveAspect = true;
+        hdrIcon.raycastTarget = false;
+
+        TextMeshProUGUI titleTmp = LumiWorldUITheme.CreateLabel(panel, "Title", "Card Shop", 20f, LumiWorldUITheme.Text, true);
+        LumiWorldUITheme.PlaceTopLeft(titleTmp.rectTransform, 56f, 13f, 260f, 34f);
+
+        LumiWorldUITheme.CreateCoinChip(panel, 64f, 14f, out balanceText, EconomyHUD.CoinSprite, 118f, 34f);
+        balanceChip = panel.Find("CoinBalanceChip") as RectTransform;
+        LumiWorldUITheme.CreateCloseButton(panel, 22f, 14f, Close, 34f);
+
+        // Category Sub-Tabs (Nature | Creatures | Special if present)
+        IReadOnlyList<CardData> catalogCards = CardShop.Cards;
+        bool hasSpecial = false;
+        foreach (CardData c in catalogCards)
         {
-            tiles.Add(BuildTile(content, cards[i], i));
+            if (ClassifyShopCard(c) == ShopTab.Special) { hasSpecial = true; break; }
         }
 
-        if (cards.Count == 0)
-        {
-            TextMeshProUGUI empty = EconomyHUD.CreateText("Empty", content, 17f, mutedColor, TextAlignmentOptions.Center);
-            EconomyHUD.Stretch(empty.rectTransform);
-            empty.text = "The shop has no cards for sale yet";
-        }
+        BuildTabs(hasSpecial);
+        BuildLeftGrid(catalogCards);
+        BuildRightInspector();
+        BuildIslandPopover();
 
         window.SetActive(false);
     }
 
-    private void BuildHeader()
+    private void BuildTabs(bool includeSpecial)
     {
-        TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 26f, textColor, TextAlignmentOptions.Left);
-        Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -16f), new Vector2(420f, 36f));
-        title.text = "Card Shop";
+        var defs = new List<(ShopTab tab, string label, string glyph, float w)>
+        {
+            (ShopTab.Nature, "Nature", "G-11", 122f),
+            (ShopTab.Creatures, "Creatures", "G-12", 134f)
+        };
+        if (includeSpecial)
+        {
+            defs.Add((ShopTab.Special, "Special", "G-14", 122f));
+        }
 
-        TextMeshProUGUI subtitle = EconomyHUD.CreateText("Subtitle", panel, 15f, mutedColor, TextAlignmentOptions.Left);
-        subtitle.fontStyle = FontStyles.Normal;
-        Place(subtitle.rectTransform, new Vector2(0f, 1f), new Vector2(PanelPadding, -52f), new Vector2(500f, 22f));
-        subtitle.text = "The price is paid once, the placement fee every time you place the card";
+        float curX = 24f;
+        tabViews.Clear();
+        foreach (var d in defs)
+        {
+            ShopTab captured = d.tab;
+            Button btn = LumiWorldUITheme.CreateSubTabButton(
+                panel,
+                "Tab_" + d.label,
+                d.label,
+                d.glyph,
+                13.5f,
+                () => SelectTab(captured),
+                out Image bg,
+                out Image ic,
+                out TextMeshProUGUI lbl,
+                out Shadow sh);
+            LumiWorldUITheme.PlaceTopLeft((RectTransform)btn.transform, curX, 60f, d.w, 32f);
+            curX += d.w + 8f;
 
-        // Nút đóng ở góc phải, số dư Coins nằm ngay bên trái nút
-        RectTransform closeRect = EconomyHUD.CreateRect("CloseButton", panel);
-        Place(closeRect, new Vector2(1f, 1f), new Vector2(-PanelPadding, -18f), new Vector2(44f, 40f));
-        EconomyHUD.AddButton(closeRect, secondaryColor).onClick.AddListener(Close);
-        CreateLabel(closeRect, "X", 20f, textColor);
-
-        balanceChip = EconomyHUD.CreateRect("Balance", panel);
-        balanceChip.anchorMin = new Vector2(1f, 1f);
-        balanceChip.anchorMax = new Vector2(1f, 1f);
-        balanceChip.pivot = new Vector2(0.5f, 0.5f);
-        balanceChip.sizeDelta = new Vector2(150f, 40f);
-        balanceChip.anchoredPosition = new Vector2(-(PanelPadding + 44f + 10f + 75f), -38f);
-        EconomyHUD.CreateBorderedPanel(balanceChip, new Color(0.06f, 0.09f, 0.16f, 0.92f), new Color(0.08f, 0.58f, 0.95f, 0.60f));
-        EconomyHUD.CreateIcon("CoinIcon", balanceChip, EconomyHUD.CoinSprite, 26f, 10f);
-
-        balanceText = EconomyHUD.CreateText("Value", balanceChip, 20f, Color.white, TextAlignmentOptions.Right);
-        balanceText.fontStyle = FontStyles.Bold;
-        RectTransform valueRect = balanceText.rectTransform;
-        valueRect.anchorMin = Vector2.zero;
-        valueRect.anchorMax = Vector2.one;
-        valueRect.offsetMin = new Vector2(42f, 0f);
-        valueRect.offsetMax = new Vector2(-12f, 0f);
+            tabViews.Add(new TabView { tab = d.tab, button = btn, bg = bg, icon = ic, label = lbl, shadow = sh });
+        }
     }
 
-    /// <summary>
-    /// Vùng cuộn dọc dưới tiêu đề: viewport cắt phần thừa, content chứa các ô thẻ, thanh cuộn khi thẻ nhiều hơn 3 hàng.
-    /// Trả về content để đặt ô thẻ vào.
-    /// </summary>
-    private RectTransform BuildScrollArea(Vector2 size, float contentHeight, bool scrolls)
+    private void BuildLeftGrid(IReadOnlyList<CardData> catalogCards)
     {
-        RectTransform scrollRect = EconomyHUD.CreateRect("Cards", panel);
-        Place(scrollRect, new Vector2(0f, 1f), new Vector2(PanelPadding, -HeaderHeight), size);
-        ScrollRect scroll = scrollRect.gameObject.AddComponent<ScrollRect>();
+        Image wellImg = LumiWorldUITheme.CreateRoundedSurface(
+            panel,
+            "GridWell",
+            LumiWorldUITheme.Well,
+            new Color(0.84f, 0.80f, 0.75f, 1f),
+            18,
+            1.2f,
+            0f,
+            0f,
+            raycastTarget: true);
+        LumiWorldUITheme.PlaceTopLeft(wellImg.rectTransform, 24f, 102f, GridAreaWidth, 434f);
 
-        RectTransform viewport = EconomyHUD.CreateRect("Viewport", scrollRect);
-        EconomyHUD.Stretch(viewport);
-        if (scrolls) viewport.offsetMax = new Vector2(-(ScrollbarGap + ScrollbarWidth), 0f);
-        viewport.gameObject.AddComponent<RectMask2D>();
+        GameObject scrollObj = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
+        scrollObj.transform.SetParent(wellImg.transform, false);
+        RectTransform scrollRt = scrollObj.GetComponent<RectTransform>();
+        LumiWorldUITheme.Stretch(scrollRt, 4f);
+        ScrollRect scroll = scrollObj.GetComponent<ScrollRect>();
 
-        // Ảnh trong suốt để lăn chuột ở khe giữa các ô vẫn cuộn được
-        Image hitArea = viewport.gameObject.AddComponent<Image>();
-        hitArea.color = Color.clear;
+        GameObject vpObj = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D), typeof(Image));
+        vpObj.transform.SetParent(scrollRt, false);
+        RectTransform vpRt = vpObj.GetComponent<RectTransform>();
+        LumiWorldUITheme.Stretch(vpRt);
+        vpObj.GetComponent<Image>().color = Color.clear;
 
-        RectTransform content = EconomyHUD.CreateRect("Content", viewport);
-        content.anchorMin = new Vector2(0f, 1f);
-        content.anchorMax = new Vector2(1f, 1f);
-        content.pivot = new Vector2(0.5f, 1f);
-        content.sizeDelta = new Vector2(0f, contentHeight);
-        content.anchoredPosition = Vector2.zero;
+        GameObject contentObj = new GameObject("Content", typeof(RectTransform));
+        contentObj.transform.SetParent(vpRt, false);
+        gridContent = contentObj.GetComponent<RectTransform>();
+        gridContent.anchorMin = new Vector2(0f, 1f);
+        gridContent.anchorMax = new Vector2(1f, 1f);
+        gridContent.pivot = new Vector2(0.5f, 1f);
+        gridContent.anchoredPosition = Vector2.zero;
+        gridContent.sizeDelta = new Vector2(0f, 300f);
 
-        scroll.viewport = viewport;
-        scroll.content = content;
+        scroll.viewport = vpRt;
+        scroll.content = gridContent;
         scroll.horizontal = false;
         scroll.vertical = true;
         scroll.movementType = ScrollRect.MovementType.Clamped;
-        scroll.scrollSensitivity = 10f;
+        scroll.scrollSensitivity = 18f;
 
-        if (scrolls) scroll.verticalScrollbar = BuildScrollbar(scrollRect);
-        return content;
+        emptyGridLabel = LumiWorldUITheme.CreateLabel(vpRt, "Empty", "No cards in this category yet.", 15f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(emptyGridLabel.rectTransform);
+        emptyGridLabel.gameObject.SetActive(false);
+
+        allTiles.Clear();
+        for (int i = 0; i < catalogCards.Count; i++)
+        {
+            CardData c = catalogCards[i];
+            if (c == null) continue;
+            allTiles.Add(CreateTile(gridContent, c));
+        }
     }
 
-    private Scrollbar BuildScrollbar(RectTransform parent)
-    {
-        RectTransform track = EconomyHUD.CreateRect("Scrollbar", parent);
-        track.anchorMin = new Vector2(1f, 0f);
-        track.anchorMax = new Vector2(1f, 1f);
-        track.pivot = new Vector2(1f, 0.5f);
-        track.sizeDelta = new Vector2(ScrollbarWidth, 0f);
-        track.anchoredPosition = Vector2.zero;
-        EconomyHUD.CreatePanel(track, sectionColor).raycastTarget = true;
-
-        RectTransform slidingArea = EconomyHUD.CreateRect("SlidingArea", track);
-        EconomyHUD.Stretch(slidingArea);
-
-        RectTransform handle = EconomyHUD.CreateRect("Handle", slidingArea);
-        EconomyHUD.Stretch(handle);
-        Image handleImage = EconomyHUD.CreatePanel(handle, mutedColor);
-        handleImage.raycastTarget = true;
-
-        Scrollbar scrollbar = track.gameObject.AddComponent<Scrollbar>();
-        scrollbar.handleRect = handle;
-        scrollbar.targetGraphic = handleImage;
-        scrollbar.direction = Scrollbar.Direction.BottomToTop;
-        scrollbar.navigation = new Navigation { mode = Navigation.Mode.None };
-        return scrollbar;
-    }
-
-    private TileView BuildTile(RectTransform content, CardData card, int index)
+    private TileView CreateTile(RectTransform parent, CardData card)
     {
         TileView tile = new TileView { card = card };
-        int column = index % Columns;
-        int row = index / Columns;
 
-        // Pivot ở giữa để ô nảy quanh tâm
-        tile.rect = EconomyHUD.CreateRect(card.name, content);
-        tile.rect.anchorMin = new Vector2(0f, 1f);
-        tile.rect.anchorMax = new Vector2(0f, 1f);
+        Image bgImg = LumiWorldUITheme.CreateRoundedSurface(
+            parent,
+            "Tile_" + card.name,
+            LumiWorldUITheme.Slot,
+            new Color(0.88f, 0.85f, 0.80f, 1f),
+            15,
+            1.2f,
+            2.5f,
+            0.13f,
+            raycastTarget: true);
+        tile.rect = bgImg.rectTransform;
+        tile.rect.anchorMin = tile.rect.anchorMax = new Vector2(0f, 1f);
         tile.rect.pivot = new Vector2(0.5f, 0.5f);
         tile.rect.sizeDelta = new Vector2(TileWidth, TileHeight);
-        tile.rect.anchoredPosition = new Vector2(
-            column * (TileWidth + TileSpacing) + TileWidth * 0.5f,
-            -(row * (TileHeight + TileSpacing) + TileHeight * 0.5f));
-        EconomyHUD.CreateBorderedPanel(tile.rect, cardColor);
 
-        // Ảnh thẻ bên trái. Thẻ chưa có ảnh: chữ cái đầu của tên trên nền màu theo loại thẻ
-        RectTransform artRect = EconomyHUD.CreateRect("Art", tile.rect);
-        Place(artRect, new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(ArtWidth, ArtHeight));
-        Image art = artRect.gameObject.AddComponent<Image>();
-        art.raycastTarget = false;
-        Sprite spr = card.cardImage;
-        if (spr == null)
+        Button cardBtn = bgImg.gameObject.AddComponent<Button>();
+        cardBtn.targetGraphic = bgImg;
+        LumiWorldUITheme.ApplyButtonDisabledNeutral(cardBtn);
+        cardBtn.onClick.AddListener(() => SelectCard(card));
+
+        // Left vertical Card Art (80 x 112 inside 174 x 132 tile)
+        GameObject artObj = new GameObject("Art", typeof(RectTransform), typeof(Image));
+        artObj.transform.SetParent(tile.rect, false);
+        LumiWorldUITheme.PlaceTopLeft(artObj.GetComponent<RectTransform>(), 8f, 10f, 80f, 112f);
+        Image artImg = artObj.GetComponent<Image>();
+        artImg.raycastTarget = false;
+        if (card.cardImage != null)
         {
-            string id = (card.cardID ?? "").ToLowerInvariant();
-            string cname = (card.cardName ?? "").ToLowerInvariant();
-            string combined = id + " " + cname + " " + (card.name ?? "").ToLowerInvariant();
-
-            if (combined.Contains("cow") || combined.Contains("bo"))
-                spr = Resources.Load<Sprite>("CreatureAvatars/18_Cow") ?? Resources.Load<Sprite>("CreatureAvatars/Cow");
-            else if (combined.Contains("fox") || combined.Contains("cao"))
-                spr = Resources.Load<Sprite>("CreatureAvatars/19_Fox") ?? Resources.Load<Sprite>("CreatureAvatars/Fox");
-            else if (combined.Contains("canoc") || combined.Contains("puffer") || combined.Contains("cá nóc") || combined.Contains("ca noc"))
-                spr = Resources.Load<Sprite>("CreatureAvatars/20_Pufferfish") ?? Resources.Load<Sprite>("CreatureAvatars/Pufferfish");
-            else if (combined.Contains("braluff"))
-                spr = Resources.Load<Sprite>("CreatureAvatars/17_Braluff") ?? Resources.Load<Sprite>("CreatureAvatars/Braluff");
-        }
-
-        if (spr != null)
-        {
-            art.sprite = spr;
-            art.preserveAspect = true;
+            artImg.sprite = card.cardImage;
+            artImg.preserveAspect = true;
         }
         else
         {
-            art.sprite = EconomyHUD.RoundedSprite;
-            art.type = Image.Type.Sliced;
-            art.color = TypeColor(card.cardType);
-            CreateLabel(artRect, Initials(CardShop.CardName(card)), 34f);
+            artImg.sprite = LumiWorldUITheme.SurfaceSprite;
+            artImg.type = Image.Type.Sliced;
+            artImg.color = TypeColor(card.cardType);
+            TextMeshProUGUI initTmp = LumiWorldUITheme.CreateLabel(artObj.transform, "Init", Initials(CardShop.CardName(card)), 22f, Color.white, true, TextAlignmentOptions.Center);
+            LumiWorldUITheme.Stretch(initTmp.rectTransform);
         }
 
-        // Cột chữ bên phải ảnh: tên, loại thẻ và phí đặt, số lá đang có
-        float textX = 12f + ArtWidth + 14f;
-        float textWidth = TileWidth - textX - 12f;
+        // Right Column inside Tile
+        float infoX = 94f;
+        float infoW = TileWidth - infoX - 8f;
+        bool isNature = ClassifyShopCard(card) == ShopTab.Nature;
 
-        TextMeshProUGUI cardName = EconomyHUD.CreateText("Name", tile.rect, 19f, textColor, TextAlignmentOptions.Left);
-        Place(cardName.rectTransform, new Vector2(0f, 1f), new Vector2(textX, -12f), new Vector2(textWidth, 26f));
-        cardName.enableAutoSizing = true;
-        cardName.fontSizeMin = 13f;
-        cardName.fontSizeMax = 19f;
-        cardName.text = CardShop.CardName(card);
+        if (isNature)
+        {
+            string islandName = LumiWorldUITheme.GetCardOriginIslandName(card);
+            GameObject iBtnObj = new GameObject("IslandOriginBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+            iBtnObj.transform.SetParent(tile.rect, false);
+            RectTransform iRt = iBtnObj.GetComponent<RectTransform>();
+            LumiWorldUITheme.PlaceTopLeft(iRt, infoX, 12f, 24f, 24f);
 
-        TextMeshProUGUI info = EconomyHUD.CreateText("Info", tile.rect, 13f, mutedColor, TextAlignmentOptions.Left);
-        info.fontStyle = FontStyles.Normal;
-        Place(info.rectTransform, new Vector2(0f, 1f), new Vector2(textX, -40f), new Vector2(textWidth, 18f));
-        info.text = TypeName(card.cardType) + " · " + (card.placementFee > 0 ? "fee " + FormatNumber(card.placementFee) : "free to place");
+            Image iBg = iBtnObj.GetComponent<Image>();
+            iBg.sprite = LumiWorldUITheme.PillSprite;
+            iBg.type = Image.Type.Sliced;
+            iBg.color = LumiWorldUITheme.Window;
+            iBg.raycastTarget = true;
 
-        tile.owned = EconomyHUD.CreateText("Owned", tile.rect, 13f, mutedColor, TextAlignmentOptions.Left);
-        tile.owned.fontStyle = FontStyles.Normal;
-        Place(tile.owned.rectTransform, new Vector2(0f, 1f), new Vector2(textX, -60f), new Vector2(textWidth, 18f));
+            GameObject iIcObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+            iIcObj.transform.SetParent(iRt, false);
+            LumiWorldUITheme.Stretch(iIcObj.GetComponent<RectTransform>(), 4f);
+            Image iIc = iIcObj.GetComponent<Image>();
+            iIc.sprite = LumiWorldUITheme.IslandGlyph(islandName);
+            iIc.color = LumiWorldUITheme.Text;
+            iIc.preserveAspect = true;
+            iIc.raycastTarget = false;
 
-        // Giá: đồng xu và số Coins ở góc dưới cột chữ, nút Mua và Stepper ở góc dưới bên phải
-        RectTransform priceRect = EconomyHUD.CreateRect("Price", tile.rect);
-        Place(priceRect, Vector2.zero, new Vector2(textX, 10f), new Vector2(textWidth - 124f, 36f));
-        EconomyHUD.CreateIcon("CoinIcon", priceRect, EconomyHUD.CoinSprite, 24f, 0f);
+            Button iBtn = iBtnObj.GetComponent<Button>();
+            iBtn.targetGraphic = iBg;
+            LumiWorldUITheme.ApplyButtonDisabledNeutral(iBtn);
+            iBtn.onClick.AddListener(() => ShowIslandPopover(card, iRt));
+            tile.islandButton = iBtn;
+        }
 
-        tile.price = EconomyHUD.CreateText("Value", priceRect, 21f, coinColor, TextAlignmentOptions.Left);
-        RectTransform valueRect = tile.price.rectTransform;
-        valueRect.anchorMin = Vector2.zero;
-        valueRect.anchorMax = Vector2.one;
-        valueRect.offsetMin = new Vector2(30f, 0f);
-        valueRect.offsetMax = Vector2.zero;
-        tile.price.text = FormatNumber(CardShop.GetPrice(card));
+        tile.nameText = LumiWorldUITheme.CreateLabel(
+            tile.rect,
+            "CardName",
+            CardShop.CardName(card),
+            12.5f,
+            LumiWorldUITheme.Text,
+            false,
+            TextAlignmentOptions.TopLeft,
+            wrap: true);
+        tile.nameText.enableAutoSizing = true;
+        tile.nameText.fontSizeMin = 10f;
+        tile.nameText.fontSizeMax = 13f;
+        LumiWorldUITheme.PlaceTopLeft(tile.nameText.rectTransform, infoX, isNature ? 40f : 16f, infoW, 44f);
 
-        // Stepper: [-] [_] [+] đặt ngay phía trên nút Mua
-        RectTransform stepperRect = EconomyHUD.CreateRect("Stepper", tile.rect);
-        Place(stepperRect, new Vector2(1f, 0f), new Vector2(-12f, 50f), new Vector2(112f, 28f));
+        // Coin Price Row at bottom right of tile
+        GameObject coinObj = new GameObject("Coin", typeof(RectTransform), typeof(Image));
+        coinObj.transform.SetParent(tile.rect, false);
+        LumiWorldUITheme.PlaceTopLeft(coinObj.GetComponent<RectTransform>(), infoX, 100f, 16f, 16f);
+        Image coinImg = coinObj.GetComponent<Image>();
+        coinImg.sprite = EconomyHUD.CoinSprite;
+        coinImg.preserveAspect = true;
+        coinImg.raycastTarget = false;
 
-        // Nút trừ (-)
-        RectTransform minusRect = EconomyHUD.CreateRect("MinusBtn", stepperRect);
-        Place(minusRect, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(28f, 28f));
-        tile.minusBtn = EconomyHUD.AddButton(minusRect, secondaryColor);
-        CreateLabel(minusRect, "-", 18f, textColor);
+        tile.priceText = LumiWorldUITheme.CreateLabel(tile.rect, "Price", FormatNumber(CardShop.GetPrice(card)), 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(tile.priceText.rectTransform, infoX + 20f, 97f, infoW - 20f, 22f);
 
-        // Ô nhập số (_)
-        RectTransform inputRect = EconomyHUD.CreateRect("QtyInput", stepperRect);
-        Place(inputRect, new Vector2(0f, 0f), new Vector2(32f, 0f), new Vector2(48f, 28f));
-        Image inputBg = EconomyHUD.CreateBorderedPanel(inputRect, sectionColor);
-        inputBg.raycastTarget = true;
+        tile.selectionBorder = LumiWorldUITheme.CreateSelectionBorder(tile.rect, 15, 2.5f);
+        tile.selectionBorder.enabled = false;
 
-        TextMeshProUGUI inputText = EconomyHUD.CreateText("Text", inputRect, 15f, textColor, TextAlignmentOptions.Center);
-        inputText.fontStyle = FontStyles.Bold;
-        EconomyHUD.Stretch(inputText.rectTransform);
-        inputText.rectTransform.offsetMin = new Vector2(2f, 0f);
-        inputText.rectTransform.offsetMax = new Vector2(-2f, 0f);
+        tile.floatLayer = EconomyHUD.CreateRect("Floating", tile.rect);
+        LumiWorldUITheme.Stretch(tile.floatLayer);
 
-        tile.qtyInput = inputRect.gameObject.AddComponent<TMP_InputField>();
-        tile.qtyInput.targetGraphic = inputBg;
-        tile.qtyInput.textComponent = inputText;
-        tile.qtyInput.contentType = TMP_InputField.ContentType.IntegerNumber;
-        tile.qtyInput.characterLimit = 3;
-        tile.qtyInput.lineType = TMP_InputField.LineType.SingleLine;
-        tile.qtyInput.text = "1";
-
-        // Nút cộng (+)
-        RectTransform plusRect = EconomyHUD.CreateRect("PlusBtn", stepperRect);
-        Place(plusRect, new Vector2(0f, 0f), new Vector2(84f, 0f), new Vector2(28f, 28f));
-        tile.plusBtn = EconomyHUD.AddButton(plusRect, secondaryColor);
-        CreateLabel(plusRect, "+", 18f, textColor);
-
-        BindTileStepper(tile);
-
-        // Nút Mua ở góc dưới bên phải
-        RectTransform buyRect = EconomyHUD.CreateRect("BuyButton", tile.rect);
-        Place(buyRect, new Vector2(1f, 0f), new Vector2(-12f, 10f), new Vector2(112f, 36f));
-        tile.buy = EconomyHUD.AddButton(buyRect, buyColor);
-        tile.buy.onClick.AddListener(() => Buy(tile));
-        // Chữ tự thu nhỏ khi dài (ví dụ "Cần 1,250 Coins"), chừa lề hai bên nút
-        tile.buyLabel = CreateLabel(buyRect, "Buy", 16f);
-        tile.buyLabel.enableAutoSizing = true;
-        tile.buyLabel.fontSizeMin = 11f;
-        tile.buyLabel.fontSizeMax = 16f;
-        tile.buyLabel.rectTransform.offsetMin = new Vector2(6f, 0f);
-        tile.buyLabel.rectTransform.offsetMax = new Vector2(-6f, 0f);
-
-        tile.floatLayer = EconomyHUD.CreateRect("FloatingNumbers", tile.rect);
-        EconomyHUD.Stretch(tile.floatLayer);
         return tile;
+    }
+
+    private void BuildRightInspector()
+    {
+        Image inspImg = LumiWorldUITheme.CreateRoundedSurface(
+            panel,
+            "DetailInspector",
+            LumiWorldUITheme.Surface,
+            new Color(0.87f, 0.84f, 0.79f, 1f),
+            20,
+            1.4f,
+            4f,
+            0.16f,
+            raycastTarget: true);
+        RectTransform inspRt = inspImg.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(inspRt, 594f, 60f, 262f, 476f);
+
+        // Card Art Box
+        GameObject artBox = new GameObject("PreviewArt", typeof(RectTransform), typeof(Image));
+        artBox.transform.SetParent(inspRt, false);
+        LumiWorldUITheme.PlaceTopLeft(artBox.GetComponent<RectTransform>(), 16f, 16f, 88f, 120f);
+        detailFallbackBg = artBox.GetComponent<Image>();
+        detailFallbackBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        detailFallbackBg.type = Image.Type.Sliced;
+        detailFallbackBg.raycastTarget = false;
+        detailFallbackInitials = LumiWorldUITheme.CreateLabel(artBox.transform, "Init", "", 24f, Color.white, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(detailFallbackInitials.rectTransform);
+
+        GameObject imgObj = new GameObject("Sprite", typeof(RectTransform), typeof(Image));
+        imgObj.transform.SetParent(artBox.transform, false);
+        LumiWorldUITheme.Stretch(imgObj.GetComponent<RectTransform>());
+        detailArt = imgObj.GetComponent<Image>();
+        detailArt.preserveAspect = true;
+        detailArt.raycastTarget = false;
+
+        detailTitle = LumiWorldUITheme.CreateLabel(inspRt, "Title", "Leafwood", 18.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.TopLeft, wrap: true);
+        detailTitle.enableAutoSizing = true;
+        detailTitle.fontSizeMin = 13f;
+        detailTitle.fontSizeMax = 19f;
+        LumiWorldUITheme.PlaceTopLeft(detailTitle.rectTransform, 114f, 18f, 134f, 52f);
+
+        detailOwned = LumiWorldUITheme.CreateLabel(inspRt, "Owned", "Owned 0", 12.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(detailOwned.rectTransform, 114f, 74f, 134f, 20f);
+
+        // Island Origin Pill (clickable on Nature cards)
+        GameObject islBtnObj = new GameObject("DetailIslandPill", typeof(RectTransform), typeof(Image), typeof(Button));
+        islBtnObj.transform.SetParent(inspRt, false);
+        RectTransform islRt = islBtnObj.GetComponent<RectTransform>();
+        LumiWorldUITheme.PlaceTopLeft(islRt, 114f, 100f, 134f, 26f);
+        Image islBg = islBtnObj.GetComponent<Image>();
+        islBg.sprite = LumiWorldUITheme.PillSprite;
+        islBg.type = Image.Type.Sliced;
+        islBg.color = LumiWorldUITheme.Window;
+
+        GameObject islIcObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+        islIcObj.transform.SetParent(islRt, false);
+        LumiWorldUITheme.PlaceTopLeft(islIcObj.GetComponent<RectTransform>(), 7f, 5f, 16f, 16f);
+        detailIslandGlyph = islIcObj.GetComponent<Image>();
+        detailIslandGlyph.color = LumiWorldUITheme.Text;
+        detailIslandGlyph.preserveAspect = true;
+        detailIslandGlyph.raycastTarget = false;
+
+        detailIslandLabel = LumiWorldUITheme.CreateLabel(islRt, "Text", "Starter plain", 11f, LumiWorldUITheme.Text, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(detailIslandLabel.rectTransform, 27f, 2f, 100f, 22f);
+        detailIslandPillBtn = islBtnObj.GetComponent<Button>();
+        detailIslandPillBtn.targetGraphic = islBg;
+        LumiWorldUITheme.ApplyButtonDisabledNeutral(detailIslandPillBtn);
+        detailIslandPillBtn.onClick.AddListener(() => ShowIslandPopover(selectedCard, islRt));
+
+        // Divider
+        GameObject div = new GameObject("Divider", typeof(RectTransform), typeof(Image));
+        div.transform.SetParent(inspRt, false);
+        LumiWorldUITheme.PlaceTopLeft(div.GetComponent<RectTransform>(), 16f, 148f, 230f, 1.5f);
+        div.GetComponent<Image>().color = LumiWorldUITheme.Edge;
+
+        // Price Breakdown Rows (No "when placing later")
+        detailBuyPriceValue = BuildDetailCostRow(inspRt, 164f, "Buy price", "G-26");
+        detailFeeValue = BuildDetailCostRow(inspRt, 206f, "Placement fee", "G-34");
+
+        // Quantity Stepper
+        float stepY = 264f;
+        LumiWorldUITheme.CreatePillButton(inspRt, "MinusBtn", "", "Minus", false, 14f, () => StepQuantity(-1), out Image mBg, out _, out _, 14);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)mBg.transform, 42f, stepY, 36f, 34f);
+        minusBtn = mBg.GetComponent<Button>();
+
+        Image qtyBoxImg = LumiWorldUITheme.CreateRoundedSurface(inspRt, "QtyBox", LumiWorldUITheme.Slot, LumiWorldUITheme.Edge, 12, 1.2f, 0f, 0f, true);
+        LumiWorldUITheme.PlaceTopLeft(qtyBoxImg.rectTransform, 86f, stepY, 90f, 34f);
+        TextMeshProUGUI qtyText = LumiWorldUITheme.CreateLabel(qtyBoxImg.transform, "QtyText", "1", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(qtyText.rectTransform);
+        qtyInput = qtyBoxImg.gameObject.AddComponent<TMP_InputField>();
+        qtyInput.targetGraphic = qtyBoxImg;
+        qtyInput.textComponent = qtyText;
+        qtyInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+        qtyInput.characterLimit = 2;
+        qtyInput.lineType = TMP_InputField.LineType.SingleLine;
+        qtyInput.SetTextWithoutNotify("1");
+        qtyInput.onValueChanged.AddListener(v =>
+        {
+            if (int.TryParse(v, out int parsed))
+            {
+                selectedQuantity = Mathf.Clamp(parsed, 1, 99);
+                Refresh();
+            }
+        });
+        qtyInput.onEndEdit.AddListener(v =>
+        {
+            selectedQuantity = int.TryParse(v, out int parsed) ? Mathf.Clamp(parsed, 1, 99) : 1;
+            qtyInput.SetTextWithoutNotify(selectedQuantity.ToString(CultureInfo.InvariantCulture));
+            Refresh();
+        });
+
+        LumiWorldUITheme.CreatePillButton(inspRt, "PlusBtn", "", "Plus", false, 14f, () => StepQuantity(1), out Image pBg, out _, out _, 14);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)pBg.transform, 184f, stepY, 36f, 34f);
+        plusBtn = pBg.GetComponent<Button>();
+
+        // Total Row
+        TextMeshProUGUI totalLbl = LumiWorldUITheme.CreateLabel(inspRt, "TotalLabel", "Total", 14.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(totalLbl.rectTransform, 18f, 326f, 80f, 28f);
+
+        GameObject totCoinObj = new GameObject("TotalCoin", typeof(RectTransform), typeof(Image));
+        totCoinObj.transform.SetParent(inspRt, false);
+        LumiWorldUITheme.PlaceTopLeft(totCoinObj.GetComponent<RectTransform>(), 106f, 330f, 20f, 20f);
+        Image totCoin = totCoinObj.GetComponent<Image>();
+        totCoin.sprite = EconomyHUD.CoinSprite;
+        totCoin.preserveAspect = true;
+        totCoin.raycastTarget = false;
+
+        totalPriceText = LumiWorldUITheme.CreateLabel(inspRt, "TotalValue", "50 coins", 16f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
+        LumiWorldUITheme.PlaceTopLeft(totalPriceText.rectTransform, 130f, 326f, 114f, 28f);
+
+        // Primary Buy CTA
+        buyButton = LumiWorldUITheme.CreatePillButton(
+            inspRt,
+            "BuyCardBtn",
+            "Buy card",
+            "G-25",
+            true,
+            15f,
+            OnBuyClicked,
+            out buyBtnBg,
+            out buyBtnIcon,
+            out buyBtnLabel,
+            18);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)buyButton.transform, 16f, 412f, 230f, 46f);
+    }
+
+    private TextMeshProUGUI BuildDetailCostRow(RectTransform parent, float y, string title, string glyphId)
+    {
+        Image rowBg = LumiWorldUITheme.CreateRoundedSurface(parent, "Cost_" + title, LumiWorldUITheme.Well, new Color(0.86f, 0.82f, 0.77f, 1f), 11, 1f, 0f, 0f);
+        RectTransform rt = rowBg.rectTransform;
+        LumiWorldUITheme.PlaceTopLeft(rt, 16f, y, 230f, 34f);
+
+        GameObject icObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(rt, false);
+        LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 10f, 9f, 16f, 16f);
+        Image icImg = icObj.GetComponent<Image>();
+        icImg.sprite = LumiWorldUITheme.Glyph(glyphId);
+        icImg.color = LumiWorldUITheme.Muted;
+        icImg.preserveAspect = true;
+        icImg.raycastTarget = false;
+
+        TextMeshProUGUI lbl = LumiWorldUITheme.CreateLabel(rt, "Label", title, 12.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(lbl.rectTransform, 32f, 5f, 98f, 24f);
+
+        GameObject coinObj = new GameObject("Coin", typeof(RectTransform), typeof(Image));
+        coinObj.transform.SetParent(rt, false);
+        LumiWorldUITheme.PlaceTopLeft(coinObj.GetComponent<RectTransform>(), 134f, 9f, 16f, 16f);
+        Image cImg = coinObj.GetComponent<Image>();
+        cImg.sprite = EconomyHUD.CoinSprite;
+        cImg.preserveAspect = true;
+        cImg.raycastTarget = false;
+
+        TextMeshProUGUI val = LumiWorldUITheme.CreateLabel(rt, "Value", "50 coins", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
+        LumiWorldUITheme.PlaceTopLeft(val.rectTransform, 152f, 5f, 68f, 24f);
+        return val;
+    }
+
+    private void BuildIslandPopover()
+    {
+        islandPopover = new GameObject("IslandPopover", typeof(RectTransform), typeof(Image), typeof(Button));
+        islandPopover.transform.SetParent(panel, false);
+        LumiWorldUITheme.Stretch(islandPopover.GetComponent<RectTransform>());
+        islandPopover.GetComponent<Image>().color = Color.clear;
+        Button dismiss = islandPopover.GetComponent<Button>();
+        dismiss.transition = Selectable.Transition.None;
+        dismiss.onClick.AddListener(HideIslandPopover);
+
+        Image cardImg = LumiWorldUITheme.CreateRoundedSurface(
+            islandPopover.transform,
+            "PopoverCard",
+            LumiWorldUITheme.Slot,
+            LumiWorldUITheme.Edge,
+            14,
+            1.5f,
+            4f,
+            0.22f,
+            raycastTarget: true);
+        islandPopoverCard = cardImg.rectTransform;
+        islandPopoverCard.anchorMin = islandPopoverCard.anchorMax = new Vector2(0.5f, 0.5f);
+        islandPopoverCard.pivot = new Vector2(0.5f, 0f);
+        islandPopoverCard.sizeDelta = new Vector2(182f, 54f);
+
+        GameObject icObj = new GameObject("IslandGlyph", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(islandPopoverCard, false);
+        LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 12f, 13f, 28f, 28f);
+        islandPopoverGlyph = icObj.GetComponent<Image>();
+        islandPopoverGlyph.color = LumiWorldUITheme.Text;
+        islandPopoverGlyph.preserveAspect = true;
+        islandPopoverGlyph.raycastTarget = false;
+
+        islandPopoverTitle = LumiWorldUITheme.CreateLabel(islandPopoverCard, "IslandName", "Starter plain", 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(islandPopoverTitle.rectTransform, 48f, 8f, 124f, 22f);
+
+        islandPopoverSub = LumiWorldUITheme.CreateLabel(islandPopoverCard, "Sub", "Island origin", 10.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(islandPopoverSub.rectTransform, 48f, 28f, 124f, 18f);
+
+        islandPopover.SetActive(false);
+    }
+
+    private void StepQuantity(int delta)
+    {
+        selectedQuantity = Mathf.Clamp(selectedQuantity + delta, 1, 99);
+        if (qtyInput != null) qtyInput.SetTextWithoutNotify(selectedQuantity.ToString(CultureInfo.InvariantCulture));
+        Refresh();
+    }
+
+    private static ShopTab ClassifyShopCard(CardData card)
+    {
+        if (card == null) return ShopTab.Nature;
+        if (card.cardType == CardType.Creature || card.animalSpeciesData != null) return ShopTab.Creatures;
+        if (card.IsRiverCard() || card.IsTileTransformCard() || card.cardType == CardType.Special ||
+            string.Equals(card.cardID, "Rain", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(card.cardID, "River", StringComparison.OrdinalIgnoreCase))
+        {
+            return ShopTab.Special;
+        }
+        return ShopTab.Nature;
     }
 
     private Color TypeColor(CardType type)
     {
         switch (type)
         {
-            case CardType.Creature: return creatureColor;
-            case CardType.Terrain: return terrainColor;
-            case CardType.Building: return buildingColor;
-            default: return specialColor;
+            case CardType.Creature: return new Color(0.78f, 0.56f, 0.34f, 1f);
+            case CardType.Terrain: return LumiWorldUITheme.Success;
+            case CardType.Building: return new Color(0.45f, 0.54f, 0.66f, 1f);
+            default: return new Color(0.55f, 0.48f, 0.72f, 1f);
         }
     }
 
-    private static string TypeName(CardType type)
-    {
-        switch (type)
-        {
-            case CardType.Creature: return "Creature card";
-            case CardType.Terrain: return "Terrain card";
-            case CardType.Building: return "Building card";
-            default: return "Special card";
-        }
-    }
-
-    /// <summary>
-    /// Đặt rect theo một góc (hoặc cạnh) của parent: anchor và pivot cùng ở điểm đó, position tính từ điểm đó.
-    /// </summary>
-    private static void Place(RectTransform rect, Vector2 anchor, Vector2 position, Vector2 size)
-    {
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = anchor;
-        rect.sizeDelta = size;
-        rect.anchoredPosition = position;
-    }
-
-    /// <summary>
-    /// Chữ đậm màu trắng căn giữa, phủ kín parent (nhãn của nút, chữ trên ảnh thẻ).
-    /// </summary>
-    private static TextMeshProUGUI CreateLabel(RectTransform parent, string text, float fontSize, Color? color = null)
-    {
-        Color c = color ?? Color.white;
-        TextMeshProUGUI label = EconomyHUD.CreateText("Label", parent, fontSize, c, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(label.rectTransform);
-        label.text = text;
-        return label;
-    }
-
-    /// <summary>
-    /// Chữ cái đầu của hai từ đầu tiên, ví dụ "Highland Cow" thành "HC".
-    /// </summary>
     private static string Initials(string name)
     {
         string initials = string.Empty;

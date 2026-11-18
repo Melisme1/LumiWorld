@@ -69,11 +69,12 @@ namespace LumiWorld.Acs.Editor
             foreach (var file in Directory.Exists(source) ? Directory.GetFiles(source, "*.png") : Array.Empty<string>())
             {
                 var id = Path.GetFileNameWithoutExtension(file);
-                var target = Root + (id.StartsWith("G-") ? "/Glyphs/" : "/Art/") + id + ".png";
+                bool isGlyphAsset = id.StartsWith("G-") || id.StartsWith("I-");
+                var target = Root + (isGlyphAsset ? "/Glyphs/" : "/Art/") + id + ".png";
                 // Preserve pre-normalized pure-white glyphs in Glyphs/ if already present
                 if (!File.Exists(target))
                     File.Copy(file, target, true);
-                Import(target, id.StartsWith("G-") ? 256 : 2048, default, id.StartsWith("G-"));
+                Import(target, isGlyphAsset ? 128 : 512, default, isGlyphAsset);
             }
 
             for (int i = 1; i <= 34; i++)
