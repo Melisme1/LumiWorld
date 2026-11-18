@@ -51,13 +51,6 @@ public class EconomyHUD : MonoBehaviour
             CreateCorner<CoinHUD>("CoinHUD", new Vector2(1f, 1f), new Vector2(-screenMargin.x, -screenMargin.y));
         }
 
-        // Legacy resource bar removed per user request (handled by ResourceInventory / Warehouse UI)
-        var legacyBars = FindObjectsByType<InventoryUI>(FindObjectsInactive.Include);
-        foreach (var bar in legacyBars)
-        {
-            if (bar != null) bar.gameObject.SetActive(false);
-        }
-
         // Đang xem đảo người khác: chỉ giữ Coins, kho và Market (mua lô của chủ đảo).
         // Orders, Shop, Chế biến, thành tựu, chăm thú và xem trước đặt thẻ là việc trên đảo của mình.
         if (WorldLaunch.IsVisit || VisitSession.Active)
@@ -321,7 +314,7 @@ public class EconomyHUD : MonoBehaviour
         rect.offsetMax = Vector2.zero;
     }
 
-    public static readonly Color OptionBorderColor = new Color(0.08f, 0.58f, 0.95f, 0.95f); // Vibrant Cyan-Blue border
+    public static readonly Color OptionBorderColor = LumiWorld.Acs.LumiWorldUITheme.Edge;
 
     /// <summary>
     /// Nền bo tròn tối màu, cùng tông với banner nhận thẻ và bong bóng thu hoạch.
@@ -387,6 +380,8 @@ public class EconomyHUD : MonoBehaviour
     {
         RectTransform rect = CreateRect(objectName, parent);
         TextMeshProUGUI label = rect.gameObject.AddComponent<TextMeshProUGUI>();
+        var productionFont = LumiWorld.Acs.LumiWorldUITheme.Body;
+        if (productionFont != null) label.font = productionFont;
         label.fontSize = fontSize;
         label.fontStyle = FontStyles.Bold;
         label.alignment = alignment;
@@ -414,7 +409,7 @@ public class EconomyHUD : MonoBehaviour
         colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
         colors.pressedColor = Color.Lerp(color, Color.black, 0.25f);
         colors.selectedColor = color;
-        colors.disabledColor = new Color(0.30f, 0.32f, 0.38f, 0.75f);
+        colors.disabledColor = new Color(0.65f, 0.64f, 0.62f, 0.78f);
         colors.colorMultiplier = 1f;
         colors.fadeDuration = 0.08f;
         button.colors = colors;
@@ -500,6 +495,7 @@ public class EconomyHUD : MonoBehaviour
     {
         get
         {
+            if (roundedSprite == null) roundedSprite = LumiWorld.Acs.LumiWorldUITheme.SurfaceSprite;
             if (roundedSprite == null) roundedSprite = CreateRoundedSprite(64, 24);
             return roundedSprite;
         }

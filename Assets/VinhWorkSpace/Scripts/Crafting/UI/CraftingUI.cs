@@ -10,11 +10,7 @@ using LumiWorld.Acs;
 namespace LumiWorld.Economy.Crafting
 {
     /// <summary>
-    /// Giao diện Chế biến Tài nguyên (Crafting UI).
-    /// - Nút "Chế biến" trên HUD thẳng hàng, cùng style với Orders và Shop.
-    /// - Huy hiệu đếm số mẻ đã chế biến xong đang chờ nhận.
-    /// - Bảng Chế biến: lọc theo danh mục, xem cây nguyên liệu thô phân rã,
-    ///   chọn số lượng mẻ và đếm ngược hàng đợi theo lõi Time System.
+    /// Giao diện Chế biến Tài nguyên (Crafting UI — P-01 / P-02 / P-15).
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public class CraftingUI : MonoBehaviour
@@ -26,36 +22,48 @@ namespace LumiWorld.Economy.Crafting
         [SerializeField] private Vector2 buttonSize = new Vector2(170f, 44f);
 
         [Header("Màu sắc giao diện (Look & Feel)")]
-        [SerializeField] private Color hudColor = new Color(0.01f, 0.60f, 0.90f, 0.95f);
-        [SerializeField] private Color backdropColor = new Color(0.04f, 0.08f, 0.14f, 0.65f);
-        [SerializeField] private Color panelColor = new Color(0.85f, 0.91f, 0.96f, 0.98f);
-        [SerializeField] private Color cardColor = new Color(1f, 1f, 1f, 0.95f);
-        [SerializeField] private Color selectedCardColor = new Color(0.88f, 0.94f, 0.99f, 1f);
-        [SerializeField] private Color sectionColor = new Color(0.92f, 0.96f, 1f, 0.95f);
-        [SerializeField] private Color slotColor = new Color(0.85f, 0.92f, 0.98f, 0.95f);
-        [SerializeField] private Color textColor = new Color(0.06f, 0.12f, 0.22f, 1f);
-        [SerializeField] private Color mutedColor = new Color(0.38f, 0.46f, 0.58f, 1f);
-        [SerializeField] private Color enoughColor = new Color(0.05f, 0.65f, 0.35f, 1f);
-        [SerializeField] private Color missingColor = new Color(0.90f, 0.35f, 0.25f, 1f);
-        [SerializeField] private Color accentColor = new Color(0.01f, 0.60f, 0.90f, 1f);
-        [SerializeField] private Color secondaryColor = new Color(0.84f, 0.90f, 0.96f, 1f);
-        [SerializeField] private Color tabActiveColor = new Color(0.01f, 0.60f, 0.90f, 1f);
-        [SerializeField] private Color tabInactiveColor = new Color(0.88f, 0.93f, 0.97f, 1f);
+        [SerializeField] private Color hudColor = new Color(0.27f, 0.27f, 0.25f, 1f);
+        [SerializeField] private Color backdropColor = new Color(0.14f, 0.12f, 0.10f, 0.48f);
+        [SerializeField] private Color panelColor = new Color(0.96f, 0.95f, 0.93f, 1f);
+        [SerializeField] private Color cardColor = new Color(0.98f, 0.98f, 0.96f, 1f);
+        [SerializeField] private Color selectedCardColor = new Color(0.98f, 0.98f, 0.96f, 1f);
+        [SerializeField] private Color sectionColor = new Color(0.91f, 0.89f, 0.87f, 1f);
+        [SerializeField] private Color slotColor = new Color(0.96f, 0.95f, 0.93f, 1f);
+        [SerializeField] private Color textColor = new Color(0.21f, 0.16f, 0.12f, 1f);
+        [SerializeField] private Color mutedColor = new Color(0.46f, 0.42f, 0.38f, 1f);
+        [SerializeField] private Color enoughColor = new Color(0.37f, 0.52f, 0.31f, 1f);
+        [SerializeField] private Color missingColor = new Color(0.67f, 0.32f, 0.28f, 1f);
+        [SerializeField] private Color accentColor = new Color(0.27f, 0.27f, 0.25f, 1f);
+        [SerializeField] private Color secondaryColor = new Color(0.91f, 0.89f, 0.87f, 1f);
+        [SerializeField] private Color tabActiveColor = new Color(0.98f, 0.98f, 0.96f, 1f);
+        [SerializeField] private Color tabInactiveColor = new Color(0.91f, 0.89f, 0.87f, 1f);
 
         private CraftingUIBindings ui;
         private float panelScale = 1f;
         private Coroutine popRoutine;
 
-        private TabFilter currentTab = TabFilter.All;
+        private TabFilter currentTab = TabFilter.Food;
+        private bool queueOpen;
         private CraftingRecipeData selectedRecipe;
         private int selectedQuantity = 1;
 
         private readonly List<QueueCardView> queueCards = new List<QueueCardView>();
         private ResourceInventory subscribedInventory;
         private CraftingQueueSystem subscribedQueue;
-        private CurrencyWallet subscribedWallet;
 
         public bool IsOpen => ui != null && ui.window != null && ui.window.activeSelf;
+
+        public void OpenRecipe(CraftingRecipeData recipe)
+        {
+            if (recipe == null || ui == null) return;
+            currentTab = recipe.category == CraftingCategory.Food ? TabFilter.Food :
+                recipe.category == CraftingCategory.Herbal ? TabFilter.Herbal : TabFilter.Paper;
+            selectedRecipe = recipe;
+            selectedQuantity = 1;
+            CloseIngredientPopover();
+            Open();
+            Refresh();
+        }
 
         private CraftingUIStyleConfig GetStyleConfig() => new CraftingUIStyleConfig
         {
@@ -80,15 +88,28 @@ namespace LumiWorld.Economy.Crafting
 
         private void Start()
         {
+            panelColor = LumiWorldUITheme.Window;
+            cardColor = LumiWorldUITheme.Surface;
+            selectedCardColor = LumiWorldUITheme.Surface;
+            sectionColor = LumiWorldUITheme.Inset;
+            slotColor = LumiWorldUITheme.Window;
+            textColor = LumiWorldUITheme.Text;
+            mutedColor = LumiWorldUITheme.Muted;
+            enoughColor = LumiWorldUITheme.Success;
+            missingColor = LumiWorldUITheme.Error;
+            accentColor = hudColor = LumiWorldUITheme.Primary;
+            secondaryColor = tabInactiveColor = LumiWorldUITheme.Inset;
+            tabActiveColor = LumiWorldUITheme.Surface;
+
             ui = CraftingUIBuilder.BuildAll(
                 transform,
                 GetStyleConfig(),
-                Toggle,
+                SwitchToInventory,
                 Close,
+                ToggleQueueDrawer,
                 OnTabSelected,
                 SelectRecipe,
                 AdjustQuantity,
-                SetMaxQuantity,
                 StartCraftingCurrent,
                 ClaimAllCompletedJobs
             );
@@ -105,24 +126,45 @@ namespace LumiWorld.Economy.Crafting
                 subscribedQueue.OnQueueChanged += Refresh;
             }
 
-            subscribedWallet = CurrencyWallet.Instance;
-            if (subscribedWallet != null)
-                subscribedWallet.OnBalanceChanged += HandleBalanceChanged;
-
             if (CraftingCatalog.All.Count > 0)
-            {
                 SelectRecipe(CraftingCatalog.All[0]);
-            }
 
             Refresh();
         }
 
         private void Update()
         {
-            if (IsOpen && currentTab == TabFilter.Queue)
+            if (!IsOpen) return;
+            if (popRoutine == null && ui != null && ui.panel != null)
             {
-                RefreshQueueProgress();
+                panelScale = ComputePanelScale();
+                ui.panel.localScale = new Vector3(panelScale, panelScale, 1f);
             }
+            if (queueOpen)
+                RefreshQueueProgress();
+        }
+
+        private float ComputePanelScale()
+        {
+            var invCtrl = ResourceInventoryUIController.Instance;
+            if (invCtrl != null && transform.lossyScale.x > 0.0001f && invCtrl.transform.lossyScale.x > 0.0001f)
+            {
+                return invCtrl.transform.lossyScale.x / transform.lossyScale.x;
+            }
+
+            Canvas rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
+            if (rootCanvas != null && rootCanvas.scaleFactor > 0f)
+            {
+                Vector2 pixels = ((RectTransform)rootCanvas.transform).rect.size * rootCanvas.scaleFactor;
+                float fit = ResourceInventoryUILayout.FitScale(pixels.x, pixels.y);
+                float parentPixelScale = transform.localScale.x * rootCanvas.scaleFactor;
+                if (fit > 0f && parentPixelScale > 0.0001f)
+                    return fit / parentPixelScale;
+            }
+            Rect area = ((RectTransform)transform).rect;
+            return area.width > 0f && area.height > 0f
+                ? ResourceInventoryUILayout.FitScale(area.width, area.height)
+                : 1f;
         }
 
         private void OnDestroy()
@@ -138,37 +180,51 @@ namespace LumiWorld.Economy.Crafting
                 subscribedQueue.OnQueueChanged -= Refresh;
             }
             subscribedQueue = null;
+        }
 
-            if (subscribedWallet != null) subscribedWallet.OnBalanceChanged -= HandleBalanceChanged;
-            subscribedWallet = null;
+        private void SwitchToInventory()
+        {
+            Close();
+            ResourceInventoryUIController.Instance?.OpenWarehouse();
+        }
+
+        private void ToggleQueueDrawer()
+        {
+            queueOpen = !queueOpen;
+            CloseIngredientPopover();
+            CraftingUIBuilder.ApplyQueueLayout(ui, queueOpen);
+            Refresh();
         }
 
         // =========================================================
-        // MỞ VÀ ĐÓNG BẢNG
+        // OPEN & CLOSE WINDOW
         // =========================================================
 
         public void Open()
         {
-            if (ui == null || ui.window == null || IsOpen) return;
+            if (ui == null || ui.window == null) return;
+            if (!IsOpen)
+            {
+                queueOpen = false;
+                CraftingUIBuilder.ApplyQueueLayout(ui, false);
+                CloseIngredientPopover();
 
-            transform.SetAsLastSibling();
-            ui.window.SetActive(true);
-            EconomyHUD.BringWindowToFront(ui.window);
+                transform.SetAsLastSibling();
+                ui.window.SetActive(true);
+                EconomyHUD.BringWindowToFront(ui.window);
 
-            Rect area = ((RectTransform)transform).rect;
-            panelScale = area.width > 0f && area.height > 0f
-                ? Mathf.Clamp(Mathf.Min((area.width - 32f) / ui.panel.sizeDelta.x, (area.height - 32f) / ui.panel.sizeDelta.y), 0.5f, 1f)
-                : 1f;
+                panelScale = ComputePanelScale();
 
+                if (popRoutine != null) StopCoroutine(popRoutine);
+                popRoutine = StartCoroutine(PopIn());
+            }
             Refresh();
-
-            if (popRoutine != null) StopCoroutine(popRoutine);
-            popRoutine = StartCoroutine(PopIn());
         }
 
         public void Close()
         {
             if (!IsOpen) return;
+            CloseIngredientPopover();
             ui.window.SetActive(false);
             EconomyHUD.MarkWindowClosed();
         }
@@ -187,7 +243,7 @@ namespace LumiWorld.Economy.Crafting
             {
                 time += Time.unscaledDeltaTime;
                 float t = Mathf.Clamp01(time / duration);
-                float scale = panelScale * Mathf.Lerp(0.92f, 1f, 1f - (1f - t) * (1f - t));
+                float scale = panelScale * Mathf.Lerp(0.94f, 1f, 1f - (1f - t) * (1f - t));
                 ui.panel.localScale = new Vector3(scale, scale, 1f);
                 yield return null;
             }
@@ -196,47 +252,35 @@ namespace LumiWorld.Economy.Crafting
         }
 
         // =========================================================
-        // CẬP NHẬT GIAO DIỆN & HUY HIỆU
+        // REFRESH UI & QUEUE BADGE
         // =========================================================
 
         private void HandleInventoryChanged(string id, int newAmount, int delta) => Refresh();
         private void HandleJobUpdated(ActiveCraftingJob job) => Refresh();
-        private void HandleBalanceChanged(int balance, int delta, CoinReason reason) => RefreshBalance();
-
-        private void RefreshBalance()
-        {
-            if (ui != null && ui.balanceText != null && CurrencyWallet.Instance != null)
-                ui.balanceText.text = CurrencyWallet.Instance.Balance.ToString("N0");
-        }
 
         private void Refresh()
         {
             RefreshBadge();
-            RefreshBalance();
             if (!IsOpen) return;
 
             RefreshTabs();
-            if (currentTab == TabFilter.Queue)
-            {
-                ui.craftContentArea.gameObject.SetActive(false);
-                ui.queueContentArea.gameObject.SetActive(true);
+            RefreshRecipeList();
+            RefreshInspector();
+            if (queueOpen)
                 RefreshQueueList();
-            }
-            else
-            {
-                ui.craftContentArea.gameObject.SetActive(true);
-                ui.queueContentArea.gameObject.SetActive(false);
-                RefreshRecipeList();
-                RefreshInspector();
-            }
         }
 
         private void RefreshBadge()
         {
-            if (ui == null || ui.badge == null) return;
-            int completed = CraftingQueueSystem.Instance.GetCompletedCount();
-            ui.badge.SetActive(completed > 0);
-            ui.badgeText.text = completed.ToString(CultureInfo.InvariantCulture);
+            if (ui == null) return;
+            var queue = CraftingQueueSystem.Instance;
+            int totalJobs = queue != null ? queue.ActiveJobs.Count : 0;
+            int completed = queue != null ? queue.GetCompletedCount() : 0;
+
+            if (ui.queueToggleLabel != null)
+                ui.queueToggleLabel.text = $"Queue ({totalJobs})";
+
+            CollapsibleHUDToolbar.Instance?.SetCraftingReadyCount(completed);
         }
 
         private void RefreshTabs()
@@ -245,14 +289,23 @@ namespace LumiWorld.Economy.Crafting
             foreach (var item in ui.tabButtons)
             {
                 bool active = item.tab == currentTab;
-                item.bg.color = active ? tabActiveColor : tabInactiveColor;
-                item.label.color = active ? Color.white : new Color(0.28f, 0.38f, 0.50f, 1f);
+                item.bg.color = active ? LumiWorldUITheme.Slot : LumiWorldUITheme.Inset;
+                if (item.border != null) item.border.gameObject.SetActive(active);
+                item.label.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
+                if (item.icon != null)
+                    item.icon.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
             }
         }
 
         private void OnTabSelected(TabFilter tab)
         {
+            if (tab == TabFilter.Queue)
+            {
+                ToggleQueueDrawer();
+                return;
+            }
             currentTab = tab;
+            CloseIngredientPopover();
             if (ui.recipeScrollRect != null) ui.recipeScrollRect.verticalNormalizedPosition = 1f;
             Refresh();
         }
@@ -272,24 +325,35 @@ namespace LumiWorld.Economy.Crafting
                 if (firstVisible == null) firstVisible = card.recipe;
 
                 bool isSelected = selectedRecipe != null && selectedRecipe.recipeID == card.recipe.recipeID;
-                card.background.color = isSelected ? selectedCardColor : cardColor;
+                card.background.color = LumiWorldUITheme.Slot;
+                if (card.selectedBorder != null)
+                    card.selectedBorder.gameObject.SetActive(isSelected);
 
                 int maxCraft = CraftingCalculator.GetMaxCraftableCount(card.recipe, inventory);
                 if (maxCraft > 0)
                 {
-                    card.status.text = $"Craftable: <color=#{ColorUtility.ToHtmlStringRGB(enoughColor)}><b>x{maxCraft}</b></color>";
-                    card.status.color = textColor;
+                    if (card.statusIcon != null)
+                    {
+                        card.statusIcon.sprite = LumiWorldUITheme.StatusReadySprite;
+                        card.statusIcon.color = Color.white;
+                    }
+                    card.status.text = "Ready";
+                    card.status.color = LumiWorldUITheme.Success;
                 }
                 else
                 {
-                    card.status.text = $"<color=#{ColorUtility.ToHtmlStringRGB(missingColor)}>Missing ingredients</color>";
+                    if (card.statusIcon != null)
+                    {
+                        card.statusIcon.sprite = LumiWorldUITheme.StatusLowSprite;
+                        card.statusIcon.color = Color.white;
+                    }
+                    card.status.text = "Low";
+                    card.status.color = LumiWorldUITheme.Warning;
                 }
             }
 
-            if (selectedRecipe != null && !MatchesFilter(selectedRecipe, currentTab) && firstVisible != null)
-            {
+            if ((selectedRecipe == null || !MatchesFilter(selectedRecipe, currentTab)) && firstVisible != null)
                 SelectRecipe(firstVisible);
-            }
         }
 
         private bool MatchesFilter(CraftingRecipeData recipe, TabFilter filter)
@@ -297,11 +361,9 @@ namespace LumiWorld.Economy.Crafting
             if (recipe == null) return false;
             return filter switch
             {
-                TabFilter.All => true,
                 TabFilter.Food => recipe.category == CraftingCategory.Food,
-                TabFilter.Refined => recipe.category == CraftingCategory.Refined,
                 TabFilter.Herbal => recipe.category == CraftingCategory.Herbal,
-                TabFilter.Paper => recipe.category == CraftingCategory.Paper,
+                TabFilter.Paper => recipe.category == CraftingCategory.Paper || recipe.category == CraftingCategory.Refined,
                 _ => true
             };
         }
@@ -310,6 +372,7 @@ namespace LumiWorld.Economy.Crafting
         {
             selectedRecipe = recipe;
             selectedQuantity = 1;
+            CloseIngredientPopover();
             Refresh();
         }
 
@@ -320,9 +383,12 @@ namespace LumiWorld.Economy.Crafting
             var inventory = ResourceInventory.Instance;
             var outRes = selectedRecipe.outputResource;
 
-            string outId = selectedRecipe.outputResource != null ? selectedRecipe.outputResource.resourceID : selectedRecipe.recipeID;
+            string outId = outRes != null ? outRes.resourceID : selectedRecipe.recipeID;
             ui.inspectorTitle.text = ResourceInventoryUIPresentation.LocalizeResourceName(outId, selectedRecipe.recipeName);
-            ui.inspectorDesc.text = ResourceInventoryUIPresentation.LocalizeResourceDescription(outId, selectedRecipe.description);
+
+            int outputPerBatch = Mathf.Max(1, selectedRecipe.outputAmount);
+            if (ui.inspectorOutputText != null)
+                ui.inspectorOutputText.text = $"Output ×{outputPerBatch * selectedQuantity}";
 
             Sprite mainIcon = selectedRecipe.GetIcon();
             if (mainIcon != null)
@@ -336,21 +402,6 @@ namespace LumiWorld.Economy.Crafting
                 ui.inspectorIcon.color = outRes != null ? outRes.resourceColor : new Color(0.7f, 0.45f, 0.2f, 1f);
             }
 
-            ui.inspectorCategory.text = selectedRecipe.category switch
-            {
-                CraftingCategory.Food => "FOOD",
-                CraftingCategory.Refined => "REFINED",
-                CraftingCategory.Herbal => "HERBAL",
-                CraftingCategory.Paper => "CRAFT",
-                _ => "PROCESSING"
-            };
-
-            ui.inspectorEdibleTag.gameObject.SetActive(selectedRecipe.isEdible);
-            if (selectedRecipe.isEdible)
-            {
-                ui.inspectorEdibleTag.text = $"EDIBLE (+{selectedRecipe.feedingExpBonus} EXP)";
-            }
-
             EconomyHUD.ClearChildren(ui.ingredientsContainer);
             foreach (var input in selectedRecipe.inputs)
             {
@@ -358,62 +409,261 @@ namespace LumiWorld.Economy.Crafting
                 ResourceData res = CraftingCatalog.GetResource(input.resourceId);
                 string rawResName = res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : input.resourceId;
                 string resName = ResourceInventoryUIPresentation.LocalizeResourceName(input.resourceId, rawResName);
-                int owned = inventory.GetAmount(input.resourceId);
+                int owned = inventory != null ? inventory.GetAmount(input.resourceId) : 0;
                 int needed = input.amount * selectedQuantity;
                 bool enough = owned >= needed;
 
-                RectTransform row = EconomyHUD.CreateRect("IngRow", ui.ingredientsContainer);
-                row.sizeDelta = new Vector2(0f, 38f);
+                RectTransform row = EconomyHUD.CreateRect("IngRow_" + input.resourceId, ui.ingredientsContainer);
+                row.sizeDelta = new Vector2(0f, 56f);
                 LayoutElement le = row.gameObject.AddComponent<LayoutElement>();
-                le.minHeight = 38f;
-                le.preferredHeight = 38f;
+                le.minHeight = 56f;
+                le.preferredHeight = 56f;
                 le.flexibleWidth = 1f;
-                EconomyHUD.CreateBorderedPanel(row, sectionColor);
 
-                RectTransform iconSlot = EconomyHUD.CreateRect("IconSlot", row);
-                iconSlot.anchorMin = new Vector2(0f, 0.5f);
-                iconSlot.anchorMax = new Vector2(0f, 0.5f);
-                iconSlot.pivot = new Vector2(0f, 0.5f);
-                iconSlot.anchoredPosition = new Vector2(8f, 0f);
-                iconSlot.sizeDelta = new Vector2(32f, 32f);
-                EconomyHUD.CreatePanel(iconSlot, slotColor);
+                Color rowFill = enough ? LumiWorldUITheme.Window : new Color(0.96f, 0.90f, 0.89f, 1f);
+                Image rowBg = EconomyHUD.CreatePanel(row, rowFill);
+                rowBg.raycastTarget = true;
 
-                Image icon = EconomyHUD.CreateIcon("Icon", iconSlot, res != null && res.icon != null ? res.icon : EconomyHUD.CircleSprite, 26f, 3f);
+                // Click ingredient row / icon -> open P-15 Resource Source Popover
+                Button rowBtn = row.gameObject.AddComponent<Button>();
+                rowBtn.targetGraphic = rowBg;
+                rowBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+                string capturedResourceId = input.resourceId;
+                rowBtn.onClick.AddListener(() => OpenIngredientPopover(capturedResourceId));
+
+                Image icon = EconomyHUD.CreateIcon("Icon", row, res != null && res.icon != null ? res.icon : EconomyHUD.CircleSprite, 44f, 12f);
                 if (res != null) icon.color = res.icon == null ? res.resourceColor : Color.white;
 
-                TextMeshProUGUI nameLbl = EconomyHUD.CreateText("Name", row, 15f, textColor, TextAlignmentOptions.Left);
-                nameLbl.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-                nameLbl.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-                nameLbl.rectTransform.pivot = new Vector2(0f, 0.5f);
-                nameLbl.rectTransform.anchoredPosition = new Vector2(48f, 0f);
-                nameLbl.rectTransform.sizeDelta = new Vector2(240f, 28f);
+                TextMeshProUGUI nameLbl = EconomyHUD.CreateText("Name", row, 16f, LumiWorldUITheme.Text, TextAlignmentOptions.MidlineLeft);
+                if (LumiWorldUITheme.Heading != null) nameLbl.font = LumiWorldUITheme.Heading;
+                nameLbl.rectTransform.anchorMin = new Vector2(0f, 0f);
+                nameLbl.rectTransform.anchorMax = new Vector2(1f, 1f);
+                nameLbl.rectTransform.offsetMin = new Vector2(66f, 4f);
+                nameLbl.rectTransform.offsetMax = new Vector2(-132f, -4f);
+                nameLbl.enableAutoSizing = true;
+                nameLbl.fontSizeMin = 12f;
+                nameLbl.fontSizeMax = 16f;
                 nameLbl.textWrappingMode = TextWrappingModes.NoWrap;
                 nameLbl.overflowMode = TextOverflowModes.Ellipsis;
                 nameLbl.text = resName;
 
-                TextMeshProUGUI countLbl = EconomyHUD.CreateText("Count", row, 15f, enough ? enoughColor : missingColor, TextAlignmentOptions.Right);
-                countLbl.rectTransform.anchorMin = new Vector2(1f, 0.5f);
-                countLbl.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+                string countStr = $"{owned} / {needed}";
+                TextMeshProUGUI countLbl = EconomyHUD.CreateText("Count", row, 16.5f, enough ? LumiWorldUITheme.Text : LumiWorldUITheme.Error, TextAlignmentOptions.MidlineRight);
+                if (LumiWorldUITheme.Heading != null) countLbl.font = LumiWorldUITheme.Heading;
+                countLbl.rectTransform.anchorMin = new Vector2(1f, 0f);
+                countLbl.rectTransform.anchorMax = new Vector2(1f, 1f);
                 countLbl.rectTransform.pivot = new Vector2(1f, 0.5f);
-                countLbl.rectTransform.anchoredPosition = new Vector2(-12f, 0f);
-                countLbl.rectTransform.sizeDelta = new Vector2(110f, 28f);
+                countLbl.rectTransform.anchoredPosition = new Vector2(-16f, 0f);
+                countLbl.rectTransform.sizeDelta = new Vector2(96f, 0f);
                 countLbl.textWrappingMode = TextWrappingModes.NoWrap;
-                countLbl.text = $"{owned} / {needed}";
+                countLbl.text = countStr;
+
+                if (enough && LumiWorldUITheme.StatusReadySprite != null)
+                {
+                    float approxTextWidth = Mathf.Max(46f, countStr.Length * 9.2f);
+                    Image chk = EconomyHUD.CreateIcon("ReadyCheck", row, LumiWorldUITheme.StatusReadySprite, 20f, 0f);
+                    chk.rectTransform.anchorMin = chk.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+                    chk.rectTransform.pivot = new Vector2(1f, 0.5f);
+                    chk.rectTransform.anchoredPosition = new Vector2(-22f - approxTextWidth, 0f);
+                }
             }
 
-            ui.rawBreakdownText.text = "<b>Base Materials:</b> " + CraftingCalculator.FormatRawBreakdown(selectedRecipe, selectedQuantity);
-
             float totalDuration = selectedRecipe.craftDurationSeconds * selectedQuantity;
-            ui.durationText.text = totalDuration > 0
-                ? $"Duration: <b>{totalDuration:0.#}s</b> ({(selectedRecipe.craftDurationSeconds):0.#}s/batch)"
-                : "Duration: <b>Instant</b>";
-
+            ui.durationText.text = totalDuration > 0 ? $"{totalDuration:0.#}s" : "Instant";
             ui.quantityText.text = selectedQuantity.ToString(CultureInfo.InvariantCulture);
 
             bool canCraft = CraftingCalculator.CanCraft(selectedRecipe, inventory, selectedQuantity);
             ui.btnStartCraft.interactable = canCraft;
-            ui.btnStartCraftLabel.text = canCraft ? $"CRAFT (x{selectedQuantity})" : "NOT ENOUGH MATERIALS";
-            ui.btnStartCraftLabel.color = canCraft ? Color.white : mutedColor;
+            ui.btnStartCraftLabel.text = "Craft";
+            ui.btnStartCraftLabel.color = canCraft ? Color.white : LumiWorldUITheme.Text;
+            if (ui.btnStartCraftIcon != null)
+                ui.btnStartCraftIcon.color = canCraft ? Color.white : LumiWorldUITheme.Text;
+        }
+
+        // =========================================================
+        // P-15 RESOURCE SOURCE POPOVER
+        // =========================================================
+
+        private void OpenIngredientPopover(string resourceId)
+        {
+            if (string.IsNullOrEmpty(resourceId) || ui == null || ui.panel == null) return;
+            CloseIngredientPopover();
+
+            ResourceData res = CraftingCatalog.GetResource(resourceId);
+            string rawName = res != null && !string.IsNullOrEmpty(res.resourceName) ? res.resourceName : resourceId;
+            string displayName = ResourceInventoryUIPresentation.LocalizeResourceName(resourceId, rawName);
+            int owned = ResourceInventory.Instance != null ? ResourceInventory.Instance.GetAmount(resourceId) : 0;
+
+            CraftingRecipeData subRecipe = CraftingCatalog.FindByOutput(resourceId);
+            BiomeAffinity? sourceAffinity = ResolveBiomeAffinity(resourceId);
+            string biomeName = sourceAffinity.HasValue ? sourceAffinity.Value.ToString() : "Leafwood";
+            string sourceLabel = subRecipe != null ? "Crafting recipe" : $"{biomeName} harvest";
+            Sprite sourceIcon = subRecipe != null ? LumiWorldUITheme.Glyph("G-02") : LumiWorldUITheme.BiomeEmblem(biomeName);
+
+            RectTransform overlay = EconomyHUD.CreateRect("IngredientPopoverOverlay", ui.panel);
+            EconomyHUD.Stretch(overlay);
+            ui.ingredientPopover = overlay;
+
+            Image dismissImg = overlay.gameObject.AddComponent<Image>();
+            dismissImg.color = new Color(0.14f, 0.12f, 0.10f, 0.18f);
+            dismissImg.raycastTarget = true;
+            Button dismissBtn = overlay.gameObject.AddComponent<Button>();
+            dismissBtn.transition = Selectable.Transition.None;
+            dismissBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+            dismissBtn.onClick.AddListener(CloseIngredientPopover);
+
+            RectTransform card = EconomyHUD.CreateRect("PopoverCard", overlay);
+            card.anchorMin = card.anchorMax = card.pivot = new Vector2(0.5f, 0.5f);
+            card.anchoredPosition = new Vector2(120f, -10f);
+            card.sizeDelta = new Vector2(316f, 240f);
+            Image cardBg = EconomyHUD.CreateBorderedPanel(card, LumiWorldUITheme.Surface, LumiWorldUITheme.Edge);
+            cardBg.raycastTarget = true;
+            LumiWorldUITheme.AddSoftElevation(card.gameObject, 5f, 0.22f);
+
+            // Consume clicks inside popover card
+            Button cardBlocker = card.gameObject.AddComponent<Button>();
+            cardBlocker.transition = Selectable.Transition.None;
+            cardBlocker.navigation = new Navigation { mode = Navigation.Mode.None };
+
+            // Top: Icon + Name + Owned + [×]
+            Sprite itemIcon = res != null && res.icon != null ? res.icon : EconomyHUD.CircleSprite;
+            Image ic = EconomyHUD.CreateIcon("ItemIcon", card, itemIcon, 54f, 18f);
+            ic.rectTransform.anchorMin = ic.rectTransform.anchorMax = new Vector2(0f, 1f);
+            ic.rectTransform.pivot = new Vector2(0f, 1f);
+            ic.rectTransform.anchoredPosition = new Vector2(18f, -18f);
+
+            TextMeshProUGUI title = EconomyHUD.CreateText("Title", card, 19f, LumiWorldUITheme.Text, TextAlignmentOptions.MidlineLeft);
+            if (LumiWorldUITheme.Heading != null) title.font = LumiWorldUITheme.Heading;
+            title.rectTransform.anchorMin = new Vector2(0f, 1f);
+            title.rectTransform.anchorMax = new Vector2(1f, 1f);
+            title.rectTransform.pivot = new Vector2(0f, 1f);
+            title.rectTransform.offsetMin = new Vector2(82f, -46f);
+            title.rectTransform.offsetMax = new Vector2(-54f, -16f);
+            title.enableAutoSizing = true;
+            title.fontSizeMin = 14f;
+            title.fontSizeMax = 19f;
+            title.text = displayName;
+
+            TextMeshProUGUI ownedTxt = EconomyHUD.CreateText("Owned", card, 14f, LumiWorldUITheme.Muted, TextAlignmentOptions.MidlineLeft);
+            ownedTxt.rectTransform.anchorMin = new Vector2(0f, 1f);
+            ownedTxt.rectTransform.anchorMax = new Vector2(1f, 1f);
+            ownedTxt.rectTransform.pivot = new Vector2(0f, 1f);
+            ownedTxt.rectTransform.offsetMin = new Vector2(82f, -70f);
+            ownedTxt.rectTransform.offsetMax = new Vector2(-20f, -46f);
+            ownedTxt.text = $"Owned: {owned}";
+
+            RectTransform closeRect = EconomyHUD.CreateRect("ClosePopover", card);
+            closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 1f);
+            closeRect.pivot = new Vector2(1f, 1f);
+            closeRect.anchoredPosition = new Vector2(-14f, -14f);
+            closeRect.sizeDelta = new Vector2(32f, 32f);
+            Button closeBtn = EconomyHUD.AddButton(closeRect, LumiWorldUITheme.Inset);
+            closeBtn.onClick.AddListener(CloseIngredientPopover);
+            Sprite closeSp = LumiWorldUITheme.Glyph("Close");
+            if (closeSp != null)
+            {
+                Image xIc = EconomyHUD.CreateIcon("X", closeRect, closeSp, 16f, 8f);
+                xIc.color = LumiWorldUITheme.Text;
+            }
+
+            // Divider
+            RectTransform div = EconomyHUD.CreateRect("Div", card);
+            div.anchorMin = new Vector2(0f, 1f);
+            div.anchorMax = new Vector2(1f, 1f);
+            div.pivot = new Vector2(0.5f, 1f);
+            div.anchoredPosition = new Vector2(0f, -82f);
+            div.sizeDelta = new Vector2(-36f, 1.5f);
+            div.gameObject.AddComponent<Image>().color = LumiWorldUITheme.Inset;
+
+            // Source Heading
+            TextMeshProUGUI srcHead = EconomyHUD.CreateText("SourceHeading", card, 13.5f, LumiWorldUITheme.Muted, TextAlignmentOptions.MidlineLeft);
+            srcHead.rectTransform.anchorMin = new Vector2(0f, 1f);
+            srcHead.rectTransform.anchorMax = new Vector2(1f, 1f);
+            srcHead.rectTransform.pivot = new Vector2(0f, 1f);
+            srcHead.rectTransform.offsetMin = new Vector2(18f, -112f);
+            srcHead.rectTransform.offsetMax = new Vector2(-18f, -90f);
+            srcHead.text = "Source";
+
+            // Source Pill (with colored Biome Emblem B-01..B-07 per P-15)
+            RectTransform srcPill = EconomyHUD.CreateRect("SourcePill", card);
+            srcPill.anchorMin = new Vector2(0f, 1f);
+            srcPill.anchorMax = new Vector2(1f, 1f);
+            srcPill.pivot = new Vector2(0.5f, 1f);
+            srcPill.anchoredPosition = new Vector2(0f, -116f);
+            srcPill.sizeDelta = new Vector2(-36f, 48f);
+            EconomyHUD.CreatePanel(srcPill, LumiWorldUITheme.Window);
+
+            if (sourceIcon != null)
+            {
+                Image srcIc = EconomyHUD.CreateIcon("BiomeIcon", srcPill, sourceIcon, 36f, 10f);
+                srcIc.color = subRecipe != null ? LumiWorldUITheme.Text : Color.white;
+            }
+
+            TextMeshProUGUI srcTxt = EconomyHUD.CreateText("SourceText", srcPill, 15f, LumiWorldUITheme.Text, TextAlignmentOptions.MidlineLeft);
+            if (LumiWorldUITheme.Heading != null) srcTxt.font = LumiWorldUITheme.Heading;
+            EconomyHUD.Stretch(srcTxt.rectTransform);
+            srcTxt.rectTransform.offsetMin = new Vector2(54f, 0f);
+            srcTxt.rectTransform.offsetMax = new Vector2(-12f, 0f);
+            srcTxt.text = sourceLabel;
+
+            // [View source] Button (kept inside P-15 popover per confirmed spec)
+            RectTransform viewBtnRect = EconomyHUD.CreateRect("ViewSourceBtn", card);
+            viewBtnRect.anchorMin = new Vector2(0f, 0f);
+            viewBtnRect.anchorMax = new Vector2(1f, 0f);
+            viewBtnRect.pivot = new Vector2(0.5f, 0f);
+            viewBtnRect.anchoredPosition = new Vector2(0f, 16f);
+            viewBtnRect.sizeDelta = new Vector2(-36f, 44f);
+
+            Button viewBtn = EconomyHUD.AddButton(viewBtnRect, LumiWorldUITheme.Primary);
+            LumiWorldUITheme.AddSoftElevation(viewBtnRect.gameObject, 2.5f, 0.16f);
+            TextMeshProUGUI viewLbl = EconomyHUD.CreateText("Lbl", viewBtnRect, 15.5f, Color.white, TextAlignmentOptions.Center);
+            if (LumiWorldUITheme.Heading != null) viewLbl.font = LumiWorldUITheme.Heading;
+            EconomyHUD.Stretch(viewLbl.rectTransform);
+            viewLbl.text = "View source";
+
+            viewBtn.onClick.AddListener(() =>
+            {
+                CloseIngredientPopover();
+                if (subRecipe != null)
+                {
+                    OpenRecipe(subRecipe);
+                    return;
+                }
+                Close();
+                var invCtrl = ResourceInventoryUIController.Instance;
+                if (invCtrl != null)
+                {
+                    if (!sourceAffinity.HasValue || !invCtrl.SelectFirstHabitatOfBiome(sourceAffinity.Value))
+                        invCtrl.OpenWarehouseForResource(resourceId);
+                }
+            });
+        }
+
+        private void CloseIngredientPopover()
+        {
+            if (ui != null && ui.ingredientPopover != null)
+            {
+                if (Application.isPlaying) Destroy(ui.ingredientPopover.gameObject);
+                else DestroyImmediate(ui.ingredientPopover.gameObject);
+                ui.ingredientPopover = null;
+            }
+        }
+
+        private static BiomeAffinity? ResolveBiomeAffinity(string resourceId)
+        {
+            if (string.IsNullOrEmpty(resourceId)) return null;
+            string lower = resourceId.ToLowerInvariant();
+            if (lower.Contains("leafwood") || lower.Contains("oak") || lower.Contains("bark") || lower.Contains("sticks") || lower.Contains("tender_leaves") || lower.Contains("raspberries") || lower.Contains("acorns"))
+                return BiomeAffinity.Leafwood;
+            if (lower.Contains("bloomfield") || lower.Contains("daisies") || lower.Contains("dandelion") || lower.Contains("nectar") || lower.Contains("lavender") || lower.Contains("wheat") || lower.Contains("wheet"))
+                return BiomeAffinity.Bloomfield;
+            if (lower.Contains("windheath") || lower.Contains("foxtail") || lower.Contains("lichen") || lower.Contains("rosemary") || lower.Contains("juniper") || lower.Contains("flax") || lower.Contains("blueberries"))
+                return BiomeAffinity.Windheath;
+            if (lower.Contains("reedmarsh")) return BiomeAffinity.Reedmarsh;
+            if (lower.Contains("lilywater")) return BiomeAffinity.Lilywater;
+            if (lower.Contains("streamstone")) return BiomeAffinity.Streamstone;
+            if (lower.Contains("rainleaf")) return BiomeAffinity.Rainleaf;
+            return BiomeAffinity.Leafwood;
         }
 
         private void AdjustQuantity(int delta)
@@ -421,17 +671,7 @@ namespace LumiWorld.Economy.Crafting
             if (selectedRecipe == null) return;
             var inventory = ResourceInventory.Instance;
             int max = Mathf.Max(1, CraftingCalculator.GetMaxCraftableCount(selectedRecipe, inventory));
-
-            selectedQuantity = Mathf.Clamp(selectedQuantity + delta, 1, Mathf.Max(1, max));
-            RefreshInspector();
-        }
-
-        private void SetMaxQuantity()
-        {
-            if (selectedRecipe == null) return;
-            var inventory = ResourceInventory.Instance;
-            int max = CraftingCalculator.GetMaxCraftableCount(selectedRecipe, inventory);
-            selectedQuantity = Mathf.Max(1, max);
+            selectedQuantity = Mathf.Clamp(selectedQuantity + delta, 1, Mathf.Max(9, max));
             RefreshInspector();
         }
 
@@ -442,7 +682,7 @@ namespace LumiWorld.Economy.Crafting
             var queue = CraftingQueueSystem.Instance;
             if (queue.TryStartCrafting(selectedRecipe, selectedQuantity, out string error))
             {
-                StartCoroutine(EconomyHUD.FloatText(ui.panel, $"- Crafted {selectedRecipe.recipeName} x{selectedQuantity}!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
+                StartCoroutine(EconomyHUD.FloatText(ui.panel, $"- Crafted {selectedRecipe.recipeName} ×{selectedQuantity}", accentColor, 17f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
                 Refresh();
             }
             else
@@ -452,7 +692,7 @@ namespace LumiWorld.Economy.Crafting
         }
 
         // =========================================================
-        // HÀNG ĐỢI (QUEUE)
+        // QUEUE DRAWER (P-01)
         // =========================================================
 
         private void ClaimAllCompletedJobs()
@@ -460,31 +700,30 @@ namespace LumiWorld.Economy.Crafting
             int claimed = CraftingQueueSystem.Instance.ClaimAllCompleted();
             if (claimed > 0)
             {
-                StartCoroutine(EconomyHUD.FloatText(ui.panel, $"Claimed {claimed} crafted batches into warehouse!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
+                StartCoroutine(EconomyHUD.FloatText(ui.panel, $"Claimed {claimed} crafted batches!", enoughColor, 17f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
                 Refresh();
             }
         }
 
         private void RefreshQueueList()
         {
-            if (ui == null) return;
+            if (ui == null || ui.queueListContent == null) return;
             EconomyHUD.ClearChildren(ui.queueListContent);
             queueCards.Clear();
 
             var queue = CraftingQueueSystem.Instance;
+            if (queue == null) return;
             var jobs = queue.ActiveJobs;
 
             int completedCount = queue.GetCompletedCount();
             ui.btnClaimAll.interactable = completedCount > 0;
-            ui.btnClaimAllLabel.text = completedCount > 0 ? $"CLAIM ALL ({completedCount})" : "CLAIM ALL";
-
-            ui.queueSummaryText.text = $"Active: <b>{jobs.Count}/{queue.MaxConcurrentJobs}</b> crafting batches";
+            ui.btnClaimAllLabel.text = $"Claim all ({completedCount})";
 
             if (jobs.Count == 0)
             {
-                TextMeshProUGUI empty = EconomyHUD.CreateText("Empty", ui.queueListContent, 18f, mutedColor, TextAlignmentOptions.Center);
-                empty.rectTransform.sizeDelta = new Vector2(CraftingUIBuilder.PanelWidth - 64f, 80f);
-                empty.text = "Queue is empty. Select a recipe from the catalog to start crafting!";
+                TextMeshProUGUI empty = EconomyHUD.CreateText("Empty", ui.queueListContent, 15.5f, mutedColor, TextAlignmentOptions.Center);
+                empty.rectTransform.sizeDelta = new Vector2(280f, 90f);
+                empty.text = "Your queue is empty.\nSelect a recipe and press Craft.";
                 return;
             }
 
@@ -497,7 +736,7 @@ namespace LumiWorld.Economy.Crafting
                     style,
                     (j, rName) =>
                     {
-                        StartCoroutine(EconomyHUD.FloatText(ui.panel, $"+ Claimed {rName} x{j.TotalOutputAmount} to warehouse!", accentColor, 18f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
+                        StartCoroutine(EconomyHUD.FloatText(ui.panel, $"+ Claimed {rName} ×{j.TotalOutputAmount}", enoughColor, 17f, new Vector2(0f, 60f), new Vector2(0f, 130f), 1.2f));
                         Refresh();
                     },
                     (err) =>
@@ -513,6 +752,7 @@ namespace LumiWorld.Economy.Crafting
         private void RefreshQueueProgress()
         {
             var queue = CraftingQueueSystem.Instance;
+            if (queue == null) return;
             foreach (var card in queueCards)
             {
                 if (card.job == null) continue;
@@ -520,19 +760,44 @@ namespace LumiWorld.Economy.Crafting
                 float progress = queue.GetProgress(card.job);
                 float remaining = queue.GetRemainingSeconds(card.job);
 
-                card.progressBarFill.sizeDelta = new Vector2(240f * progress, 0f);
+                if (card.progressBarFill != null)
+                    card.progressBarFill.sizeDelta = new Vector2(264f * Mathf.Clamp01(progress), 0f);
 
                 if (card.job.isCompleted)
                 {
-                    card.status.text = $"<color=#{ColorUtility.ToHtmlStringRGB(enoughColor)}><b>COMPLETED</b></color>";
+                    if (card.statePill != null) card.statePill.enabled = false;
+                    if (card.readyIcon != null) card.readyIcon.gameObject.SetActive(true);
+                    if (card.statePillText != null)
+                    {
+                        card.statePillText.text = "Ready";
+                        card.statePillText.color = LumiWorldUITheme.Success;
+                        card.statePillText.alignment = TextAlignmentOptions.MidlineLeft;
+                        card.statePillText.rectTransform.offsetMin = new Vector2(26f, 0f);
+                    }
+                    card.status.text = "";
+                    if (card.progressBarTrack != null) card.progressBarTrack.SetActive(false);
+                    card.claimButton.gameObject.SetActive(true);
                     card.claimButton.interactable = true;
-                    card.claimLabel.text = "CLAIM";
+                    card.claimLabel.text = "Claim";
                 }
                 else
                 {
-                    card.status.text = $"Crafting... <b>{remaining:0.#}s</b> remaining";
-                    card.claimButton.interactable = false;
-                    card.claimLabel.text = $"{remaining:0}s";
+                    if (card.statePill != null)
+                    {
+                        card.statePill.enabled = true;
+                        card.statePill.color = LumiWorldUITheme.Inset;
+                    }
+                    if (card.readyIcon != null) card.readyIcon.gameObject.SetActive(false);
+                    if (card.statePillText != null)
+                    {
+                        card.statePillText.text = "In progress";
+                        card.statePillText.color = LumiWorldUITheme.Text;
+                        card.statePillText.alignment = TextAlignmentOptions.Center;
+                        card.statePillText.rectTransform.offsetMin = Vector2.zero;
+                    }
+                    card.status.text = $"{Mathf.CeilToInt(remaining)}s remaining";
+                    if (card.progressBarTrack != null) card.progressBarTrack.SetActive(true);
+                    card.claimButton.gameObject.SetActive(false);
                 }
             }
         }

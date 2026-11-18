@@ -1,25 +1,18 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using LumiWorld.Acs;
 
 /// <summary>
-/// Thanh công cụ HUD thu gọn (Collapsible HUD Toolbar) của LumiWorld:
-/// - Đặt tại góc 10h bên trên World Map (x=20, y=-14).
-/// - Nút "chitiet_button" (viền tròn trắng xanh) để mở/đóng thanh panel ngang.
-/// - Khi bấm, thanh panel ("panel_toolbar.png" bo tròn mượt mà chuẩn Image 3) xổ ngang ra.
-/// - Chứa trọn bộ 7 nút chức năng:
-///   1. Kho tài nguyên (Warehouse)
-///   2. Thành tựu (Achievements)
-///   3. Đơn hàng (Orders)
-///   4. Chợ (Market)
-///   5. Cửa hàng (Shop)
-///   6. Chế biến (Crafting)
-///   7. Cài đặt âm thanh (Settings)
-/// - Cả 7 nút đều được bọc viền tròn trắng viền xanh dương đồng bộ hoàn hảo với toàn bộ UI game.
-/// - Tự động thu gọn các nút rời cũ để màn hình tinh giản, chuyên nghiệp.
+/// Top-left collapsible gameplay toolbar & top-right utility bar (P-03 / §5 HUD spec):
+/// - Top-left: Toggle button + expandable bar with [Inventory, Crafting, Card Shop, Orders, Market, Auto Feeding, Creation Lab].
+/// - Hovering any button displays a crisp short-name tooltip pill below it.
+/// - Top-right: [World Map (G-10)] + [CoinHUD pill] + [Settings (G-09)] aligned on a single clean row.
+/// - Achievements are accessed by clicking the bottom-left Harmony progress badge (ScoreUI).
 /// </summary>
 public class CollapsibleHUDToolbar : MonoBehaviour
 {
@@ -28,28 +21,33 @@ public class CollapsibleHUDToolbar : MonoBehaviour
 
     [Header("Configuration")]
     [SerializeField] private Vector2 toolbarPosition = new Vector2(20f, -14f);
-    [SerializeField] private float buttonSize = 48f;
+    [SerializeField] private float buttonSize = 50f;
     [SerializeField] private float innerButtonSize = 46f;
-    [SerializeField] private float innerIconSize = 30f;
+    [SerializeField] private float innerIconSize = 28f;
     [SerializeField] private float itemSpacing = 10f;
-    [SerializeField] private float panelPadding = 22f;
+    [SerializeField] private float panelPadding = 16f;
     [SerializeField] private float toolbarHeight = 56f;
 
     private RectTransform toolbarContainer;
     private RectTransform toggleBtnRect;
     private RectTransform toolbarPanelRect;
-    private RectMask2D toolbarMask;
     private Image toolbarPanelImage;
 
+    private RectTransform topRightContainer;
+    private RectTransform hoverTooltipRect;
+    private TextMeshProUGUI hoverTooltipText;
+
     private readonly List<RectTransform> buttonRects = new List<RectTransform>();
+    private GameObject craftingBadgeObj;
+    private TextMeshProUGUI craftingBadgeText;
+    private int pendingCraftingReadyCount;
     private bool isExpanded = true;
     private Coroutine slideRoutine;
     private float targetPanelWidth;
 
-    private static readonly Color ThemeBlue = new Color(0.08f, 0.58f, 0.95f, 0.95f);
-    private static readonly Color ButtonNormalColor = Color.white;
-    private static readonly Color ButtonHoverColor = new Color(0.92f, 0.96f, 1f, 1f);
-    private static readonly Color ButtonPressedColor = new Color(0.85f, 0.92f, 0.98f, 1f);
+    private static readonly Color ButtonNormalColor = LumiWorldUITheme.Slot;
+    private static readonly Color ButtonHoverColor = LumiWorldUITheme.Hover;
+    private static readonly Color ButtonPressedColor = LumiWorldUITheme.Inset;
 
     private void Awake()
     {
@@ -64,28 +62,26 @@ public class CollapsibleHUDToolbar : MonoBehaviour
     private void Start()
     {
         BuildToolbar();
+        BuildTopRightBar();
+        BuildHoverTooltip();
         StartCoroutine(HideOldStandaloneButtonsDelayed());
     }
 
     private IEnumerator HideOldStandaloneButtonsDelayed()
     {
-        // Chờ 2 frame để tất cả các UI Overlay khởi tạo xong
         yield return null;
         yield return null;
 
         HideOldButton("OrdersButton");
         HideOldButton("ShopButton");
         HideOldButton("MarketButton");
-        HideOldButton("CraftingOpenButton");
-        HideOldButton("WarehouseButton");
-        HideOldButton("WarehouseCaption");
         HideOldButton("AchievementHUDButton");
         HideOldButton("AchievementCaption");
     }
 
-    private void HideOldButton(string name)
+    private void HideOldButton(string objName)
     {
-        GameObject obj = GameObject.Find(name);
+        GameObject obj = GameObject.Find(objName);
         if (obj != null)
         {
             var cg = obj.GetComponent<CanvasGroup>();
@@ -98,7 +94,6 @@ public class CollapsibleHUDToolbar : MonoBehaviour
 
     private void BuildToolbar()
     {
-        // Container độc lập neo ở góc trên bên trái (Top-Left), bên trên World Map
         GameObject containerObj = new GameObject("ToolbarContainer", typeof(RectTransform));
         containerObj.transform.SetParent(transform, false);
         toolbarContainer = containerObj.GetComponent<RectTransform>();
@@ -106,18 +101,11 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         toolbarContainer.anchorMax = new Vector2(0f, 1f);
         toolbarContainer.pivot = new Vector2(0f, 1f);
         toolbarContainer.anchoredPosition = toolbarPosition;
-        toolbarContainer.sizeDelta = new Vector2(600f, toolbarHeight);
+        toolbarContainer.sizeDelta = new Vector2(560f, toolbarHeight);
 
-        // 1. Toggle Button ("chitiet_button")
         BuildToggleButton();
-
-        // 2. Horizontal Expandable Panel ("panel_toolbar")
         BuildHorizontalPanel();
-
-        // 3. Populate the 8 buttons inside the panel
-        BuildEightButtons();
-
-        // Mặc định mở rộng để người chơi thấy ngay
+        BuildGameplayButtons();
         SetExpandedInstant(true);
     }
 
@@ -129,29 +117,26 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         toggleBtnRect.anchorMin = new Vector2(0f, 0.5f);
         toggleBtnRect.anchorMax = new Vector2(0f, 0.5f);
         toggleBtnRect.pivot = new Vector2(0f, 0.5f);
-        toggleBtnRect.anchoredPosition = new Vector2(0f, 0f);
+        toggleBtnRect.anchoredPosition = Vector2.zero;
         toggleBtnRect.sizeDelta = new Vector2(buttonSize, buttonSize);
 
         Image btnImg = toggleObj.GetComponent<Image>();
-        btnImg.sprite = EconomyHUD.RoundedSprite;
-        btnImg.type = Image.Type.Simple;
+        btnImg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
+        btnImg.type = Image.Type.Sliced;
         btnImg.color = ButtonNormalColor;
         btnImg.raycastTarget = true;
-        EconomyHUD.AddBlueBorder(toggleBtnRect, ThemeBlue);
+        LumiWorldUITheme.AddSoftElevation(toggleObj, 3f, 0.16f);
 
-        // Icon 3 chấm 3 gạch
         GameObject iconObj = new GameObject("MenuIcon", typeof(RectTransform), typeof(Image));
         iconObj.transform.SetParent(toggleObj.transform, false);
         RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
-        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
         iconRect.anchoredPosition = Vector2.zero;
-        iconRect.sizeDelta = new Vector2(28f, 28f);
+        iconRect.sizeDelta = new Vector2(26f, 26f);
 
         Image iconImg = iconObj.GetComponent<Image>();
-        Sprite menuSprite = Resources.Load<Sprite>("UI_Buttons/icon_menu");
-        iconImg.sprite = menuSprite;
+        iconImg.sprite = LumiWorldUITheme.Glyph("Menu") ?? Resources.Load<Sprite>("UI_Buttons/icon_menu");
+        iconImg.color = LumiWorldUITheme.Glyph("Menu") != null ? LumiWorldUITheme.Text : Color.white;
         iconImg.preserveAspect = true;
         iconImg.raycastTarget = false;
 
@@ -163,6 +148,8 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         colors.pressedColor = ButtonPressedColor;
         btn.colors = colors;
         btn.onClick.AddListener(ToggleExpanded);
+
+        AttachTooltipTrigger(toggleBtnRect, "Menu");
     }
 
     private void BuildHorizontalPanel()
@@ -175,91 +162,60 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         toolbarPanelRect.pivot = new Vector2(0f, 0.5f);
         toolbarPanelRect.anchoredPosition = new Vector2(buttonSize + 8f, 0f);
 
-        toolbarMask = panelObj.GetComponent<RectMask2D>();
-
         toolbarPanelImage = panelObj.GetComponent<Image>();
-        Sprite panelSprite = Resources.Load<Sprite>("UI_Buttons/panel_toolbar");
-        if (panelSprite != null)
-        {
-            toolbarPanelImage.sprite = panelSprite;
-            toolbarPanelImage.type = Image.Type.Sliced;
-        }
-        else
-        {
-            toolbarPanelImage.sprite = EconomyHUD.RoundedSprite;
-            toolbarPanelImage.type = Image.Type.Sliced;
-            toolbarPanelImage.color = new Color(0.27f, 0.31f, 0.37f, 0.95f);
-        }
+        toolbarPanelImage.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
+        toolbarPanelImage.type = Image.Type.Sliced;
+        toolbarPanelImage.color = LumiWorldUITheme.Window;
+        LumiWorldUITheme.AddSoftElevation(panelObj, 3.5f, 0.16f);
 
-        // 8 buttons: 8 * 46 + 7 * 10 + 2 * 22 = 368 + 70 + 44 = 482px
-        targetPanelWidth = 8 * innerButtonSize + 7 * itemSpacing + 2 * panelPadding;
+        const int buttonCount = 7;
+        targetPanelWidth = buttonCount * innerButtonSize + (buttonCount - 1) * itemSpacing + 2 * panelPadding;
         toolbarPanelRect.sizeDelta = new Vector2(targetPanelWidth, toolbarHeight);
     }
 
-    private void BuildEightButtons()
+    private void BuildGameplayButtons()
     {
-        // 1. Kho tài nguyên (Warehouse)
-        CreateToolbarButton("Btn_Warehouse", "icon_warehouse", 0, () =>
+        // §5 HUD order: Inventory, Crafting, Card Shop, Orders, Market, Auto Feeding, Creation Lab
+        CreateToolbarButton("Btn_Warehouse", "G-01", "Inventory", 0, () =>
         {
             var ctrl = FindAnyObjectByType<ResourceInventoryUIController>();
-            if (ctrl != null)
-            {
-                ctrl.OpenWarehouse();
-            }
-            else
-            {
-                GameObject wh = GameObject.Find("WarehouseButton");
-                if (wh != null) wh.GetComponent<Button>()?.onClick.Invoke();
-            }
+            if (ctrl != null) ctrl.OpenWarehouse();
         });
 
-        // 2. Thành tựu (Achievements)
-        CreateToolbarButton("Btn_Achievements", "icon_achievements", 1, () =>
-        {
-            FindAnyObjectByType<AchievementUI>()?.ToggleWindow();
-        });
-
-        // 3. Đơn hàng (Orders)
-        CreateToolbarButton("Btn_Orders", "icon_orders", 2, () =>
-        {
-            FindAnyObjectByType<OrderBoardUI>()?.Toggle();
-        });
-
-        // 4. Chợ (Market)
-        CreateToolbarButton("Btn_Market", "icon_market", 3, () =>
-        {
-            FindAnyObjectByType<MarketUI>()?.Toggle();
-        });
-
-        // 5. Cửa hàng (Shop)
-        CreateToolbarButton("Btn_Shop", "icon_shop", 4, () =>
-        {
-            FindAnyObjectByType<CardShopUI>()?.Toggle();
-        });
-
-        // 6. Chế biến (Crafting)
-        CreateToolbarButton("Btn_Crafting", "icon_crafting", 5, () =>
+        CreateToolbarButton("Btn_Crafting", "G-02", "Crafting", 1, () =>
         {
             FindAnyObjectByType<LumiWorld.Economy.Crafting.CraftingUI>()?.Toggle();
         });
 
-        // 7. Cho ăn tự động (Auto-Feed)
-        CreateToolbarButton("Btn_AutoFeed", "icon_autofeed", 6, () =>
+        CreateToolbarButton("Btn_Shop", "G-03", "Card Shop", 2, () =>
+        {
+            FindAnyObjectByType<CardShopUI>()?.Toggle();
+        });
+
+        CreateToolbarButton("Btn_Orders", "G-04", "Orders", 3, () =>
+        {
+            FindAnyObjectByType<OrderBoardUI>()?.Toggle();
+        });
+
+        CreateToolbarButton("Btn_Market", "G-05", "Market", 4, () =>
+        {
+            FindAnyObjectByType<MarketUI>()?.Toggle();
+        });
+
+        CreateToolbarButton("Btn_AutoFeed", "G-06", "Auto Feeding", 5, () =>
         {
             AutoFeedUI.Instance?.Toggle();
         });
 
-        // 8. Cài đặt âm thanh (Settings)
-        CreateToolbarButton("Btn_Settings", "icon_settings", 7, () =>
+        CreateToolbarButton("Btn_CreationLab", "G-07", "Creation Lab", 6, () =>
         {
-            var settings = FindAnyObjectByType<GameSettingsUI>();
-            if (settings != null) settings.ToggleWindow();
+            GameDialogUI.ShowNotice("Creation Lab chambers are being prepared for this island.");
         });
     }
 
-    private void CreateToolbarButton(string name, string iconResource, int index, System.Action onClick)
+    private void CreateToolbarButton(string objName, string glyphId, string tooltipLabel, int index, Action onClick)
     {
-        GameObject btnObj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        GameObject btnObj = new GameObject(objName, typeof(RectTransform), typeof(Image), typeof(Button));
         btnObj.transform.SetParent(toolbarPanelRect, false);
         RectTransform btnRect = btnObj.GetComponent<RectTransform>();
         btnRect.anchorMin = new Vector2(0f, 0.5f);
@@ -272,26 +228,22 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         buttonRects.Add(btnRect);
 
         Image btnImg = btnObj.GetComponent<Image>();
-        btnImg.sprite = EconomyHUD.RoundedSprite;
-        btnImg.type = Image.Type.Simple;
+        btnImg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
+        btnImg.type = Image.Type.Sliced;
         btnImg.color = ButtonNormalColor;
         btnImg.raycastTarget = true;
-        EconomyHUD.AddBlueBorder(btnRect, ThemeBlue);
+        LumiWorldUITheme.AddSoftElevation(btnObj, 2.5f, 0.13f);
 
-        // Icon inside button
         GameObject iconObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         iconObj.transform.SetParent(btnObj.transform, false);
         RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
-        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
         iconRect.anchoredPosition = Vector2.zero;
         iconRect.sizeDelta = new Vector2(innerIconSize, innerIconSize);
 
         Image iconImg = iconObj.GetComponent<Image>();
-        Sprite iconSprite = Resources.Load<Sprite>("UI_Buttons/" + iconResource)
-                         ?? Resources.Load<Sprite>(iconResource);
-        iconImg.sprite = iconSprite;
+        iconImg.sprite = LumiWorldUITheme.Glyph(glyphId);
+        iconImg.color = LumiWorldUITheme.Text;
         iconImg.preserveAspect = true;
         iconImg.raycastTarget = false;
 
@@ -308,6 +260,162 @@ public class CollapsibleHUDToolbar : MonoBehaviour
             GameAudioManager.Instance?.PlayClick();
             onClick?.Invoke();
         });
+
+        AttachTooltipTrigger(btnRect, tooltipLabel);
+
+        if (objName == "Btn_Crafting")
+        {
+            RectTransform badgeRect = EconomyHUD.CreateRect("Badge", btnRect);
+            badgeRect.anchorMin = badgeRect.anchorMax = new Vector2(1f, 1f);
+            badgeRect.pivot = new Vector2(0.5f, 0.5f);
+            badgeRect.anchoredPosition = new Vector2(-3f, -3f);
+            badgeRect.sizeDelta = new Vector2(20f, 20f);
+            Image badgeImg = badgeRect.gameObject.AddComponent<Image>();
+            badgeImg.sprite = EconomyHUD.CircleSprite;
+            badgeImg.color = LumiWorldUITheme.Success;
+            badgeImg.raycastTarget = false;
+            craftingBadgeObj = badgeRect.gameObject;
+            craftingBadgeText = EconomyHUD.CreateText("Count", badgeRect, 12f, Color.white, TextAlignmentOptions.Center);
+            EconomyHUD.Stretch(craftingBadgeText.rectTransform);
+            SetCraftingReadyCount(pendingCraftingReadyCount);
+        }
+    }
+
+    private void BuildTopRightBar()
+    {
+        // §5 HUD: Top-right row = World Map (globe G-10) + CoinHUD pill + Settings (gear G-09)
+        // CoinHUD is anchored at (-20, -14) with width 134, or we shift CoinHUD between WorldMap and Settings.
+        GameObject trObj = new GameObject("TopRightUtilityBar", typeof(RectTransform));
+        trObj.transform.SetParent(transform, false);
+        topRightContainer = trObj.GetComponent<RectTransform>();
+        topRightContainer.anchorMin = new Vector2(1f, 1f);
+        topRightContainer.anchorMax = new Vector2(1f, 1f);
+        topRightContainer.pivot = new Vector2(1f, 1f);
+        topRightContainer.anchoredPosition = new Vector2(-20f, -14f);
+        topRightContainer.sizeDelta = new Vector2(320f, 50f);
+
+        // 1. Settings Gear (rightmost, x = 0 from right edge)
+        BuildTopRightIconButton("Btn_Settings", "G-09", "Settings", new Vector2(0f, 0f), () =>
+        {
+            FindAnyObjectByType<GameSettingsUI>()?.ToggleWindow();
+        });
+
+        // 2. World Map Globe (left of CoinHUD, x = -202f from right edge)
+        BuildTopRightIconButton("Btn_WorldMap", "G-10", "World Map", new Vector2(-202f, 0f), () =>
+        {
+            if (Application.CanStreamedLevelBeLoaded(WorldMapController.SceneName))
+                WorldMapController.Open();
+            else
+                GameDialogUI.ShowNotice("World Map scene is not in Build Settings.");
+        });
+    }
+
+    private void BuildTopRightIconButton(string objName, string glyphId, string tooltipLabel, Vector2 topRightOffset, Action onClick)
+    {
+        GameObject btnObj = new GameObject(objName, typeof(RectTransform), typeof(Image), typeof(Button));
+        btnObj.transform.SetParent(topRightContainer, false);
+        RectTransform btnRect = btnObj.GetComponent<RectTransform>();
+        btnRect.anchorMin = btnRect.anchorMax = btnRect.pivot = new Vector2(1f, 1f);
+        btnRect.anchoredPosition = topRightOffset;
+        btnRect.sizeDelta = new Vector2(48f, 48f);
+
+        Image btnImg = btnObj.GetComponent<Image>();
+        btnImg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
+        btnImg.type = Image.Type.Sliced;
+        btnImg.color = LumiWorldUITheme.Surface;
+        btnImg.raycastTarget = true;
+        LumiWorldUITheme.AddSoftElevation(btnObj, 3f, 0.16f);
+
+        GameObject iconObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        iconObj.transform.SetParent(btnObj.transform, false);
+        RectTransform iconRect = iconObj.GetComponent<RectTransform>();
+        iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.anchoredPosition = Vector2.zero;
+        iconRect.sizeDelta = new Vector2(26f, 26f);
+
+        Image iconImg = iconObj.GetComponent<Image>();
+        iconImg.sprite = LumiWorldUITheme.Glyph(glyphId);
+        iconImg.color = LumiWorldUITheme.Text;
+        iconImg.preserveAspect = true;
+        iconImg.raycastTarget = false;
+
+        Button btn = btnObj.GetComponent<Button>();
+        btn.targetGraphic = btnImg;
+        var colors = btn.colors;
+        colors.normalColor = LumiWorldUITheme.Surface;
+        colors.highlightedColor = ButtonHoverColor;
+        colors.pressedColor = ButtonPressedColor;
+        btn.colors = colors;
+        btn.onClick.AddListener(() =>
+        {
+            GameAudioManager.Instance?.PlayClick();
+            onClick?.Invoke();
+        });
+
+        AttachTooltipTrigger(btnRect, tooltipLabel);
+    }
+
+    private void BuildHoverTooltip()
+    {
+        GameObject tipObj = new GameObject("HoverTooltip", typeof(RectTransform), typeof(Image));
+        tipObj.transform.SetParent(transform, false);
+        hoverTooltipRect = tipObj.GetComponent<RectTransform>();
+        hoverTooltipRect.pivot = new Vector2(0.5f, 1f);
+        hoverTooltipRect.sizeDelta = new Vector2(110f, 32f);
+
+        Image bg = tipObj.GetComponent<Image>();
+        bg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
+        bg.type = Image.Type.Sliced;
+        bg.color = LumiWorldUITheme.Slot;
+        bg.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(tipObj, 2.5f, 0.16f);
+
+        hoverTooltipText = EconomyHUD.CreateText("Label", hoverTooltipRect, 13.5f, LumiWorldUITheme.Text, TextAlignmentOptions.Center);
+        if (LumiWorldUITheme.Heading != null) hoverTooltipText.font = LumiWorldUITheme.Heading;
+        EconomyHUD.Stretch(hoverTooltipText.rectTransform);
+        hoverTooltipText.raycastTarget = false;
+
+        tipObj.SetActive(false);
+    }
+
+    private void AttachTooltipTrigger(RectTransform target, string label)
+    {
+        var trigger = target.gameObject.AddComponent<EventTrigger>();
+
+        var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+        enter.callback.AddListener(_ => ShowTooltip(target, label));
+        trigger.triggers.Add(enter);
+
+        var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+        exit.callback.AddListener(_ => HideTooltip());
+        trigger.triggers.Add(exit);
+    }
+
+    private void ShowTooltip(RectTransform target, string label)
+    {
+        if (hoverTooltipRect == null || hoverTooltipText == null || target == null) return;
+        hoverTooltipText.text = label;
+        float w = Mathf.Max(84f, label.Length * 8.5f + 26f);
+        hoverTooltipRect.sizeDelta = new Vector2(w, 32f);
+        hoverTooltipRect.position = target.position;
+        hoverTooltipRect.anchoredPosition += new Vector2(0f, -34f);
+        hoverTooltipRect.SetAsLastSibling();
+        hoverTooltipRect.gameObject.SetActive(true);
+    }
+
+    private void HideTooltip()
+    {
+        if (hoverTooltipRect != null)
+            hoverTooltipRect.gameObject.SetActive(false);
+    }
+
+    public void SetCraftingReadyCount(int count)
+    {
+        pendingCraftingReadyCount = count;
+        if (craftingBadgeObj != null)
+            craftingBadgeObj.SetActive(count > 0);
+        if (craftingBadgeText != null)
+            craftingBadgeText.text = count > 9 ? "9+" : count.ToString();
     }
 
     public void ToggleExpanded()

@@ -88,6 +88,12 @@ public class CardShopUI : MonoBehaviour
 
     private void Start()
     {
+        hudColor = buyColor = LumiWorld.Acs.LumiWorldUITheme.Primary;
+        panelColor = LumiWorld.Acs.LumiWorldUITheme.Window;
+        cardColor = LumiWorld.Acs.LumiWorldUITheme.Surface;
+        sectionColor = secondaryColor = LumiWorld.Acs.LumiWorldUITheme.Inset;
+        textColor = LumiWorld.Acs.LumiWorldUITheme.Text; mutedColor = LumiWorld.Acs.LumiWorldUITheme.Muted;
+        enoughColor = LumiWorld.Acs.LumiWorldUITheme.Success; missingColor = LumiWorld.Acs.LumiWorldUITheme.Error;
         // Lần đầu gọi Instance sẽ tạo ví và nạp số dư đã lưu
         wallet = CurrencyWallet.Instance;
 
