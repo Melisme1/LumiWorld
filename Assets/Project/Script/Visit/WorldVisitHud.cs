@@ -2,35 +2,26 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using LumiWorld.Acs;
 
 /// <summary>
-/// Phần thế giới trên màn chơi. Bản đồ, ô tìm kiếm, Top islands và Share đã chuyển sang scene WorldMap,
-/// ở đây chỉ còn:
-/// - Đảo của mình (MapBuilding): nút World map, lưu đảo rồi mở scene WorldMap.
-/// - Đang thăm (VisitWorld): tên chủ đảo, điểm, toạ độ, Listings, Back (về WorldMap đúng đảo vừa thăm) và Home.
-/// Tự tạo khi vào scene có WorldSaveSystem. Chữ hiện ra là tiếng Anh.
+/// World Visit HUD:
+/// - Own island (MapBuilding): Top-right World Map button is handled by CollapsibleHUDToolbar; no old dark left-column WorldPanel.
+///   Only shows a compact warm trade-offer pill if an incoming card trade offer is received.
+/// - Visiting another island (VisitWorld): Warm P-00 panel showing island owner, score, coordinates, Listings, Trade cards, Back, and Home.
 /// </summary>
 public class WorldVisitHud : MonoBehaviour
 {
-    private static readonly Color PanelColor = new Color(0.07f, 0.09f, 0.13f, 0.92f);
-    private static readonly Color AccentColor = new Color(0.22f, 0.55f, 0.95f, 1f);
-    private static readonly Color DangerColor = new Color(0.78f, 0.32f, 0.30f, 1f);
-    private static readonly Color NeutralColor = new Color(0.26f, 0.30f, 0.38f, 1f);
-    private static readonly Color MutedColor = new Color(0.72f, 0.76f, 0.84f, 1f);
-    private static readonly Color TextColor = Color.white;
-
-    // Cột trái nằm dưới thanh tài nguyên (InventoryUI ở (20, 20), cao 48)
     private const float ColumnX = 20f;
-    private const float ColumnWidth = 360f;
-    private const float PanelTop = 86f;
-    // Dời cả lớp HUD (Pos X / Pos Y của object WorldVisitHud trong Inspector)
-    private static readonly Vector2 RootOffset = new Vector2(-5f, -99f);
+    private const float ColumnWidth = 336f;
+    private const float PanelTop = 82f;
+    private static readonly Vector2 RootOffset = Vector2.zero;
 
-    // Phóng theo Scale Factor của Canvas như EconomyHUD: 1 đơn vị = 1 pixel màn hình
     private Canvas canvas;
     private float fittedCanvasScale;
     private Vector2 fittedCanvasSize;
 
+    private RectTransform tradeAlertPill;
     private TextMeshProUGUI statusText;
     private ListingsWindow listings;
     private TradeOfferWindow tradeOffer;
@@ -74,22 +65,36 @@ public class WorldVisitHud : MonoBehaviour
     }
 
     // =========================================================
-    // ĐẢO CỦA MÌNH: CHỈ CÒN NÚT WORLD MAP
+    // OWN ISLAND: NO OLD WORLD MAP BOX (Moved to Top-Right HUD)
     // =========================================================
 
     private void BuildOwnPanel()
     {
-        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 164f));
+        // Compact trade-offer notification pill (hidden until an incoming offer arrives)
+        tradeAlertPill = EconomyHUD.CreateRect("TradeOfferAlertPill", transform);
+        SetTopLeft(tradeAlertPill, new Vector2(ColumnX, -PanelTop), new Vector2(260f, 42f));
 
-        AddButton(panel, "World map", new Vector2(12f, -12f), new Vector2(ColumnWidth - 24f, 44f), AccentColor, OpenWorldMap);
-        AddButton(panel, "Trade offers", new Vector2(12f, -64f), new Vector2(ColumnWidth - 24f, 42f), NeutralColor,
-            () => tradeOffers = TradeOffersWindow.Open(tradeOffers, transform));
+        Image pillBg = tradeAlertPill.gameObject.AddComponent<Image>();
+        pillBg.sprite = LumiWorldUITheme.PillSprite;
+        pillBg.type = Image.Type.Sliced;
+        pillBg.color = LumiWorldUITheme.Surface;
+        LumiWorldUITheme.AddSoftElevation(tradeAlertPill.gameObject, 3f, 0.18f);
 
-        statusText = CreateLine(panel, new Vector2(14f, -114f), new Vector2(ColumnWidth - 28f, 40f));
-        statusText.text = MapAvailable
-            ? "See other islands, visit them and share yours."
-            : "World map scene is missing: run Tools > LumiWorld > Tạo scene WorldMap.";
+        Button btn = tradeAlertPill.gameObject.AddComponent<Button>();
+        btn.targetGraphic = pillBg;
+        btn.onClick.AddListener(() =>
+        {
+            tradeAlertPill.gameObject.SetActive(false);
+            tradeOffers = TradeOffersWindow.Open(tradeOffers, transform);
+        });
 
+        statusText = EconomyHUD.CreateText("Status", tradeAlertPill, 13.5f, LumiWorldUITheme.Text, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(statusText.rectTransform);
+        statusText.font = LumiWorldUITheme.Body ?? statusText.font;
+        statusText.fontStyle = FontStyles.Bold;
+        statusText.text = "Trade offers";
+
+        tradeAlertPill.gameObject.SetActive(false);
         TradeSync.OfferReceived += HandleOfferReceived;
     }
 
@@ -98,87 +103,100 @@ public class WorldVisitHud : MonoBehaviour
         TradeSync.OfferReceived -= HandleOfferReceived;
     }
 
-    // Đề nghị đổi thẻ mới tới qua hộp thư: báo trên HUD, cửa sổ đang mở thì tải lại
     private void HandleOfferReceived(string fromName)
     {
-        if (statusText != null) statusText.text = "New trade offer from " + fromName + ". Open Trade offers.";
-        if (tradeOffers != null && tradeOffers.IsOpen) tradeOffers.Refresh();
-    }
-
-    private void OpenWorldMap()
-    {
-        if (!MapAvailable)
+        if (tradeAlertPill != null)
         {
-            statusText.text = "World map scene is missing: run Tools > LumiWorld > Tạo scene WorldMap.";
-            return;
+            tradeAlertPill.gameObject.SetActive(true);
         }
-        WorldMapController.Open();
+        if (statusText != null)
+        {
+            statusText.text = "Trade offer from " + fromName + " · View";
+        }
+        if (tradeOffers != null && tradeOffers.IsOpen)
+        {
+            tradeOffers.Refresh();
+        }
     }
 
     // =========================================================
-    // ĐANG THĂM ĐẢO NGƯỜI KHÁC
+    // VISITING ANOTHER PLAYER'S ISLAND (Warm P-00 Theme)
     // =========================================================
 
     private void BuildVisitPanel()
     {
-        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 262f));
+        RectTransform panel = CreatePanel(new Vector2(ColumnWidth, 248f));
 
-        TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 22f, TextColor, TextAlignmentOptions.Left);
-        SetTopLeft(title.rectTransform, new Vector2(14f, -10f), new Vector2(ColumnWidth - 28f, 30f));
+        TextMeshProUGUI title = EconomyHUD.CreateText("Title", panel, 20f, LumiWorldUITheme.Text, TextAlignmentOptions.Left);
+        SetTopLeft(title.rectTransform, new Vector2(18f, -14f), new Vector2(ColumnWidth - 36f, 28f));
+        title.font = LumiWorldUITheme.Heading ?? title.font;
+        title.fontStyle = FontStyles.Bold;
         title.textWrappingMode = TextWrappingModes.NoWrap;
         title.overflowMode = TextOverflowModes.Ellipsis;
         title.text = VisitSession.OwnerName + "'s island";
 
-        TextMeshProUGUI line = CreateLine(panel, new Vector2(14f, -42f), new Vector2(ColumnWidth - 28f, 48f));
-        line.text = "Score " + VisitSession.OwnerScore + " pts  ·  [" + VisitSession.OwnerX + ":" + VisitSession.OwnerY + "]"
-            + "\nDrag an obstacle card from your hand onto this island.";
+        TextMeshProUGUI line = CreateLine(panel, new Vector2(18f, -44f), new Vector2(ColumnWidth - 36f, 44f));
+        line.text = "Harmony " + VisitSession.OwnerScore + "  ·  [" + VisitSession.OwnerX + ":" + VisitSession.OwnerY + "]"
+            + "\nVisiting island mode";
 
-        float half = (ColumnWidth - 36f) / 2f;
+        float half = (ColumnWidth - 44f) / 2f;
         bool backToMap = VisitSession.FromWorldMap && MapAvailable;
-        AddButton(panel, backToMap ? "Back to map" : "Back", new Vector2(12f, -98f), new Vector2(half, 42f), AccentColor, VisitSession.Leave);
-        AddButton(panel, "Home", new Vector2(24f + half, -98f), new Vector2(half, 42f), DangerColor, GoHome);
-        AddButton(panel, "Listings", new Vector2(12f, -150f), new Vector2(ColumnWidth - 24f, 42f), NeutralColor,
+        AddButton(panel, backToMap ? "Back to map" : "Back", new Vector2(16f, -96f), new Vector2(half, 40f), LumiWorldUITheme.Inset, LumiWorldUITheme.Text, VisitSession.Leave);
+        AddButton(panel, "Home", new Vector2(28f + half, -96f), new Vector2(half, 40f), LumiWorldUITheme.Primary, Color.white, GoHome);
+        AddButton(panel, "Listings", new Vector2(16f, -144f), new Vector2(ColumnWidth - 32f, 40f), LumiWorldUITheme.Surface, LumiWorldUITheme.Text,
             () => listings = ListingsWindow.Open(listings, transform, VisitSession.OwnerId, VisitSession.OwnerName));
-        AddButton(panel, "Trade cards", new Vector2(12f, -202f), new Vector2(ColumnWidth - 24f, 42f), AccentColor,
+        AddButton(panel, "Trade cards", new Vector2(16f, -192f), new Vector2(ColumnWidth - 32f, 40f), LumiWorldUITheme.Primary, Color.white,
             () => tradeOffer = TradeOfferWindow.Open(tradeOffer, transform, VisitSession.OwnerId, VisitSession.OwnerName));
     }
 
     private static void GoHome()
     {
-        // Kết thúc chuyến thăm trước khi vào đảo của mình để WorldSaveSystem ghi lại bình thường
         VisitSession.End();
         SceneManager.LoadScene(VisitSession.OwnScene);
     }
-
-    // =========================================================
-    // DỰNG UI
-    // =========================================================
 
     private RectTransform CreatePanel(Vector2 size)
     {
         RectTransform panel = EconomyHUD.CreateRect("WorldPanel", transform);
         SetTopLeft(panel, new Vector2(ColumnX, -PanelTop), size);
-        EconomyHUD.CreatePanel(panel, PanelColor).raycastTarget = true;
+        Image bg = panel.gameObject.AddComponent<Image>();
+        bg.sprite = LumiWorldUITheme.WindowSprite;
+        bg.type = Image.Type.Sliced;
+        bg.color = LumiWorldUITheme.Window;
+        bg.raycastTarget = true;
+        LumiWorldUITheme.AddSoftElevation(panel.gameObject, 4f, 0.20f);
         return panel;
     }
 
     private static TextMeshProUGUI CreateLine(RectTransform parent, Vector2 position, Vector2 size)
     {
-        TextMeshProUGUI line = EconomyHUD.CreateText("Line", parent, 16f, MutedColor, TextAlignmentOptions.Left);
+        TextMeshProUGUI line = EconomyHUD.CreateText("Line", parent, 14f, LumiWorldUITheme.Muted, TextAlignmentOptions.Left);
         SetTopLeft(line.rectTransform, position, size);
+        line.font = LumiWorldUITheme.Body ?? line.font;
         line.textWrappingMode = TextWrappingModes.Normal;
         return line;
     }
 
-    private static Button AddButton(RectTransform parent, string text, Vector2 position, Vector2 size, Color color, UnityEngine.Events.UnityAction onClick)
+    private static Button AddButton(RectTransform parent, string text, Vector2 position, Vector2 size, Color bgColor, Color textColor, UnityEngine.Events.UnityAction onClick)
     {
         RectTransform rect = EconomyHUD.CreateRect(text + "Button", parent);
         SetTopLeft(rect, position, size);
-        Button button = EconomyHUD.AddButton(rect, color);
+
+        Image img = rect.gameObject.AddComponent<Image>();
+        img.sprite = LumiWorldUITheme.SurfaceSprite;
+        img.type = Image.Type.Sliced;
+        img.color = bgColor;
+        img.raycastTarget = true;
+        LumiWorldUITheme.AddSoftElevation(rect.gameObject, 2f, 0.14f);
+
+        Button button = rect.gameObject.AddComponent<Button>();
+        button.targetGraphic = img;
         button.onClick.AddListener(onClick);
 
-        TextMeshProUGUI label = EconomyHUD.CreateText("Label", rect, 18f, TextColor, TextAlignmentOptions.Center);
+        TextMeshProUGUI label = EconomyHUD.CreateText("Label", rect, 15f, textColor, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(label.rectTransform);
+        label.font = LumiWorldUITheme.Body ?? label.font;
+        label.fontStyle = FontStyles.Bold;
         label.text = text;
         return button;
     }
@@ -220,13 +238,12 @@ public class WorldVisitHud : MonoBehaviour
 
     private static Transform FindScreenCanvas(Scene scene)
     {
-        foreach (Canvas canvas in FindObjectsByType<Canvas>())
+        foreach (Canvas c in FindObjectsByType<Canvas>())
         {
-            if (canvas.isRootCanvas && canvas.renderMode != RenderMode.WorldSpace && canvas.gameObject.scene == scene)
-                return canvas.transform;
+            if (c.isRootCanvas && c.renderMode != RenderMode.WorldSpace && c.gameObject.scene == scene)
+                return c.transform;
         }
 
-        // Scene chưa có Canvas màn hình: tạo một Canvas riêng
         GameObject canvasObject = new GameObject("WorldVisitCanvas", typeof(RectTransform));
         SceneManager.MoveGameObjectToScene(canvasObject, scene);
 

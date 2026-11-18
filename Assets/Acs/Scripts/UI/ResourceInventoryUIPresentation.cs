@@ -156,7 +156,7 @@ namespace LumiWorld.Acs
                             {
                                 if (recipe.category == CraftingCategory.Food) category = "Food";
                                 else if (recipe.category == CraftingCategory.Herbal) category = "Medicine";
-                                else category = "Resource";
+                                else category = "Products";
                             }
                             else if (extra.tier == "Thức ăn" || extra.tier == "Food" || extra.id.Contains(".food."))
                             {

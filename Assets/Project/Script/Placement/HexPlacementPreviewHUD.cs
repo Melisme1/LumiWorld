@@ -5,30 +5,23 @@ using UnityEngine.UI;
 using LumiWorld.Acs;
 
 /// <summary>
-/// Giao diện xem trước kết quả và phản hồi khi kéo thả đặt khối lục giác (Preserve Style Hex Placement Preview & Feedback HUD).
-/// Hiển thị trực quan:
-/// 1. Vùng ảnh hưởng & Tính hợp lệ (Xanh lá / Đỏ).
-/// 2. Kết quả dự kiến (Kích thước nhóm habitat mới, Sức chứa cư dân mới, Slot tài nguyên mới).
-/// 3. Chi phí hiển thị trước commit (Coins / Placement Fee).
-/// 4. Phản hồi UI (Feedback Banner): Giải thích chi tiết lý do placement không hợp lệ.
-/// 5. Toast thông báo hủy đặt an toàn: Thẻ quay lại Hand/Inventory và không trừ Coins.
+/// P-04 Placement Tooltip & Feedback HUD:
+/// - Displays a clean white floating pill (LumiWorldUITheme.Slot #FCFBF8) above the hovered hex tile
+///   showing ONLY Card Name + Coin Cost (no Rain icon, no multi-line dark tech box).
+/// - Nature/Rain highlights a single hex (via HexGhostVisual); Creature highlights the valid biome cluster (via HexCreatureTileGuide).
 /// </summary>
 public class HexPlacementPreviewHUD : MonoBehaviour
 {
     private static HexPlacementPreviewHUD instance;
     public static HexPlacementPreviewHUD Instance => instance;
 
-    [Header("UI References")]
     private Canvas hudCanvas;
-    private RectTransform previewPanel;
-    private TextMeshProUGUI titleText;
-    private TextMeshProUGUI clusterSizeText;
-    private TextMeshProUGUI capacityAndSlotText;
-    private TextMeshProUGUI feeText;
-    private TextMeshProUGUI statusText;
-    private Image statusBgImage;
+    private RectTransform tooltipPill;
+    private TextMeshProUGUI cardNameText;
+    private RectTransform costGroup;
+    private Image coinIconImg;
+    private TextMeshProUGUI costValueText;
 
-    // Toast thông báo phản hồi (Feedback Toast)
     private RectTransform toastPanel;
     private TextMeshProUGUI toastText;
     private Coroutine toastCoroutine;
@@ -69,119 +62,118 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         }
 
         // =====================================================================
-        // 1. PREVIEW PANEL (HỘP XEM TRƯỚC KẾT QUẢ DỰ KIẾN KHI KÉO THẺ)
+        // 1. P-04 FLOATING WHITE TOOLTIP PILL (Card Name + Coin Cost Only)
         // =====================================================================
-        GameObject panelObj = new GameObject("PlacementPreviewPanel", typeof(RectTransform), typeof(Image));
-        panelObj.transform.SetParent(transform, false);
-        previewPanel = panelObj.GetComponent<RectTransform>();
-        previewPanel.anchorMin = new Vector2(0.5f, 1f);
-        previewPanel.anchorMax = new Vector2(0.5f, 1f);
-        previewPanel.pivot = new Vector2(0.5f, 1f);
-        previewPanel.anchoredPosition = new Vector2(0f, -25f);
-        previewPanel.sizeDelta = new Vector2(460f, 115f);
+        GameObject pillObj = new GameObject("P04_PlacementTooltipPill", typeof(RectTransform), typeof(Image));
+        pillObj.transform.SetParent(transform, false);
+        tooltipPill = pillObj.GetComponent<RectTransform>();
+        tooltipPill.anchorMin = new Vector2(0.5f, 0.5f);
+        tooltipPill.anchorMax = new Vector2(0.5f, 0.5f);
+        tooltipPill.pivot = new Vector2(0.5f, 0f);
+        tooltipPill.sizeDelta = new Vector2(176f, 42f);
 
-        Image panelImg = panelObj.GetComponent<Image>();
-        panelImg.sprite = PreserveDiamondStyle.DiamondBase;
-        panelImg.color = new Color(0.08f, 0.12f, 0.16f, 0.94f);
+        Image pillBg = pillObj.GetComponent<Image>();
+        pillBg.sprite = LumiWorldUITheme.PillSprite;
+        pillBg.type = Image.Type.Sliced;
+        pillBg.color = LumiWorldUITheme.Slot; // Clean warm white #FCFBF8
+        pillBg.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(pillObj, 4f, 0.22f);
 
-        // Header: Tên thẻ & Biome
-        GameObject titleObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        titleObj.transform.SetParent(previewPanel, false);
-        RectTransform titleRect = titleObj.GetComponent<RectTransform>();
-        titleRect.anchoredPosition = new Vector2(0f, -14f);
-        titleRect.sizeDelta = new Vector2(420f, 24f);
+        // Card Name (left)
+        GameObject nameObj = new GameObject("CardName", typeof(RectTransform), typeof(TextMeshProUGUI));
+        nameObj.transform.SetParent(tooltipPill, false);
+        RectTransform nameRect = nameObj.GetComponent<RectTransform>();
+        nameRect.anchorMin = new Vector2(0f, 0f);
+        nameRect.anchorMax = new Vector2(1f, 1f);
+        nameRect.offsetMin = new Vector2(18f, 0f);
+        nameRect.offsetMax = new Vector2(-68f, 0f);
 
-        titleText = titleObj.GetComponent<TextMeshProUGUI>();
-        titleText.alignment = TextAlignmentOptions.Center;
-        titleText.fontSize = 17f;
-        titleText.fontStyle = FontStyles.Bold;
-        titleText.color = new Color(0.95f, 0.95f, 0.95f, 1f);
+        cardNameText = nameObj.GetComponent<TextMeshProUGUI>();
+        cardNameText.font = LumiWorldUITheme.Body;
+        cardNameText.alignment = TextAlignmentOptions.MidlineLeft;
+        cardNameText.fontSize = 16.5f;
+        cardNameText.fontStyle = FontStyles.Bold;
+        cardNameText.color = LumiWorldUITheme.Text;
+        cardNameText.textWrappingMode = TextWrappingModes.NoWrap;
+        cardNameText.raycastTarget = false;
 
-        // Hàng 1: Kích thước nhóm mới
-        GameObject clusterObj = new GameObject("ClusterText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        clusterObj.transform.SetParent(previewPanel, false);
-        RectTransform clusterRect = clusterObj.GetComponent<RectTransform>();
-        clusterRect.anchoredPosition = new Vector2(-105f, -40f);
-        clusterRect.sizeDelta = new Vector2(210f, 22f);
+        // Cost Group (right: Coin Icon + Cost Number)
+        GameObject costObj = new GameObject("CostGroup", typeof(RectTransform));
+        costObj.transform.SetParent(tooltipPill, false);
+        costGroup = costObj.GetComponent<RectTransform>();
+        costGroup.anchorMin = new Vector2(1f, 0.5f);
+        costGroup.anchorMax = new Vector2(1f, 0.5f);
+        costGroup.pivot = new Vector2(1f, 0.5f);
+        costGroup.anchoredPosition = new Vector2(-16f, 0f);
+        costGroup.sizeDelta = new Vector2(54f, 28f);
 
-        clusterSizeText = clusterObj.GetComponent<TextMeshProUGUI>();
-        clusterSizeText.alignment = TextAlignmentOptions.Left;
-        clusterSizeText.fontSize = 13f;
-        clusterSizeText.color = new Color(0.45f, 0.95f, 0.65f, 1f);
+        GameObject coinObj = new GameObject("CoinIcon", typeof(RectTransform), typeof(Image));
+        coinObj.transform.SetParent(costGroup, false);
+        RectTransform coinRect = coinObj.GetComponent<RectTransform>();
+        coinRect.anchorMin = new Vector2(0f, 0.5f);
+        coinRect.anchorMax = new Vector2(0f, 0.5f);
+        coinRect.pivot = new Vector2(0f, 0.5f);
+        coinRect.anchoredPosition = new Vector2(0f, 0f);
+        coinRect.sizeDelta = new Vector2(20f, 20f);
 
-        // Hàng 1 bên phải: Chi phí đặt (Placement Fee)
-        GameObject feeObj = new GameObject("FeeText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        feeObj.transform.SetParent(previewPanel, false);
-        RectTransform feeRect = feeObj.GetComponent<RectTransform>();
-        feeRect.anchoredPosition = new Vector2(105f, -40f);
-        feeRect.sizeDelta = new Vector2(210f, 22f);
+        coinIconImg = coinObj.GetComponent<Image>();
+        coinIconImg.sprite = EconomyHUD.CoinSprite;
+        coinIconImg.preserveAspect = true;
+        coinIconImg.raycastTarget = false;
 
-        feeText = feeObj.GetComponent<TextMeshProUGUI>();
-        feeText.alignment = TextAlignmentOptions.Right;
-        feeText.fontSize = 13f;
-        feeText.fontStyle = FontStyles.Bold;
-        feeText.color = new Color(1f, 0.85f, 0.35f, 1f);
+        GameObject valObj = new GameObject("CostValue", typeof(RectTransform), typeof(TextMeshProUGUI));
+        valObj.transform.SetParent(costGroup, false);
+        RectTransform valRect = valObj.GetComponent<RectTransform>();
+        valRect.anchorMin = new Vector2(0f, 0f);
+        valRect.anchorMax = new Vector2(1f, 1f);
+        valRect.offsetMin = new Vector2(24f, 0f);
+        valRect.offsetMax = Vector2.zero;
 
-        // Hàng 2: Sức chứa & Slot tài nguyên mới
-        GameObject capObj = new GameObject("CapText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        capObj.transform.SetParent(previewPanel, false);
-        RectTransform capRect = capObj.GetComponent<RectTransform>();
-        capRect.anchoredPosition = new Vector2(0f, -63f);
-        capRect.sizeDelta = new Vector2(420f, 20f);
+        costValueText = valObj.GetComponent<TextMeshProUGUI>();
+        costValueText.font = LumiWorldUITheme.Body;
+        costValueText.alignment = TextAlignmentOptions.MidlineLeft;
+        costValueText.fontSize = 16.5f;
+        costValueText.fontStyle = FontStyles.Bold;
+        costValueText.color = LumiWorldUITheme.Text;
+        costValueText.raycastTarget = false;
 
-        capacityAndSlotText = capObj.GetComponent<TextMeshProUGUI>();
-        capacityAndSlotText.alignment = TextAlignmentOptions.Center;
-        capacityAndSlotText.fontSize = 13f;
-        capacityAndSlotText.color = new Color(0.85f, 0.90f, 0.95f, 0.95f);
-
-        // Hàng 3: Trạng thái hợp lệ / Lý do từ chối
-        GameObject statusObj = new GameObject("StatusText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        statusObj.transform.SetParent(previewPanel, false);
-        RectTransform statusRect = statusObj.GetComponent<RectTransform>();
-        statusRect.anchoredPosition = new Vector2(0f, -88f);
-        statusRect.sizeDelta = new Vector2(420f, 22f);
-
-        statusText = statusObj.GetComponent<TextMeshProUGUI>();
-        statusText.alignment = TextAlignmentOptions.Center;
-        statusText.fontSize = 13f;
-        statusText.fontStyle = FontStyles.Bold;
-
-        previewPanel.gameObject.SetActive(false);
+        tooltipPill.gameObject.SetActive(false);
 
         // =====================================================================
-        // 2. FEEDBACK TOAST (BANNER PHẢN HỒI KHI HỦY HOẶC ĐẶT SAI)
+        // 2. FEEDBACK TOAST
         // =====================================================================
         GameObject toastObj = new GameObject("FeedbackToast", typeof(RectTransform), typeof(Image));
         toastObj.transform.SetParent(transform, false);
         toastPanel = toastObj.GetComponent<RectTransform>();
-        toastPanel.anchorMin = new Vector2(0.5f, 1f);
-        toastPanel.anchorMax = new Vector2(0.5f, 1f);
-        toastPanel.pivot = new Vector2(0.5f, 1f);
-        toastPanel.anchoredPosition = new Vector2(0f, -84f);
-        toastPanel.sizeDelta = new Vector2(560f, 52f);
+        toastPanel.anchorMin = new Vector2(0.5f, 0.5f);
+        toastPanel.anchorMax = new Vector2(0.5f, 0.5f);
+        toastPanel.pivot = new Vector2(0.5f, 0.5f);
+        toastPanel.anchoredPosition = new Vector2(0f, 160f);
+        toastPanel.sizeDelta = new Vector2(520f, 48f);
 
         Image toastBg = toastObj.GetComponent<Image>();
-        toastBg.sprite = PreserveDiamondStyle.DiamondBase;
-        toastBg.color = new Color(0.14f, 0.08f, 0.09f, 0.92f);
+        toastBg.sprite = LumiWorldUITheme.PillSprite;
+        toastBg.type = Image.Type.Sliced;
+        toastBg.color = LumiWorldUITheme.Surface;
         toastBg.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(toastObj, 4f, 0.22f);
 
         GameObject toastLabelObj = new GameObject("ToastLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
         toastLabelObj.transform.SetParent(toastPanel, false);
         RectTransform toastLabelRect = toastLabelObj.GetComponent<RectTransform>();
-        toastLabelRect.sizeDelta = new Vector2(530f, 44f);
+        EconomyHUD.Stretch(toastLabelRect);
 
         toastText = toastLabelObj.GetComponent<TextMeshProUGUI>();
+        toastText.font = LumiWorldUITheme.Body;
         toastText.alignment = TextAlignmentOptions.Center;
         toastText.fontSize = 15f;
-        toastText.color = new Color(1f, 0.90f, 0.50f, 1f);
+        toastText.fontStyle = FontStyles.Bold;
+        toastText.color = LumiWorldUITheme.Text;
         toastText.raycastTarget = false;
 
         toastPanel.gameObject.SetActive(false);
     }
 
-    /// <summary>
-    /// Hiển thị thông tin xem trước kết quả khi đang kéo thẻ lên một ô lục giác
-    /// </summary>
     public void UpdatePlacementPreview(
         CardData cardData,
         HexCoordinates targetHex,
@@ -191,82 +183,78 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         int placementFee,
         bool canAffordFee)
     {
-        if (previewPanel != null)
+        if (cardData == null || tooltipPill == null)
         {
-            previewPanel.gameObject.SetActive(false);
-        }
-
-        if (isValid && canAffordFee)
-        {
-            if (toastPanel != null && toastCoroutine == null)
-            {
-                toastPanel.gameObject.SetActive(false);
-            }
+            HidePreview();
             return;
         }
 
-        if (toastPanel != null && toastText != null)
+        string rawName = !string.IsNullOrEmpty(cardData.cardName) ? cardData.cardName : cardData.cardID;
+        string displayName = CardShop.TranslateToEnglish(rawName, cardData.name);
+
+        cardNameText.text = displayName;
+        float textW = Mathf.Clamp(cardNameText.preferredWidth, 48f, 220f);
+
+        bool hasFee = placementFee > 0;
+        if (costGroup != null) costGroup.gameObject.SetActive(hasFee);
+
+        float pillW;
+        if (hasFee)
         {
-            string reason = !canAffordFee
-                ? $"Not enough Coins ({placementFee} required)."
-                : (!string.IsNullOrEmpty(validationError) ? validationError : "Cannot place here.");
-            toastText.text = reason;
-            toastText.color = new Color(1f, 0.55f, 0.52f, 1f);
-            toastPanel.gameObject.SetActive(true);
+            if (costValueText != null)
+            {
+                costValueText.text = placementFee.ToString();
+                costValueText.color = canAffordFee ? LumiWorldUITheme.Text : LumiWorldUITheme.Error;
+            }
+            float costW = placementFee >= 10 ? 54f : 44f;
+            costGroup.sizeDelta = new Vector2(costW, 28f);
+            cardNameText.rectTransform.offsetMax = new Vector2(-(costW + 24f), 0f);
+            pillW = textW + costW + 46f;
+        }
+        else
+        {
+            cardNameText.rectTransform.offsetMax = new Vector2(-18f, 0f);
+            pillW = textW + 36f;
+        }
+
+        tooltipPill.sizeDelta = new Vector2(pillW, 42f);
+
+        // Position tooltip above the hovered hex in screen space
+        Camera cam = Camera.main;
+        if (cam != null && hudCanvas != null)
+        {
+            Vector3 worldPos = HexMetrics.HexToWorldPosition(targetHex, HexMetrics.TileHeight + 0.65f);
+            Vector3 screenPos = cam.WorldToScreenPoint(worldPos);
+            if (screenPos.z > 0f)
+            {
+                RectTransform canvasRect = (RectTransform)hudCanvas.transform;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        canvasRect,
+                        new Vector2(screenPos.x, screenPos.y),
+                        hudCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : hudCanvas.worldCamera,
+                        out Vector2 localPt))
+                {
+                    tooltipPill.anchoredPosition = localPt + new Vector2(0f, 24f);
+                }
+            }
+        }
+
+        if (!tooltipPill.gameObject.activeSelf)
+        {
+            tooltipPill.gameObject.SetActive(true);
         }
     }
 
     public void HidePreview()
     {
-        if (previewPanel != null)
+        if (tooltipPill != null && tooltipPill.gameObject.activeSelf)
         {
-            previewPanel.gameObject.SetActive(false);
-        }
-        if (toastPanel != null && toastCoroutine == null)
-        {
-            toastPanel.gameObject.SetActive(false);
+            tooltipPill.gameObject.SetActive(false);
         }
     }
 
-    /// <summary>
-    /// Hiển thị thông báo Toast phản hồi khi hủy đặt, đặt sai, hoặc thẻ bị khóa.
-    /// Cam kết: Thẻ quay lại Hand/Inventory và không trừ Coins!
-    /// </summary>
     public static void ShowFeedbackToast(string message, float duration = 2.8f)
     {
-        // Hiển thị trực tiếp lên Panel Thông Báo chuẩn mới của game (kèm nút OK để đóng)
         GameDialogUI.ShowNotice(message);
-    }
-
-    private void TriggerToast(string message, float duration)
-    {
-        if (toastCoroutine != null)
-        {
-            StopCoroutine(toastCoroutine);
-        }
-        toastCoroutine = StartCoroutine(ToastRoutine(message, duration));
-    }
-
-    private IEnumerator ToastRoutine(string message, float duration)
-    {
-        toastText.text = message;
-        toastPanel.gameObject.SetActive(true);
-        toastPanel.localScale = Vector3.one * 0.85f;
-
-        // Punch animation
-        float elapsed = 0f;
-        while (elapsed < 0.2f)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = elapsed / 0.2f;
-            toastPanel.localScale = Vector3.Lerp(Vector3.one * 0.85f, Vector3.one, Mathf.SmoothStep(0, 1, t));
-            yield return null;
-        }
-
-        toastPanel.localScale = Vector3.one;
-        yield return new WaitForSecondsRealtime(duration);
-
-        toastPanel.gameObject.SetActive(false);
-        toastCoroutine = null;
     }
 }

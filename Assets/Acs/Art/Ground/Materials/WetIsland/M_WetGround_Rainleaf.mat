@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_WetGround_Rainleaf
+  m_Shader: {fileID: 4800000, guid: 3f337247983ffaf44bf9a117353e4ba7, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _CausticsTex:
+        m_Texture: {fileID: 2800000, guid: 4a1b6613391d39147bc5e6163feefa21, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TopTex:
+        m_Texture: {fileID: 2800000, guid: a2acfefaed2eb6144815ab273d3452da, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WaterMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BedCausticScale: 0.65
+    - _BedCausticSpeed: 0.08
+    - _BedCausticStrength: 0
+    - _BevelEdge1: 0.45
+    - _BevelEdge2: 0.86
+    - _BevelRimHighlight: 0.08
+    - _DiffuseWrap: 0.32
+    - _SeamCreaseTint: 0.22
+    - _ShadowStrength: 0.42
+    - _ShoreGrainStrength: 0.065
+    - _ShoreStart: 0.9
+    - _TopTiling: 0.55
+    - _WaterThreshold: 0.95
+    - _WetGloss: 0.18
+    - _WetnessDarken: 0
+    m_Colors:
+    - _BedCausticColor: {r: 0, g: 0, b: 0, a: 1}
+    - _BedColor: {r: 0.28, g: 0.22, b: 0.15, a: 1}
+    - _BedDeepColor: {r: 0.28, g: 0.22, b: 0.15, a: 1}
+    - _BedMidColor: {r: 0.28, g: 0.22, b: 0.15, a: 1}
+    - _ShoreColor: {r: 0.28, g: 0.22, b: 0.15, a: 1}
+    - _SideBottomColor: {r: 0.24, g: 0.16, b: 0.1, a: 1}
+    - _SideColor: {r: 0.38, g: 0.27, b: 0.17, a: 1}
+    - _TopTint: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

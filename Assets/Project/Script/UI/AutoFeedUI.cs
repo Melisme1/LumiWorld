@@ -3,72 +3,87 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using LumiWorld.Acs;
 using LumiWorld.Economy.Crafting;
 
 /// <summary>
-/// Giao diện Cho Ăn Tự Động (Auto-Feed Dispenser UI) của LumiWorld:
-/// - Mở từ nút Cho Ăn ("choan_button" / "Btn_AutoFeed") trên thanh Toolbar HUD thu gọn.
-/// - Bên trái: Danh sách các loại thức ăn đang có trong Kho (Food Storage Grid).
-/// - Ở giữa: Mũi tên chuyển giao thức ăn vào hệ thống phân phối.
-/// - Bên phải: 
-///   + Thời lượng cho ăn tự động ước tính (Estimated Auto-Feeding Duration).
-///   + Thống kê mức tiêu thụ mỗi phút (Consumption / Min) & Tổng năng lượng thức ăn (Total Food Energy).
-///   + 3 ô thức ăn tự động (3 Dispenser Slots) kèm nút hủy (-) từng món.
-///   + Nút "Fill All" (Tự động nạp nhanh) và "Confirm Auto-Feed" (Xác nhận cho ăn tự động).
-/// - Toàn bộ ngôn ngữ chuẩn 100% tiếng Anh theo yêu cầu.
+/// P-08 Automatic Feeding UI — LumiWorld UI Production Pack:
+/// - Single biome type selected at a time (NO "All biomes").
+/// - Biome selector pills use the same colored Biome Emblem (B-01..B-07) and canonical name as P-05.
+/// - Each biome type has its own independent 3 food slots and shared remaining budget for habitats/creatures
+///   of that biome type in the active world (saved per user/world/biome type; never copies global config).
+/// - Budget is never multiplied per creature and is only decremented when DepositCreatureFood actually succeeds.
 /// </summary>
 public class AutoFeedUI : MonoBehaviour
 {
     private static AutoFeedUI instance;
     public static AutoFeedUI Instance => instance;
 
+    public const float WindowWidth = 1040f;
+    public const float WindowHeight = 620f;
+
     public bool IsOpen => window != null && window.activeSelf;
 
-    // Window components
     private GameObject window;
     private RectTransform panel;
-    private RectTransform foodGridContent;
-    private TextMeshProUGUI availableFoodCountText;
+    private RectTransform biomeTabsRow;
+    private RectTransform foodListContent;
     private TextMeshProUGUI emptyFoodNoticeText;
-
-    // Right card components
-    private TextMeshProUGUI durationText;
-    private TextMeshProUGUI consumptionRateText;
-    private TextMeshProUGUI totalEnergyText;
+    private TextMeshProUGUI remainingBudgetText;
     private TextMeshProUGUI feedbackNotifyText;
     private Coroutine feedbackFadeRoutine;
-    private Button confirmButton;
-    private Button fillAllButton;
+    private Button applySetupButton;
 
-    // 3 Food Slots
+    // 3 Slot views for the currently selected biome
     private readonly DispenserSlotView[] slotViews = new DispenserSlotView[3];
-
-    // State: 3 assigned food slots
-    private static readonly string[] AssignedFoodIds = new string[3];
-    private static readonly int[] AssignedFoodAmounts = new int[3];
-
-    // Cached Food Items from Inventory
-    private readonly List<ResourceUIItem> currentFoodList = new List<ResourceUIItem>();
-    private readonly Dictionary<string, Image> foodCardBorders = new Dictionary<string, Image>(StringComparer.Ordinal);
 
     private class DispenserSlotView
     {
         public int index;
         public RectTransform root;
-        public Image plateImage;
+        public GameObject emptyContainer;
+        public Button addFoodButton;
+        public TextMeshProUGUI addFoodLabel;
+        public GameObject occupiedContainer;
         public Image iconImage;
         public TextMeshProUGUI nameText;
-        public TextMeshProUGUI amountText;
-        public Button removeButton;
-        public GameObject emptyPlaceholder;
-        public GameObject occupiedContainer;
-        public GameObject stepperRow;
+        public TextMeshProUGUI subText;
         public Button decButton;
-        public Button incButton;
         public Button amountButton;
+        public TextMeshProUGUI amountText;
+        public Button incButton;
+        public Button removeButton;
     }
+
+    private class BiomeTabView
+    {
+        public BiomeAffinity affinity;
+        public Button button;
+        public Image bg;
+        public Image border;
+        public Image emblem;
+        public TextMeshProUGUI label;
+    }
+
+    private readonly List<BiomeTabView> biomeTabs = new List<BiomeTabView>();
+
+    // Per-biome 3-slot config in memory (synced with PlayerPrefs per world + biome)
+    private class BiomeFeedSlots
+    {
+        public readonly string[] foodIds = new string[3];
+        public readonly int[] budgets = new int[3];
+    }
+
+    private readonly Dictionary<BiomeAffinity, BiomeFeedSlots> slotsByBiome = new Dictionary<BiomeAffinity, BiomeFeedSlots>();
+    private BiomeAffinity activeBiome = BiomeAffinity.Leafwood;
+    private string loadedWorldScopeKey = string.Empty;
+
+    // Available foods in Inventory (left column)
+    private readonly List<ResourceUIItem> currentFoodList = new List<ResourceUIItem>();
+    private readonly Dictionary<string, Image> foodRowBorders = new Dictionary<string, Image>(StringComparer.OrdinalIgnoreCase);
+    private string selectedFoodId = string.Empty;
 
     // Quantity Modal
     private GameObject quantityModalObj;
@@ -81,22 +96,19 @@ public class AutoFeedUI : MonoBehaviour
     private int modalCurrentAmount = 1;
     private int modalMaxStock = 1;
 
-    // Confirmation Modal
-    private GameObject confirmModalObj;
-    private TextMeshProUGUI confirmModalItemsText;
+    private float nextAutoTickTime;
+    private static Sprite s_SelectionBorderSprite;
 
-    private static readonly Color ThemeCyan = new Color(0.04f, 0.70f, 0.90f, 1f);
-    private static readonly Color ThemeDark = new Color(0.06f, 0.12f, 0.22f, 1f);
-    private static readonly Color CardBg = new Color(0.96f, 0.985f, 1f, 0.98f);
-    private static readonly Color SubTextCol = new Color(0.35f, 0.45f, 0.58f, 1f);
-
-    private static Sprite panelSprite;
-    private static Sprite cardBoxSprite;
-    private static Sprite pillSprite;
-    private static Sprite circlePlateSprite;
-    private static Sprite buttonPrimarySprite;
-    private static Sprite buttonSecondarySprite;
-    private static Sprite clockIconSprite;
+    private static readonly BiomeAffinity[] SupportedBiomes =
+    {
+        BiomeAffinity.Leafwood,
+        BiomeAffinity.Bloomfield,
+        BiomeAffinity.Windheath,
+        BiomeAffinity.Reedmarsh,
+        BiomeAffinity.Lilywater,
+        BiomeAffinity.Streamstone,
+        BiomeAffinity.Rainleaf
+    };
 
     private void Awake()
     {
@@ -106,7 +118,7 @@ public class AutoFeedUI : MonoBehaviour
             return;
         }
         instance = this;
-        LoadSavedSlots();
+        EnsureWorldConfigLoaded();
         BuildWindow();
     }
 
@@ -116,22 +128,38 @@ public class AutoFeedUI : MonoBehaviour
         {
             EconomyHUD.RegisterWindow(window, Close);
         }
-        StartCoroutine(AutoFeedRoutine());
-        DistributeFoodToAllCreatures();
     }
 
-    private System.Collections.IEnumerator AutoFeedRoutine()
+    private void Update()
     {
-        while (true)
+        if (IsOpen && panel != null)
         {
-            yield return new WaitForSeconds(2.5f);
-            DistributeFoodToAllCreatures();
-            if (IsOpen)
-            {
-                RefreshFoodInventory();
-                RefreshDispenserStats();
-            }
+            float scale = ComputePanelScale();
+            panel.localScale = new Vector3(scale, scale, 1f);
         }
+
+        // Background auto-feeding tick every 3 seconds for biomes with remaining budget
+        if (Application.isPlaying && !WorldLaunch.IsVisit && Time.unscaledTime >= nextAutoTickTime)
+        {
+            nextAutoTickTime = Time.unscaledTime + 3.0f;
+            EnsureWorldConfigLoaded();
+            RunBackgroundAutoFeedTick();
+        }
+    }
+
+    private float ComputePanelScale()
+    {
+        var invCtrl = FindAnyObjectByType<ResourceInventoryUIController>(FindObjectsInactive.Include);
+        if (invCtrl != null && invCtrl.transform.lossyScale.x > 0.0001f && transform.lossyScale.x > 0.0001f)
+        {
+            return invCtrl.transform.lossyScale.x / transform.lossyScale.x;
+        }
+
+        Canvas rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
+        float canvasScale = rootCanvas != null && rootCanvas.scaleFactor > 0.01f ? rootCanvas.scaleFactor : 1f;
+        float fit = ResourceInventoryUILayout.FitScale(Screen.width, Screen.height);
+        float parentScale = transform.lossyScale.x > 0.0001f ? transform.lossyScale.x : (1f / canvasScale);
+        return fit / parentScale;
     }
 
     public void Toggle()
@@ -142,21 +170,26 @@ public class AutoFeedUI : MonoBehaviour
 
     public void Open()
     {
+        EnsureWorldConfigLoaded();
         if (window == null) BuildWindow();
+        if (panel != null)
+        {
+            float scale = ComputePanelScale();
+            panel.localScale = new Vector3(scale, scale, 1f);
+        }
+
         window.SetActive(true);
         window.transform.SetAsLastSibling();
         EconomyHUD.BringWindowToFront(window);
+
+        RefreshBiomeSelectorTabs();
         RefreshFoodInventory();
-        RefreshDispenserStats();
+        RefreshSlotsAndBudgetUI();
         GameAudioManager.Instance?.PlayClick();
     }
 
     public void Close()
     {
-        if (confirmModalObj != null && confirmModalObj.activeSelf)
-        {
-            confirmModalObj.SetActive(false);
-        }
         if (quantityModalObj != null && quantityModalObj.activeSelf)
         {
             quantityModalObj.SetActive(false);
@@ -169,196 +202,348 @@ public class AutoFeedUI : MonoBehaviour
         }
     }
 
-    private void LoadSavedSlots()
+    // =========================================================
+    // PER-WORLD, PER-BIOME PERSISTENCE
+    // =========================================================
+
+    private static string GetWorldScopeKey()
     {
-        for (int i = 0; i < 3; i++)
+        string player = !string.IsNullOrEmpty(SaveSlot.PlayerId) ? SaveSlot.PlayerId : "local";
+        string world = !string.IsNullOrEmpty(WorldLaunch.WorldId) ? WorldLaunch.WorldId : SceneManager.GetActiveScene().name;
+        return $"{player}_{world}";
+    }
+
+    private void EnsureWorldConfigLoaded()
+    {
+        string currentKey = GetWorldScopeKey();
+        if (string.Equals(loadedWorldScopeKey, currentKey, StringComparison.Ordinal) && slotsByBiome.Count > 0)
         {
-            AssignedFoodIds[i] = PlayerPrefs.GetString("AutoFeed_Slot_" + i, string.Empty);
-            AssignedFoodAmounts[i] = PlayerPrefs.GetInt("AutoFeed_Amount_" + i, 0);
+            return;
+        }
+
+        loadedWorldScopeKey = currentKey;
+        slotsByBiome.Clear();
+
+        foreach (BiomeAffinity biome in SupportedBiomes)
+        {
+            var data = new BiomeFeedSlots();
+            for (int i = 0; i < 3; i++)
+            {
+                string keyPrefix = $"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_{biome}_{i}";
+                data.foodIds[i] = PlayerPrefs.GetString(keyPrefix + "_Id", string.Empty);
+                data.budgets[i] = Mathf.Max(0, PlayerPrefs.GetInt(keyPrefix + "_Budget", 0));
+                if (string.IsNullOrEmpty(data.foodIds[i]) || data.budgets[i] <= 0)
+                {
+                    data.foodIds[i] = string.Empty;
+                    data.budgets[i] = 0;
+                }
+            }
+            slotsByBiome[biome] = data;
+        }
+
+        int savedBiomeInt = PlayerPrefs.GetInt($"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_ActiveBiome", (int)BiomeAffinity.Leafwood);
+        if (Enum.IsDefined(typeof(BiomeAffinity), savedBiomeInt) && savedBiomeInt != (int)BiomeAffinity.None)
+        {
+            activeBiome = (BiomeAffinity)savedBiomeInt;
+        }
+        else
+        {
+            activeBiome = BiomeAffinity.Leafwood;
         }
     }
 
-    private void SaveSlots()
+    private BiomeFeedSlots GetSlotsFor(BiomeAffinity biome)
     {
+        EnsureWorldConfigLoaded();
+        if (!slotsByBiome.TryGetValue(biome, out var data) || data == null)
+        {
+            data = new BiomeFeedSlots();
+            slotsByBiome[biome] = data;
+        }
+        return data;
+    }
+
+    private void SaveBiomeSlots(BiomeAffinity biome)
+    {
+        if (WorldLaunch.IsVisit) return;
+        EnsureWorldConfigLoaded();
+        var data = GetSlotsFor(biome);
         for (int i = 0; i < 3; i++)
         {
-            PlayerPrefs.SetString("AutoFeed_Slot_" + i, AssignedFoodIds[i] ?? string.Empty);
-            PlayerPrefs.SetInt("AutoFeed_Amount_" + i, AssignedFoodAmounts[i]);
+            string keyPrefix = $"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_{biome}_{i}";
+            PlayerPrefs.SetString(keyPrefix + "_Id", data.foodIds[i] ?? string.Empty);
+            PlayerPrefs.SetInt(keyPrefix + "_Budget", Mathf.Max(0, data.budgets[i]));
         }
+        PlayerPrefs.SetInt($"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_ActiveBiome", (int)activeBiome);
         PlayerPrefs.Save();
     }
+
+    // =========================================================
+    // UI CONSTRUCTION (P-08 Warm Theme)
+    // =========================================================
 
     private void BuildWindow()
     {
         if (window != null) return;
 
-        // Dimmer background
         window = new GameObject("AutoFeedWindow", typeof(RectTransform));
         window.transform.SetParent(transform, false);
         var winRect = window.GetComponent<RectTransform>();
-        winRect.anchorMin = Vector2.zero;
-        winRect.anchorMax = Vector2.one;
-        winRect.offsetMin = Vector2.zero;
-        winRect.offsetMax = Vector2.zero;
+        EconomyHUD.Stretch(winRect);
 
-        var dimObj = new GameObject("Dimmer", typeof(RectTransform), typeof(Image));
+        var dimObj = new GameObject("Dimmer", typeof(RectTransform), typeof(Image), typeof(Button));
         dimObj.transform.SetParent(window.transform, false);
-        var dimRect = dimObj.GetComponent<RectTransform>();
-        dimRect.anchorMin = Vector2.zero;
-        dimRect.anchorMax = Vector2.one;
-        dimRect.offsetMin = Vector2.zero;
-        dimRect.offsetMax = Vector2.zero;
+        EconomyHUD.Stretch(dimObj.GetComponent<RectTransform>());
         var dimImg = dimObj.GetComponent<Image>();
-        dimImg.color = new Color(0.04f, 0.08f, 0.14f, 0.65f);
+        dimImg.color = LumiWorldUITheme.Backdrop;
         dimImg.raycastTarget = true;
         dimObj.AddComponent<ResourceUIInputBlocker>();
+        var dimBtn = dimObj.GetComponent<Button>();
+        dimBtn.transition = Selectable.Transition.None;
+        dimBtn.onClick.AddListener(Close);
 
-        // Main Panel (940x560)
         GameObject panelObj = new GameObject("MainPanel", typeof(RectTransform), typeof(Image));
         panelObj.transform.SetParent(window.transform, false);
         panel = panelObj.GetComponent<RectTransform>();
         panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
-        panel.sizeDelta = new Vector2(940f, 560f);
+        panel.sizeDelta = new Vector2(WindowWidth, WindowHeight);
 
         var pImg = panelObj.GetComponent<Image>();
-        pImg.sprite = GetPanelSprite();
+        pImg.sprite = LumiWorldUITheme.WindowSprite;
         pImg.type = Image.Type.Sliced;
-        pImg.color = Color.white;
+        pImg.color = LumiWorldUITheme.Window;
         pImg.raycastTarget = true;
         panelObj.AddComponent<ResourceUIInputBlocker>();
+        LumiWorldUITheme.AddSoftElevation(panelObj, 6f, 0.22f);
 
-        // Header
         BuildHeader();
-
-        // Left Section: Available Food Grid
-        BuildFoodInventorySection();
-
-        // Center Arrow
-        BuildCenterArrow();
-
-        // Right Section: Auto-Feed Dispenser & Stats
-        BuildDispenserSection();
+        BuildBiomeSelectorRow();
+        BuildLeftFoodListSection();
+        BuildRightAssignedSection();
+        BuildFooterBar();
 
         window.SetActive(false);
     }
 
     private void BuildHeader()
     {
-        // Title
-        var titleObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
-        titleObj.transform.SetParent(panel, false);
-        var tRect = titleObj.GetComponent<RectTransform>();
-        tRect.anchorMin = tRect.anchorMax = new Vector2(0f, 1f);
-        tRect.pivot = new Vector2(0f, 1f);
-        tRect.anchoredPosition = new Vector2(30f, -18f);
-        tRect.sizeDelta = new Vector2(600f, 32f);
+        var titleTxt = CreateTMP(panel, "Title", "Automatic Feeding", 25f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        titleTxt.font = LumiWorldUITheme.Heading ?? titleTxt.font;
+        titleTxt.overflowMode = TextOverflowModes.Overflow;
+        SetTopLeft(titleTxt.rectTransform, new Vector2(30f, -15f), new Vector2(540f, 42f));
 
-        var tText = titleObj.GetComponent<TextMeshProUGUI>();
-        tText.font = Resources.Load<TMP_FontAsset>("Fonts/Nunito-Bold SDF");
-        tText.text = "AUTOMATIC FEEDING";
-        tText.fontSize = 22f;
-        tText.fontStyle = FontStyles.Bold;
-        tText.color = ThemeDark;
-        tText.alignment = TextAlignmentOptions.MidlineLeft;
-
-        // Subtitle
-        var subObj = new GameObject("Subtitle", typeof(RectTransform), typeof(TextMeshProUGUI));
-        subObj.transform.SetParent(panel, false);
-        var sRect = subObj.GetComponent<RectTransform>();
-        sRect.anchorMin = sRect.anchorMax = new Vector2(0f, 1f);
-        sRect.pivot = new Vector2(0f, 1f);
-        sRect.anchoredPosition = new Vector2(30f, -48f);
-        sRect.sizeDelta = new Vector2(700f, 22f);
-
-        var sText = subObj.GetComponent<TextMeshProUGUI>();
-        sText.font = tText.font;
-        sText.text = "Assign food from warehouse to automated dispenser slots to feed creatures continuously";
-        sText.fontSize = 13f;
-        sText.color = SubTextCol;
-        sText.alignment = TextAlignmentOptions.MidlineLeft;
-
-        // Close Button (X)
+        // Close [×] button
         GameObject closeObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         closeObj.transform.SetParent(panel, false);
         var cRect = closeObj.GetComponent<RectTransform>();
-        cRect.anchorMin = cRect.anchorMax = new Vector2(1f, 1f);
-        cRect.pivot = new Vector2(1f, 1f);
-        cRect.anchoredPosition = new Vector2(-22f, -18f);
-        cRect.sizeDelta = new Vector2(36f, 36f);
+        cRect.anchorMin = cRect.anchorMax = cRect.pivot = new Vector2(1f, 1f);
+        cRect.anchoredPosition = new Vector2(-24f, -16f);
+        cRect.sizeDelta = new Vector2(42f, 42f);
 
         var cImg = closeObj.GetComponent<Image>();
-        cImg.sprite = GetCardBoxSprite();
+        cImg.sprite = LumiWorldUITheme.PillSprite;
         cImg.type = Image.Type.Sliced;
-        cImg.color = Color.white;
+        cImg.color = LumiWorldUITheme.Inset;
+        LumiWorldUITheme.AddSoftElevation(closeObj, 2.5f, 0.14f);
 
-        var cTxtObj = new GameObject("X", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cTxtObj.transform.SetParent(closeObj.transform, false);
-        var ctRect = cTxtObj.GetComponent<RectTransform>();
-        ctRect.anchorMin = Vector2.zero; ctRect.anchorMax = Vector2.one;
-        ctRect.offsetMin = Vector2.zero; ctRect.offsetMax = Vector2.zero;
-        var ctText = cTxtObj.GetComponent<TextMeshProUGUI>();
-        ctText.font = tText.font;
-        ctText.text = "X";
-        ctText.fontSize = 18f;
-        ctText.fontStyle = FontStyles.Bold;
-        ctText.color = new Color(0.35f, 0.45f, 0.58f, 1f);
-        ctText.alignment = TextAlignmentOptions.Center;
+        GameObject xIcObj = new GameObject("X", typeof(RectTransform), typeof(Image));
+        xIcObj.transform.SetParent(cRect, false);
+        RectTransform xIcRect = xIcObj.GetComponent<RectTransform>();
+        xIcRect.anchorMin = xIcRect.anchorMax = xIcRect.pivot = new Vector2(0.5f, 0.5f);
+        xIcRect.sizeDelta = new Vector2(18f, 18f);
+        Image xIcImg = xIcObj.GetComponent<Image>();
+        xIcImg.sprite = LumiWorldUITheme.Glyph("Close");
+        xIcImg.preserveAspect = true;
+        xIcImg.color = LumiWorldUITheme.Text;
+        xIcImg.raycastTarget = false;
 
         var cBtn = closeObj.GetComponent<Button>();
         cBtn.targetGraphic = cImg;
+        cBtn.navigation = new Navigation { mode = Navigation.Mode.None };
         cBtn.onClick.AddListener(Close);
     }
 
-    private void BuildFoodInventorySection()
+    private void BuildBiomeSelectorRow()
     {
-        // Container
-        var contObj = new GameObject("FoodStorageContainer", typeof(RectTransform));
-        contObj.transform.SetParent(panel, false);
-        var cRect = contObj.GetComponent<RectTransform>();
-        cRect.anchorMin = cRect.anchorMax = new Vector2(0f, 1f);
-        cRect.pivot = new Vector2(0f, 1f);
-        cRect.anchoredPosition = new Vector2(26f, -76f);
-        cRect.sizeDelta = new Vector2(510f, 460f);
+        GameObject rowObj = new GameObject("BiomeSelectorRow", typeof(RectTransform));
+        rowObj.transform.SetParent(panel, false);
+        biomeTabsRow = rowObj.GetComponent<RectTransform>();
+        SetTopLeft(biomeTabsRow, new Vector2(28f, -68f), new Vector2(WindowWidth - 56f, 44f));
 
-        // Header row
-        var headerObj = new GameObject("GridHeader", typeof(RectTransform), typeof(TextMeshProUGUI));
-        headerObj.transform.SetParent(contObj.transform, false);
-        var hRect = headerObj.GetComponent<RectTransform>();
-        hRect.anchorMin = hRect.anchorMax = new Vector2(0f, 1f);
-        hRect.pivot = new Vector2(0f, 1f);
-        hRect.anchoredPosition = new Vector2(6f, 0f);
-        hRect.sizeDelta = new Vector2(300f, 26f);
+        RefreshBiomeSelectorTabs();
+    }
 
-        availableFoodCountText = headerObj.GetComponent<TextMeshProUGUI>();
-        availableFoodCountText.font = Resources.Load<TMP_FontAsset>("Fonts/Nunito-Bold SDF");
-        availableFoodCountText.text = "FOOD STORAGE (0 ITEMS)";
-        availableFoodCountText.fontSize = 13.5f;
-        availableFoodCountText.fontStyle = FontStyles.Bold;
-        availableFoodCountText.color = ThemeDark;
+    private void RefreshBiomeSelectorTabs()
+    {
+        if (biomeTabsRow == null) return;
 
-        // Sub hint
-        var hintObj = new GameObject("GridHint", typeof(RectTransform), typeof(TextMeshProUGUI));
-        hintObj.transform.SetParent(contObj.transform, false);
-        var hintRect = hintObj.GetComponent<RectTransform>();
-        hintRect.anchorMin = hintRect.anchorMax = new Vector2(1f, 1f);
-        hintRect.pivot = new Vector2(1f, 1f);
-        hintRect.anchoredPosition = new Vector2(0f, 0f);
-        hintRect.sizeDelta = new Vector2(200f, 26f);
-        var hintText = hintObj.GetComponent<TextMeshProUGUI>();
-        hintText.font = availableFoodCountText.font;
-        hintText.text = "Tap food to assign →";
-        hintText.fontSize = 12f;
-        hintText.color = ThemeCyan;
-        hintText.alignment = TextAlignmentOptions.MidlineRight;
+        for (int i = biomeTabsRow.childCount - 1; i >= 0; i--)
+        {
+            Destroy(biomeTabsRow.GetChild(i).gameObject);
+        }
+        biomeTabs.Clear();
 
-        // Scroll View
-        var scrollObj = new GameObject("FoodScrollView", typeof(RectTransform), typeof(ScrollRect));
-        scrollObj.transform.SetParent(contObj.transform, false);
-        var sRect = scrollObj.GetComponent<RectTransform>();
-        sRect.anchorMin = sRect.anchorMax = new Vector2(0f, 1f);
-        sRect.pivot = new Vector2(0f, 1f);
-        sRect.anchoredPosition = new Vector2(0f, -32f);
-        sRect.sizeDelta = new Vector2(510f, 420f);
+        // Collect biomes present on the active island first, followed by standard island biomes (no "All biomes")
+        List<BiomeAffinity> biomesToShow = new List<BiomeAffinity>();
+        HabitatRuntimeManager habManager = null;
+        if (ResourceProductionRuntime.Instance != null && ResourceProductionRuntime.Instance.HabitatManager != null)
+            habManager = ResourceProductionRuntime.Instance.HabitatManager;
+        else
+            HabitatRuntimeManager.TryGetActive(out habManager);
+
+        if (habManager != null && habManager.Habitats != null)
+        {
+            foreach (var h in habManager.Habitats)
+            {
+                if (h != null && h.affinity != BiomeAffinity.None && !biomesToShow.Contains(h.affinity))
+                {
+                    biomesToShow.Add(h.affinity);
+                }
+            }
+        }
+
+        // Ensure core biomes are always selectable even before habitats are built
+        BiomeAffinity[] defaultIslandBiomes =
+        {
+            BiomeAffinity.Leafwood,
+            BiomeAffinity.Bloomfield,
+            BiomeAffinity.Windheath,
+            BiomeAffinity.Reedmarsh
+        };
+        foreach (var b in defaultIslandBiomes)
+        {
+            if (!biomesToShow.Contains(b)) biomesToShow.Add(b);
+        }
+
+        // Also include any biome that already has saved food slots in this world
+        foreach (var b in SupportedBiomes)
+        {
+            if (!biomesToShow.Contains(b))
+            {
+                var slots = GetSlotsFor(b);
+                if (!string.IsNullOrEmpty(slots.foodIds[0]) || !string.IsNullOrEmpty(slots.foodIds[1]) || !string.IsNullOrEmpty(slots.foodIds[2]))
+                {
+                    biomesToShow.Add(b);
+                }
+            }
+        }
+
+        if (!biomesToShow.Contains(activeBiome) && biomesToShow.Count > 0)
+        {
+            activeBiome = biomesToShow[0];
+        }
+
+        float curX = 0f;
+        const float tabH = 42f;
+        const float gapX = 10f;
+
+        foreach (BiomeAffinity affinity in biomesToShow)
+        {
+            string bName = HabitatCreaturePanelStyle.GetAffinityDisplayName(affinity);
+            float tabW = Mathf.Clamp(bName.Length * 9.5f + 62f, 136f, 168f);
+
+            GameObject tabObj = new GameObject("BiomeTab_" + bName, typeof(RectTransform), typeof(Image), typeof(Button));
+            tabObj.transform.SetParent(biomeTabsRow, false);
+            RectTransform tRect = tabObj.GetComponent<RectTransform>();
+            SetTopLeft(tRect, new Vector2(curX, 0f), new Vector2(tabW, tabH));
+
+            Image bg = tabObj.GetComponent<Image>();
+            bg.sprite = LumiWorldUITheme.PillSprite;
+            bg.type = Image.Type.Sliced;
+            LumiWorldUITheme.AddSoftElevation(tabObj, 2.5f, 0.14f);
+
+            // Colored Biome Emblem (B-01..B-07, shared with P-05)
+            GameObject emObj = new GameObject("Emblem", typeof(RectTransform), typeof(Image));
+            emObj.transform.SetParent(tRect, false);
+            RectTransform emRect = emObj.GetComponent<RectTransform>();
+            emRect.anchorMin = emRect.anchorMax = new Vector2(0f, 0.5f);
+            emRect.pivot = new Vector2(0f, 0.5f);
+            emRect.anchoredPosition = new Vector2(12f, 0f);
+            emRect.sizeDelta = new Vector2(28f, 28f);
+            Image emImg = emObj.GetComponent<Image>();
+            emImg.sprite = LumiWorldUITheme.BiomeEmblem(bName);
+            emImg.preserveAspect = true;
+            emImg.raycastTarget = false;
+
+            TextMeshProUGUI lbl = CreateTMP(tRect, "Label", bName, 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+            lbl.rectTransform.anchorMin = Vector2.zero;
+            lbl.rectTransform.anchorMax = Vector2.one;
+            lbl.rectTransform.offsetMin = new Vector2(46f, 0f);
+            lbl.rectTransform.offsetMax = new Vector2(-12f, 0f);
+
+            GameObject borderObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
+            borderObj.transform.SetParent(tRect, false);
+            EconomyHUD.Stretch(borderObj.GetComponent<RectTransform>());
+            Image borderImg = borderObj.GetComponent<Image>();
+            borderImg.sprite = GetSelectionBorderSprite();
+            borderImg.type = Image.Type.Sliced;
+            borderImg.color = Color.white;
+            borderImg.raycastTarget = false;
+
+            Button btn = tabObj.GetComponent<Button>();
+            btn.targetGraphic = bg;
+            btn.navigation = new Navigation { mode = Navigation.Mode.None };
+            BiomeAffinity captured = affinity;
+            btn.onClick.AddListener(() => SelectBiomeTab(captured));
+
+            biomeTabs.Add(new BiomeTabView
+            {
+                affinity = affinity,
+                button = btn,
+                bg = bg,
+                border = borderImg,
+                emblem = emImg,
+                label = lbl
+            });
+
+            curX += tabW + gapX;
+        }
+
+        UpdateBiomeTabVisuals();
+    }
+
+    private void SelectBiomeTab(BiomeAffinity biome)
+    {
+        if (activeBiome == biome) return;
+        activeBiome = biome;
+        SaveBiomeSlots(activeBiome);
+        UpdateBiomeTabVisuals();
+        UpdateFoodRowBorders();
+        RefreshSlotsAndBudgetUI();
+        GameAudioManager.Instance?.PlayClick();
+    }
+
+    private void UpdateBiomeTabVisuals()
+    {
+        foreach (var tab in biomeTabs)
+        {
+            bool active = tab.affinity == activeBiome;
+            tab.bg.color = active ? LumiWorldUITheme.Slot : LumiWorldUITheme.Inset;
+            if (tab.border != null) tab.border.gameObject.SetActive(active);
+            if (tab.label != null) tab.label.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
+        }
+    }
+
+    private void BuildLeftFoodListSection()
+    {
+        GameObject leftBox = new GameObject("LeftFoodListWell", typeof(RectTransform), typeof(Image));
+        leftBox.transform.SetParent(panel, false);
+        RectTransform lRect = leftBox.GetComponent<RectTransform>();
+        SetTopLeft(lRect, new Vector2(28f, -124f), new Vector2(464f, 416f));
+
+        Image wellBg = leftBox.GetComponent<Image>();
+        wellBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        wellBg.type = Image.Type.Sliced;
+        wellBg.color = LumiWorldUITheme.Well;
+        wellBg.raycastTarget = false;
+
+        GameObject scrollObj = new GameObject("FoodScrollView", typeof(RectTransform), typeof(ScrollRect));
+        scrollObj.transform.SetParent(lRect, false);
+        RectTransform sRect = scrollObj.GetComponent<RectTransform>();
+        sRect.anchorMin = Vector2.zero;
+        sRect.anchorMax = Vector2.one;
+        sRect.offsetMin = new Vector2(6f, 6f);
+        sRect.offsetMax = new Vector2(-6f, -6f);
 
         var scroll = scrollObj.GetComponent<ScrollRect>();
         scroll.horizontal = false;
@@ -366,545 +551,300 @@ public class AutoFeedUI : MonoBehaviour
         scroll.movementType = ScrollRect.MovementType.Clamped;
         scroll.scrollSensitivity = 28f;
 
-        // Viewport
         var viewObj = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
         viewObj.transform.SetParent(scrollObj.transform, false);
         var vRect = viewObj.GetComponent<RectTransform>();
-        vRect.anchorMin = Vector2.zero; vRect.anchorMax = Vector2.one;
-        vRect.offsetMin = Vector2.zero; vRect.offsetMax = Vector2.zero;
+        EconomyHUD.Stretch(vRect);
         var vImg = viewObj.GetComponent<Image>();
         vImg.color = Color.clear;
         vImg.raycastTarget = true;
         viewObj.AddComponent<ResourceUIInputBlocker>();
 
-        // Content
         var contentObj = new GameObject("Content", typeof(RectTransform));
         contentObj.transform.SetParent(viewObj.transform, false);
-        foodGridContent = contentObj.GetComponent<RectTransform>();
-        foodGridContent.anchorMin = new Vector2(0f, 1f);
-        foodGridContent.anchorMax = new Vector2(1f, 1f);
-        foodGridContent.pivot = new Vector2(0f, 1f);
-        foodGridContent.anchoredPosition = Vector2.zero;
-        foodGridContent.sizeDelta = new Vector2(0f, 420f);
+        foodListContent = contentObj.GetComponent<RectTransform>();
+        foodListContent.anchorMin = new Vector2(0f, 1f);
+        foodListContent.anchorMax = new Vector2(1f, 1f);
+        foodListContent.pivot = new Vector2(0f, 1f);
+        foodListContent.anchoredPosition = Vector2.zero;
+        foodListContent.sizeDelta = new Vector2(0f, 404f);
 
         scroll.viewport = vRect;
-        scroll.content = foodGridContent;
+        scroll.content = foodListContent;
 
-        // Empty state label
-        var emptyObj = new GameObject("EmptyNotice", typeof(RectTransform), typeof(TextMeshProUGUI));
-        emptyObj.transform.SetParent(scrollObj.transform, false);
-        var eRect = emptyObj.GetComponent<RectTransform>();
-        eRect.anchorMin = Vector2.zero; eRect.anchorMax = Vector2.one;
-        eRect.offsetMin = Vector2.zero; eRect.offsetMax = Vector2.zero;
-        emptyFoodNoticeText = emptyObj.GetComponent<TextMeshProUGUI>();
-        emptyFoodNoticeText.font = availableFoodCountText.font;
-        emptyFoodNoticeText.fontSize = 14.5f;
-        emptyFoodNoticeText.color = SubTextCol;
-        emptyFoodNoticeText.alignment = TextAlignmentOptions.Center;
-        emptyFoodNoticeText.text = "No food in inventory.\nHarvest berries or craft nutritious meals in the Workshop!";
-        emptyObj.SetActive(false);
+        emptyFoodNoticeText = CreateTMP(
+            scrollObj.transform,
+            "EmptyNotice",
+            "No food in Inventory.\nHarvest berries or craft meals in Crafting!",
+            15f,
+            LumiWorldUITheme.Muted,
+            true,
+            TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(emptyFoodNoticeText.rectTransform);
+        emptyFoodNoticeText.textWrappingMode = TextWrappingModes.Normal;
+        emptyFoodNoticeText.gameObject.SetActive(false);
     }
 
-    private void BuildCenterArrow()
+    private void BuildRightAssignedSection()
     {
-        var arrowObj = new GameObject("CenterArrow", typeof(RectTransform), typeof(TextMeshProUGUI));
-        arrowObj.transform.SetParent(panel, false);
-        var aRect = arrowObj.GetComponent<RectTransform>();
-        aRect.anchorMin = aRect.anchorMax = new Vector2(0f, 1f);
-        aRect.pivot = new Vector2(0.5f, 0.5f);
-        aRect.anchoredPosition = new Vector2(548f, -280f);
-        aRect.sizeDelta = new Vector2(30f, 50f);
+        GameObject rightCard = new GameObject("RightAssignedCard", typeof(RectTransform), typeof(Image));
+        rightCard.transform.SetParent(panel, false);
+        RectTransform rRect = rightCard.GetComponent<RectTransform>();
+        SetTopLeft(rRect, new Vector2(508f, -124f), new Vector2(504f, 416f));
 
-        var aText = arrowObj.GetComponent<TextMeshProUGUI>();
-        aText.font = Resources.Load<TMP_FontAsset>("Fonts/Nunito-Bold SDF");
-        aText.text = ">>";
-        aText.fontSize = 20f;
-        aText.fontStyle = FontStyles.Bold;
-        aText.color = new Color(0.25f, 0.65f, 0.90f, 0.85f);
-        aText.alignment = TextAlignmentOptions.Center;
-    }
+        Image rBg = rightCard.GetComponent<Image>();
+        rBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        rBg.type = Image.Type.Sliced;
+        rBg.color = LumiWorldUITheme.Surface;
+        rBg.raycastTarget = true;
+        rightCard.AddComponent<ResourceUIInputBlocker>();
+        LumiWorldUITheme.AddSoftElevation(rightCard, 4f, 0.16f);
 
-    private void BuildDispenserSection()
-    {
-        // Right Card Container
-        var cardObj = new GameObject("DispenserCard", typeof(RectTransform), typeof(Image));
-        cardObj.transform.SetParent(panel, false);
-        var cardRect = cardObj.GetComponent<RectTransform>();
-        cardRect.anchorMin = cardRect.anchorMax = new Vector2(1f, 1f);
-        cardRect.pivot = new Vector2(1f, 1f);
-        cardRect.anchoredPosition = new Vector2(-26f, -76f);
-        cardRect.sizeDelta = new Vector2(350f, 452f);
+        // Header: "Assigned foods" + "Max 3 foods" pill
+        var hdrTxt = CreateTMP(rRect, "AssignedHeader", "Assigned foods", 18.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(hdrTxt.rectTransform, new Vector2(22f, -16f), new Vector2(240f, 28f));
 
-        var cardImg = cardObj.GetComponent<Image>();
-        cardImg.sprite = GetCardBoxSprite();
-        cardImg.type = Image.Type.Sliced;
-        cardImg.color = CardBg;
-        cardObj.AddComponent<ResourceUIInputBlocker>();
+        GameObject maxPill = new GameObject("Max3Pill", typeof(RectTransform), typeof(Image));
+        maxPill.transform.SetParent(rRect, false);
+        RectTransform mpRect = maxPill.GetComponent<RectTransform>();
+        mpRect.anchorMin = mpRect.anchorMax = mpRect.pivot = new Vector2(1f, 1f);
+        mpRect.anchoredPosition = new Vector2(-22f, -16f);
+        mpRect.sizeDelta = new Vector2(118f, 28f);
+        Image mpBg = maxPill.GetComponent<Image>();
+        mpBg.sprite = LumiWorldUITheme.PillSprite;
+        mpBg.type = Image.Type.Sliced;
+        mpBg.color = LumiWorldUITheme.Inset;
+        var mpTxt = CreateTMP(mpRect, "Label", "Max 3 foods", 12.5f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(mpTxt.rectTransform);
 
-        // 1. Duration Pill
-        var durObj = new GameObject("DurationPill", typeof(RectTransform), typeof(Image));
-        durObj.transform.SetParent(cardObj.transform, false);
-        var durRect = durObj.GetComponent<RectTransform>();
-        durRect.anchorMin = durRect.anchorMax = new Vector2(0.5f, 1f);
-        durRect.pivot = new Vector2(0.5f, 1f);
-        durRect.anchoredPosition = new Vector2(0f, -14f);
-        durRect.sizeDelta = new Vector2(322f, 48f);
-
-        var durImg = durObj.GetComponent<Image>();
-        durImg.sprite = GetPillSprite();
-        durImg.type = Image.Type.Sliced;
-        durImg.color = new Color(0.92f, 0.96f, 1f, 1f);
-
-        // Clock Icon
-        var clkObj = new GameObject("ClockIcon", typeof(RectTransform), typeof(Image));
-        clkObj.transform.SetParent(durObj.transform, false);
-        var clkRect = clkObj.GetComponent<RectTransform>();
-        clkRect.anchorMin = clkRect.anchorMax = new Vector2(0f, 0.5f);
-        clkRect.pivot = new Vector2(0f, 0.5f);
-        clkRect.anchoredPosition = new Vector2(12f, 0f);
-        clkRect.sizeDelta = new Vector2(22f, 22f);
-        var clkImg = clkObj.GetComponent<Image>();
-        clkImg.sprite = GetClockIconSprite();
-        clkImg.preserveAspect = true;
-        clkImg.color = ThemeCyan;
-
-        // Duration Label
-        var durTxtObj = new GameObject("DurationLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
-        durTxtObj.transform.SetParent(durObj.transform, false);
-        var dtRect = durTxtObj.GetComponent<RectTransform>();
-        dtRect.anchorMin = dtRect.anchorMax = new Vector2(0f, 0.5f);
-        dtRect.pivot = new Vector2(0f, 0.5f);
-        dtRect.anchoredPosition = new Vector2(40f, 0f);
-        dtRect.sizeDelta = new Vector2(270f, 38f);
-
-        durationText = durTxtObj.GetComponent<TextMeshProUGUI>();
-        durationText.font = Resources.Load<TMP_FontAsset>("Fonts/Nunito-Bold SDF");
-        durationText.text = "<b>ESTIMATED DURATION</b>\n<color=#0284c7>Idle · No Food Assigned</color>";
-        durationText.fontSize = 12.5f;
-        durationText.color = ThemeDark;
-        durationText.alignment = TextAlignmentOptions.MidlineLeft;
-
-        // 2. Stats Row (Consumption & Total Energy)
-        BuildStatsRow(cardObj.transform);
-
-        // 3. Section Title: "DISPENSER SLOTS (3 MAX)"
-        var slotsHeaderObj = new GameObject("SlotsHeader", typeof(RectTransform), typeof(TextMeshProUGUI));
-        slotsHeaderObj.transform.SetParent(cardObj.transform, false);
-        var shRect = slotsHeaderObj.GetComponent<RectTransform>();
-        shRect.anchorMin = shRect.anchorMax = new Vector2(0f, 1f);
-        shRect.pivot = new Vector2(0f, 1f);
-        shRect.anchoredPosition = new Vector2(16f, -142f);
-        shRect.sizeDelta = new Vector2(318f, 22f);
-
-        var shText = slotsHeaderObj.GetComponent<TextMeshProUGUI>();
-        shText.font = durationText.font;
-        shText.text = "DISPENSER SLOTS (3 MAX)";
-        shText.fontSize = 12f;
-        shText.fontStyle = FontStyles.Bold;
-        shText.color = SubTextCol;
-
-        // Divider
-        var divObj = new GameObject("Divider", typeof(RectTransform), typeof(Image));
-        divObj.transform.SetParent(cardObj.transform, false);
-        var divRect = divObj.GetComponent<RectTransform>();
-        divRect.anchorMin = divRect.anchorMax = new Vector2(0.5f, 1f);
-        divRect.pivot = new Vector2(0.5f, 1f);
-        divRect.anchoredPosition = new Vector2(0f, -166f);
-        divRect.sizeDelta = new Vector2(318f, 1.5f);
-        var divImg = divObj.GetComponent<Image>();
-        divImg.color = new Color(0.85f, 0.90f, 0.96f, 1f);
-
-        // 4. 3 Food Slots Container
-        BuildThreeSlots(cardObj.transform);
-
-        // 5. Feedback Toast text
-        var fbObj = new GameObject("FeedbackNotify", typeof(RectTransform), typeof(TextMeshProUGUI));
-        fbObj.transform.SetParent(cardObj.transform, false);
-        var fbRect = fbObj.GetComponent<RectTransform>();
-        fbRect.anchorMin = fbRect.anchorMax = new Vector2(0.5f, 0f);
-        fbRect.pivot = new Vector2(0.5f, 0f);
-        fbRect.anchoredPosition = new Vector2(0f, 58f);
-        fbRect.sizeDelta = new Vector2(320f, 26f);
-
-        feedbackNotifyText = fbObj.GetComponent<TextMeshProUGUI>();
-        feedbackNotifyText.font = durationText.font;
-        feedbackNotifyText.fontSize = 12.5f;
-        feedbackNotifyText.fontStyle = FontStyles.Bold;
-        feedbackNotifyText.alignment = TextAlignmentOptions.Center;
-        feedbackNotifyText.text = "";
-
-        // 6. Action Buttons at bottom
-        BuildBottomActionButtons(cardObj.transform);
-    }
-
-    private void BuildStatsRow(Transform parent)
-    {
-        float y = -70f;
-        float w = 156f;
-        float h = 60f;
-
-        // Box 1: Consumption / Min
-        var box1 = new GameObject("ConsumptionBox", typeof(RectTransform), typeof(Image));
-        box1.transform.SetParent(parent, false);
-        var b1Rect = box1.GetComponent<RectTransform>();
-        b1Rect.anchorMin = b1Rect.anchorMax = new Vector2(0f, 1f);
-        b1Rect.pivot = new Vector2(0f, 1f);
-        b1Rect.anchoredPosition = new Vector2(14f, y);
-        b1Rect.sizeDelta = new Vector2(w, h);
-
-        var b1Img = box1.GetComponent<Image>();
-        b1Img.sprite = GetCardBoxSprite();
-        b1Img.type = Image.Type.Sliced;
-        b1Img.color = Color.white;
-
-        var l1Obj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        l1Obj.transform.SetParent(box1.transform, false);
-        var l1Rect = l1Obj.GetComponent<RectTransform>();
-        l1Rect.anchorMin = Vector2.zero; l1Rect.anchorMax = Vector2.one;
-        l1Rect.offsetMin = new Vector2(8f, 4f); l1Rect.offsetMax = new Vector2(-8f, -4f);
-
-        consumptionRateText = l1Obj.GetComponent<TextMeshProUGUI>();
-        consumptionRateText.font = durationText.font;
-        consumptionRateText.text = "<color=#64748b>Consumption/Min</color>\n<b><size=17><color=#0284c7>340</color></size></b>";
-        consumptionRateText.fontSize = 11.5f;
-        consumptionRateText.alignment = TextAlignmentOptions.Center;
-
-        // Box 2: Total Food Energy
-        var box2 = new GameObject("EnergyBox", typeof(RectTransform), typeof(Image));
-        box2.transform.SetParent(parent, false);
-        var b2Rect = box2.GetComponent<RectTransform>();
-        b2Rect.anchorMin = b2Rect.anchorMax = new Vector2(1f, 1f);
-        b2Rect.pivot = new Vector2(1f, 1f);
-        b2Rect.anchoredPosition = new Vector2(-14f, y);
-        b2Rect.sizeDelta = new Vector2(w, h);
-
-        var b2Img = box2.GetComponent<Image>();
-        b2Img.sprite = GetCardBoxSprite();
-        b2Img.type = Image.Type.Sliced;
-        b2Img.color = Color.white;
-
-        var l2Obj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        l2Obj.transform.SetParent(box2.transform, false);
-        var l2Rect = l2Obj.GetComponent<RectTransform>();
-        l2Rect.anchorMin = Vector2.zero; l2Rect.anchorMax = Vector2.one;
-        l2Rect.offsetMin = new Vector2(8f, 4f); l2Rect.offsetMax = new Vector2(-8f, -4f);
-
-        totalEnergyText = l2Obj.GetComponent<TextMeshProUGUI>();
-        totalEnergyText.font = durationText.font;
-        totalEnergyText.text = "<color=#64748b>Total Food Energy</color>\n<b><size=17><color=#0284c7>0</color></size></b>";
-        totalEnergyText.fontSize = 11.5f;
-        totalEnergyText.alignment = TextAlignmentOptions.Center;
-    }
-
-    private void BuildThreeSlots(Transform parent)
-    {
-        float startX = 14f;
-        float slotW = 100f;
-        float slotH = 135f;
-        float gapX = 11f;
+        // 3 Vertical Food Slot Rows
+        const float slotW = 460f;
+        const float slotH = 104f;
+        const float startY = -58f;
+        const float gapY = 12f;
 
         for (int i = 0; i < 3; i++)
         {
             int slotIndex = i;
-            var slotObj = new GameObject("Slot_" + i, typeof(RectTransform));
-            slotObj.transform.SetParent(parent, false);
-            var sRect = slotObj.GetComponent<RectTransform>();
-            sRect.anchorMin = sRect.anchorMax = new Vector2(0f, 1f);
-            sRect.pivot = new Vector2(0f, 1f);
-            sRect.anchoredPosition = new Vector2(startX + i * (slotW + gapX), -175f);
-            sRect.sizeDelta = new Vector2(slotW, slotH);
+            float y = startY - i * (slotH + gapY);
+
+            GameObject slotObj = new GameObject("AssignedSlot_" + i, typeof(RectTransform), typeof(Image));
+            slotObj.transform.SetParent(rRect, false);
+            RectTransform sRect = slotObj.GetComponent<RectTransform>();
+            SetTopLeft(sRect, new Vector2(22f, y), new Vector2(slotW, slotH));
+
+            Image sBg = slotObj.GetComponent<Image>();
+            sBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            sBg.type = Image.Type.Sliced;
+            sBg.color = LumiWorldUITheme.Window;
+            LumiWorldUITheme.AddSoftElevation(slotObj, 2.5f, 0.14f);
 
             var view = new DispenserSlotView { index = slotIndex, root = sRect };
 
-            // Plate frame
-            var plateObj = new GameObject("Plate", typeof(RectTransform), typeof(Image));
-            plateObj.transform.SetParent(slotObj.transform, false);
-            var pRect = plateObj.GetComponent<RectTransform>();
-            pRect.anchorMin = pRect.anchorMax = new Vector2(0.5f, 1f);
-            pRect.pivot = new Vector2(0.5f, 1f);
-            pRect.anchoredPosition = new Vector2(0f, 0f);
-            pRect.sizeDelta = new Vector2(76f, 76f);
+            // --- A. EMPTY CONTAINER ("[+ Add food]") ---
+            GameObject emptyCont = new GameObject("EmptyContainer", typeof(RectTransform));
+            emptyCont.transform.SetParent(sRect, false);
+            EconomyHUD.Stretch(emptyCont.GetComponent<RectTransform>());
+            view.emptyContainer = emptyCont;
 
-            var pImg = plateObj.GetComponent<Image>();
-            pImg.sprite = GetCirclePlateSprite();
-            pImg.type = Image.Type.Simple;
-            pImg.preserveAspect = true;
-            view.plateImage = pImg;
+            GameObject addBtnObj = new GameObject("AddFoodBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+            addBtnObj.transform.SetParent(emptyCont.transform, false);
+            RectTransform abRect = addBtnObj.GetComponent<RectTransform>();
+            abRect.anchorMin = abRect.anchorMax = abRect.pivot = new Vector2(0.5f, 0.5f);
+            abRect.sizeDelta = new Vector2(168f, 40f);
 
-            // Empty placeholder (+)
-            var emptyObj = new GameObject("EmptyPlaceholder", typeof(RectTransform), typeof(TextMeshProUGUI));
-            emptyObj.transform.SetParent(plateObj.transform, false);
-            var epRect = emptyObj.GetComponent<RectTransform>();
-            epRect.anchorMin = Vector2.zero; epRect.anchorMax = Vector2.one;
-            epRect.offsetMin = Vector2.zero; epRect.offsetMax = Vector2.zero;
-            var epText = emptyObj.GetComponent<TextMeshProUGUI>();
-            epText.font = durationText.font;
-            epText.text = "+";
-            epText.fontSize = 28f;
-            epText.fontStyle = FontStyles.Bold;
-            epText.color = new Color(0.60f, 0.70f, 0.82f, 0.8f);
-            epText.alignment = TextAlignmentOptions.Center;
-            view.emptyPlaceholder = emptyObj;
+            Image abBg = addBtnObj.GetComponent<Image>();
+            abBg.sprite = LumiWorldUITheme.PillSprite;
+            abBg.type = Image.Type.Sliced;
+            abBg.color = LumiWorldUITheme.Surface;
+            LumiWorldUITheme.AddSoftElevation(addBtnObj, 2f, 0.14f);
 
-            // Occupied container
-            var occObj = new GameObject("Occupied", typeof(RectTransform));
-            occObj.transform.SetParent(plateObj.transform, false);
-            var ocRect = occObj.GetComponent<RectTransform>();
-            ocRect.anchorMin = Vector2.zero; ocRect.anchorMax = Vector2.one;
-            ocRect.offsetMin = Vector2.zero; ocRect.offsetMax = Vector2.zero;
-            view.occupiedContainer = occObj;
+            GameObject plusIcObj = new GameObject("PlusIcon", typeof(RectTransform), typeof(Image));
+            plusIcObj.transform.SetParent(abRect, false);
+            RectTransform plusRect = plusIcObj.GetComponent<RectTransform>();
+            plusRect.anchorMin = plusRect.anchorMax = new Vector2(0f, 0.5f);
+            plusRect.pivot = new Vector2(0f, 0.5f);
+            plusRect.anchoredPosition = new Vector2(22f, 0f);
+            plusRect.sizeDelta = new Vector2(16f, 16f);
+            Image plusImg = plusIcObj.GetComponent<Image>();
+            plusImg.sprite = LumiWorldUITheme.Glyph("Plus");
+            plusImg.preserveAspect = true;
+            plusImg.color = LumiWorldUITheme.Text;
+            plusImg.raycastTarget = false;
 
-            // Food Icon
-            var icObj = new GameObject("FoodIcon", typeof(RectTransform), typeof(Image));
-            icObj.transform.SetParent(occObj.transform, false);
-            var icRect = icObj.GetComponent<RectTransform>();
-            icRect.anchorMin = icRect.anchorMax = new Vector2(0.5f, 0.5f);
-            icRect.pivot = new Vector2(0.5f, 0.5f);
-            icRect.anchoredPosition = Vector2.zero;
-            icRect.sizeDelta = new Vector2(46f, 46f);
-            var icImg = icObj.GetComponent<Image>();
-            icImg.preserveAspect = true;
-            icImg.raycastTarget = false;
-            view.iconImage = icImg;
+            view.addFoodLabel = CreateTMP(abRect, "Label", "Add food", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+            view.addFoodLabel.rectTransform.anchorMin = Vector2.zero;
+            view.addFoodLabel.rectTransform.anchorMax = Vector2.one;
+            view.addFoodLabel.rectTransform.offsetMin = new Vector2(46f, 0f);
+            view.addFoodLabel.rectTransform.offsetMax = new Vector2(-12f, 0f);
 
-            // Minus Cancel Button (-)
-            var rmObj = new GameObject("RemoveBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-            rmObj.transform.SetParent(slotObj.transform, false);
-            var rmRect = rmObj.GetComponent<RectTransform>();
-            rmRect.anchorMin = rmRect.anchorMax = new Vector2(0f, 1f);
-            rmRect.pivot = new Vector2(0f, 1f);
-            rmRect.anchoredPosition = new Vector2(6f, 0f);
-            rmRect.sizeDelta = new Vector2(22f, 22f);
+            view.addFoodButton = addBtnObj.GetComponent<Button>();
+            view.addFoodButton.targetGraphic = abBg;
+            view.addFoodButton.navigation = new Navigation { mode = Navigation.Mode.None };
+            view.addFoodButton.onClick.AddListener(() => OnAddFoodToSlotClicked(slotIndex));
 
-            var rmImg = rmObj.GetComponent<Image>();
-            rmImg.sprite = GetCardBoxSprite();
-            rmImg.type = Image.Type.Sliced;
-            rmImg.color = new Color(0.92f, 0.28f, 0.28f, 1f);
+            // --- B. OCCUPIED CONTAINER ---
+            GameObject occCont = new GameObject("OccupiedContainer", typeof(RectTransform));
+            occCont.transform.SetParent(sRect, false);
+            EconomyHUD.Stretch(occCont.GetComponent<RectTransform>());
+            view.occupiedContainer = occCont;
 
-            var rmTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            rmTxtObj.transform.SetParent(rmObj.transform, false);
-            var rmtRect = rmTxtObj.GetComponent<RectTransform>();
-            rmtRect.anchorMin = Vector2.zero; rmtRect.anchorMax = Vector2.one;
-            rmtRect.offsetMin = Vector2.zero; rmtRect.offsetMax = Vector2.zero;
-            var rmt = rmTxtObj.GetComponent<TextMeshProUGUI>();
-            rmt.font = durationText.font;
-            rmt.text = "–";
-            rmt.fontSize = 15f;
-            rmt.fontStyle = FontStyles.Bold;
-            rmt.color = Color.white;
-            rmt.alignment = TextAlignmentOptions.Center;
+            // Icon Box (64x64)
+            GameObject icBox = new GameObject("IconBox", typeof(RectTransform), typeof(Image));
+            icBox.transform.SetParent(occCont.transform, false);
+            RectTransform ibRect = icBox.GetComponent<RectTransform>();
+            SetTopLeft(ibRect, new Vector2(16f, -20f), new Vector2(64f, 64f));
+            Image ibBg = icBox.GetComponent<Image>();
+            ibBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            ibBg.type = Image.Type.Sliced;
+            ibBg.color = LumiWorldUITheme.Slot;
 
-            var rmBtn = rmObj.GetComponent<Button>();
-            rmBtn.targetGraphic = rmImg;
-            rmBtn.onClick.AddListener(() => ClearSlot(slotIndex));
-            view.removeButton = rmBtn;
+            GameObject icObj = new GameObject("FoodIcon", typeof(RectTransform), typeof(Image));
+            icObj.transform.SetParent(ibRect, false);
+            RectTransform icRect = icObj.GetComponent<RectTransform>();
+            icRect.anchorMin = Vector2.zero;
+            icRect.anchorMax = Vector2.one;
+            icRect.offsetMin = new Vector2(6f, 6f);
+            icRect.offsetMax = new Vector2(-6f, -6f);
+            view.iconImage = icObj.GetComponent<Image>();
+            view.iconImage.preserveAspect = true;
+            view.iconImage.raycastTarget = false;
 
-            // Quantity Stepper Row ([-], Amount [Button], [+])
-            var stepRowObj = new GameObject("QuantityStepperRow", typeof(RectTransform));
-            stepRowObj.transform.SetParent(slotObj.transform, false);
-            var srRect = stepRowObj.GetComponent<RectTransform>();
-            srRect.anchorMin = srRect.anchorMax = new Vector2(0.5f, 1f);
-            srRect.pivot = new Vector2(0.5f, 1f);
-            srRect.anchoredPosition = new Vector2(0f, -80f);
-            srRect.sizeDelta = new Vector2(94f, 22f);
-            view.stepperRow = stepRowObj;
+            // Food Name & Subtitle
+            view.nameText = CreateTMP(occCont.transform, "FoodName", "Raspberries", 16.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(view.nameText.rectTransform, new Vector2(94f, -24f), new Vector2(180f, 26f));
 
-            // Dec Button [-]
-            var decObj = new GameObject("DecBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-            decObj.transform.SetParent(stepRowObj.transform, false);
-            var dRect = decObj.GetComponent<RectTransform>();
-            dRect.anchorMin = dRect.anchorMax = new Vector2(0f, 0.5f);
-            dRect.pivot = new Vector2(0f, 0.5f);
-            dRect.anchoredPosition = new Vector2(0f, 0f);
-            dRect.sizeDelta = new Vector2(20f, 20f);
+            view.subText = CreateTMP(occCont.transform, "SubText", "Allocated budget", 13f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(view.subText.rectTransform, new Vector2(94f, -52f), new Vector2(180f, 22f));
 
-            var dImg = decObj.GetComponent<Image>();
-            dImg.sprite = GetCardBoxSprite();
-            dImg.type = Image.Type.Sliced;
-            dImg.color = new Color(0.92f, 0.95f, 0.98f, 1f);
+            // Stepper Controls on Right: [-] [Amount] [+] and [×]
+            view.decButton = CreateStepperSquareButton(occCont.transform, "DecBtn", new Vector2(280f, -34f), new Vector2(36f, 36f), "Minus", () => ChangeSlotAmount(slotIndex, -1));
 
-            var dTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            dTxtObj.transform.SetParent(decObj.transform, false);
-            var dtRect = dTxtObj.GetComponent<RectTransform>();
-            dtRect.anchorMin = Vector2.zero; dtRect.anchorMax = Vector2.one;
-            dtRect.offsetMin = Vector2.zero; dtRect.offsetMax = Vector2.zero;
-            var dt = dTxtObj.GetComponent<TextMeshProUGUI>();
-            dt.font = durationText.font;
-            dt.text = "–";
-            dt.fontSize = 13f;
-            dt.fontStyle = FontStyles.Bold;
-            dt.color = ThemeDark;
-            dt.alignment = TextAlignmentOptions.Center;
+            GameObject amtBtnObj = new GameObject("AmountBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+            amtBtnObj.transform.SetParent(occCont.transform, false);
+            RectTransform amRect = amtBtnObj.GetComponent<RectTransform>();
+            SetTopLeft(amRect, new Vector2(322f, -34f), new Vector2(56f, 36f));
+            Image amBg = amtBtnObj.GetComponent<Image>();
+            amBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            amBg.type = Image.Type.Sliced;
+            amBg.color = LumiWorldUITheme.Slot;
+            view.amountText = CreateTMP(amRect, "AmountText", "10", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+            EconomyHUD.Stretch(view.amountText.rectTransform);
+            view.amountButton = amtBtnObj.GetComponent<Button>();
+            view.amountButton.targetGraphic = amBg;
+            view.amountButton.onClick.AddListener(() => OpenQuantityModal(slotIndex));
 
-            var dBtn = decObj.GetComponent<Button>();
-            dBtn.targetGraphic = dImg;
-            dBtn.onClick.AddListener(() => ChangeSlotAmount(slotIndex, -1));
-            view.decButton = dBtn;
+            view.incButton = CreateStepperSquareButton(occCont.transform, "IncBtn", new Vector2(384f, -34f), new Vector2(36f, 36f), "Plus", () => ChangeSlotAmount(slotIndex, 1));
 
-            // Amount Button (Center)
-            var amtBtnObj = new GameObject("AmountBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-            amtBtnObj.transform.SetParent(stepRowObj.transform, false);
-            var abRect = amtBtnObj.GetComponent<RectTransform>();
-            abRect.anchorMin = abRect.anchorMax = new Vector2(0.5f, 0.5f);
-            abRect.pivot = new Vector2(0.5f, 0.5f);
-            abRect.anchoredPosition = new Vector2(0f, 0f);
-            abRect.sizeDelta = new Vector2(50f, 20f);
-
-            var abImg = amtBtnObj.GetComponent<Image>();
-            abImg.sprite = GetCardBoxSprite();
-            abImg.type = Image.Type.Sliced;
-            abImg.color = new Color(0.95f, 0.98f, 1f, 1f);
-
-            var aTxtObj = new GameObject("AmountText", typeof(RectTransform), typeof(TextMeshProUGUI));
-            aTxtObj.transform.SetParent(amtBtnObj.transform, false);
-            var atRect = aTxtObj.GetComponent<RectTransform>();
-            atRect.anchorMin = Vector2.zero; atRect.anchorMax = Vector2.one;
-            atRect.offsetMin = Vector2.zero; atRect.offsetMax = Vector2.zero;
-            var aTxt = aTxtObj.GetComponent<TextMeshProUGUI>();
-            aTxt.font = durationText.font;
-            aTxt.text = "";
-            aTxt.fontSize = 11.5f;
-            aTxt.fontStyle = FontStyles.Bold;
-            aTxt.color = ThemeDark;
-            aTxt.alignment = TextAlignmentOptions.Center;
-            view.amountText = aTxt;
-
-            var aBtn = amtBtnObj.GetComponent<Button>();
-            aBtn.targetGraphic = abImg;
-            aBtn.onClick.AddListener(() => OpenQuantityModal(slotIndex));
-            view.amountButton = aBtn;
-
-            // Inc Button [+]
-            var incObj = new GameObject("IncBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-            incObj.transform.SetParent(stepRowObj.transform, false);
-            var iRect = incObj.GetComponent<RectTransform>();
-            iRect.anchorMin = iRect.anchorMax = new Vector2(1f, 0.5f);
-            iRect.pivot = new Vector2(1f, 0.5f);
-            iRect.anchoredPosition = new Vector2(0f, 0f);
-            iRect.sizeDelta = new Vector2(20f, 20f);
-
-            var iImg = incObj.GetComponent<Image>();
-            iImg.sprite = GetCardBoxSprite();
-            iImg.type = Image.Type.Sliced;
-            iImg.color = new Color(0.92f, 0.95f, 0.98f, 1f);
-
-            var iTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            iTxtObj.transform.SetParent(incObj.transform, false);
-            var itRect = iTxtObj.GetComponent<RectTransform>();
-            itRect.anchorMin = Vector2.zero; itRect.anchorMax = Vector2.one;
-            itRect.offsetMin = Vector2.zero; itRect.offsetMax = Vector2.zero;
-            var it = iTxtObj.GetComponent<TextMeshProUGUI>();
-            it.font = durationText.font;
-            it.text = "+";
-            it.fontSize = 13f;
-            it.fontStyle = FontStyles.Bold;
-            it.color = ThemeDark;
-            it.alignment = TextAlignmentOptions.Center;
-
-            var iBtn = incObj.GetComponent<Button>();
-            iBtn.targetGraphic = iImg;
-            iBtn.onClick.AddListener(() => ChangeSlotAmount(slotIndex, 1));
-            view.incButton = iBtn;
-
-            // Food Name
-            var nameObj = new GameObject("Name", typeof(RectTransform), typeof(TextMeshProUGUI));
-            nameObj.transform.SetParent(slotObj.transform, false);
-            var nRect = nameObj.GetComponent<RectTransform>();
-            nRect.anchorMin = nRect.anchorMax = new Vector2(0.5f, 1f);
-            nRect.pivot = new Vector2(0.5f, 1f);
-            nRect.anchoredPosition = new Vector2(0f, -104f);
-            nRect.sizeDelta = new Vector2(slotW, 28f);
-
-            var nTxt = nameObj.GetComponent<TextMeshProUGUI>();
-            nTxt.font = durationText.font;
-            nTxt.text = "Empty";
-            nTxt.fontSize = 11f;
-            nTxt.color = SubTextCol;
-            nTxt.alignment = TextAlignmentOptions.Center;
-            nTxt.textWrappingMode = TextWrappingModes.Normal;
-            nTxt.overflowMode = TextOverflowModes.Ellipsis;
-            view.nameText = nTxt;
+            // Remove [×] button at top-right of slot
+            view.removeButton = CreateStepperSquareButton(occCont.transform, "RemoveBtn", new Vector2(slotW - 34f, -8f), new Vector2(26f, 26f), "Close", () => ClearSlot(slotIndex));
 
             slotViews[i] = view;
         }
     }
 
-    private void BuildBottomActionButtons(Transform parent)
+    private Button CreateStepperSquareButton(Transform parent, string name, Vector2 topLeftPos, Vector2 size, string glyphName, UnityEngine.Events.UnityAction onClick)
     {
-        // 1. Fill All Button
-        var fillObj = new GameObject("FillAllBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        fillObj.transform.SetParent(parent, false);
-        var fRect = fillObj.GetComponent<RectTransform>();
-        fRect.anchorMin = fRect.anchorMax = new Vector2(0f, 0f);
-        fRect.pivot = new Vector2(0f, 0f);
-        fRect.anchoredPosition = new Vector2(14f, 14f);
-        fRect.sizeDelta = new Vector2(104f, 40f);
+        GameObject btnObj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        btnObj.transform.SetParent(parent, false);
+        RectTransform rt = btnObj.GetComponent<RectTransform>();
+        SetTopLeft(rt, topLeftPos, size);
 
-        var fImg = fillObj.GetComponent<Image>();
-        fImg.sprite = GetButtonSecondarySprite();
-        fImg.type = Image.Type.Sliced;
-        fImg.color = Color.white;
-        fillObj.AddComponent<ResourceUIInputBlocker>();
+        Image bg = btnObj.GetComponent<Image>();
+        bg.sprite = LumiWorldUITheme.PillSprite;
+        bg.type = Image.Type.Sliced;
+        bg.color = LumiWorldUITheme.Surface;
+        LumiWorldUITheme.AddSoftElevation(btnObj, 2f, 0.14f);
 
-        var fTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        fTxtObj.transform.SetParent(fillObj.transform, false);
-        var ftRect = fTxtObj.GetComponent<RectTransform>();
-        ftRect.anchorMin = Vector2.zero; ftRect.anchorMax = Vector2.one;
-        ftRect.offsetMin = Vector2.zero; ftRect.offsetMax = Vector2.zero;
-        var ftText = fTxtObj.GetComponent<TextMeshProUGUI>();
-        ftText.font = durationText.font;
-        ftText.text = "Fill Max";
-        ftText.fontSize = 13.5f;
-        ftText.fontStyle = FontStyles.Bold;
-        ftText.color = ThemeDark;
-        ftText.alignment = TextAlignmentOptions.Center;
+        GameObject icObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(rt, false);
+        RectTransform icRect = icObj.GetComponent<RectTransform>();
+        icRect.anchorMin = icRect.anchorMax = icRect.pivot = new Vector2(0.5f, 0.5f);
+        icRect.sizeDelta = new Vector2(size.x * 0.48f, size.y * 0.48f);
+        Image icImg = icObj.GetComponent<Image>();
+        icImg.sprite = LumiWorldUITheme.Glyph(glyphName);
+        icImg.preserveAspect = true;
+        icImg.color = LumiWorldUITheme.Text;
+        icImg.raycastTarget = false;
 
-        fillAllButton = fillObj.GetComponent<Button>();
-        fillAllButton.targetGraphic = fImg;
-        fillAllButton.onClick.AddListener(OnFillAllClicked);
-
-        // 2. Confirm Auto-Feed Button
-        var confObj = new GameObject("ConfirmBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        confObj.transform.SetParent(parent, false);
-        var cRect = confObj.GetComponent<RectTransform>();
-        cRect.anchorMin = cRect.anchorMax = new Vector2(1f, 0f);
-        cRect.pivot = new Vector2(1f, 0f);
-        cRect.anchoredPosition = new Vector2(-14f, 14f);
-        cRect.sizeDelta = new Vector2(210f, 40f);
-
-        var cImg = confObj.GetComponent<Image>();
-        cImg.sprite = GetButtonPrimarySprite();
-        cImg.type = Image.Type.Sliced;
-        cImg.color = Color.white;
-        confObj.AddComponent<ResourceUIInputBlocker>();
-
-        var cTxtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cTxtObj.transform.SetParent(confObj.transform, false);
-        var ctRect = cTxtObj.GetComponent<RectTransform>();
-        ctRect.anchorMin = Vector2.zero; ctRect.anchorMax = Vector2.one;
-        ctRect.offsetMin = Vector2.zero; ctRect.offsetMax = Vector2.zero;
-        var ctText = cTxtObj.GetComponent<TextMeshProUGUI>();
-        ctText.font = durationText.font;
-        ctText.text = "Confirm Auto-Feed";
-        ctText.fontSize = 14f;
-        ctText.fontStyle = FontStyles.Bold;
-        ctText.color = Color.white;
-        ctText.alignment = TextAlignmentOptions.Center;
-
-        confirmButton = confObj.GetComponent<Button>();
-        confirmButton.targetGraphic = cImg;
-        confirmButton.onClick.AddListener(OnConfirmAutoFeedClicked);
+        Button btn = btnObj.GetComponent<Button>();
+        btn.targetGraphic = bg;
+        btn.navigation = new Navigation { mode = Navigation.Mode.None };
+        btn.onClick.AddListener(onClick);
+        return btn;
     }
+
+    private void BuildFooterBar()
+    {
+        // Left: [G-18] Remaining budget: N
+        GameObject budgetRow = new GameObject("RemainingBudgetRow", typeof(RectTransform));
+        budgetRow.transform.SetParent(panel, false);
+        RectTransform brRect = budgetRow.GetComponent<RectTransform>();
+        brRect.anchorMin = brRect.anchorMax = brRect.pivot = new Vector2(0f, 0f);
+        brRect.anchoredPosition = new Vector2(30f, 22f);
+        brRect.sizeDelta = new Vector2(320f, 36f);
+
+        GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        icObj.transform.SetParent(brRect, false);
+        RectTransform icRect = icObj.GetComponent<RectTransform>();
+        icRect.anchorMin = icRect.anchorMax = new Vector2(0f, 0.5f);
+        icRect.pivot = new Vector2(0f, 0.5f);
+        icRect.anchoredPosition = new Vector2(0f, 0f);
+        icRect.sizeDelta = new Vector2(22f, 22f);
+        Image icImg = icObj.GetComponent<Image>();
+        icImg.sprite = LumiWorldUITheme.Glyph("G-18");
+        icImg.preserveAspect = true;
+        icImg.color = LumiWorldUITheme.Muted;
+        icImg.raycastTarget = false;
+
+        remainingBudgetText = CreateTMP(brRect, "BudgetText", "Remaining budget: 0", 16f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        remainingBudgetText.rectTransform.anchorMin = Vector2.zero;
+        remainingBudgetText.rectTransform.anchorMax = Vector2.one;
+        remainingBudgetText.rectTransform.offsetMin = new Vector2(30f, 0f);
+        remainingBudgetText.rectTransform.offsetMax = Vector2.zero;
+
+        // Center Feedback Notify Text
+        feedbackNotifyText = CreateTMP(panel, "FeedbackNotify", "", 13.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        feedbackNotifyText.rectTransform.anchorMin = feedbackNotifyText.rectTransform.anchorMax = feedbackNotifyText.rectTransform.pivot = new Vector2(0.5f, 0f);
+        feedbackNotifyText.rectTransform.anchoredPosition = new Vector2(-10f, 26f);
+        feedbackNotifyText.rectTransform.sizeDelta = new Vector2(380f, 28f);
+
+        // Right Primary CTA: "Apply feeding setup"
+        GameObject applyObj = new GameObject("ApplySetupBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        applyObj.transform.SetParent(panel, false);
+        RectTransform apRect = applyObj.GetComponent<RectTransform>();
+        apRect.anchorMin = apRect.anchorMax = apRect.pivot = new Vector2(1f, 0f);
+        apRect.anchoredPosition = new Vector2(-28f, 16f);
+        apRect.sizeDelta = new Vector2(236f, 48f);
+
+        Image apImg = applyObj.GetComponent<Image>();
+        apImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
+        apImg.type = Image.Type.Sliced;
+        apImg.color = LumiWorldUITheme.Primary;
+        LumiWorldUITheme.AddSoftElevation(applyObj, 3f, 0.20f);
+
+        var apTxt = CreateTMP(apRect, "Label", "Apply feeding setup", 16f, Color.white, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(apTxt.rectTransform);
+
+        applySetupButton = applyObj.GetComponent<Button>();
+        applySetupButton.targetGraphic = apImg;
+        applySetupButton.navigation = new Navigation { mode = Navigation.Mode.None };
+        applySetupButton.onClick.AddListener(OnApplyFeedingSetupClicked);
+    }
+
+    // =========================================================
+    // FOOD INVENTORY & SLOT MANAGEMENT
+    // =========================================================
 
     public void RefreshFoodInventory()
     {
         currentFoodList.Clear();
-        foodCardBorders.Clear();
+        foodRowBorders.Clear();
 
-        // Destroy existing grid items
-        for (int i = foodGridContent.childCount - 1; i >= 0; i--)
+        if (foodListContent == null) return;
+        for (int i = foodListContent.childCount - 1; i >= 0; i--)
         {
-            Destroy(foodGridContent.GetChild(i).gameObject);
+            Destroy(foodListContent.GetChild(i).gameObject);
         }
 
         var production = ResourceProductionRuntime.Instance;
@@ -912,12 +852,21 @@ public class AutoFeedUI : MonoBehaviour
 
         ResourceProductionCatalog catalog = null;
         if (production != null && production.HabitatManager != null)
-        {
             catalog = production.HabitatManager.Catalog;
-        }
         else if (HabitatRuntimeManager.TryGetActive(out var hrm))
-        {
             catalog = hrm.Catalog;
+
+        HashSet<string> validFoodIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (production != null && production.FoodTypes != null)
+        {
+            foreach (var ft in production.FoodTypes)
+            {
+                if (!string.IsNullOrEmpty(ft.ResourceId)) validFoodIds.Add(ft.ResourceId);
+            }
+        }
+        if (production != null && production.CareSettings != null && !string.IsNullOrEmpty(production.CareSettings.FoodResourceId))
+        {
+            validFoodIds.Add(production.CareSettings.FoodResourceId);
         }
 
         if (inventory != null && catalog != null)
@@ -927,18 +876,17 @@ public class AutoFeedUI : MonoBehaviour
             {
                 foreach (var item in all)
                 {
-                    if (item != null && string.Equals(item.category, "Food", StringComparison.OrdinalIgnoreCase))
+                    if (item == null || item.stock <= 0) continue;
+                    bool isFood = string.Equals(item.category, "Food", StringComparison.OrdinalIgnoreCase) ||
+                                  validFoodIds.Contains(item.id);
+                    if (isFood && !currentFoodList.Exists(x => string.Equals(x.id, item.id, StringComparison.OrdinalIgnoreCase)))
                     {
-                        if (item.stock > 0)
-                        {
-                            currentFoodList.Add(item);
-                        }
+                        currentFoodList.Add(item);
                     }
                 }
             }
         }
 
-        // Luôn bổ sung các món Food chế tạo từ CraftingCatalog có sẵn trong kho
         if (inventory != null && CraftingCatalog.All != null)
         {
             foreach (var recipe in CraftingCatalog.All)
@@ -947,7 +895,7 @@ public class AutoFeedUI : MonoBehaviour
                 {
                     string id = recipe.outputResource.resourceID;
                     int stock = inventory.GetAmount(id);
-                    if (stock > 0 && !currentFoodList.Exists(x => x.id == id))
+                    if (stock > 0 && !currentFoodList.Exists(x => string.Equals(x.id, id, StringComparison.OrdinalIgnoreCase)))
                     {
                         currentFoodList.Add(new ResourceUIItem
                         {
@@ -962,11 +910,6 @@ public class AutoFeedUI : MonoBehaviour
             }
         }
 
-        if (availableFoodCountText != null)
-        {
-            availableFoodCountText.text = $"FOOD STORAGE ({currentFoodList.Count} ITEMS)";
-        }
-
         if (emptyFoodNoticeText != null)
         {
             emptyFoodNoticeText.gameObject.SetActive(currentFoodList.Count == 0);
@@ -974,164 +917,164 @@ public class AutoFeedUI : MonoBehaviour
 
         if (currentFoodList.Count == 0)
         {
-            foodGridContent.sizeDelta = new Vector2(0f, 420f);
+            selectedFoodId = string.Empty;
+            foodListContent.sizeDelta = new Vector2(0f, 404f);
             return;
         }
 
-        // Render food grid
-        const int cols = 6;
-        const float itemW = 74f;
-        const float itemH = 74f;
-        const float gapX = 10f;
+        if (string.IsNullOrEmpty(selectedFoodId) || !currentFoodList.Exists(f => string.Equals(f.id, selectedFoodId, StringComparison.OrdinalIgnoreCase)))
+        {
+            selectedFoodId = currentFoodList[0].id;
+        }
+
+        const float rowW = 440f;
+        const float rowH = 68f;
         const float gapY = 10f;
-        const float startX = 6f;
-        const float startY = 6f;
+        float curY = 4f;
 
         for (int i = 0; i < currentFoodList.Count; i++)
         {
             var item = currentFoodList[i];
-            int col = i % cols;
-            int row = i / cols;
-            float x = startX + col * (itemW + gapX);
-            float y = -(startY + row * (itemH + gapY));
+            float y = -curY;
 
-            var cardObj = new GameObject("FoodItem_" + item.id, typeof(RectTransform), typeof(Image), typeof(Button));
-            cardObj.transform.SetParent(foodGridContent, false);
-            var cardRect = cardObj.GetComponent<RectTransform>();
-            cardRect.anchorMin = new Vector2(0f, 1f);
-            cardRect.anchorMax = new Vector2(0f, 1f);
-            cardRect.pivot = new Vector2(0f, 1f);
-            cardRect.anchoredPosition = new Vector2(x, y);
-            cardRect.sizeDelta = new Vector2(itemW, itemH);
+            var rowObj = new GameObject("FoodRow_" + item.id, typeof(RectTransform), typeof(Image), typeof(Button));
+            rowObj.transform.SetParent(foodListContent, false);
+            var rowRect = rowObj.GetComponent<RectTransform>();
+            SetTopLeft(rowRect, new Vector2(6f, y), new Vector2(rowW, rowH));
 
-            var cardImg = cardObj.GetComponent<Image>();
-            cardImg.sprite = GetCardBoxSprite();
-            cardImg.type = Image.Type.Sliced;
-            cardImg.color = Color.white;
-            cardObj.AddComponent<ResourceUIInputBlocker>();
+            var rowBg = rowObj.GetComponent<Image>();
+            rowBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            rowBg.type = Image.Type.Sliced;
+            rowBg.color = LumiWorldUITheme.Slot;
+            rowObj.AddComponent<ResourceUIInputBlocker>();
+            LumiWorldUITheme.AddSoftElevation(rowObj, 3f, 0.14f);
 
-            // Selected border
-            var selObj = new GameObject("Border", typeof(RectTransform), typeof(Image));
-            selObj.transform.SetParent(cardObj.transform, false);
-            var selRect = selObj.GetComponent<RectTransform>();
-            selRect.anchorMin = Vector2.zero; selRect.anchorMax = Vector2.one;
-            selRect.offsetMin = Vector2.zero; selRect.offsetMax = Vector2.zero;
-            var selImg = selObj.GetComponent<Image>();
-            selImg.sprite = GetCardBoxSprite();
-            selImg.type = Image.Type.Sliced;
-            selImg.color = ThemeCyan;
-            selImg.raycastTarget = false;
-            selObj.SetActive(IsFoodAssigned(item.id));
-            foodCardBorders[item.id] = selImg;
-
-            // Icon
             if (item.icon != null)
             {
                 var icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-                icObj.transform.SetParent(cardObj.transform, false);
+                icObj.transform.SetParent(rowRect, false);
                 var icRect = icObj.GetComponent<RectTransform>();
-                icRect.anchorMin = icRect.anchorMax = new Vector2(0.5f, 0.5f);
-                icRect.pivot = new Vector2(0.5f, 0.5f);
-                icRect.anchoredPosition = new Vector2(0f, 4f);
-                icRect.sizeDelta = new Vector2(46f, 46f);
-
+                SetTopLeft(icRect, new Vector2(12f, -10f), new Vector2(48f, 48f));
                 var icImg = icObj.GetComponent<Image>();
                 icImg.sprite = item.icon;
                 icImg.preserveAspect = true;
                 icImg.raycastTarget = false;
             }
 
-            // Stock Count
-            var cntObj = new GameObject("Count", typeof(RectTransform), typeof(TextMeshProUGUI));
-            cntObj.transform.SetParent(cardObj.transform, false);
-            var cntRect = cntObj.GetComponent<RectTransform>();
-            cntRect.anchorMin = new Vector2(0f, 0f);
-            cntRect.anchorMax = new Vector2(1f, 0f);
-            cntRect.pivot = new Vector2(1f, 0f);
-            cntRect.anchoredPosition = new Vector2(-4f, 4f);
-            cntRect.sizeDelta = new Vector2(itemW - 8f, 18f);
+            var nameTxt = CreateTMP(rowRect, "Name", item.name, 16.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(nameTxt.rectTransform, new Vector2(72f, -12f), new Vector2(224f, 44f));
 
-            var cntTxt = cntObj.GetComponent<TextMeshProUGUI>();
-            cntTxt.font = availableFoodCountText.font;
-            cntTxt.text = item.stock.ToString();
-            cntTxt.fontSize = 12f;
-            cntTxt.fontStyle = FontStyles.Bold;
-            cntTxt.color = ThemeCyan;
-            cntTxt.alignment = TextAlignmentOptions.BottomRight;
+            var stockTxt = CreateTMP(rowRect, "Stock", $"{item.stock} available", 14f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineRight);
+            SetTopLeft(stockTxt.rectTransform, new Vector2(rowW - 144f, -12f), new Vector2(128f, 44f));
 
-            var btn = cardObj.GetComponent<Button>();
-            btn.targetGraphic = cardImg;
+            var borderObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
+            borderObj.transform.SetParent(rowRect, false);
+            EconomyHUD.Stretch(borderObj.GetComponent<RectTransform>());
+            var borderImg = borderObj.GetComponent<Image>();
+            borderImg.sprite = GetSelectionBorderSprite();
+            borderImg.type = Image.Type.Sliced;
+            borderImg.color = Color.white;
+            borderImg.raycastTarget = false;
+            foodRowBorders[item.id] = borderImg;
+
+            var btn = rowObj.GetComponent<Button>();
+            btn.targetGraphic = rowBg;
+            btn.navigation = new Navigation { mode = Navigation.Mode.None };
             string capturedId = item.id;
-            btn.onClick.AddListener(() => OnFoodItemClicked(capturedId));
+            btn.onClick.AddListener(() => OnFoodRowClicked(capturedId));
+
+            curY += rowH + gapY;
         }
 
-        int totalRows = Mathf.CeilToInt(currentFoodList.Count / (float)cols);
-        float totalHeight = startY * 2 + totalRows * (itemH + gapY);
-        foodGridContent.sizeDelta = new Vector2(0f, Mathf.Max(420f, totalHeight));
+        foodListContent.sizeDelta = new Vector2(0f, Mathf.Max(404f, curY + 6f));
+        UpdateFoodRowBorders();
     }
 
-    private bool IsFoodAssigned(string foodId)
+    private void OnFoodRowClicked(string foodId)
     {
-        if (string.IsNullOrEmpty(foodId)) return false;
-        for (int i = 0; i < 3; i++)
+        GameAudioManager.Instance?.PlayClick();
+        selectedFoodId = foodId;
+        UpdateFoodRowBorders();
+
+        // Also assign to the first empty slot of activeBiome if not already assigned
+        if (!IsFoodAssignedInActiveBiome(foodId))
         {
-            if (string.Equals(AssignedFoodIds[i], foodId, StringComparison.OrdinalIgnoreCase)) return true;
+            var slots = GetSlotsFor(activeBiome);
+            for (int i = 0; i < 3; i++)
+            {
+                if (string.IsNullOrEmpty(slots.foodIds[i]))
+                {
+                    AssignFoodToSlot(i, foodId);
+                    break;
+                }
+            }
         }
-        return false;
     }
 
-    private void OnFoodItemClicked(string foodId)
+    private void OnAddFoodToSlotClicked(int slotIndex)
     {
         GameAudioManager.Instance?.PlayClick();
 
-        // 1. If already assigned in a slot, show notice
+        string candidateId = selectedFoodId;
+        if (string.IsNullOrEmpty(candidateId) || IsFoodAssignedInActiveBiome(candidateId))
+        {
+            var unassigned = currentFoodList.Find(f => !IsFoodAssignedInActiveBiome(f.id));
+            candidateId = unassigned != null ? unassigned.id : string.Empty;
+        }
+
+        if (string.IsNullOrEmpty(candidateId))
+        {
+            ShowFeedback("Select an unassigned food from Inventory on the left.", LumiWorldUITheme.Warning);
+            return;
+        }
+
+        AssignFoodToSlot(slotIndex, candidateId);
+    }
+
+    private bool IsFoodAssignedInActiveBiome(string foodId)
+    {
+        if (string.IsNullOrEmpty(foodId)) return false;
+        var slots = GetSlotsFor(activeBiome);
         for (int i = 0; i < 3; i++)
         {
-            if (string.Equals(AssignedFoodIds[i], foodId, StringComparison.OrdinalIgnoreCase))
-            {
-                ShowFeedback($"Item is already assigned to Slot {i + 1}!", new Color(0.2f, 0.70f, 0.95f, 1f));
-                return;
-            }
+            if (string.Equals(slots.foodIds[i], foodId, StringComparison.OrdinalIgnoreCase)) return true;
         }
-
-        // 2. Find first empty slot
-        int targetSlot = -1;
-        for (int i = 0; i < 3; i++)
-        {
-            if (string.IsNullOrEmpty(AssignedFoodIds[i]))
-            {
-                targetSlot = i;
-                break;
-            }
-        }
-
-        // 3. If all slots full, replace slot 0
-        if (targetSlot == -1)
-        {
-            targetSlot = 0;
-            ShowFeedback("All 3 slots full. Replaced Slot 1 with selected item.", new Color(0.95f, 0.65f, 0.20f, 1f));
-        }
-
-        AssignFoodToSlot(targetSlot, foodId);
+        return false;
     }
 
     private void AssignFoodToSlot(int slotIndex, string foodId)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
+        var slots = GetSlotsFor(activeBiome);
 
-        var food = currentFoodList.Find(f => f.id == foodId);
-        int stock = food != null ? food.stock : 0;
-        int assignAmount = stock;
+        for (int i = 0; i < 3; i++)
+        {
+            if (i != slotIndex && string.Equals(slots.foodIds[i], foodId, StringComparison.OrdinalIgnoreCase))
+            {
+                ShowFeedback("Food is already assigned to another slot in this biome.", LumiWorldUITheme.Warning);
+                return;
+            }
+        }
 
-        AssignedFoodIds[slotIndex] = foodId;
-        AssignedFoodAmounts[slotIndex] = assignAmount;
+        var food = currentFoodList.Find(f => string.Equals(f.id, foodId, StringComparison.OrdinalIgnoreCase));
+        int stock = food != null ? food.stock : GetInventoryStock(foodId);
+        if (stock <= 0)
+        {
+            ShowFeedback("Out of stock in Inventory.", LumiWorldUITheme.Error);
+            return;
+        }
 
-        SaveSlots();
-        RefreshDispenserStats();
-        UpdateBorders();
+        int defaultBudget = Mathf.Clamp(stock, 1, Mathf.Min(stock, 20));
+        slots.foodIds[slotIndex] = foodId;
+        slots.budgets[slotIndex] = defaultBudget;
 
-        string name = food != null ? food.name : foodId;
-        ShowFeedback($"Assigned {name} ({assignAmount}) to Slot {slotIndex + 1}.", new Color(0.12f, 0.85f, 0.40f, 1f));
+        SaveBiomeSlots(activeBiome);
+        UpdateFoodRowBorders();
+        RefreshSlotsAndBudgetUI();
+
+        string bName = HabitatCreaturePanelStyle.GetAffinityDisplayName(activeBiome);
+        string fName = food != null ? food.name : foodId;
+        ShowFeedback($"Added {fName} (budget {defaultBudget}) to {bName}.", LumiWorldUITheme.Success);
     }
 
     private void ClearSlot(int slotIndex)
@@ -1139,51 +1082,287 @@ public class AutoFeedUI : MonoBehaviour
         if (slotIndex < 0 || slotIndex >= 3) return;
         GameAudioManager.Instance?.PlayClick();
 
-        string clearedId = AssignedFoodIds[slotIndex];
-        AssignedFoodIds[slotIndex] = string.Empty;
-        AssignedFoodAmounts[slotIndex] = 0;
+        var slots = GetSlotsFor(activeBiome);
+        slots.foodIds[slotIndex] = string.Empty;
+        slots.budgets[slotIndex] = 0;
 
-        SaveSlots();
-        RefreshDispenserStats();
-        UpdateBorders();
-
-        ShowFeedback($"Cleared Slot {slotIndex + 1}.", new Color(0.85f, 0.45f, 0.45f, 1f));
+        SaveBiomeSlots(activeBiome);
+        UpdateFoodRowBorders();
+        RefreshSlotsAndBudgetUI();
     }
 
     private void ChangeSlotAmount(int slotIndex, int delta)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
-        string foodId = AssignedFoodIds[slotIndex];
+        var slots = GetSlotsFor(activeBiome);
+        string foodId = slots.foodIds[slotIndex];
         if (string.IsNullOrEmpty(foodId)) return;
 
-        var food = currentFoodList.Find(f => f.id == foodId);
-        int maxStock = food != null ? food.stock : 1;
-        if (maxStock <= 0) maxStock = 1;
-
-        int current = AssignedFoodAmounts[slotIndex];
-        int next = Mathf.Clamp(current + delta, 1, maxStock);
-        if (next != current)
+        int maxStock = Mathf.Max(1, GetInventoryStock(foodId));
+        int next = Mathf.Clamp(slots.budgets[slotIndex] + delta, 1, maxStock);
+        if (next != slots.budgets[slotIndex])
         {
-            AssignedFoodAmounts[slotIndex] = next;
-            SaveSlots();
-            RefreshDispenserStats();
+            slots.budgets[slotIndex] = next;
+            SaveBiomeSlots(activeBiome);
+            RefreshSlotsAndBudgetUI();
             GameAudioManager.Instance?.PlayClick();
         }
     }
 
+    private static int GetInventoryStock(string resourceId)
+    {
+        if (string.IsNullOrEmpty(resourceId)) return 0;
+        var prod = ResourceProductionRuntime.Instance;
+        return prod != null && prod.Inventory != null ? prod.Inventory.GetAmount(resourceId) : 0;
+    }
+
+    private void UpdateFoodRowBorders()
+    {
+        foreach (var kvp in foodRowBorders)
+        {
+            if (kvp.Value == null) continue;
+            bool isSelected = string.Equals(kvp.Key, selectedFoodId, StringComparison.OrdinalIgnoreCase);
+            kvp.Value.gameObject.SetActive(isSelected);
+        }
+    }
+
+    private void RefreshSlotsAndBudgetUI()
+    {
+        var slots = GetSlotsFor(activeBiome);
+        int totalRemainingBudget = 0;
+
+        for (int i = 0; i < 3; i++)
+        {
+            var view = slotViews[i];
+            if (view == null) continue;
+
+            string foodId = slots.foodIds[i];
+            int budget = slots.budgets[i];
+            int currentStock = GetInventoryStock(foodId);
+
+            if (!string.IsNullOrEmpty(foodId) && currentStock <= 0)
+            {
+                // Inventory ran out of this food
+                budget = 0;
+                slots.budgets[i] = 0;
+            }
+            else if (!string.IsNullOrEmpty(foodId) && budget > currentStock && currentStock > 0)
+            {
+                budget = currentStock;
+                slots.budgets[i] = budget;
+            }
+
+            if (string.IsNullOrEmpty(foodId) || budget <= 0)
+            {
+                view.emptyContainer.SetActive(true);
+                view.occupiedContainer.SetActive(false);
+            }
+            else
+            {
+                view.emptyContainer.SetActive(false);
+                view.occupiedContainer.SetActive(true);
+
+                var item = currentFoodList.Find(f => string.Equals(f.id, foodId, StringComparison.OrdinalIgnoreCase));
+                ResourceData resData = ResourceCatalog.Find(foodId);
+                Sprite icon = item != null ? item.icon : (resData != null ? resData.icon : null);
+                string dispName = item != null
+                    ? item.name
+                    : ResourceInventoryUIPresentation.LocalizeResourceName(foodId, resData != null ? resData.resourceName : foodId);
+
+                view.iconImage.sprite = icon;
+                view.iconImage.color = icon != null ? Color.white : Color.clear;
+                view.nameText.text = dispName;
+                view.subText.text = $"Shared budget · {currentStock} in stock";
+                view.amountText.text = budget.ToString();
+
+                totalRemainingBudget += budget;
+            }
+        }
+
+        if (remainingBudgetText != null)
+        {
+            remainingBudgetText.text = $"Remaining budget: {totalRemainingBudget}";
+        }
+    }
+
+    // =========================================================
+    // APPLY FEEDING SETUP & ACTUAL DEPOSIT EXECUTION
+    // =========================================================
+
+    private void OnApplyFeedingSetupClicked()
+    {
+        GameAudioManager.Instance?.PlayClick();
+        SaveBiomeSlots(activeBiome);
+
+        var slots = GetSlotsFor(activeBiome);
+        int configuredCount = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            if (!string.IsNullOrEmpty(slots.foodIds[i]) && slots.budgets[i] > 0)
+                configuredCount++;
+        }
+
+        string biomeName = HabitatCreaturePanelStyle.GetAffinityDisplayName(activeBiome);
+        if (configuredCount == 0)
+        {
+            ShowFeedback($"Cleared automatic feeding setup for {biomeName}.", LumiWorldUITheme.Muted);
+            RefreshFoodInventory();
+            RefreshSlotsAndBudgetUI();
+            return;
+        }
+
+        int depositedUnits = ExecuteBiomeFeeding(activeBiome, out int matchingCreatures, out string lastFailureReason);
+        RefreshFoodInventory();
+        RefreshSlotsAndBudgetUI();
+
+        if (depositedUnits > 0)
+        {
+            ShowFeedback($"Fed {depositedUnits} food unit(s) to {biomeName} residents.", LumiWorldUITheme.Success);
+        }
+        else if (matchingCreatures == 0)
+        {
+            ShowFeedback($"Saved {biomeName} setup (no residents in {biomeName} yet).", LumiWorldUITheme.Muted);
+        }
+        else if (!string.IsNullOrEmpty(lastFailureReason))
+        {
+            ShowFeedback($"Saved {biomeName} setup · {lastFailureReason}", LumiWorldUITheme.Warning);
+        }
+        else
+        {
+            ShowFeedback($"Saved {biomeName} setup · Residents' pantries are full.", LumiWorldUITheme.Success);
+        }
+    }
+
+    private void RunBackgroundAutoFeedTick()
+    {
+        var production = ResourceProductionRuntime.Instance;
+        if (production == null || production.Inventory == null) return;
+
+        bool anyDeposited = false;
+        foreach (BiomeAffinity biome in SupportedBiomes)
+        {
+            var slots = GetSlotsFor(biome);
+            bool hasBudget = false;
+            for (int i = 0; i < 3; i++)
+            {
+                if (!string.IsNullOrEmpty(slots.foodIds[i]) && slots.budgets[i] > 0)
+                {
+                    hasBudget = true;
+                    break;
+                }
+            }
+            if (!hasBudget) continue;
+
+            int dep = ExecuteBiomeFeeding(biome, out _, out _);
+            if (dep > 0) anyDeposited = true;
+        }
+
+        if (anyDeposited && IsOpen)
+        {
+            RefreshFoodInventory();
+            RefreshSlotsAndBudgetUI();
+        }
+    }
+
+    /// <summary>
+    /// Feeds only creatures belonging to habitats of the specified biome type, using that biome's shared budget.
+    /// Decrements the slot budget ONLY when DepositCreatureFood returns true.
+    /// </summary>
+    private int ExecuteBiomeFeeding(BiomeAffinity targetBiome, out int matchingCreaturesCount, out string lastFailureReason)
+    {
+        matchingCreaturesCount = 0;
+        lastFailureReason = string.Empty;
+
+        if (WorldLaunch.IsVisit) return 0;
+
+        var production = ResourceProductionRuntime.Instance;
+        if (production == null || production.Inventory == null) return 0;
+
+        HabitatRuntimeManager habManager = production.HabitatManager;
+        if (habManager == null) HabitatRuntimeManager.TryGetActive(out habManager);
+        if (habManager == null || habManager.Habitats == null) return 0;
+
+        var slots = GetSlotsFor(targetBiome);
+        int totalDeposited = 0;
+
+        foreach (var h in habManager.Habitats)
+        {
+            if (h == null || h.affinity != targetBiome || h.residents == null) continue;
+
+            foreach (var resident in h.residents)
+            {
+                if (resident == null || string.IsNullOrEmpty(resident.individualId)) continue;
+                matchingCreaturesCount++;
+
+                for (int s = 0; s < 3; s++)
+                {
+                    string foodId = slots.foodIds[s];
+                    int remainingBudget = slots.budgets[s];
+                    if (string.IsNullOrEmpty(foodId) || remainingBudget <= 0) continue;
+
+                    int stock = production.Inventory.GetAmount(foodId);
+                    if (stock <= 0)
+                    {
+                        slots.budgets[s] = 0;
+                        lastFailureReason = "Out of food in Inventory.";
+                        continue;
+                    }
+
+                    // Try depositing a small batch (up to min(remainingBudget, stock, seedFoodUnitsToFull))
+                    int maxPerResident = production.CareSettings != null
+                        ? Mathf.Max(1, production.CareSettings.seedFoodUnitsToFull)
+                        : 5;
+                    long currentPantry = production.GetCreatureFoodAmount(resident.individualId, foodId);
+                    int needed = Mathf.Max(0, maxPerResident - (int)currentPantry);
+                    int attemptAmount = Mathf.Min(remainingBudget, Mathf.Min(stock, Mathf.Max(1, needed)));
+
+                    if (needed <= 0) continue;
+
+                    if (production.DepositCreatureFood(h.habitatId, resident.individualId, foodId, attemptAmount, out string reason))
+                    {
+                        slots.budgets[s] = Mathf.Max(0, remainingBudget - attemptAmount);
+                        if (slots.budgets[s] == 0) slots.foodIds[s] = string.Empty;
+                        totalDeposited += attemptAmount;
+                    }
+                    else if (attemptAmount > 1 && production.DepositCreatureFood(h.habitatId, resident.individualId, foodId, 1, out reason))
+                    {
+                        slots.budgets[s] = Mathf.Max(0, remainingBudget - 1);
+                        if (slots.budgets[s] == 0) slots.foodIds[s] = string.Empty;
+                        totalDeposited += 1;
+                    }
+                    else if (!string.IsNullOrEmpty(reason))
+                    {
+                        lastFailureReason = reason;
+                    }
+                }
+            }
+        }
+
+        if (totalDeposited > 0)
+        {
+            SaveBiomeSlots(targetBiome);
+        }
+
+        return totalDeposited;
+    }
+
+    // =========================================================
+    // QUANTITY ADJUSTMENT MODAL
+    // =========================================================
+
     private void OpenQuantityModal(int slotIndex)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
-        string foodId = AssignedFoodIds[slotIndex];
+        var slots = GetSlotsFor(activeBiome);
+        string foodId = slots.foodIds[slotIndex];
         if (string.IsNullOrEmpty(foodId)) return;
 
-        var food = currentFoodList.Find(f => f.id == foodId);
-        int maxStock = food != null ? food.stock : 1;
-        if (maxStock <= 0) maxStock = 1;
+        var food = currentFoodList.Find(f => string.Equals(f.id, foodId, StringComparison.OrdinalIgnoreCase));
+        int maxStock = Mathf.Max(1, food != null ? food.stock : GetInventoryStock(foodId));
 
         modalEditingSlot = slotIndex;
         modalMaxStock = maxStock;
-        modalCurrentAmount = Mathf.Clamp(AssignedFoodAmounts[slotIndex], 1, maxStock);
+        modalCurrentAmount = Mathf.Clamp(slots.budgets[slotIndex], 1, maxStock);
 
         if (quantityModalObj == null)
         {
@@ -1201,9 +1380,8 @@ public class AutoFeedUI : MonoBehaviour
         }
         if (modalStorageText != null)
         {
-            modalStorageText.text = $"Available in Storage: <color=#0284c7><b>{maxStock:N0}</b></color>";
+            modalStorageText.text = $"Available in Inventory: {maxStock:N0}";
         }
-
         if (modalSlider != null)
         {
             modalSlider.minValue = 1;
@@ -1221,190 +1399,99 @@ public class AutoFeedUI : MonoBehaviour
     {
         if (panel == null) return;
 
-        // Overlay backdrop
-        quantityModalObj = new GameObject("QuantityModalOverlay", typeof(RectTransform), typeof(Image));
+        quantityModalObj = new GameObject("QuantityModalOverlay", typeof(RectTransform), typeof(Image), typeof(Button));
         quantityModalObj.transform.SetParent(panel, false);
-        var qRect = quantityModalObj.GetComponent<RectTransform>();
-        qRect.anchorMin = Vector2.zero;
-        qRect.anchorMax = Vector2.one;
-        qRect.offsetMin = Vector2.zero;
-        qRect.offsetMax = Vector2.zero;
+        EconomyHUD.Stretch(quantityModalObj.GetComponent<RectTransform>());
 
         var qImg = quantityModalObj.GetComponent<Image>();
-        qImg.color = new Color(0.04f, 0.08f, 0.16f, 0.65f);
+        qImg.color = LumiWorldUITheme.Backdrop;
         quantityModalObj.AddComponent<ResourceUIInputBlocker>();
+        quantityModalObj.GetComponent<Button>().onClick.AddListener(CloseQuantityModal);
 
-        // Dialog Card
         var cardObj = new GameObject("Card", typeof(RectTransform), typeof(Image));
         cardObj.transform.SetParent(quantityModalObj.transform, false);
         var cRect = cardObj.GetComponent<RectTransform>();
-        cRect.anchorMin = cRect.anchorMax = new Vector2(0.5f, 0.5f);
-        cRect.pivot = new Vector2(0.5f, 0.5f);
-        cRect.anchoredPosition = Vector2.zero;
-        cRect.sizeDelta = new Vector2(330f, 250f);
+        cRect.anchorMin = cRect.anchorMax = cRect.pivot = new Vector2(0.5f, 0.5f);
+        cRect.sizeDelta = new Vector2(360f, 256f);
 
         var cImg = cardObj.GetComponent<Image>();
-        cImg.sprite = GetCardBoxSprite();
+        cImg.sprite = LumiWorldUITheme.SurfaceSprite;
         cImg.type = Image.Type.Sliced;
-        cImg.color = Color.white;
-        EconomyHUD.AddBlueBorder(cRect, ThemeCyan);
+        cImg.color = LumiWorldUITheme.Surface;
+        cardObj.AddComponent<ResourceUIInputBlocker>();
+        LumiWorldUITheme.AddSoftElevation(cardObj, 5f, 0.24f);
 
-        // Header Title
-        var titleObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
-        titleObj.transform.SetParent(cardObj.transform, false);
-        var tRect = titleObj.GetComponent<RectTransform>();
-        tRect.anchorMin = tRect.anchorMax = new Vector2(0.5f, 1f);
-        tRect.pivot = new Vector2(0.5f, 1f);
-        tRect.anchoredPosition = new Vector2(0f, -14f);
-        tRect.sizeDelta = new Vector2(240f, 24f);
+        var tTxt = CreateTMP(cRect, "Title", "Adjust food budget", 17f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        SetTopLeft(tTxt.rectTransform, new Vector2(20f, -14f), new Vector2(320f, 26f));
 
-        var tTxt = titleObj.GetComponent<TextMeshProUGUI>();
-        tTxt.font = durationText.font;
-        tTxt.text = "ADJUST FOOD QUANTITY";
-        tTxt.fontSize = 13f;
-        tTxt.fontStyle = FontStyles.Bold;
-        tTxt.color = ThemeDark;
-        tTxt.alignment = TextAlignmentOptions.Center;
+        CreateStepperSquareButton(cRect, "CloseBtn", new Vector2(360f - 38f, -12f), new Vector2(28f, 28f), "Close", CloseQuantityModal);
 
-        // Close X button
-        var closeObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        closeObj.transform.SetParent(cardObj.transform, false);
-        var clRect = closeObj.GetComponent<RectTransform>();
-        clRect.anchorMin = clRect.anchorMax = new Vector2(1f, 1f);
-        clRect.pivot = new Vector2(1f, 1f);
-        clRect.anchoredPosition = new Vector2(-10f, -10f);
-        clRect.sizeDelta = new Vector2(26f, 26f);
-
-        var clImg = closeObj.GetComponent<Image>();
-        clImg.sprite = GetCardBoxSprite();
-        clImg.type = Image.Type.Sliced;
-        clImg.color = new Color(0.92f, 0.95f, 0.98f, 1f);
-
-        var clTxtObj = new GameObject("X", typeof(RectTransform), typeof(TextMeshProUGUI));
-        clTxtObj.transform.SetParent(closeObj.transform, false);
-        var cltRect = clTxtObj.GetComponent<RectTransform>();
-        cltRect.anchorMin = Vector2.zero; cltRect.anchorMax = Vector2.one;
-        cltRect.offsetMin = Vector2.zero; cltRect.offsetMax = Vector2.zero;
-        var clTxt = clTxtObj.GetComponent<TextMeshProUGUI>();
-        clTxt.font = durationText.font;
-        clTxt.text = "X";
-        clTxt.fontSize = 14f;
-        clTxt.fontStyle = FontStyles.Bold;
-        clTxt.color = SubTextCol;
-        clTxt.alignment = TextAlignmentOptions.Center;
-
-        var clBtn = closeObj.GetComponent<Button>();
-        clBtn.targetGraphic = clImg;
-        clBtn.onClick.AddListener(CloseQuantityModal);
-
-        // Food Info Row (y = -44f)
         var iconObj = new GameObject("FoodIcon", typeof(RectTransform), typeof(Image));
-        iconObj.transform.SetParent(cardObj.transform, false);
-        var iRect = iconObj.GetComponent<RectTransform>();
-        iRect.anchorMin = iRect.anchorMax = new Vector2(0f, 1f);
-        iRect.pivot = new Vector2(0f, 1f);
-        iRect.anchoredPosition = new Vector2(20f, -44f);
-        iRect.sizeDelta = new Vector2(34f, 34f);
+        iconObj.transform.SetParent(cRect, false);
+        SetTopLeft(iconObj.GetComponent<RectTransform>(), new Vector2(24f, -48f), new Vector2(38f, 38f));
         modalFoodIcon = iconObj.GetComponent<Image>();
         modalFoodIcon.preserveAspect = true;
 
-        var nameObj = new GameObject("FoodName", typeof(RectTransform), typeof(TextMeshProUGUI));
-        nameObj.transform.SetParent(cardObj.transform, false);
-        var nRect = nameObj.GetComponent<RectTransform>();
-        nRect.anchorMin = nRect.anchorMax = new Vector2(0f, 1f);
-        nRect.pivot = new Vector2(0f, 1f);
-        nRect.anchoredPosition = new Vector2(62f, -44f);
-        nRect.sizeDelta = new Vector2(250f, 18f);
-        modalFoodNameText = nameObj.GetComponent<TextMeshProUGUI>();
-        modalFoodNameText.font = durationText.font;
-        modalFoodNameText.fontSize = 13f;
-        modalFoodNameText.fontStyle = FontStyles.Bold;
-        modalFoodNameText.color = ThemeDark;
+        modalFoodNameText = CreateTMP(cRect, "FoodName", "", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(modalFoodNameText.rectTransform, new Vector2(72f, -48f), new Vector2(260f, 20f));
 
-        var stObj = new GameObject("StorageInfo", typeof(RectTransform), typeof(TextMeshProUGUI));
-        stObj.transform.SetParent(cardObj.transform, false);
-        var sRect = stObj.GetComponent<RectTransform>();
-        sRect.anchorMin = sRect.anchorMax = new Vector2(0f, 1f);
-        sRect.pivot = new Vector2(0f, 1f);
-        sRect.anchoredPosition = new Vector2(62f, -62f);
-        sRect.sizeDelta = new Vector2(250f, 16f);
-        modalStorageText = stObj.GetComponent<TextMeshProUGUI>();
-        modalStorageText.font = durationText.font;
-        modalStorageText.fontSize = 11f;
-        modalStorageText.color = SubTextCol;
+        modalStorageText = CreateTMP(cRect, "StorageInfo", "", 12.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(modalStorageText.rectTransform, new Vector2(72f, -68f), new Vector2(260f, 18f));
 
-        // Big Quantity Display (y = -86f)
-        var valObj = new GameObject("AmountValue", typeof(RectTransform), typeof(TextMeshProUGUI));
-        valObj.transform.SetParent(cardObj.transform, false);
-        var vRect = valObj.GetComponent<RectTransform>();
-        vRect.anchorMin = vRect.anchorMax = new Vector2(0.5f, 1f);
-        vRect.pivot = new Vector2(0.5f, 1f);
-        vRect.anchoredPosition = new Vector2(0f, -86f);
-        vRect.sizeDelta = new Vector2(200f, 26f);
-        modalAmountValueText = valObj.GetComponent<TextMeshProUGUI>();
-        modalAmountValueText.font = durationText.font;
-        modalAmountValueText.fontSize = 22f;
-        modalAmountValueText.fontStyle = FontStyles.Bold;
-        modalAmountValueText.color = new Color(0.02f, 0.48f, 0.72f, 1f);
-        modalAmountValueText.alignment = TextAlignmentOptions.Center;
+        modalAmountValueText = CreateTMP(cRect, "AmountValue", "1", 24f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        SetTopLeft(modalAmountValueText.rectTransform, new Vector2(80f, -94f), new Vector2(200f, 30f));
 
-        // Slider (y = -120f)
+        // Slider
         var sliderObj = new GameObject("Slider", typeof(RectTransform), typeof(Slider));
-        sliderObj.transform.SetParent(cardObj.transform, false);
-        var slRect = sliderObj.GetComponent<RectTransform>();
-        slRect.anchorMin = slRect.anchorMax = new Vector2(0.5f, 1f);
-        slRect.pivot = new Vector2(0.5f, 1f);
-        slRect.anchoredPosition = new Vector2(0f, -120f);
-        slRect.sizeDelta = new Vector2(270f, 18f);
+        sliderObj.transform.SetParent(cRect, false);
+        SetTopLeft(sliderObj.GetComponent<RectTransform>(), new Vector2(30f, -132f), new Vector2(300f, 20f));
 
         modalSlider = sliderObj.GetComponent<Slider>();
         modalSlider.wholeNumbers = true;
 
-        // Slider Track
         var trackObj = new GameObject("Background", typeof(RectTransform), typeof(Image));
         trackObj.transform.SetParent(sliderObj.transform, false);
         var trRect = trackObj.GetComponent<RectTransform>();
-        trRect.anchorMin = new Vector2(0f, 0.35f);
-        trRect.anchorMax = new Vector2(1f, 0.65f);
-        trRect.offsetMin = Vector2.zero; trRect.offsetMax = Vector2.zero;
+        trRect.anchorMin = new Vector2(0f, 0.30f);
+        trRect.anchorMax = new Vector2(1f, 0.70f);
+        trRect.offsetMin = Vector2.zero;
+        trRect.offsetMax = Vector2.zero;
         var trImg = trackObj.GetComponent<Image>();
-        trImg.sprite = GetCardBoxSprite();
+        trImg.sprite = LumiWorldUITheme.PillSprite;
         trImg.type = Image.Type.Sliced;
-        trImg.color = new Color(0.88f, 0.92f, 0.96f, 1f);
+        trImg.color = LumiWorldUITheme.Inset;
 
-        // Fill Area
         var fillArea = new GameObject("Fill Area", typeof(RectTransform));
         fillArea.transform.SetParent(sliderObj.transform, false);
         var faRect = fillArea.GetComponent<RectTransform>();
-        faRect.anchorMin = new Vector2(0f, 0.35f);
-        faRect.anchorMax = new Vector2(1f, 0.65f);
+        faRect.anchorMin = new Vector2(0f, 0.30f);
+        faRect.anchorMax = new Vector2(1f, 0.70f);
         faRect.sizeDelta = new Vector2(-12f, 0f);
 
         var fillObj = new GameObject("Fill", typeof(RectTransform), typeof(Image));
         fillObj.transform.SetParent(fillArea.transform, false);
         var fRect = fillObj.GetComponent<RectTransform>();
-        fRect.anchorMin = Vector2.zero; fRect.anchorMax = Vector2.one;
-        fRect.offsetMin = Vector2.zero; fRect.offsetMax = Vector2.zero;
+        EconomyHUD.Stretch(fRect);
         var fImg = fillObj.GetComponent<Image>();
-        fImg.sprite = GetCardBoxSprite();
+        fImg.sprite = LumiWorldUITheme.PillSprite;
         fImg.type = Image.Type.Sliced;
-        fImg.color = ThemeCyan;
+        fImg.color = LumiWorldUITheme.Primary;
         modalSlider.fillRect = fRect;
 
-        // Handle Slide Area
         var handleArea = new GameObject("Handle Slide Area", typeof(RectTransform));
         handleArea.transform.SetParent(sliderObj.transform, false);
         var haRect = handleArea.GetComponent<RectTransform>();
-        haRect.anchorMin = Vector2.zero; haRect.anchorMax = Vector2.one;
+        EconomyHUD.Stretch(haRect);
         haRect.sizeDelta = new Vector2(-16f, 0f);
 
         var handleObj = new GameObject("Handle", typeof(RectTransform), typeof(Image));
         handleObj.transform.SetParent(handleArea.transform, false);
         var hRect = handleObj.GetComponent<RectTransform>();
-        hRect.sizeDelta = new Vector2(18f, 18f);
+        hRect.sizeDelta = new Vector2(20f, 20f);
         var hImg = handleObj.GetComponent<Image>();
-        hImg.sprite = GetCirclePlateSprite();
-        hImg.color = Color.white;
+        hImg.sprite = LumiWorldUITheme.PillSprite;
+        hImg.type = Image.Type.Sliced;
+        hImg.color = LumiWorldUITheme.Primary;
         modalSlider.handleRect = hRect;
         modalSlider.targetGraphic = hImg;
 
@@ -1414,123 +1501,34 @@ public class AutoFeedUI : MonoBehaviour
             UpdateModalAmountDisplay();
         });
 
-        // Preset Buttons Row (y = -150f)
-        float[] presetOffsets = { -105f, -52f, 0f, 52f, 105f };
-        string[] presetLabels = { "Min", "-10", "+10", "50%", "Max" };
-        Action[] presetActions =
-        {
-            () => SetModalAmount(1),
-            () => SetModalAmount(modalCurrentAmount - 10),
-            () => SetModalAmount(modalCurrentAmount + 10),
-            () => SetModalAmount(Mathf.Max(1, modalMaxStock / 2)),
-            () => SetModalAmount(modalMaxStock)
-        };
-
-        for (int p = 0; p < 5; p++)
-        {
-            int pIdx = p;
-            var pBtnObj = new GameObject("Preset_" + presetLabels[p], typeof(RectTransform), typeof(Image), typeof(Button));
-            pBtnObj.transform.SetParent(cardObj.transform, false);
-            var pbRect = pBtnObj.GetComponent<RectTransform>();
-            pbRect.anchorMin = pbRect.anchorMax = new Vector2(0.5f, 1f);
-            pbRect.pivot = new Vector2(0.5f, 1f);
-            pbRect.anchoredPosition = new Vector2(presetOffsets[p], -150f);
-            pbRect.sizeDelta = new Vector2(46f, 24f);
-
-            var pbImg = pBtnObj.GetComponent<Image>();
-            pbImg.sprite = GetCardBoxSprite();
-            pbImg.type = Image.Type.Sliced;
-            pbImg.color = new Color(0.93f, 0.96f, 0.99f, 1f);
-
-            var pbtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            pbtObj.transform.SetParent(pBtnObj.transform, false);
-            var pbtRect = pbtObj.GetComponent<RectTransform>();
-            pbtRect.anchorMin = Vector2.zero; pbtRect.anchorMax = Vector2.one;
-            pbtRect.offsetMin = Vector2.zero; pbtRect.offsetMax = Vector2.zero;
-            var pbt = pbtObj.GetComponent<TextMeshProUGUI>();
-            pbt.font = durationText.font;
-            pbt.text = presetLabels[p];
-            pbt.fontSize = 11f;
-            pbt.fontStyle = FontStyles.Bold;
-            pbt.color = ThemeDark;
-            pbt.alignment = TextAlignmentOptions.Center;
-
-            var pbBtn = pBtnObj.GetComponent<Button>();
-            pbBtn.targetGraphic = pbImg;
-            pbBtn.onClick.AddListener(() => presetActions[pIdx]());
-        }
-
-        // Action Buttons: Cancel & Apply (y = -196f)
-        var cancelObj = new GameObject("CancelBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        cancelObj.transform.SetParent(cardObj.transform, false);
-        var cbRect = cancelObj.GetComponent<RectTransform>();
-        cbRect.anchorMin = cbRect.anchorMax = new Vector2(0.5f, 1f);
-        cbRect.pivot = new Vector2(0.5f, 1f);
-        cbRect.anchoredPosition = new Vector2(-65f, -196f);
-        cbRect.sizeDelta = new Vector2(110f, 34f);
-
-        var cbImg = cancelObj.GetComponent<Image>();
-        cbImg.sprite = GetButtonSecondarySprite();
+        // Cancel & Apply buttons
+        GameObject cancelObj = new GameObject("CancelBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        cancelObj.transform.SetParent(cRect, false);
+        RectTransform cbRect = cancelObj.GetComponent<RectTransform>();
+        cbRect.anchorMin = cbRect.anchorMax = cbRect.pivot = new Vector2(0f, 0f);
+        cbRect.anchoredPosition = new Vector2(30f, 18f);
+        cbRect.sizeDelta = new Vector2(142f, 38f);
+        Image cbImg = cancelObj.GetComponent<Image>();
+        cbImg.sprite = LumiWorldUITheme.ButtonSecondarySprite;
         cbImg.type = Image.Type.Sliced;
-        cbImg.color = Color.white;
+        cbImg.color = LumiWorldUITheme.Inset;
+        var cbTxt = CreateTMP(cbRect, "Label", "Cancel", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(cbTxt.rectTransform);
+        cancelObj.GetComponent<Button>().onClick.AddListener(CloseQuantityModal);
 
-        var cbtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cbtObj.transform.SetParent(cancelObj.transform, false);
-        var cbtRect = cbtObj.GetComponent<RectTransform>();
-        cbtRect.anchorMin = Vector2.zero; cbtRect.anchorMax = Vector2.one;
-        cbtRect.offsetMin = Vector2.zero; cbtRect.offsetMax = Vector2.zero;
-        var cbt = cbtObj.GetComponent<TextMeshProUGUI>();
-        cbt.font = durationText.font;
-        cbt.text = "Cancel";
-        cbt.fontSize = 12f;
-        cbt.fontStyle = FontStyles.Bold;
-        cbt.color = SubTextCol;
-        cbt.alignment = TextAlignmentOptions.Center;
-
-        var cbBtn = cancelObj.GetComponent<Button>();
-        cbBtn.targetGraphic = cbImg;
-        cbBtn.onClick.AddListener(CloseQuantityModal);
-
-        var applyObj = new GameObject("ApplyBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        applyObj.transform.SetParent(cardObj.transform, false);
-        var abRect = applyObj.GetComponent<RectTransform>();
-        abRect.anchorMin = abRect.anchorMax = new Vector2(0.5f, 1f);
-        abRect.pivot = new Vector2(0.5f, 1f);
-        abRect.anchoredPosition = new Vector2(65f, -196f);
-        abRect.sizeDelta = new Vector2(110f, 34f);
-
-        var abImg = applyObj.GetComponent<Image>();
-        abImg.sprite = GetButtonPrimarySprite();
+        GameObject applyObj = new GameObject("ApplyBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        applyObj.transform.SetParent(cRect, false);
+        RectTransform abRect = applyObj.GetComponent<RectTransform>();
+        abRect.anchorMin = abRect.anchorMax = abRect.pivot = new Vector2(1f, 0f);
+        abRect.anchoredPosition = new Vector2(-30f, 18f);
+        abRect.sizeDelta = new Vector2(142f, 38f);
+        Image abImg = applyObj.GetComponent<Image>();
+        abImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
         abImg.type = Image.Type.Sliced;
-        abImg.color = Color.white;
-
-        var abtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        abtObj.transform.SetParent(applyObj.transform, false);
-        var abtRect = abtObj.GetComponent<RectTransform>();
-        abtRect.anchorMin = Vector2.zero; abtRect.anchorMax = Vector2.one;
-        abtRect.offsetMin = Vector2.zero; abtRect.offsetMax = Vector2.zero;
-        var abt = abtObj.GetComponent<TextMeshProUGUI>();
-        abt.font = durationText.font;
-        abt.text = "Apply";
-        abt.fontSize = 12f;
-        abt.fontStyle = FontStyles.Bold;
-        abt.color = Color.white;
-        abt.alignment = TextAlignmentOptions.Center;
-
-        var abBtn = applyObj.GetComponent<Button>();
-        abBtn.targetGraphic = abImg;
-        abBtn.onClick.AddListener(OnApplyQuantityModal);
-    }
-
-    private void SetModalAmount(int target)
-    {
-        modalCurrentAmount = Mathf.Clamp(target, 1, modalMaxStock);
-        if (modalSlider != null)
-        {
-            modalSlider.SetValueWithoutNotify(modalCurrentAmount);
-        }
-        UpdateModalAmountDisplay();
-        GameAudioManager.Instance?.PlayClick();
+        abImg.color = LumiWorldUITheme.Primary;
+        var abTxt = CreateTMP(abRect, "Label", "Apply", 14f, Color.white, true, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(abTxt.rectTransform);
+        applyObj.GetComponent<Button>().onClick.AddListener(OnApplyQuantityModal);
     }
 
     private void UpdateModalAmountDisplay()
@@ -1554,527 +1552,17 @@ public class AutoFeedUI : MonoBehaviour
     {
         if (modalEditingSlot >= 0 && modalEditingSlot < 3)
         {
-            AssignedFoodAmounts[modalEditingSlot] = modalCurrentAmount;
-            SaveSlots();
-            RefreshDispenserStats();
-
-            string foodId = AssignedFoodIds[modalEditingSlot];
-            var food = currentFoodList.Find(f => f.id == foodId);
-            string name = food != null ? food.name : foodId;
-            ShowFeedback($"Updated {name} quantity to {modalCurrentAmount:N0}.", new Color(0.12f, 0.85f, 0.40f, 1f));
+            var slots = GetSlotsFor(activeBiome);
+            slots.budgets[modalEditingSlot] = modalCurrentAmount;
+            SaveBiomeSlots(activeBiome);
+            RefreshSlotsAndBudgetUI();
         }
-
         CloseQuantityModal();
     }
 
-    private void OnFillAllClicked()
-    {
-        GameAudioManager.Instance?.PlayClick();
-
-        int assignedCount = 0;
-        for (int i = 0; i < 3; i++)
-        {
-            if (string.IsNullOrEmpty(AssignedFoodIds[i]))
-            {
-                // Find a food item not already assigned in other slots
-                var candidate = currentFoodList.Find(f => !IsFoodAssigned(f.id));
-                if (candidate != null)
-                {
-                    AssignedFoodIds[i] = candidate.id;
-                    AssignedFoodAmounts[i] = candidate.stock;
-                    assignedCount++;
-                }
-            }
-        }
-
-        SaveSlots();
-        RefreshDispenserStats();
-        UpdateBorders();
-
-        if (assignedCount > 0)
-        {
-            ShowFeedback($"Filled {assignedCount} empty slot(s) with available food.", new Color(0.12f, 0.85f, 0.40f, 1f));
-        }
-        else
-        {
-            ShowFeedback("All slots already filled or no more unique foods available.", new Color(0.95f, 0.65f, 0.20f, 1f));
-        }
-    }
-
-    private void OnConfirmAutoFeedClicked()
-    {
-        GameAudioManager.Instance?.PlayClick();
-
-        int totalAssigned = 0;
-        for (int i = 0; i < 3; i++)
-        {
-            if (!string.IsNullOrEmpty(AssignedFoodIds[i])) totalAssigned++;
-        }
-
-        if (totalAssigned == 0)
-        {
-            ShowFeedback("Please assign at least 1 food item to start auto-feed!", new Color(0.95f, 0.35f, 0.35f, 1f));
-            return;
-        }
-
-        OpenConfirmModal(totalAssigned);
-    }
-
-    private void OpenConfirmModal(int totalAssigned)
-    {
-        if (confirmModalObj == null)
-        {
-            BuildConfirmModal();
-        }
-
-        if (confirmModalItemsText != null)
-        {
-            var sb = new System.Text.StringBuilder();
-            for (int i = 0; i < 3; i++)
-            {
-                string fId = AssignedFoodIds[i];
-                if (!string.IsNullOrEmpty(fId))
-                {
-                    string fName = ResourceInventoryUIPresentation.LocalizeResourceName(fId, fId);
-                    int amt = AssignedFoodAmounts[i];
-                    sb.AppendLine($"• <color=#0284c7><b>{fName}</b></color> (Qty: <b>{amt:N0}</b>)");
-                }
-            }
-            confirmModalItemsText.text = sb.ToString().TrimEnd();
-        }
-
-        confirmModalObj.SetActive(true);
-        confirmModalObj.transform.SetAsLastSibling();
-        GameAudioManager.Instance?.PlayClick();
-    }
-
-    private void CloseConfirmModal()
-    {
-        if (confirmModalObj != null && confirmModalObj.activeSelf)
-        {
-            confirmModalObj.SetActive(false);
-            GameAudioManager.Instance?.PlayClick();
-        }
-    }
-
-    private void ExecuteStartAutoFeed(int totalAssigned)
-    {
-        CloseConfirmModal();
-        SaveSlots();
-        DistributeFoodToAllCreatures();
-        RefreshFoodInventory();
-        RefreshDispenserStats();
-        ShowFeedback($"✓ Auto-Feed Activated! Dispenser loaded with {totalAssigned} food item(s).", new Color(0.10f, 0.88f, 0.45f, 1f));
-    }
-
-    private void BuildConfirmModal()
-    {
-        if (panel == null) return;
-
-        confirmModalObj = new GameObject("ConfirmModalOverlay", typeof(RectTransform), typeof(Image));
-        confirmModalObj.transform.SetParent(panel, false);
-        var cRect = confirmModalObj.GetComponent<RectTransform>();
-        cRect.anchorMin = Vector2.zero; cRect.anchorMax = Vector2.one;
-        cRect.offsetMin = Vector2.zero; cRect.offsetMax = Vector2.zero;
-        var cImg = confirmModalObj.GetComponent<Image>();
-        cImg.color = new Color(0f, 0f, 0f, 0.6f);
-
-        var cardObj = new GameObject("ConfirmCard", typeof(RectTransform), typeof(Image));
-        cardObj.transform.SetParent(confirmModalObj.transform, false);
-        var cdRect = cardObj.GetComponent<RectTransform>();
-        cdRect.anchorMin = cdRect.anchorMax = new Vector2(0.5f, 0.5f);
-        cdRect.pivot = new Vector2(0.5f, 0.5f);
-        cdRect.sizeDelta = new Vector2(400f, 270f);
-
-        var cdImg = cardObj.GetComponent<Image>();
-        cdImg.sprite = GetCardBoxSprite();
-        cdImg.type = Image.Type.Sliced;
-        cdImg.color = Color.white;
-        EconomyHUD.AddBlueBorder(cdRect, new Color(0.04f, 0.70f, 0.90f, 0.85f));
-
-        // Header Title
-        var tObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
-        tObj.transform.SetParent(cardObj.transform, false);
-        var tRect = tObj.GetComponent<RectTransform>();
-        tRect.anchorMin = tRect.anchorMax = new Vector2(0.5f, 1f);
-        tRect.pivot = new Vector2(0.5f, 1f);
-        tRect.anchoredPosition = new Vector2(0f, -16f);
-        tRect.sizeDelta = new Vector2(360f, 26f);
-        var tTxt = tObj.GetComponent<TextMeshProUGUI>();
-        tTxt.font = durationText.font;
-        tTxt.text = "CONFIRM AUTO-FEEDING";
-        tTxt.fontSize = 15f;
-        tTxt.fontStyle = FontStyles.Bold;
-        tTxt.color = ThemeDark;
-        tTxt.alignment = TextAlignmentOptions.Center;
-
-        // Close X button
-        var closeObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        closeObj.transform.SetParent(cardObj.transform, false);
-        var clRect = closeObj.GetComponent<RectTransform>();
-        clRect.anchorMin = clRect.anchorMax = new Vector2(1f, 1f);
-        clRect.pivot = new Vector2(1f, 1f);
-        clRect.anchoredPosition = new Vector2(-10f, -10f);
-        clRect.sizeDelta = new Vector2(26f, 26f);
-        var clImg = closeObj.GetComponent<Image>();
-        clImg.sprite = GetCardBoxSprite();
-        clImg.type = Image.Type.Sliced;
-        clImg.color = new Color(0.92f, 0.95f, 0.98f, 1f);
-        var clTxtObj = new GameObject("X", typeof(RectTransform), typeof(TextMeshProUGUI));
-        clTxtObj.transform.SetParent(closeObj.transform, false);
-        var cltRect = clTxtObj.GetComponent<RectTransform>();
-        cltRect.anchorMin = Vector2.zero; cltRect.anchorMax = Vector2.one;
-        cltRect.offsetMin = Vector2.zero; cltRect.offsetMax = Vector2.zero;
-        var clTxt = clTxtObj.GetComponent<TextMeshProUGUI>();
-        clTxt.font = durationText.font;
-        clTxt.text = "X";
-        clTxt.fontSize = 14f;
-        clTxt.fontStyle = FontStyles.Bold;
-        clTxt.color = SubTextCol;
-        clTxt.alignment = TextAlignmentOptions.Center;
-        var clBtn = closeObj.GetComponent<Button>();
-        clBtn.targetGraphic = clImg;
-        clBtn.onClick.AddListener(CloseConfirmModal);
-
-        // Subtitle description
-        var descObj = new GameObject("Desc", typeof(RectTransform), typeof(TextMeshProUGUI));
-        descObj.transform.SetParent(cardObj.transform, false);
-        var dRect = descObj.GetComponent<RectTransform>();
-        dRect.anchorMin = dRect.anchorMax = new Vector2(0.5f, 1f);
-        dRect.pivot = new Vector2(0.5f, 1f);
-        dRect.anchoredPosition = new Vector2(0f, -48f);
-        dRect.sizeDelta = new Vector2(350f, 42f);
-        var dTxt = descObj.GetComponent<TextMeshProUGUI>();
-        dTxt.font = durationText.font;
-        dTxt.text = "Activate automated continuous feeding with selected foods?\nCreatures in your habitats will be fed automatically to maintain full stamina.";
-        dTxt.fontSize = 11.5f;
-        dTxt.color = SubTextCol;
-        dTxt.alignment = TextAlignmentOptions.Center;
-
-        // Selected items box
-        var boxObj = new GameObject("ItemsBox", typeof(RectTransform), typeof(Image));
-        boxObj.transform.SetParent(cardObj.transform, false);
-        var bRect = boxObj.GetComponent<RectTransform>();
-        bRect.anchorMin = bRect.anchorMax = new Vector2(0.5f, 1f);
-        bRect.pivot = new Vector2(0.5f, 1f);
-        bRect.anchoredPosition = new Vector2(0f, -96f);
-        bRect.sizeDelta = new Vector2(350f, 85f);
-        var bImg = boxObj.GetComponent<Image>();
-        bImg.sprite = GetCardBoxSprite();
-        bImg.type = Image.Type.Sliced;
-        bImg.color = new Color(0.95f, 0.97f, 1f, 1f);
-
-        var itmTxtObj = new GameObject("ItemsText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        itmTxtObj.transform.SetParent(boxObj.transform, false);
-        var itRect = itmTxtObj.GetComponent<RectTransform>();
-        itRect.anchorMin = Vector2.zero; itRect.anchorMax = Vector2.one;
-        itRect.offsetMin = new Vector2(14f, 8f); itRect.offsetMax = new Vector2(-14f, -8f);
-        confirmModalItemsText = itmTxtObj.GetComponent<TextMeshProUGUI>();
-        confirmModalItemsText.font = durationText.font;
-        confirmModalItemsText.fontSize = 12f;
-        confirmModalItemsText.color = ThemeDark;
-        confirmModalItemsText.alignment = TextAlignmentOptions.MidlineLeft;
-
-        // Action Buttons: Cancel (left) & Start (right) (y = -205f)
-        var cancelObj = new GameObject("CancelBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        cancelObj.transform.SetParent(cardObj.transform, false);
-        var cbRect = cancelObj.GetComponent<RectTransform>();
-        cbRect.anchorMin = cbRect.anchorMax = new Vector2(0.5f, 1f);
-        cbRect.pivot = new Vector2(0.5f, 1f);
-        cbRect.anchoredPosition = new Vector2(-80f, -205f);
-        cbRect.sizeDelta = new Vector2(120f, 38f);
-        var cbImg = cancelObj.GetComponent<Image>();
-        cbImg.sprite = GetButtonSecondarySprite();
-        cbImg.type = Image.Type.Sliced;
-        cbImg.color = Color.white;
-        var cbtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        cbtObj.transform.SetParent(cancelObj.transform, false);
-        var cbtRect = cbtObj.GetComponent<RectTransform>();
-        cbtRect.anchorMin = Vector2.zero; cbtRect.anchorMax = Vector2.one;
-        cbtRect.offsetMin = Vector2.zero; cbtRect.offsetMax = Vector2.zero;
-        var cbt = cbtObj.GetComponent<TextMeshProUGUI>();
-        cbt.font = durationText.font;
-        cbt.text = "Cancel";
-        cbt.fontSize = 13f;
-        cbt.fontStyle = FontStyles.Bold;
-        cbt.color = SubTextCol;
-        cbt.alignment = TextAlignmentOptions.Center;
-        var cbBtn = cancelObj.GetComponent<Button>();
-        cbBtn.targetGraphic = cbImg;
-        cbBtn.onClick.AddListener(CloseConfirmModal);
-
-        var startObj = new GameObject("StartBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        startObj.transform.SetParent(cardObj.transform, false);
-        var sbRect = startObj.GetComponent<RectTransform>();
-        sbRect.anchorMin = sbRect.anchorMax = new Vector2(0.5f, 1f);
-        sbRect.pivot = new Vector2(0.5f, 1f);
-        sbRect.anchoredPosition = new Vector2(80f, -205f);
-        sbRect.sizeDelta = new Vector2(150f, 38f);
-        var sbImg = startObj.GetComponent<Image>();
-        sbImg.sprite = GetButtonPrimarySprite();
-        sbImg.type = Image.Type.Sliced;
-        sbImg.color = Color.white;
-        var sbtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        sbtObj.transform.SetParent(startObj.transform, false);
-        var sbtRect = sbtObj.GetComponent<RectTransform>();
-        sbtRect.anchorMin = Vector2.zero; sbtRect.anchorMax = Vector2.one;
-        sbtRect.offsetMin = Vector2.zero; sbtRect.offsetMax = Vector2.zero;
-        var sbt = sbtObj.GetComponent<TextMeshProUGUI>();
-        sbt.font = durationText.font;
-        sbt.text = "Confirm & Start";
-        sbt.fontSize = 13f;
-        sbt.fontStyle = FontStyles.Bold;
-        sbt.color = Color.white;
-        sbt.alignment = TextAlignmentOptions.Center;
-        var sbBtn = startObj.GetComponent<Button>();
-        sbBtn.targetGraphic = sbImg;
-        sbBtn.onClick.AddListener(() =>
-        {
-            int total = 0;
-            for (int i = 0; i < 3; i++) if (!string.IsNullOrEmpty(AssignedFoodIds[i])) total++;
-            ExecuteStartAutoFeed(total);
-        });
-    }
-
-    public void DistributeFoodToAllCreatures()
-    {
-        var production = ResourceProductionRuntime.Instance;
-        if (production == null || production.Inventory == null) return;
-
-        HabitatRuntimeManager habManager = production.HabitatManager;
-        if (habManager == null) HabitatRuntimeManager.TryGetActive(out habManager);
-        if (habManager == null || habManager.Habitats == null) return;
-
-        bool anyDeposited = false;
-        foreach (var h in habManager.Habitats)
-        {
-            if (h == null || h.residents == null) continue;
-            foreach (var resident in h.residents)
-            {
-                if (resident == null) continue;
-                if (DistributeFoodToResident(h, resident))
-                {
-                    anyDeposited = true;
-                }
-            }
-        }
-
-        if (anyDeposited)
-        {
-            production.SettleNow();
-        }
-    }
-
-    public bool DistributeFoodToResident(HabitatState h, HabitatResident resident)
-    {
-        if (h == null || resident == null) return false;
-        var production = ResourceProductionRuntime.Instance;
-        if (production == null || production.Inventory == null) return false;
-
-        var stocks = production.GetCreatureFoodStocks(resident.individualId);
-        long currentPantryTotal = 0;
-        if (stocks != null)
-        {
-            foreach (var s in stocks) if (s != null) currentPantryTotal += s.Amount;
-        }
-
-        // Nếu ngăn đã có >= 20 đơn vị thức ăn thì chưa cần bơm thêm
-        if (currentPantryTotal >= 20) return false;
-
-        bool depositedAny = false;
-        for (int i = 0; i < 3; i++)
-        {
-            string fId = AssignedFoodIds[i];
-            if (string.IsNullOrEmpty(fId)) continue;
-
-            int availableWarehouse = production.Inventory.GetAmount(fId);
-            if (availableWarehouse <= 0)
-            {
-                // Thức ăn trong kho đã hết: tự động làm trống ô slot và thông báo ngay
-                string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(fId, fId);
-                AssignedFoodIds[i] = string.Empty;
-                AssignedFoodAmounts[i] = 0;
-                SaveSlots();
-
-                ShowFeedback($"⚠️ Notice: {foodName} is depleted and removed from slot {i + 1}!", new Color(0.95f, 0.45f, 0.20f, 1f));
-                if (IsOpen)
-                {
-                    RefreshFoodInventory();
-                    RefreshDispenserStats();
-                }
-                continue;
-            }
-
-            int targetAdd = (int)Mathf.Min(availableWarehouse, 20 - currentPantryTotal);
-            if (targetAdd > 0)
-            {
-                if (production.DepositCreatureFood(h.habitatId, resident.individualId, fId, targetAdd, out _))
-                {
-                    currentPantryTotal += targetAdd;
-                    depositedAny = true;
-
-                    // Kiểm tra nếu sau khi nạp mà kho vừa hết sạch món này
-                    int remainingWarehouse = production.Inventory.GetAmount(fId);
-                    if (remainingWarehouse <= 0)
-                    {
-                        string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(fId, fId);
-                        AssignedFoodIds[i] = string.Empty;
-                        AssignedFoodAmounts[i] = 0;
-                        SaveSlots();
-
-                        ShowFeedback($"⚠️ Notice: {foodName} has run out and was removed from slot {i + 1}!", new Color(0.95f, 0.45f, 0.20f, 1f));
-                        if (IsOpen)
-                        {
-                            RefreshFoodInventory();
-                            RefreshDispenserStats();
-                        }
-                    }
-
-                    if (currentPantryTotal >= 20) break;
-                }
-            }
-        }
-
-        return depositedAny;
-    }
-
-    private void UpdateBorders()
-    {
-        foreach (var kvp in foodCardBorders)
-        {
-            if (kvp.Value != null)
-            {
-                kvp.Value.gameObject.SetActive(IsFoodAssigned(kvp.Key));
-            }
-        }
-    }
-
-    private void RefreshDispenserStats()
-    {
-        int totalFoodUnits = 0;
-        double totalSatiety = 0;
-
-        var production = ResourceProductionRuntime.Instance;
-        var inventory = production != null ? production.Inventory : null;
-
-        for (int i = 0; i < 3; i++)
-        {
-            var view = slotViews[i];
-            if (view == null) continue;
-
-            string foodId = AssignedFoodIds[i];
-
-            // Nếu món ăn đã hết trong kho (stock <= 0) hoặc thú đã ăn hết: tự động làm trống ô slot để người chơi đặt món mới
-            int stock = (!string.IsNullOrEmpty(foodId) && inventory != null) ? inventory.GetAmount(foodId) : 0;
-            if (!string.IsNullOrEmpty(foodId) && stock <= 0)
-            {
-                AssignedFoodIds[i] = string.Empty;
-                AssignedFoodAmounts[i] = 0;
-                foodId = string.Empty;
-                SaveSlots();
-            }
-
-            int amount = AssignedFoodAmounts[i];
-
-            if (string.IsNullOrEmpty(foodId))
-            {
-                // Empty slot: ô hoàn toàn trống
-                view.emptyPlaceholder.SetActive(true);
-                view.occupiedContainer.SetActive(false);
-                view.removeButton.gameObject.SetActive(false);
-                if (view.stepperRow != null) view.stepperRow.SetActive(false);
-                view.amountText.text = "";
-                view.nameText.text = "Empty Slot";
-                view.nameText.color = SubTextCol;
-            }
-            else
-            {
-                // Occupied slot: ô có thức ăn hợp lệ
-                view.emptyPlaceholder.SetActive(false);
-                view.occupiedContainer.SetActive(true);
-                view.removeButton.gameObject.SetActive(true);
-                if (view.stepperRow != null) view.stepperRow.SetActive(true);
-
-                var item = currentFoodList.Find(f => f.id == foodId);
-                Sprite icon = item != null ? item.icon : null;
-                string dispName = item != null ? item.name : foodId;
-
-                amount = Mathf.Clamp(amount, 1, stock);
-                AssignedFoodAmounts[i] = amount;
-
-                view.iconImage.sprite = icon;
-                view.iconImage.gameObject.SetActive(icon != null);
-                view.amountText.text = $"{amount:N0}";
-                view.nameText.text = dispName;
-                view.nameText.color = ThemeDark;
-
-                totalFoodUnits += amount;
-                totalSatiety += amount * 25.0; // Satiety estimate
-            }
-        }
-
-        // Consumption calculation
-        int activeCreatures = 1;
-        HabitatRuntimeManager statsHabManager = null;
-        if (ResourceProductionRuntime.Instance != null && ResourceProductionRuntime.Instance.HabitatManager != null)
-        {
-            statsHabManager = ResourceProductionRuntime.Instance.HabitatManager;
-        }
-        else
-        {
-            HabitatRuntimeManager.TryGetActive(out statsHabManager);
-        }
-
-        if (statsHabManager != null && statsHabManager.Habitats != null)
-        {
-            int totalResidents = 0;
-            foreach (var h in statsHabManager.Habitats)
-            {
-                if (h != null && h.residents != null)
-                {
-                    totalResidents += h.residents.Count;
-                }
-            }
-            if (totalResidents > 0)
-            {
-                activeCreatures = totalResidents;
-            }
-        }
-
-        double consumptionPerMin = activeCreatures * 10.0; // 10 units / min per working creature
-        if (consumptionRateText != null)
-        {
-            consumptionRateText.text = $"<color=#64748b>Consumption/Min</color>\n<b><size=17><color=#0284c7>{consumptionPerMin:0}</color></size></b>";
-        }
-
-        if (totalEnergyText != null)
-        {
-            totalEnergyText.text = $"<color=#64748b>Total Food Energy</color>\n<b><size=17><color=#0284c7>{totalSatiety:0}</color></size></b>";
-        }
-
-        // Estimated Duration
-        if (durationText != null)
-        {
-            if (totalFoodUnits == 0)
-            {
-                durationText.text = "<b>ESTIMATED DURATION</b>\n<color=#64748b>Idle · No Food Assigned</color>";
-            }
-            else
-            {
-                double totalMinutes = totalSatiety / consumptionPerMin;
-                int days = (int)(totalMinutes / 1440);
-                int hours = (int)((totalMinutes % 1440) / 60);
-                int mins = (int)(totalMinutes % 60);
-
-                string formattedDuration;
-                if (days > 0) formattedDuration = $"{days}d {hours}h {mins}m";
-                else if (hours > 0) formattedDuration = $"{hours}h {mins}m";
-                else formattedDuration = $"{Mathf.Max(1, mins)}m";
-
-                durationText.text = $"<b>ESTIMATED DURATION</b>\n<color=#0284c7>🕒 {formattedDuration}</color>";
-            }
-        }
-    }
+    // =========================================================
+    // HELPERS
+    // =========================================================
 
     private void ShowFeedback(string msg, Color col)
     {
@@ -2095,124 +1583,43 @@ public class AutoFeedUI : MonoBehaviour
         }
     }
 
-    // -------------------------------------------------------------
-    // Procedural Sprites
-    // -------------------------------------------------------------
-    private static Sprite GetPanelSprite()
+    private static TextMeshProUGUI CreateTMP(Transform parent, string name, string text, float fontSize, Color color, bool bold, TextAlignmentOptions align)
     {
-        if (panelSprite == null)
-            panelSprite = CreateTechBox(64, 64, 14, new Color(0.965f, 0.985f, 1f, 0.98f), new Color(0f, 0.70f, 0.88f, 1f));
-        return panelSprite;
+        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+        obj.transform.SetParent(parent, false);
+        TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
+        tmp.font = LumiWorldUITheme.Body;
+        tmp.text = text;
+        tmp.fontSize = fontSize;
+        tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+        tmp.color = color;
+        tmp.alignment = align;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.raycastTarget = false;
+        return tmp;
     }
 
-    private static Sprite GetCardBoxSprite()
+    private static void SetTopLeft(RectTransform rect, Vector2 pos, Vector2 size)
     {
-        if (cardBoxSprite == null)
-            cardBoxSprite = CreateTechBox(64, 64, 10, Color.white, new Color(0.82f, 0.88f, 0.94f, 1f));
-        return cardBoxSprite;
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = pos;
+        rect.sizeDelta = size;
     }
 
-    private static Sprite GetPillSprite()
+    private static Sprite GetSelectionBorderSprite()
     {
-        if (pillSprite == null)
-            pillSprite = CreateCapsule(64, 32, 16, new Color(0.92f, 0.96f, 1f, 1f), new Color(0.70f, 0.85f, 0.96f, 1f));
-        return pillSprite;
-    }
+        if (s_SelectionBorderSprite != null) return s_SelectionBorderSprite;
 
-    private static Sprite GetButtonPrimarySprite()
-    {
-        if (buttonPrimarySprite == null)
-            buttonPrimarySprite = CreateTechBox(64, 36, 8, new Color(0f, 0.68f, 0.88f, 1f), new Color(0.35f, 0.85f, 1f, 1f));
-        return buttonPrimarySprite;
-    }
-
-    private static Sprite GetButtonSecondarySprite()
-    {
-        if (buttonSecondarySprite == null)
-            buttonSecondarySprite = CreateTechBox(64, 36, 8, Color.white, new Color(0.70f, 0.82f, 0.90f, 1f));
-        return buttonSecondarySprite;
-    }
-
-    private static Sprite GetCirclePlateSprite()
-    {
-        if (circlePlateSprite == null)
-        {
-            int w = 80, h = 80;
-            float cx = w * 0.5f, cy = h * 0.5f, r = 38f;
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Bilinear;
-            tex.wrapMode = TextureWrapMode.Clamp;
-            Color[] px = new Color[w * h];
-            Color rim = new Color(0.15f, 0.65f, 0.92f, 1f);
-            Color innerRim = new Color(0.86f, 0.93f, 0.99f, 1f);
-            Color fill = new Color(0.95f, 0.98f, 1f, 1f);
-
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    float dx = x - cx;
-                    float dy = y - cy;
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-
-                    if (dist > r) px[y * w + x] = Color.clear;
-                    else if (dist >= r - 3.5f) px[y * w + x] = rim;
-                    else if (dist >= r - 7.5f) px[y * w + x] = innerRim;
-                    else px[y * w + x] = fill;
-                }
-            }
-            tex.SetPixels(px);
-            tex.Apply();
-            circlePlateSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
-        }
-        return circlePlateSprite;
-    }
-
-    private static Sprite GetClockIconSprite()
-    {
-        if (clockIconSprite == null)
-        {
-            int w = 24, h = 24;
-            float cx = 12f, cy = 12f, r = 10f;
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Bilinear;
-            tex.wrapMode = TextureWrapMode.Clamp;
-            Color[] px = new Color[w * h];
-            Color cyan = ThemeCyan;
-
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    float dx = x - cx;
-                    float dy = y - cy;
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-
-                    if (dist > r) px[y * w + x] = Color.clear;
-                    else if (dist >= r - 2f) px[y * w + x] = cyan;
-                    else
-                    {
-                        bool isHour = (Mathf.Abs(dx) <= 1f && dy >= 0 && dy <= 6f);
-                        bool isMin = (Mathf.Abs(dy) <= 1f && dx >= 0 && dx <= 6f);
-                        bool isCenter = dist <= 2.2f;
-                        px[y * w + x] = (isHour || isMin || isCenter) ? cyan : Color.clear;
-                    }
-                }
-            }
-            tex.SetPixels(px);
-            tex.Apply();
-            clockIconSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
-        }
-        return clockIconSprite;
-    }
-
-    private static Sprite CreateTechBox(int w, int h, int r, Color fillColor, Color borderColor)
-    {
+        int w = 64, h = 64, r = 12;
+        float stroke = 3f;
         Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
         tex.filterMode = FilterMode.Bilinear;
         tex.wrapMode = TextureWrapMode.Clamp;
-
         Color[] px = new Color[w * h];
+
         for (int y = 0; y < h; y++)
         {
             for (int x = 0; x < w; x++)
@@ -2220,41 +1627,18 @@ public class AutoFeedUI : MonoBehaviour
                 float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
                 float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
                 float dist = Mathf.Sqrt(dx * dx + dy * dy);
-
-                if (dist > r) px[y * w + x] = Color.clear;
-                else if (dist >= r - 1.5f || x == 0 || x == w - 1 || y == 0 || y == h - 1) px[y * w + x] = borderColor;
-                else px[y * w + x] = fillColor;
+                if (dist > r)
+                    px[y * w + x] = Color.clear;
+                else if (dist >= r - stroke || x < stroke || x >= w - stroke || y < stroke || y >= h - stroke)
+                    px[y * w + x] = LumiWorldUITheme.Primary;
+                else
+                    px[y * w + x] = Color.clear;
             }
         }
+
         tex.SetPixels(px);
         tex.Apply();
-        Vector4 border = new Vector4(r + 2, r + 2, r + 2, r + 2);
-        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
-    }
-
-    private static Sprite CreateCapsule(int w, int h, int r, Color fillColor, Color borderColor)
-    {
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        tex.wrapMode = TextureWrapMode.Clamp;
-
-        Color[] px = new Color[w * h];
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
-                float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-
-                if (dist > r) px[y * w + x] = Color.clear;
-                else if (dist >= r - 1.5f || x == 0 || x == w - 1 || y == 0 || y == h - 1) px[y * w + x] = borderColor;
-                else px[y * w + x] = fillColor;
-            }
-        }
-        tex.SetPixels(px);
-        tex.Apply();
-        Vector4 border = new Vector4(r, 0, r, 0);
-        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
+        s_SelectionBorderSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r + 2, r + 2, r + 2, r + 2));
+        return s_SelectionBorderSprite;
     }
 }

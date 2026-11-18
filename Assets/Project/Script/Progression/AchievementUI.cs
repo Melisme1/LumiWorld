@@ -209,7 +209,7 @@ public class AchievementUI : MonoBehaviour
             nodeRect.sizeDelta = new Vector2(70f, 80f);
 
             Image nodeImg = nodeObj.GetComponent<Image>();
-            Sprite iconSp = Resources.Load<Sprite>(milestoneIconNames[i]);
+            Sprite iconSp = LumiWorld.Acs.LumiWorldUITheme.Art("A-" + (i + 1).ToString("00")) ?? Resources.Load<Sprite>(milestoneIconNames[i]);
             nodeImg.sprite = iconSp;
             nodeImg.preserveAspect = true;
             nodeImg.raycastTarget = false;

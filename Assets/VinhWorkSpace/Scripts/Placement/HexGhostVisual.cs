@@ -124,34 +124,15 @@ public class HexGhostVisual : MonoBehaviour
     }
 
     /// <summary>
-    /// Hiển thị phí đặt thẻ phía trên Ghost: màu vàng khi đủ Coins, màu đỏ khi thiếu.
-    /// Thẻ miễn phí (phí = 0) thì không hiện nhãn.
+    /// Phí đặt thẻ nay hiển thị bằng P-04 Floating White Tooltip Pill trong HexPlacementPreviewHUD.
+    /// Ẩn nhãn 3D cũ để không bị trùng lặp.
     /// </summary>
     public void SetPlacementFee(int fee, bool canAfford)
     {
-        if (ghostRoot == null) return;
-
-        if (fee <= 0)
+        if (feeLabel != null)
         {
-            if (feeLabel != null) feeLabel.gameObject.SetActive(false);
-            return;
+            feeLabel.gameObject.SetActive(false);
         }
-
-        if (feeLabel == null)
-        {
-            GameObject labelObj = new GameObject("PlacementFeeLabel");
-            labelObj.transform.SetParent(ghostRoot.transform, false);
-
-            feeLabel = labelObj.AddComponent<TextMeshPro>();
-            feeLabel.fontSize = 3.5f;
-            feeLabel.fontStyle = FontStyles.Bold;
-            feeLabel.alignment = TextAlignmentOptions.Center;
-            feeLabel.sortingOrder = 500;
-        }
-
-        feeLabel.gameObject.SetActive(true);
-        feeLabel.text = $"-{fee} Coins";
-        feeLabel.color = canAfford ? feeAffordableColor : new Color(invalidColor.r, invalidColor.g, invalidColor.b, 1f);
     }
 
     /// <summary>
