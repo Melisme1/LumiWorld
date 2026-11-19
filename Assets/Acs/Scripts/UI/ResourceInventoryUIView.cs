@@ -11,7 +11,7 @@ namespace LumiWorld.Acs
     public sealed class ResourceInventoryUIActions
     {
         public Action openWarehouse, openCrafting, toggleHabitat, closeHabitat, previousHabitat, nextHabitat;
-        public Action closeWarehouse, closeSelector, applySelection, clearSelection, openRecovery;
+        public Action closeWarehouse, closeSelector, applySelection, openRecovery;
         public Action collectHabitat, closeSummary, collectSummary, closeReceipt;
         public Action<ResourceTier, int> openSelector;
         public Action<string> chooseResource, collectResource;
@@ -63,7 +63,7 @@ namespace LumiWorld.Acs
         private RectTransform sideDetailRecipesContent;
         private TextMeshProUGUI sideDetailRecipeTip;
         private TextMeshProUGUI sideDetailDesc;
-        private ResourceUIOption currentSelectedOption;
+        private string selectorRecipeResourceId;
 
         private readonly Dictionary<string, TextMeshProUGUI> summaryCounts = new Dictionary<string, TextMeshProUGUI>();
         private readonly Dictionary<string, Button> summaryButtons = new Dictionary<string, Button>();
@@ -745,6 +745,7 @@ namespace LumiWorld.Acs
                 G.Place(openRecipeBtnRect, rowW - 110f, 0f, 106f, 22f);
                 var openRecipeTxt = G.Text(openRecipeBtnRect, "OpenTxt", "Open ›", skin, 0f, 0f, 106f, 22f, 13.5f, LumiWorldUITheme.Primary, bold: true);
                 openRecipeTxt.alignment = TextAlignmentOptions.MidlineRight;
+                openRecipeTxt.raycastTarget = true;
                 var hdrBtn = openRecipeBtnRect.gameObject.AddComponent<Button>();
                 hdrBtn.targetGraphic = openRecipeTxt;
                 hdrBtn.navigation = new Navigation { mode = Navigation.Mode.None };
@@ -1279,6 +1280,7 @@ namespace LumiWorld.Acs
         public void BuildOptions(List<ResourceUIOption> options)
         {
             CloseSelectorRecipePopover();
+            selectorRecipeResourceId = null;
             G.Clear(selectorContent);
             optionCards.Clear();
             cachedOptions = options ?? new List<ResourceUIOption>();
@@ -1378,19 +1380,7 @@ namespace LumiWorld.Acs
                 btn.targetGraphic = cardBg;
                 btn.navigation = new Navigation { mode = Navigation.Mode.None };
                 string targetId = opt.id;
-                var capturedOpt = opt;
-                btn.onClick.AddListener(() =>
-                {
-                    if (capturedOpt.eligible)
-                    {
-                        actions.chooseResource?.Invoke(targetId);
-                    }
-                    else
-                    {
-                        // Locked option can still be inspected in the right detail pane
-                        InspectLockedOption(capturedOpt);
-                    }
-                });
+                btn.onClick.AddListener(() => actions.chooseResource?.Invoke(targetId));
 
                 optionCards[opt.id] = new OptionCard
                 {
@@ -1409,20 +1399,23 @@ namespace LumiWorld.Acs
             selectorContent.sizeDelta = new Vector2(rowW + 8f, Mathf.Max(468f, curY + 8f));
         }
 
-        private void InspectLockedOption(ResourceUIOption lockedOpt)
+        private bool SelectorOptionsChanged(List<ResourceUIOption> options)
         {
-            if (lockedOpt == null) return;
-            foreach (var kvp in optionCards)
+            if (cachedOptions == null || cachedOptions.Count != options.Count) return true;
+            for (int i = 0; i < options.Count; i++)
             {
-                if (kvp.Value.border != null)
-                    kvp.Value.border.gameObject.SetActive(kvp.Key == lockedOpt.id);
+                var previous = cachedOptions[i];
+                var current = options[i];
+                if (previous.id != current.id || previous.eligible != current.eligible || previous.name != current.name ||
+                    previous.icon != current.icon || previous.timeText != current.timeText || previous.reason != current.reason)
+                    return true;
             }
-            BindSelectorDetailOption(lockedOpt, canApply: false);
+            return false;
         }
 
-        public void UpdateOptions(List<ResourceUIOption> options, string pending, bool canApply, string reason)
+        public void UpdateOptions(List<ResourceUIOption> options, string pending)
         {
-            if (options != null) cachedOptions = options;
+            if (SelectorOptionsChanged(options)) BuildOptions(options);
             ResourceUIOption selectedOpt = null;
 
             foreach (var kvp in optionCards)
@@ -1433,23 +1426,18 @@ namespace LumiWorld.Acs
                 if (isSelected) selectedOpt = card.option;
             }
 
-            if (selectedOpt == null && !string.IsNullOrEmpty(pending) && cachedOptions != null)
-                selectedOpt = cachedOptions.Find(o => o.id == pending);
-
-            if (selectedOpt == null && cachedOptions != null && cachedOptions.Count > 0)
+            string selectedId = selectedOpt?.id;
+            if (selectorRecipeResourceId != selectedId)
             {
-                selectedOpt = cachedOptions.Find(o => o.eligible) ?? cachedOptions[0];
-                if (selectedOpt != null && optionCards.TryGetValue(selectedOpt.id, out var firstCard) && firstCard.border != null)
-                    firstCard.border.gameObject.SetActive(true);
+                selectorRecipeResourceId = selectedId;
+                CloseSelectorRecipePopover();
+                if (selectedId != null) PopulateSelectorUsedInList(selectedId);
             }
-
-            BindSelectorDetailOption(selectedOpt, canApply && (selectedOpt == null || selectedOpt.eligible));
+            BindSelectorDetailOption(selectedOpt);
         }
 
-        private void BindSelectorDetailOption(ResourceUIOption selectedOpt, bool canApply)
+        private void BindSelectorDetailOption(ResourceUIOption selectedOpt)
         {
-            currentSelectedOption = selectedOpt;
-
             if (selectedOpt != null)
             {
                 if (selectorDetailIcon != null)
@@ -1475,7 +1463,6 @@ namespace LumiWorld.Acs
                     selectorDetailTime.color = selectedOpt.eligible ? LumiWorldUITheme.Success : LumiWorldUITheme.Error;
                 }
 
-                PopulateSelectorUsedInList(selectedOpt.id);
             }
             else
             {
@@ -1490,7 +1477,7 @@ namespace LumiWorld.Acs
                 if (selectorUsedInList != null) G.Clear(selectorUsedInList);
             }
 
-            if (apply != null) apply.interactable = canApply && selectedOpt != null && selectedOpt.eligible;
+            if (apply != null) apply.interactable = selectedOpt != null && selectedOpt.eligible;
         }
 
         private void PopulateSelectorUsedInList(string resourceId)
@@ -1580,6 +1567,7 @@ namespace LumiWorld.Acs
             G.Place(openBtnRect, popW - 104f, 12f, 56f, 26f);
             var openTxt = G.Text(openBtnRect, "OpenTxt", "Open ›", skin, 0f, 0f, 56f, 26f, 13.5f, LumiWorldUITheme.Primary, bold: true);
             openTxt.alignment = TextAlignmentOptions.MidlineRight;
+            openTxt.raycastTarget = true;
             var openBtn = openBtnRect.gameObject.AddComponent<Button>();
             openBtn.targetGraphic = openTxt;
             openBtn.onClick.AddListener(() =>
@@ -1631,10 +1619,18 @@ namespace LumiWorld.Acs
         {
             if (selectorRecipePopover != null)
             {
+                selectorRecipePopover.gameObject.SetActive(false);
                 if (Application.isPlaying) UnityEngine.Object.Destroy(selectorRecipePopover.gameObject);
                 else UnityEngine.Object.DestroyImmediate(selectorRecipePopover.gameObject);
                 selectorRecipePopover = null;
             }
+        }
+
+        public bool TryCloseSelectorRecipePopover()
+        {
+            if (selectorRecipePopover == null) return false;
+            CloseSelectorRecipePopover();
+            return true;
         }
 
         public void SetSideDetailOpen(bool open)

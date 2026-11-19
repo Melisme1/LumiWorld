@@ -11,6 +11,7 @@ namespace LumiWorld.Acs.Editor
     public static class LumiWorldUIProductionSetup
     {
         public const string Root = "Assets/Acs/Art/UI/Resources/UI/Production";
+        private const string HarmonyAssetsPath = "Assets/Acs/Art/UI/Resources/UI/Harmony/HarmonyHudAssets.asset";
         private const string SkinPath = "Assets/Acs/Data/Resources/UI/ResourceInventoryUISkin.asset";
         private const string PrefabPath = "Assets/Acs/Prefabs/UI/ResourceInventoryUIRoot.prefab";
 
@@ -32,6 +33,9 @@ namespace LumiWorld.Acs.Editor
                 Setup();
                 return;
             }
+
+            // Ensure Display SDF fonts (Philosopher) and Harmony Live 3D asset manifest exist
+            EnsureDisplayFontsAndHarmonyManifest();
 
             // Ensure all glyph textures have smooth mipmaps and uncompressed RGBA
             var sampleGlyph = AssetImporter.GetAtPath(Root + "/Glyphs/G-01.png") as TextureImporter;
@@ -111,7 +115,7 @@ namespace LumiWorld.Acs.Editor
             Save(Surface(false), Root + "/Surfaces/Surface.png", new Vector4(24, 24, 24, 24), false);
             Save(Surface(true), Root + "/Surfaces/Border.png", new Vector4(24, 24, 24, 24), false);
 
-            foreach (var fontName in new[] { "Nunito-SemiBold", "Nunito-ExtraBold" })
+            foreach (var fontName in new[] { "Nunito-SemiBold", "Nunito-ExtraBold", "Philosopher-Bold", "Philosopher-Regular" })
             {
                 string srcTtf = "Assets/Acs/Art/UI/Fonts/" + fontName + ".ttf";
                 string dstTtf = Root + "/Fonts/" + fontName + ".ttf";
@@ -123,6 +127,7 @@ namespace LumiWorld.Acs.Editor
 
             var body = Font("Nunito-SemiBold");
             Font("Nunito-ExtraBold");
+            EnsureDisplayFontsAndHarmonyManifest();
 
             var skin = AssetDatabase.LoadAssetAtPath<ResourceInventoryUISkin>(SkinPath);
             if (skin == null)
@@ -162,6 +167,65 @@ namespace LumiWorld.Acs.Editor
             EditorUtility.SetDirty(skin);
             AssetDatabase.SaveAssets();
             Debug.Log("UI_PRODUCTION_READY: 45 supplied assets, functional glyphs, surfaces and Nunito fonts imported.");
+        }
+
+        private static void EnsureDisplayFontsAndHarmonyManifest()
+        {
+            bool dirty = false;
+            foreach (var fontName in new[] { "Philosopher-Bold", "Philosopher-Regular" })
+            {
+                string srcTtf = "Assets/Acs/Art/UI/Fonts/" + fontName + ".ttf";
+                string dstTtf = Root + "/Fonts/" + fontName + ".ttf";
+                if (File.Exists(srcTtf) && !File.Exists(dstTtf))
+                {
+                    Directory.CreateDirectory(Root + "/Fonts");
+                    File.Copy(srcTtf, dstTtf, true);
+                    AssetDatabase.ImportAsset(dstTtf, ImportAssetOptions.ForceSynchronousImport);
+                }
+
+                string sdfPath = Root + "/" + fontName + " SDF.asset";
+                if (!File.Exists(sdfPath) && (File.Exists(dstTtf) || File.Exists(srcTtf)))
+                {
+                    try
+                    {
+                        Font(fontName);
+                        dirty = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning("[LumiWorldUIProductionSetup] Display font SDF build deferred for " + fontName + ": " + ex.Message);
+                    }
+                }
+            }
+
+            string harmonyDir = Path.GetDirectoryName(HarmonyAssetsPath);
+            if (!string.IsNullOrEmpty(harmonyDir)) Directory.CreateDirectory(harmonyDir);
+
+            var manifest = AssetDatabase.LoadAssetAtPath<HarmonyHudAssets>(HarmonyAssetsPath);
+            bool createdManifest = false;
+            if (manifest == null)
+            {
+                manifest = ScriptableObject.CreateInstance<HarmonyHudAssets>();
+                AssetDatabase.CreateAsset(manifest, HarmonyAssetsPath);
+                createdManifest = true;
+                dirty = true;
+            }
+
+            var coreFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Acs/Art/UI/HarmonyCrystals/HarmonyCore.fbx");
+            var chargeFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Acs/Art/UI/HarmonyCrystals/TerrainCharge.fbx");
+            var sparkleTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Project/ParticalSystem/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/Flare00.PNG");
+            var haloTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Project/ParticalSystem/GabrielAguiarProductions/FreeQuickEffectsVol1/Textures/Circle01_v1.png");
+
+            if (coreFbx != null && manifest.harmonyCorePrefab != coreFbx) { manifest.harmonyCorePrefab = coreFbx; dirty = true; }
+            if (chargeFbx != null && manifest.terrainChargePrefab != chargeFbx) { manifest.terrainChargePrefab = chargeFbx; dirty = true; }
+            if (sparkleTex != null && manifest.sparkleTexture != sparkleTex) { manifest.sparkleTexture = sparkleTex; dirty = true; }
+            if (haloTex != null && manifest.haloTexture != haloTex) { manifest.haloTexture = haloTex; dirty = true; }
+
+            if (dirty || createdManifest)
+            {
+                EditorUtility.SetDirty(manifest);
+                AssetDatabase.SaveAssets();
+            }
         }
 
         private static TMP_FontAsset Font(string name)
