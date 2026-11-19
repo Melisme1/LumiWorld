@@ -3,6 +3,7 @@ using LumiWorld.Acs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
@@ -16,6 +17,7 @@ public class GameDialogUI : MonoBehaviour
     private Canvas _canvas;
     private GameObject _backdropGo;
     private RectTransform _dialogWindowRect;
+    private Action _onDismiss;
 
     public static bool IsAnyOpen => _instance != null && _instance._backdropGo != null && _instance._backdropGo.activeSelf;
 
@@ -85,8 +87,8 @@ public class GameDialogUI : MonoBehaviour
         if (!IsAnyOpen)
             return;
 
-        if (Input.GetKeyDown(KeyCode.Escape))
-            CloseCurrent();
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            DismissCurrent();
     }
 
     private void EnsureCanvasAndBackdrop()
@@ -118,7 +120,11 @@ public class GameDialogUI : MonoBehaviour
     {
         EnsureCanvasAndBackdrop();
         for (int i = _backdropGo.transform.childCount - 1; i >= 0; i--)
-            Destroy(_backdropGo.transform.GetChild(i).gameObject);
+        {
+            GameObject child = _backdropGo.transform.GetChild(i).gameObject;
+            child.SetActive(false);
+            Destroy(child);
+        }
         _dialogWindowRect = null;
     }
 
@@ -126,6 +132,7 @@ public class GameDialogUI : MonoBehaviour
         string title, string message, Action onConfirm, Action onCancel, string confirmText, string cancelText)
     {
         ClearDialogBody();
+        _onDismiss = onCancel;
         _backdropGo.SetActive(true);
         _backdropGo.transform.SetAsLastSibling();
 
@@ -150,11 +157,7 @@ public class GameDialogUI : MonoBehaviour
             headingFont: true, align: TextAlignmentOptions.MidlineLeft);
         LumiWorldUITheme.PlaceTopLeft(titleTxt.rectTransform, 24f, 18f, winW - 84f, 34f);
 
-        LumiWorldUITheme.CreateCloseButton(_dialogWindowRect, 20f, 19f, () =>
-        {
-            CloseCurrent();
-            onCancel?.Invoke();
-        }, 32f);
+        LumiWorldUITheme.CreateCloseButton(_dialogWindowRect, 20f, 19f, DismissCurrent, 32f);
 
         // Inner Surface Message Card
         Image msgCard = LumiWorldUITheme.CreateRoundedSurface(
@@ -174,11 +177,7 @@ public class GameDialogUI : MonoBehaviour
 
         Button cancelBtn = LumiWorldUITheme.CreatePillButton(
             _dialogWindowRect, "CancelBtn", cancelText, null, false, 15f,
-            () =>
-            {
-                CloseCurrent();
-                onCancel?.Invoke();
-            },
+            DismissCurrent,
             out _, out _, out _, radius: 14);
         LumiWorldUITheme.PlaceTopLeft(cancelBtn.GetComponent<RectTransform>(), 22f, btnY, halfW, 44f);
         cancelBtn.gameObject.AddComponent<DialogButtonJuice>();
@@ -198,6 +197,7 @@ public class GameDialogUI : MonoBehaviour
     private void OpenNoticeInternal(string title, string message, Action onOk, string okText)
     {
         ClearDialogBody();
+        _onDismiss = onOk;
         _backdropGo.SetActive(true);
         _backdropGo.transform.SetAsLastSibling();
 
@@ -221,11 +221,7 @@ public class GameDialogUI : MonoBehaviour
             headingFont: true, align: TextAlignmentOptions.MidlineLeft);
         LumiWorldUITheme.PlaceTopLeft(titleTxt.rectTransform, 24f, 18f, winW - 84f, 34f);
 
-        LumiWorldUITheme.CreateCloseButton(_dialogWindowRect, 20f, 19f, () =>
-        {
-            CloseCurrent();
-            onOk?.Invoke();
-        }, 32f);
+        LumiWorldUITheme.CreateCloseButton(_dialogWindowRect, 20f, 19f, DismissCurrent, 32f);
 
         Image msgCard = LumiWorldUITheme.CreateRoundedSurface(
             _dialogWindowRect, "MessageSurface", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge,
@@ -241,11 +237,7 @@ public class GameDialogUI : MonoBehaviour
         float btnY = 64f + msgH + 28f;
         Button okBtn = LumiWorldUITheme.CreatePillButton(
             _dialogWindowRect, "OkBtn", okText, null, true, 15f,
-            () =>
-            {
-                CloseCurrent();
-                onOk?.Invoke();
-            },
+            DismissCurrent,
             out _, out _, out _, radius: 14);
         LumiWorldUITheme.PlaceTopLeft(okBtn.GetComponent<RectTransform>(), (winW - 180f) * 0.5f, btnY, 180f, 44f);
         okBtn.gameObject.AddComponent<DialogButtonJuice>();
@@ -253,8 +245,17 @@ public class GameDialogUI : MonoBehaviour
 
     private void CloseCurrent()
     {
+        _onDismiss = null;
+        EconomyHUD.MarkWindowClosed();
         if (_backdropGo != null)
             _backdropGo.SetActive(false);
+    }
+
+    private void DismissCurrent()
+    {
+        var callback = _onDismiss;
+        CloseCurrent();
+        callback?.Invoke();
     }
 
     private void ApplyFitScale()

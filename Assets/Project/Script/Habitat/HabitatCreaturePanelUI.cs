@@ -124,7 +124,13 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     {
         if (rootModal != null)
         {
-            EconomyHUD.RegisterWindow(rootModal, ClosePanels);
+            EconomyHUD.RegisterWindow(rootModal, () =>
+            {
+                if (renameModal != null && renameModal.activeSelf) CloseRenameModal();
+                else if (rankPopoverObj != null && rankPopoverObj.activeSelf) CloseRankPopover();
+                else if (panelDetailRect != null && panelDetailRect.gameObject.activeSelf) CloseDetailPanelOnly();
+                else ClosePanels();
+            });
         }
 
         if (CreatureCareManager.Instance != null)
@@ -136,6 +142,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EconomyHUD.UnregisterWindow(rootModal);
+        if (instance == this) instance = null;
         if (CreatureCareManager.HasInstance)
         {
             CreatureCareManager.Instance.OnCareProgressChanged -= HandleCareProgressChanged;
@@ -151,6 +159,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         if (rootModal != null)
         {
             rootModal.SetActive(true);
+            EconomyHUD.BringWindowToFront(rootModal);
             rootCanvasGroup.alpha = 1f;
             SyncPanelsStageScale(force: true);
         }
@@ -172,6 +181,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         CloseRankPopover();
         if (rootModal != null)
         {
+            if (rootModal.activeSelf) EconomyHUD.MarkWindowClosed();
             rootModal.SetActive(false);
         }
         currentSelectedResident = null;
@@ -1121,6 +1131,17 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         ResourceUIHabitat habModel = null;
         if (runtime != null && runtime.HabitatManager != null && runtime.HabitatManager.Catalog != null)
         {
+            var liveHabitat = runtime.HabitatManager.FindHabitat(currentHabitat.habitatId);
+            if (liveHabitat == null)
+            {
+                ClosePanels();
+                return;
+            }
+            if (liveHabitat != currentHabitat)
+            {
+                RefreshCurrentHabitat();
+                return;
+            }
             var prodState = runtime.FindState(currentHabitat.habitatId);
             habModel = ResourceInventoryUIPresentation.Habitat(currentHabitat, prodState, runtime.HabitatManager.Catalog, runtime.Settings);
         }
@@ -1167,6 +1188,12 @@ public class HabitatCreaturePanelUI : MonoBehaviour
                 if (h != null && h.habitatId == currentHabitat.habitatId)
                 {
                     currentHabitat = h;
+                    if (currentSelectedResident != null && h.residents != null)
+                    {
+                        string residentId = currentSelectedResident.individualId;
+                        var liveResident = h.residents.Find(r => r != null && r.individualId == residentId);
+                        if (liveResident != null) currentSelectedResident = liveResident;
+                    }
                     break;
                 }
             }
@@ -1198,6 +1225,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     private void RefreshPanel1()
     {
         if (currentHabitat == null) return;
+        if (changeResourceBtn != null)
+            changeResourceBtn.interactable = HabitatEligibilityService.IsSlotUnlocked(currentHabitat, ResourceTier.Tier1, 0);
 
         string affName = HabitatCreaturePanelStyle.GetAffinityDisplayName(currentHabitat.affinity);
         if (habitatNameText != null) habitatNameText.text = affName;
@@ -1753,22 +1782,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     private void OnMedicineClicked()
     {
         if (currentSelectedResident == null) return;
-
-        const int medCost = 1;
-        if (CurrencyWallet.Instance != null && !CurrencyWallet.Instance.CanAfford(medCost))
-        {
-            ShowFeedback("Not enough Coins for treatment!", LumiWorldUITheme.Error);
-            return;
-        }
-
-        if (CurrencyWallet.Instance != null)
-        {
-            CurrencyWallet.Instance.TrySpend(medCost, CoinReason.CardPurchase);
-        }
-
-        ShowFeedback("Treated! Creature is healthy.", LumiWorldUITheme.Success);
-        RefreshPanel1();
-        RefreshPanel2(false);
+        ShowFeedback("Treatment is still in development.", LumiWorldUITheme.Warning);
     }
 
     private void OnRankUpClicked()

@@ -230,17 +230,9 @@ public class MarketUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EconomyHUD.UnregisterWindow(_backdropGo);
         if (Instance == this)
             Instance = null;
-    }
-
-    private void Update()
-    {
-        if (!IsOpen)
-            return;
-
-        if (Input.GetKeyDown(KeyCode.Escape))
-            Close();
     }
 
     private void HideLegacyMarketButton()
@@ -261,7 +253,11 @@ public class MarketUI : MonoBehaviour
     {
         BuildModalIfNeeded();
         if (_backdropGo != null)
+        {
             _backdropGo.SetActive(true);
+            EconomyHUD.RegisterWindow(_backdropGo, Close);
+            EconomyHUD.BringWindowToFront(_backdropGo);
+        }
 
         IsOpen = true;
         ApplyScale();
@@ -271,6 +267,7 @@ public class MarketUI : MonoBehaviour
 
     public void Close()
     {
+        if (IsOpen) EconomyHUD.MarkWindowClosed();
         IsOpen = false;
         if (_backdropGo != null)
             _backdropGo.SetActive(false);
