@@ -171,11 +171,19 @@ namespace LumiWorld.Acs
             bool any = state.hasObstacle || state.isBurned || state.IsArid || state.HasAnyDisaster;
             if (!any) return null;
 
+            // Cyclone tint takes visual priority over the ash tint so its affected area
+            // remains readable even when it passes over a tile burned earlier.
+            if (state.Has(DisasterKind.Cyclone))
+            {
+                Color cycloneColor = cycloneTint;
+                cycloneColor.a = 1f;
+                return cycloneColor;
+            }
+
             Color tint = Color.white;
             if (state.isBurned) tint *= burnedTint;
             if (state.IsArid) tint *= aridTint;
             if (state.Has(DisasterKind.Drought)) tint *= droughtTint;
-            if (state.Has(DisasterKind.Cyclone)) tint *= cycloneTint;
             if (state.hasObstacle) tint *= obstacleTint;
 
             tint.a = 1f; // giữ alpha đục để không làm ô trong suốt tốn công vô ích
