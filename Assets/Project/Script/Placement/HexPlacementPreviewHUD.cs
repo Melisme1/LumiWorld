@@ -243,6 +243,23 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         {
             tooltipPill.gameObject.SetActive(true);
         }
+
+        if (toastPanel != null && toastText != null)
+        {
+            if (isValid && canAffordFee)
+            {
+                if (toastPanel.gameObject.activeSelf) toastPanel.gameObject.SetActive(false);
+            }
+            else
+            {
+                string reason = !canAffordFee
+                    ? $"Not enough Coins ({placementFee} required)."
+                    : (!string.IsNullOrEmpty(validationError) ? validationError : "Cannot place here.");
+                toastText.text = reason;
+                toastText.color = LumiWorldUITheme.Error;
+                if (!toastPanel.gameObject.activeSelf) toastPanel.gameObject.SetActive(true);
+            }
+        }
     }
 
     public void HidePreview()
@@ -250,6 +267,10 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         if (tooltipPill != null && tooltipPill.gameObject.activeSelf)
         {
             tooltipPill.gameObject.SetActive(false);
+        }
+        if (toastPanel != null && toastPanel.gameObject.activeSelf)
+        {
+            toastPanel.gameObject.SetActive(false);
         }
     }
 
