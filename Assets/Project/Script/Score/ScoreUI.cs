@@ -7,11 +7,12 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Bottom-Left Harmony HUD Widget:
+/// - Aligned level with the bottom Card Hand tray
 /// - Live 3D HarmonyCore crystal (RenderTexture studio with mouse parallax & orbiting facet glint)
 /// - True miter-joined flat-top hexagonal progress rim starting at 12 o'clock clockwise
 /// - Refined additive crystal sparkle & gain-burst motes
-/// - 6 symmetrical crown sockets displaying Live 3D TerrainCharge crystals (or recessed empty sockets when 0)
-/// - Always-on restrained Warm Stone Harmony Plaque below the hex (unobstructed progress rim) using Philosopher Display typography
+/// - Up to 6 Live 3D TerrainCharge crystals appearing symmetrically along the upper crown ONLY when available
+/// - Compact hover-only Warm Stone Harmony Plaque above the hex (balanced HorizontalLayout spacing, zero overlap with progress rim)
 /// </summary>
 public class ScoreUI : MonoBehaviour
 {
@@ -21,13 +22,17 @@ public class ScoreUI : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
 
     private const int MaxVisibleChargeIcons = 6;
+    private const float ChargeCrownRadius = 96f;
 
-    // 6 crown angles clockwise from 12 o'clock (upper & side arc, keeping bottom plaque 100% clear)
-    private static readonly float[] ChargeCrownAngles = { -104f, -62.4f, -20.8f, 20.8f, 62.4f, 104f };
-    private static readonly Color EmptySocketTint = new Color(0.11f, 0.18f, 0.24f, 0.30f);
+    // Hover plaque Y offsets above crystal center (clears hex top edge +73.5 and active top crown charges)
+    private const float PlaqueHoverYNoCharges = 100f;
+    private const float PlaqueHoverYWithCharges = 140f;
+    private const float PlaqueSlideDistance = 6f;
 
     private sealed class ChargeSlotView
     {
+        public RectTransform SlotRect;
+        public RectTransform VisualRect;
         public Button Button;
         public RawImage CrystalImage;
         public HarmonyChargeGlowFx GlowFx;
@@ -45,14 +50,11 @@ public class ScoreUI : MonoBehaviour
     private readonly List<ChargeSlotView> chargeSlots = new List<ChargeSlotView>();
     private Texture2D fallbackChargeTex;
 
-    // Always-on Warm Stone Plaque
+    // Hover-only Warm Stone Plaque (auto-sized with balanced internal spacing)
     private RectTransform plaqueRect;
+    private CanvasGroup plaqueGroup;
     private TextMeshProUGUI plaqueScoreLabel;
     private RectTransform plaqueScoreRect;
-
-    // Hover detail ribbon beside plaque (never covers progress ring)
-    private CanvasGroup hoverRibbonGroup;
-    private TextMeshProUGUI hoverRibbonText;
 
     // Overflow "+N" pill when availableCharges > 6
     private RectTransform chargeOverflowPill;
@@ -67,6 +69,7 @@ public class ScoreUI : MonoBehaviour
     private int availableCharges;
     private bool isInPlacement;
     private bool isCoreHovered;
+    private float hoverReveal;
     private float scorePunchTimer;
     private float lastAppliedScale = -1f;
 
@@ -252,7 +255,7 @@ public class ScoreUI : MonoBehaviour
         if (scorePunchTimer > 0f && plaqueScoreRect != null)
         {
             scorePunchTimer = Mathf.Max(0f, scorePunchTimer - dt);
-            float bump = 1f + Mathf.Sin((scorePunchTimer / 0.36f) * Mathf.PI) * 0.09f;
+            float bump = 1f + Mathf.Sin((scorePunchTimer / 0.36f) * Mathf.PI) * 0.08f;
             plaqueScoreRect.localScale = Vector3.one * bump;
         }
         else if (plaqueScoreRect != null && plaqueScoreRect.localScale != Vector3.one)
@@ -260,11 +263,15 @@ public class ScoreUI : MonoBehaviour
             plaqueScoreRect.localScale = Vector3.one;
         }
 
-        // Smooth hover detail ribbon fade
-        if (hoverRibbonGroup != null)
+        // Smooth hover-only reveal & subtle upward glide for the Warm Stone plaque
+        if (plaqueGroup != null && plaqueRect != null)
         {
-            float targetA = isCoreHovered ? 1f : 0f;
-            hoverRibbonGroup.alpha = Mathf.MoveTowards(hoverRibbonGroup.alpha, targetA, dt * 7f);
+            hoverReveal = Mathf.MoveTowards(hoverReveal, isCoreHovered ? 1f : 0f, dt * 7.5f);
+            float eased = hoverReveal * hoverReveal * (3f - 2f * hoverReveal);
+            plaqueGroup.alpha = eased;
+
+            float baseY = availableCharges > 0 ? PlaqueHoverYWithCharges : PlaqueHoverYNoCharges;
+            plaqueRect.anchoredPosition = new Vector2(0f, baseY - (1f - eased) * PlaqueSlideDistance);
         }
 
         // Live 3D mouse-tracking parallax while hovered
@@ -289,27 +296,13 @@ public class ScoreUI : MonoBehaviour
 
         lastAppliedScale = fit;
         rootRect.localScale = Vector3.one * fit;
-        rootRect.anchoredPosition = new Vector2(146f * fit, 140f * fit);
+        // Aligned cleanly level with the bottom Card Hand tray (y = 8..170 in 1280x720 design units)
+        rootRect.anchoredPosition = new Vector2(114f * fit, 90f * fit);
     }
 
     private void UpdateVisuals()
     {
         RefreshPlaqueNumberText();
-
-        if (hoverRibbonText != null)
-        {
-            if (availableCharges > 0)
-            {
-                hoverRibbonText.text = isInPlacement
-                    ? "Placing land  ·  Click crystal to cancel"
-                    : $"Expand ready ({availableCharges})  ·  Achievements";
-            }
-            else
-            {
-                int remaining = Mathf.Max(0, activeThreshold - currentScore);
-                hoverRibbonText.text = $"+{remaining} to expand  ·  Achievements";
-            }
-        }
 
         if (stage3D != null)
             stage3D.SetChargesState(availableCharges > 0, isInPlacement);
@@ -318,28 +311,34 @@ public class ScoreUI : MonoBehaviour
             ? (Texture)stage3D.ChargeTexture
             : fallbackChargeTex;
 
+        int visibleCount = Mathf.Clamp(availableCharges, 0, MaxVisibleChargeIcons);
+        float stepAngle = visibleCount <= 1 ? 0f : Mathf.Min(42f, 204f / (visibleCount - 1));
+        float startAngle = -0.5f * stepAngle * (visibleCount - 1);
+
         for (int i = 0; i < chargeSlots.Count; i++)
         {
             ChargeSlotView slot = chargeSlots[i];
-            bool active = i < availableCharges;
+            bool active = i < visibleCount;
 
-            slot.Button.interactable = active;
-            slot.GlowFx.activeCharge = active;
+            slot.Button.gameObject.SetActive(active);
+            if (!active)
+            {
+                slot.GlowFx.activeCharge = false;
+                slot.GlowFx.hovered = false;
+                continue;
+            }
+
+            float angleDeg = startAngle + stepAngle * i;
+            Vector2 outward = Quaternion.Euler(0f, 0f, -angleDeg) * Vector2.up;
+            slot.SlotRect.anchoredPosition = outward * ChargeCrownRadius;
+            slot.VisualRect.localRotation = Quaternion.Euler(0f, 0f, -angleDeg);
+
+            slot.Button.interactable = true;
+            slot.GlowFx.activeCharge = true;
             slot.GlowFx.placementMode = isInPlacement;
-            if (!active) slot.GlowFx.hovered = false;
-
-            if (active)
-            {
-                slot.CrystalImage.texture = activeChargeTex;
-                slot.CrystalImage.color = Color.white;
-                slot.CrystalImage.rectTransform.sizeDelta = new Vector2(28f, 45f);
-            }
-            else
-            {
-                slot.CrystalImage.texture = fallbackChargeTex;
-                slot.CrystalImage.color = EmptySocketTint;
-                slot.CrystalImage.rectTransform.sizeDelta = new Vector2(21f, 34f);
-            }
+            slot.CrystalImage.texture = activeChargeTex;
+            slot.CrystalImage.color = Color.white;
+            slot.CrystalImage.rectTransform.sizeDelta = new Vector2(28f, 45f);
         }
 
         if (chargeOverflowPill != null)
@@ -355,11 +354,13 @@ public class ScoreUI : MonoBehaviour
     {
         if (plaqueScoreLabel == null) return;
         int shown = Mathf.RoundToInt(displayedScore);
-        plaqueScoreLabel.text = $"{shown}<size=13.5><color=#857B70> / {activeThreshold}</color></size>";
+        plaqueScoreLabel.text = $"{shown}<size=13><color=#857B70> / {activeThreshold}</color></size>";
+        if (plaqueRect != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(plaqueRect);
     }
 
     // =========================================================
-    // SEPARATE HIT TARGETS: HARMONY CORE/PLAQUE vs TERRAIN CHARGES
+    // SEPARATE HIT TARGETS: HARMONY CORE vs TERRAIN CHARGES
     // =========================================================
 
     private void OnHarmonyBadgeClicked()
@@ -418,20 +419,20 @@ public class ScoreUI : MonoBehaviour
         rootRect.anchorMin = Vector2.zero;
         rootRect.anchorMax = Vector2.zero;
         rootRect.pivot = new Vector2(0.5f, 0.5f);
-        rootRect.sizeDelta = new Vector2(256f, 250f);
+        rootRect.sizeDelta = new Vector2(228f, 228f);
 
         // Create isolated Live 3D studio stage
         stage3D = HarmonyHud3DStage.Create(null);
         fallbackChargeTex = Resources.Load<Texture2D>("UI/Harmony/TerrainCharge");
         Texture2D fallbackCoreTex = Resources.Load<Texture2D>("UI/Harmony/HarmonyCore");
 
-        // 1. Core Crystal Cluster centered at (0, +20)
+        // 1. Core Crystal Cluster centered cleanly at (0, 0)
         GameObject clusterGo = new GameObject("CoreCluster", typeof(RectTransform));
         coreClusterRect = (RectTransform)clusterGo.transform;
         coreClusterRect.SetParent(rootRect, false);
         coreClusterRect.anchorMin = coreClusterRect.anchorMax = new Vector2(0.5f, 0.5f);
         coreClusterRect.pivot = new Vector2(0.5f, 0.5f);
-        coreClusterRect.anchoredPosition = new Vector2(0f, 20f);
+        coreClusterRect.anchoredPosition = Vector2.zero;
         coreClusterRect.sizeDelta = new Vector2(220f, 220f);
 
         // Ambient soft halo behind 3D crystal
@@ -478,15 +479,14 @@ public class ScoreUI : MonoBehaviour
 
         WireCoreHoverEvents(hitGo);
 
-        // 2. Six Symmetrical Crown TerrainCharge Sockets (upper & side arc, keeping bottom plaque clear)
+        // 2. Six Symmetrical Crown TerrainCharge Slots (shown ONLY when available)
         BuildTerrainChargeCrown();
 
-        // 3. Always-On Restrained Warm Stone Harmony Plaque nestled cleanly below the hex
-        BuildWarmStonePlaque();
+        // 3. Hover-Only Compact Warm Stone Plaque above the hex (balanced internal whitespace)
+        BuildHoverWarmStonePlaque();
 
-        // 4. Compact Overflow Pill & Subtle Hover Ribbon
+        // 4. Compact Overflow Pill when availableCharges > 6
         BuildOverflowPill();
-        BuildHoverRibbon();
 
         ApplyResponsiveScale();
         UpdateVisuals();
@@ -495,17 +495,13 @@ public class ScoreUI : MonoBehaviour
     private void BuildTerrainChargeCrown()
     {
         chargeSlots.Clear();
-        const float crownRadius = 104f;
 
         for (int i = 0; i < MaxVisibleChargeIcons; i++)
         {
-            float angleDeg = ChargeCrownAngles[i];
-            Vector2 outward = Quaternion.Euler(0f, 0f, -angleDeg) * Vector2.up;
-
             GameObject slotGo = new GameObject($"TerrainCharge_{i + 1}", typeof(RectTransform), typeof(Image), typeof(Button));
             RectTransform slotRt = (RectTransform)slotGo.transform;
             slotRt.SetParent(coreClusterRect, false);
-            slotRt.anchoredPosition = outward * crownRadius;
+            slotRt.anchoredPosition = Vector2.up * ChargeCrownRadius;
             slotRt.sizeDelta = new Vector2(52f, 52f);
 
             Image hitBg = slotGo.GetComponent<Image>();
@@ -521,7 +517,6 @@ public class ScoreUI : MonoBehaviour
             RectTransform visRt = (RectTransform)visualHolder.transform;
             visRt.SetParent(slotRt, false);
             visRt.sizeDelta = new Vector2(44f, 54f);
-            visRt.localRotation = Quaternion.Euler(0f, 0f, -angleDeg);
 
             HarmonyChargeGlowFx glow = new GameObject("Glow", typeof(RectTransform), typeof(HarmonyChargeGlowFx)).GetComponent<HarmonyChargeGlowFx>();
             glow.transform.SetParent(visRt, false);
@@ -531,15 +526,19 @@ public class ScoreUI : MonoBehaviour
 
             RawImage crystalImg = new GameObject("Crystal", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
             crystalImg.transform.SetParent(visRt, false);
-            crystalImg.rectTransform.sizeDelta = new Vector2(26f, 42f);
+            crystalImg.rectTransform.sizeDelta = new Vector2(28f, 45f);
             crystalImg.raycastTarget = false;
 
             EventTrigger trig = slotGo.AddComponent<EventTrigger>();
             AddTrigger(trig, EventTriggerType.PointerEnter, _ => { if (btn.interactable) glow.hovered = true; });
             AddTrigger(trig, EventTriggerType.PointerExit, _ => { glow.hovered = false; });
 
+            slotGo.SetActive(false);
+
             chargeSlots.Add(new ChargeSlotView
             {
+                SlotRect = slotRt,
+                VisualRect = visRt,
                 Button = btn,
                 CrystalImage = crystalImg,
                 GlowFx = glow
@@ -547,74 +546,86 @@ public class ScoreUI : MonoBehaviour
         }
     }
 
-    private void BuildWarmStonePlaque()
+    private void BuildHoverWarmStonePlaque()
     {
-        // Nestled cleanly below the hex progress rim (top at y = -63, progress bottom at y = -54 => ~9px crisp gap)
+        // Compact auto-hugging Warm Stone pill floating cleanly above the hex ONLY on hover
         Image plaqueImg = LumiWorldUITheme.CreateRoundedSurface(
             rootRect, "HarmonyWarmStonePlaque", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge,
-            radius: 18, borderThickness: 1.4f, shadowDepth: 3f, shadowAlpha: 0.16f, raycastTarget: true);
+            radius: 16, borderThickness: 1.3f, shadowDepth: 2.5f, shadowAlpha: 0.16f, raycastTarget: false);
         plaqueRect = plaqueImg.rectTransform;
         plaqueRect.anchorMin = plaqueRect.anchorMax = new Vector2(0.5f, 0.5f);
         plaqueRect.pivot = new Vector2(0.5f, 0.5f);
-        plaqueRect.anchoredPosition = new Vector2(0f, -86f);
-        plaqueRect.sizeDelta = new Vector2(196f, 44f);
+        plaqueRect.anchoredPosition = new Vector2(0f, PlaqueHoverYNoCharges - PlaqueSlideDistance);
+        plaqueRect.sizeDelta = new Vector2(160f, 38f);
 
-        Button plaqueBtn = plaqueImg.gameObject.AddComponent<Button>();
-        plaqueBtn.targetGraphic = plaqueImg;
-        plaqueBtn.transition = Selectable.Transition.None;
-        plaqueBtn.navigation = new Navigation { mode = Navigation.Mode.None };
-        plaqueBtn.onClick.AddListener(OnHarmonyBadgeClicked);
-        WireCoreHoverEvents(plaqueImg.gameObject);
+        plaqueGroup = plaqueImg.gameObject.AddComponent<CanvasGroup>();
+        plaqueGroup.alpha = 0f;
+        plaqueGroup.interactable = false;
+        plaqueGroup.blocksRaycasts = false;
 
-        // Restrained muted glacial-teal diamond pip on the left
+        HorizontalLayoutGroup hlg = plaqueImg.gameObject.AddComponent<HorizontalLayoutGroup>();
+        hlg.padding = new RectOffset(14, 16, 0, 0);
+        hlg.spacing = 9f;
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+        hlg.childControlWidth = true;
+        hlg.childControlHeight = false;
+        hlg.childForceExpandWidth = false;
+        hlg.childForceExpandHeight = false;
+
+        ContentSizeFitter csf = plaqueImg.gameObject.AddComponent<ContentSizeFitter>();
+        csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+        // 1. Subtle glacial-teal diamond pip
+        GameObject pipWrap = new GameObject("PipWrap", typeof(RectTransform), typeof(LayoutElement));
+        pipWrap.transform.SetParent(plaqueRect, false);
+        LayoutElement pipLe = pipWrap.GetComponent<LayoutElement>();
+        pipLe.minWidth = 8f;
+        pipLe.preferredWidth = 8f;
+        pipLe.preferredHeight = 20f;
+
         GameObject pipGo = new GameObject("HarmonyPip", typeof(RectTransform), typeof(Image));
         RectTransform pipRt = (RectTransform)pipGo.transform;
-        pipRt.SetParent(plaqueRect, false);
-        pipRt.anchorMin = pipRt.anchorMax = new Vector2(0f, 0.5f);
+        pipRt.SetParent(pipWrap.transform, false);
+        pipRt.anchorMin = pipRt.anchorMax = new Vector2(0.5f, 0.5f);
         pipRt.pivot = new Vector2(0.5f, 0.5f);
-        pipRt.anchoredPosition = new Vector2(17f, 0f);
-        pipRt.sizeDelta = new Vector2(8f, 8f);
+        pipRt.sizeDelta = new Vector2(7.5f, 7.5f);
         pipRt.localRotation = Quaternion.Euler(0f, 0f, 45f);
         Image pipImg = pipGo.GetComponent<Image>();
         pipImg.color = new Color(0.28f, 0.67f, 0.64f, 0.92f);
         pipImg.raycastTarget = false;
 
-        // Tracked uppercase HARMONY caption in Philosopher Regular
+        // 2. Tracked uppercase HARMONY caption
         TextMeshProUGUI caption = CreateDisplayTMP(
-            "Caption", plaqueRect, 10.5f, LumiWorldUITheme.Muted,
+            "Caption", plaqueRect, 10f, LumiWorldUITheme.Muted,
             LumiWorldUITheme.DisplayRegular, TextAlignmentOptions.MidlineLeft);
-        caption.characterSpacing = 9f;
+        caption.characterSpacing = 7f;
         caption.text = "HARMONY";
-        RectTransform capRt = caption.rectTransform;
-        capRt.anchorMin = capRt.anchorMax = new Vector2(0f, 0.5f);
-        capRt.pivot = new Vector2(0f, 0.5f);
-        capRt.anchoredPosition = new Vector2(28f, 0f);
-        capRt.sizeDelta = new Vector2(68f, 24f);
+        caption.rectTransform.sizeDelta = new Vector2(62f, 24f);
+        LayoutElement capLe = caption.gameObject.AddComponent<LayoutElement>();
+        capLe.preferredHeight = 24f;
 
-        // Subtle warm-stone vertical divider
-        GameObject divGo = new GameObject("Divider", typeof(RectTransform), typeof(Image));
+        // 3. Hairline warm-stone vertical divider
+        GameObject divGo = new GameObject("Divider", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        divGo.transform.SetParent(plaqueRect, false);
         RectTransform divRt = (RectTransform)divGo.transform;
-        divRt.SetParent(plaqueRect, false);
-        divRt.anchorMin = divRt.anchorMax = new Vector2(0f, 0.5f);
-        divRt.pivot = new Vector2(0.5f, 0.5f);
-        divRt.anchoredPosition = new Vector2(96f, 0f);
-        divRt.sizeDelta = new Vector2(1.2f, 18f);
+        divRt.sizeDelta = new Vector2(1.2f, 16f);
         Image divImg = divGo.GetComponent<Image>();
         divImg.color = LumiWorldUITheme.Edge;
         divImg.raycastTarget = false;
+        LayoutElement divLe = divGo.GetComponent<LayoutElement>();
+        divLe.minWidth = 1.2f;
+        divLe.preferredWidth = 1.2f;
+        divLe.preferredHeight = 16f;
 
-        // Sculpted Harmony Score in Philosopher Bold (always readable, restrained dark charcoal)
+        // 4. Sculpted Harmony Score in Philosopher Bold (hugs content tightly with zero hollow gap)
         plaqueScoreLabel = CreateDisplayTMP(
-            "ScoreValue", plaqueRect, 22f, new Color(0.18f, 0.14f, 0.11f, 1f),
-            LumiWorldUITheme.Display, TextAlignmentOptions.MidlineRight);
-        plaqueScoreLabel.enableAutoSizing = true;
-        plaqueScoreLabel.fontSizeMin = 15f;
-        plaqueScoreLabel.fontSizeMax = 22f;
+            "ScoreValue", plaqueRect, 20f, new Color(0.18f, 0.14f, 0.11f, 1f),
+            LumiWorldUITheme.Display, TextAlignmentOptions.MidlineLeft);
         plaqueScoreRect = plaqueScoreLabel.rectTransform;
-        plaqueScoreRect.anchorMin = plaqueScoreRect.anchorMax = new Vector2(1f, 0.5f);
-        plaqueScoreRect.pivot = new Vector2(0.5f, 0.5f);
-        plaqueScoreRect.anchoredPosition = new Vector2(-50f, 1f);
-        plaqueScoreRect.sizeDelta = new Vector2(86f, 34f);
+        plaqueScoreRect.sizeDelta = new Vector2(60f, 30f);
+        LayoutElement scoreLe = plaqueScoreLabel.gameObject.AddComponent<LayoutElement>();
+        scoreLe.preferredHeight = 30f;
         plaqueScoreLabel.text = "0 / 10";
     }
 
@@ -626,8 +637,8 @@ public class ScoreUI : MonoBehaviour
         chargeOverflowPill = overImg.rectTransform;
         chargeOverflowPill.anchorMin = chargeOverflowPill.anchorMax = new Vector2(0.5f, 0.5f);
         chargeOverflowPill.pivot = new Vector2(0.5f, 0.5f);
-        chargeOverflowPill.sizeDelta = new Vector2(38f, 22f);
-        chargeOverflowPill.anchoredPosition = new Vector2(104f, -54f);
+        chargeOverflowPill.sizeDelta = new Vector2(36f, 22f);
+        chargeOverflowPill.anchoredPosition = new Vector2(92f, -54f);
 
         Button overBtn = overImg.gameObject.AddComponent<Button>();
         overBtn.targetGraphic = overImg;
@@ -640,30 +651,6 @@ public class ScoreUI : MonoBehaviour
         LumiWorldUITheme.Stretch(chargeOverflowText.rectTransform);
         chargeOverflowText.text = "+1";
         chargeOverflowPill.gameObject.SetActive(false);
-    }
-
-    private void BuildHoverRibbon()
-    {
-        // Appears cleanly to the right of the plaque on hover (zero overlap with progress rim)
-        Image ribImg = LumiWorldUITheme.CreateRoundedSurface(
-            rootRect, "HoverDetailRibbon", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge,
-            radius: 14, borderThickness: 1.2f, shadowDepth: 2.5f, shadowAlpha: 0.14f, raycastTarget: false);
-        RectTransform ribRt = ribImg.rectTransform;
-        ribRt.anchorMin = ribRt.anchorMax = new Vector2(0.5f, 0.5f);
-        ribRt.pivot = new Vector2(0f, 0.5f);
-        ribRt.anchoredPosition = new Vector2(106f, -86f);
-        ribRt.sizeDelta = new Vector2(214f, 34f);
-
-        hoverRibbonGroup = ribImg.gameObject.AddComponent<CanvasGroup>();
-        hoverRibbonGroup.alpha = 0f;
-        hoverRibbonGroup.interactable = false;
-        hoverRibbonGroup.blocksRaycasts = false;
-
-        hoverRibbonText = CreateDisplayTMP(
-            "RibbonText", ribRt, 12f, LumiWorldUITheme.Muted,
-            LumiWorldUITheme.DisplayRegular, TextAlignmentOptions.Center);
-        LumiWorldUITheme.Stretch(hoverRibbonText.rectTransform, 10f);
-        hoverRibbonText.text = "Achievements";
     }
 
     private void WireCoreHoverEvents(GameObject target)

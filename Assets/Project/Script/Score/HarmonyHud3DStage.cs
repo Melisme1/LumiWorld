@@ -93,11 +93,12 @@ public sealed class HarmonyHud3DStage : MonoBehaviour
 
         coreCamera = CreateOrthoStudioCamera(root.transform, "CoreStudioCamera", coreRt, 1.0f, 4.0f);
 
-        // 4 short-range Point Lights (range <= 12m, zero bleed to the island world)
-        CreatePointLight(root.transform, "CoreKeyLight", new Vector3(-1.55f, 1.45f, 2.45f), new Color(1f, 0.975f, 0.935f), 40f, 12f);
-        CreatePointLight(root.transform, "CoreGlacierFill", new Vector3(1.95f, -0.95f, 2.05f), new Color(0.66f, 0.90f, 1f), 24f, 12f);
-        CreatePointLight(root.transform, "CoreRimLight", new Vector3(1.15f, 1.75f, -1.45f), new Color(0.95f, 0.88f, 1f), 20f, 10f);
-        coreGlintLight = CreatePointLight(root.transform, "CoreGlintOrbiter", new Vector3(0.4f, 1.1f, 2.15f), new Color(0.94f, 1f, 1f), 26f, 10f);
+        // 4 gentle raking Point Lights (outdoor scene sun + skybox already provide base fill,
+        // so keep intensities subtle to preserve deep crystalline facets without blowing out to white)
+        CreatePointLight(root.transform, "CoreKeyLight", new Vector3(-2.5f, 2.2f, 1.4f), new Color(0.95f, 0.98f, 1f), 3.4f, 10f);
+        CreatePointLight(root.transform, "CoreGlacierFill", new Vector3(2.4f, -1.5f, 1.3f), new Color(0.35f, 0.76f, 0.96f), 2.2f, 10f);
+        CreatePointLight(root.transform, "CoreRimLight", new Vector3(1.2f, 1.6f, -2.0f), new Color(0.74f, 1f, 0.94f), 2.8f, 10f);
+        coreGlintLight = CreatePointLight(root.transform, "CoreGlintOrbiter", new Vector3(0.4f, 1.1f, 1.55f), new Color(0.94f, 0.99f, 1f), 4.5f, 10f);
 
         corePivot = new GameObject("CorePivot").transform;
         corePivot.SetParent(root.transform, false);
@@ -107,6 +108,7 @@ public sealed class HarmonyHud3DStage : MonoBehaviour
         inst.name = "HarmonyCoreMesh";
         StripNonVisualComponents(inst);
         NormalizeModelTransform(inst, targetMaxExtent: 1.62f, preferVerticalTall: false);
+        TuneCrystalExposure(inst, isCore: true);
         coreModelHolder = inst.transform;
     }
 
@@ -121,9 +123,9 @@ public sealed class HarmonyHud3DStage : MonoBehaviour
         chargeCamera = CreateOrthoStudioCamera(root.transform, "ChargeStudioCamera", chargeRt, 1.0f, 4.0f);
         chargeCamera.enabled = false; // Enabled only when availableCharges > 0
 
-        CreatePointLight(root.transform, "ChargeKeyLight", new Vector3(-1.4f, 1.5f, 2.3f), new Color(1f, 0.98f, 0.92f), 36f, 10f);
-        CreatePointLight(root.transform, "ChargeEmeraldFill", new Vector3(1.7f, -0.7f, 1.8f), new Color(0.55f, 0.96f, 0.72f), 24f, 10f);
-        chargeAccentLight = CreatePointLight(root.transform, "ChargeRimLight", new Vector3(0.2f, 1.6f, -1.3f), new Color(0.85f, 1f, 0.72f), 20f, 10f);
+        CreatePointLight(root.transform, "ChargeKeyLight", new Vector3(-2.1f, 2.0f, 1.4f), new Color(0.98f, 0.99f, 0.94f), 3.6f, 10f);
+        CreatePointLight(root.transform, "ChargeEmeraldFill", new Vector3(2.0f, -1.0f, 1.4f), new Color(0.40f, 0.92f, 0.62f), 2.4f, 10f);
+        chargeAccentLight = CreatePointLight(root.transform, "ChargeRimLight", new Vector3(0.2f, 1.6f, -1.6f), new Color(0.82f, 1f, 0.72f), 2.4f, 10f);
 
         chargePivot = new GameObject("ChargePivot").transform;
         chargePivot.SetParent(root.transform, false);
@@ -133,6 +135,7 @@ public sealed class HarmonyHud3DStage : MonoBehaviour
         inst.name = "TerrainChargeMesh";
         StripNonVisualComponents(inst);
         NormalizeModelTransform(inst, targetMaxExtent: 1.68f, preferVerticalTall: true);
+        TuneCrystalExposure(inst, isCore: false);
     }
 
     public void SetCoreHover(bool hovered, Vector2 normalizedPointerOffset)
@@ -196,11 +199,11 @@ public sealed class HarmonyHud3DStage : MonoBehaviour
             {
                 float speed = isHovered ? 1.15f : 0.55f;
                 glintAngle += dt * (speed + pulseBoost * 2.4f);
-                float gx = Mathf.Cos(glintAngle) * 1.65f;
-                float gy = Mathf.Sin(glintAngle * 1.35f) * 1.25f + 0.35f;
-                float gz = 2.1f + Mathf.Sin(glintAngle * 0.7f) * 0.35f;
+                float gx = Mathf.Cos(glintAngle) * 1.95f;
+                float gy = Mathf.Sin(glintAngle * 1.35f) * 1.45f + 0.35f;
+                float gz = 1.35f + Mathf.Sin(glintAngle * 0.7f) * 0.35f;
                 coreGlintLight.transform.localPosition = new Vector3(gx, gy, gz);
-                coreGlintLight.intensity = 26f + (isHovered ? 10f : 0f) + pulseBoost * 24f;
+                coreGlintLight.intensity = 4.5f + (isHovered ? 2.5f : 0f) + pulseBoost * 6.5f;
             }
         }
 
@@ -215,8 +218,53 @@ public sealed class HarmonyHud3DStage : MonoBehaviour
             if (chargeAccentLight != null)
             {
                 float pulse = isPlacementMode ? (0.5f + 0.5f * Mathf.Sin(t * 5.2f)) : 0f;
-                chargeAccentLight.intensity = 20f + pulse * 18f;
+                chargeAccentLight.intensity = 2.4f + pulse * 3.8f;
             }
+        }
+    }
+
+    private static void TuneCrystalExposure(GameObject root, bool isCore)
+    {
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] == null) continue;
+            // Instantiates runtime copies only; disk .mat assets remain untouched
+            Material[] mats = renderers[i].materials;
+            for (int m = 0; m < mats.Length; m++)
+            {
+                Material mat = mats[m];
+                if (mat == null) continue;
+
+                bool isTransparentRim = mat.HasProperty("_Surface") && mat.GetFloat("_Surface") > 0.5f;
+                if (isCore)
+                {
+                    if (isTransparentRim)
+                    {
+                        if (mat.HasProperty("_BaseColor"))
+                            mat.SetColor("_BaseColor", new Color(0.76f, 0.92f, 1f, 0.32f));
+                        if (mat.HasProperty("_Smoothness"))
+                            mat.SetFloat("_Smoothness", 0.86f);
+                    }
+                    else
+                    {
+                        if (mat.HasProperty("_BaseColor"))
+                            mat.SetColor("_BaseColor", new Color(0.46f, 0.72f, 0.90f, 1f));
+                        if (mat.HasProperty("_Smoothness"))
+                            mat.SetFloat("_Smoothness", 0.80f);
+                        if (mat.HasProperty("_BumpScale"))
+                            mat.SetFloat("_BumpScale", 0.88f);
+                    }
+                }
+                else
+                {
+                    if (mat.HasProperty("_BaseColor"))
+                        mat.SetColor("_BaseColor", new Color(0.66f, 0.84f, 0.70f, 1f));
+                    if (mat.HasProperty("_Smoothness"))
+                        mat.SetFloat("_Smoothness", 0.82f);
+                }
+            }
+            renderers[i].materials = mats;
         }
     }
 

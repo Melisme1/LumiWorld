@@ -169,7 +169,11 @@ namespace LumiWorld.Acs
         public static Sprite AchievementBadge(string achievementOrMilestoneId)
         {
             if (string.IsNullOrEmpty(achievementOrMilestoneId)) return Art("A-01");
-            switch (achievementOrMilestoneId.Trim().ToUpperInvariant())
+            string key = achievementOrMilestoneId.Trim().ToUpperInvariant();
+            if (key.StartsWith("A-", StringComparison.Ordinal))
+                return Art(key) ?? Art("A-01");
+
+            switch (key)
             {
                 case "M1_FIRST_HABITAT": return Art("A-01");
                 case "M2_NEW_SPECIES": return Art("A-02");
