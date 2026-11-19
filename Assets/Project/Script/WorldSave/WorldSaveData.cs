@@ -37,6 +37,32 @@ public class WorldSaveData
 
     // Thiên tai đang chạy và dấu trên ô (vật cản, cháy, khô, đã tưới). disasters.saved = false ở bản lưu cũ.
     public DisasterSaveData disasters = new DisasterSaveData();
+
+    // Đàn thú hoang đang chiếm cụm và đồng hồ chờ đàn kế tiếp. wild.saved = false ở bản lưu cũ.
+    public WildIncidentSaveData wild = new WildIncidentSaveData();
+}
+
+/// <summary>
+/// Thú hoang (WildPackIncidentManager): đàn nào đang chiếm cụm nào, và còn bao lâu tới đàn kế tiếp.
+/// Cụm ghi bằng ClusterId (habitatId, đã lưu ổn định trong habitats), thẻ đầu đàn bằng cardID.
+/// </summary>
+[Serializable]
+public class WildIncidentSaveData
+{
+    public bool saved;
+    public float intervalSeconds;      // độ dài chu kỳ chờ đang chạy
+    public float remainingSeconds = -1; // -1: chưa có lịch, dựng chu kỳ mới như lần đầu
+    public List<WildIncidentRecord> incidents = new List<WildIncidentRecord>();
+}
+
+[Serializable]
+public class WildIncidentRecord
+{
+    public string incidentId;
+    public string hostClusterId;
+    public string alphaCardId;
+    public int alphaRank;              // AnimalRank
+    public List<string> satelliteClusterIds = new List<string>();
 }
 
 /// <summary>

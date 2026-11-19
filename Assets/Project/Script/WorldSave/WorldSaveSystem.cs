@@ -124,7 +124,25 @@ public class WorldSaveSystem : MonoBehaviour
         SeedHabitatsAndCreatures(data);
         RestorePlacements(data, generator);
         RestoreProgress(data, generator);
+        RestoreWildIncidents(data);
         AccrueOfflineProduction(data);
+    }
+
+    // Đàn thú hoang đang chiếm cụm và đồng hồ chờ đàn kế tiếp. Chạy sau khi thẻ và habitat đã dựng (cụm theo habitatId),
+    // trước Start của WildPackIncidentManager nên đồng hồ đã lưu không bị chu kỳ mới đè lên.
+    // Đang thăm đảo người khác thì không có đàn thú (snapshot không có phần này).
+    private void RestoreWildIncidents(WorldSaveData data)
+    {
+        if (WorldLaunch.IsVisit || savesBlocked || data.wild == null || !data.wild.saved) return;
+        try
+        {
+            WildPackIncidentManager.Instance.RestoreFromSave(data.wild, cardCatalog);
+        }
+        catch (Exception exception)
+        {
+            // Không dựng được đàn thú thì chơi tiếp không có đàn đó; không chặn lưu vì thẻ và đảo vẫn đúng
+            Debug.LogException(exception, this);
+        }
     }
 
     // Trước khi dựng thẻ: habitat (id, tài nguyên đã chọn), hàng chưa thu, độ no, thức ăn, điểm chăm sóc, tên.
@@ -245,7 +263,7 @@ public class WorldSaveSystem : MonoBehaviour
             foreach (PlacementRecord record in keptPlacements)
             {
                 CardData card = cardCatalog.Find(record.cardID);
-                if (card.IsRiverCard()) continue;
+                if (card.IsRiverCard() || card.IsSettlementCard()) continue;
                 if ((card.cardType == CardType.Creature) != (phase == 1)) continue;
                 try
                 {
@@ -317,6 +335,25 @@ public class WorldSaveSystem : MonoBehaviour
             }
         }
 
+        // Làng dựng sau sông (ô lõi của làng tránh ô có sông) và đúng thứ tự đã lưu:
+        // hình làng tính từ tọa độ, cụm và mã cụm cấp theo thứ tự đặt, nên đặt lại theo thứ tự cũ ra đúng làng cũ.
+        foreach (PlacementRecord record in keptPlacements)
+        {
+            CardData card = cardCatalog.Find(record.cardID);
+            if (!card.IsSettlementCard()) continue;
+            try
+            {
+                placedCards.Add(RestorePlacement(record, card, generator));
+                restored++;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                BlockSaves($"Không dựng được làng tại ({record.q}, {record.r}).");
+                return;
+            }
+        }
+
         keptPlacements.Clear();
         if (upgradedLegacyIds || duplicateCount > 0) MarkDirty();
         ReconcileOccupancy(generator);
@@ -338,7 +375,8 @@ public class WorldSaveSystem : MonoBehaviour
             PlacementRecord record = keptPlacements[i];
             CardData card = cardCatalog.Find(record.cardID);
             string kind = card.cardType == CardType.Terrain ? "terrain" :
-                card.IsTileTransformCard() ? "transform" : null;
+                card.IsTileTransformCard() ? "transform" :
+                card.IsSettlementCard() ? "settlement" : null;
             if (kind != null) lastIndex[$"{record.q},{record.r}:{kind}"] = i;
         }
 
@@ -348,7 +386,8 @@ public class WorldSaveSystem : MonoBehaviour
             PlacementRecord record = keptPlacements[i];
             CardData card = cardCatalog.Find(record.cardID);
             string kind = card.cardType == CardType.Terrain ? "terrain" :
-                card.IsTileTransformCard() ? "transform" : null;
+                card.IsTileTransformCard() ? "transform" :
+                card.IsSettlementCard() ? "settlement" : null;
             if (kind == null || lastIndex[$"{record.q},{record.r}:{kind}"] == i)
                 unique.Add(record);
         }
@@ -372,6 +411,11 @@ public class WorldSaveSystem : MonoBehaviour
         {
             // Sông phải dựng lại qua RiverNetworkManager để có RiverTileSegment và tự nối hình với các ô sông đã nạp trước.
             objectToPlace = RiverNetworkManager.Instance.RestoreRiver(coords, tile, card, record.riverFlowStep, record.riverIsOrigin).gameObject;
+        }
+        else if (card.IsSettlementCard())
+        {
+            // Làng dựng lại qua SettlementClusterManager để có SettlementTile, gom cụm và lên cấp (Hamlet -> Town -> ...)
+            objectToPlace = SettlementClusterManager.Instance.PlaceSettlement(coords, tile, card, position).gameObject;
         }
         else if (card.IsTileTransformCard())
         {
@@ -572,6 +616,7 @@ public class WorldSaveSystem : MonoBehaviour
 
         CaptureHabitatsAndCreatures(data);
         if (LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var disasters)) disasters.CaptureForSave(data.disasters);
+        WildPackIncidentManager.Instance.CaptureForSave(data.wild);
         return data;
     }
 
