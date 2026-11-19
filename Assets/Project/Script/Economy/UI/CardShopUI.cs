@@ -65,8 +65,6 @@ public class CardShopUI : MonoBehaviour
     private GameObject window;
     private RectTransform stageRect;
     private RectTransform panel;
-    private TextMeshProUGUI balanceText;
-    private RectTransform balanceChip;
 
     private readonly List<TabView> tabViews = new List<TabView>();
     private readonly List<TileView> allTiles = new List<TileView>();
@@ -110,7 +108,6 @@ public class CardShopUI : MonoBehaviour
     private int lastScreenH;
     private float lastLossyScale;
     private Coroutine popRoutine;
-    private Coroutine balancePunch;
 
     public bool IsOpen => window != null && window.activeSelf;
 
@@ -124,7 +121,6 @@ public class CardShopUI : MonoBehaviour
         {
             wallet.OnBalanceChanged += HandleBalanceChanged;
         }
-        ShowBalance();
     }
 
     private void LateUpdate()
@@ -136,7 +132,6 @@ public class CardShopUI : MonoBehaviour
     private void OnDisable()
     {
         if (panel != null) panel.localScale = Vector3.one;
-        if (balanceChip != null) balanceChip.localScale = Vector3.one;
         foreach (TileView tile in allTiles)
         {
             tile.punch = null;
@@ -161,7 +156,6 @@ public class CardShopUI : MonoBehaviour
         EconomyHUD.BringWindowToFront(window);
         SyncStageScale(force: true);
         HideIslandPopover();
-        ShowBalance();
         SelectTab(activeTab);
 
         if (popRoutine != null) StopCoroutine(popRoutine);
@@ -218,18 +212,8 @@ public class CardShopUI : MonoBehaviour
 
     private void HandleBalanceChanged(int balance, int delta, CoinReason reason)
     {
-        ShowBalance();
         if (!IsOpen || !isActiveAndEnabled) return;
-        Punch(ref balancePunch, balanceChip, 1.08f);
         Refresh();
-    }
-
-    private void ShowBalance()
-    {
-        if (balanceText != null && wallet != null)
-        {
-            balanceText.text = FormatNumber(wallet.Balance);
-        }
     }
 
     private void SelectTab(ShopTab nextTab)
@@ -515,8 +499,6 @@ public class CardShopUI : MonoBehaviour
         TextMeshProUGUI titleTmp = LumiWorldUITheme.CreateLabel(panel, "Title", "Card Shop", 20f, LumiWorldUITheme.Text, true);
         LumiWorldUITheme.PlaceTopLeft(titleTmp.rectTransform, 56f, 13f, 260f, 34f);
 
-        LumiWorldUITheme.CreateCoinChip(panel, 64f, 14f, out balanceText, EconomyHUD.CoinSprite, 118f, 34f);
-        balanceChip = panel.Find("CoinBalanceChip") as RectTransform;
         LumiWorldUITheme.CreateCloseButton(panel, 22f, 14f, Close, 34f);
 
         // Category Sub-Tabs (Nature | Creatures | Special if present)

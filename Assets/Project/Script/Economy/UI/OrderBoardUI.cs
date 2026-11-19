@@ -82,7 +82,6 @@ public class OrderBoardUI : MonoBehaviour
 
     private OrderBoardSystem board;
     private ResourceInventory inventory;
-    private CurrencyWallet wallet;
 
     private RectTransform openButton;
     private GameObject badge;
@@ -91,8 +90,6 @@ public class OrderBoardUI : MonoBehaviour
     private GameObject window;
     private RectTransform stageRect;
     private RectTransform panel;
-    private RectTransform balanceChip;
-    private TextMeshProUGUI balanceText;
 
     private Button ordersTabBtn;
     private Image ordersTabBg;
@@ -152,7 +149,6 @@ public class OrderBoardUI : MonoBehaviour
     private int lastScreenH;
     private float lastLossyScale;
     private Coroutine popRoutine;
-    private Coroutine balancePunch;
 
     private Sprite greenReqPillSprite;
     private Sprite redReqPillSprite;
@@ -168,16 +164,13 @@ public class OrderBoardUI : MonoBehaviour
     {
         board = OrderBoardSystem.Instance;
         inventory = ResourceInventory.Instance;
-        wallet = CurrencyWallet.Instance;
 
         BuildOpenButton();
         BuildWindow();
 
         if (board != null) board.OnBoardChanged += Refresh;
         if (inventory != null) inventory.OnInventoryChanged += HandleInventoryChanged;
-        if (wallet != null) wallet.OnBalanceChanged += HandleBalanceChanged;
 
-        ShowBalance();
         Refresh();
     }
 
@@ -203,7 +196,6 @@ public class OrderBoardUI : MonoBehaviour
     private void OnDisable()
     {
         if (panel != null) panel.localScale = Vector3.one;
-        if (balanceChip != null) balanceChip.localScale = Vector3.one;
         foreach (var row in orderRows)
         {
             row.punch = null;
@@ -221,7 +213,6 @@ public class OrderBoardUI : MonoBehaviour
     {
         if (board != null) board.OnBoardChanged -= Refresh;
         if (inventory != null) inventory.OnInventoryChanged -= HandleInventoryChanged;
-        if (wallet != null) wallet.OnBalanceChanged -= HandleBalanceChanged;
     }
 
     public void Open()
@@ -232,7 +223,6 @@ public class OrderBoardUI : MonoBehaviour
         EconomyHUD.BringWindowToFront(window);
         SyncStageScale(force: true);
         countdownTimer = 0f;
-        ShowBalance();
         SelectModeTab(activeTab);
 
         if (popRoutine != null) StopCoroutine(popRoutine);
@@ -289,20 +279,6 @@ public class OrderBoardUI : MonoBehaviour
     private void HandleInventoryChanged(string resourceId, int amount, int delta)
     {
         Refresh();
-    }
-
-    private void HandleBalanceChanged(int balance, int delta, CoinReason reason)
-    {
-        ShowBalance();
-        if (IsOpen && isActiveAndEnabled) Punch(ref balancePunch, balanceChip, 1.08f);
-    }
-
-    private void ShowBalance()
-    {
-        if (balanceText != null && wallet != null)
-        {
-            balanceText.text = FormatNumber(wallet.Balance);
-        }
     }
 
     private void SelectModeTab(ModeTab tab)
@@ -718,8 +694,6 @@ public class OrderBoardUI : MonoBehaviour
         TextMeshProUGUI titleTmp = LumiWorldUITheme.CreateLabel(panel, "Title", "Orders", 20f, LumiWorldUITheme.Text, true);
         LumiWorldUITheme.PlaceTopLeft(titleTmp.rectTransform, 56f, 13f, 220f, 34f);
 
-        LumiWorldUITheme.CreateCoinChip(panel, 64f, 14f, out balanceText, EconomyHUD.CoinSprite, 118f, 34f);
-        balanceChip = panel.Find("CoinBalanceChip") as RectTransform;
         LumiWorldUITheme.CreateCloseButton(panel, 22f, 14f, Close, 34f);
 
         // Mode Tabs: Orders | Sell resources
