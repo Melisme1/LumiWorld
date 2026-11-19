@@ -729,13 +729,32 @@ public class AchievementUI : MonoBehaviour
 
             Image statusPill = LumiWorldUITheme.CreateRoundedSurface(
                 rowImg.transform, "StatusPill", badgeFill, Color.clear,
-                radius: 10, borderThickness: 0f, shadowDepth: 0f, shadowAlpha: 0f, raycastTarget: false);
+                radius: 10, borderThickness: 0f,
+                shadowDepth: entry.CanClaim ? 2f : 0f,
+                shadowAlpha: entry.CanClaim ? 0.16f : 0f,
+                raycastTarget: entry.CanClaim);
             LumiWorldUITheme.PlaceTopRight(statusPill.rectTransform, 14f, 25f, 88f, 32f);
+            statusPill.transform.SetAsLastSibling();
 
             TextMeshProUGUI statusTxt = LumiWorldUITheme.CreateLabel(
                 statusPill.transform, "StatusTxt", badgeLabel, 13f, badgeTextCol,
                 headingFont: true, align: TextAlignmentOptions.Center);
             LumiWorldUITheme.Stretch(statusTxt.rectTransform);
+
+            if (entry.CanClaim)
+            {
+                Button rowClaimBtn = statusPill.gameObject.AddComponent<Button>();
+                rowClaimBtn.targetGraphic = statusPill;
+                rowClaimBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+                ColorBlock cb = rowClaimBtn.colors;
+                cb.normalColor = Color.white;
+                cb.highlightedColor = new Color(0.92f, 0.96f, 0.90f, 1f);
+                cb.pressedColor = new Color(0.80f, 0.88f, 0.78f, 1f);
+                cb.selectedColor = Color.white;
+                cb.fadeDuration = 0.08f;
+                rowClaimBtn.colors = cb;
+                rowClaimBtn.onClick.AddListener(() => ExecuteClaimEntry(key));
+            }
         }
     }
 
@@ -814,9 +833,23 @@ public class AchievementUI : MonoBehaviour
 
     private void ExecuteClaimSelected()
     {
-        AchievementEntry entry = FindSelectedEntry();
-        if (entry == null || !entry.CanClaim || AchievementManager.Instance == null)
+        ExecuteClaimEntry(_selectedKey);
+    }
+
+    private void ExecuteClaimEntry(string entryKey)
+    {
+        if (string.IsNullOrEmpty(entryKey) || AchievementManager.Instance == null)
             return;
+
+        _selectedKey = entryKey;
+        AchievementEntry entry = FindEntryByKey(entryKey);
+        if (entry == null || !entry.CanClaim)
+        {
+            SelectEntry(entryKey);
+            return;
+        }
+
+        GameAudioManager.Instance?.PlayClick();
 
         bool ok;
         string rewardInfo;
@@ -828,7 +861,7 @@ public class AchievementUI : MonoBehaviour
         _feedbackError = !ok;
         _feedbackMsg = ok
             ? (string.IsNullOrEmpty(rewardInfo) ? "Reward claimed!" : rewardInfo)
-            : "Cannot claim reward yet.";
+            : (string.IsNullOrEmpty(rewardInfo) ? "Cannot claim reward yet." : rewardInfo);
 
         RebuildEntries();
         ApplyCategoryFilter(resetScroll: false);
@@ -836,9 +869,17 @@ public class AchievementUI : MonoBehaviour
 
     private AchievementEntry FindSelectedEntry()
     {
+        return FindEntryByKey(_selectedKey);
+    }
+
+    private AchievementEntry FindEntryByKey(string key)
+    {
+        if (string.IsNullOrEmpty(key))
+            return null;
+
         for (int i = 0; i < _filteredEntries.Count; i++)
         {
-            if (_filteredEntries[i].Key == _selectedKey)
+            if (_filteredEntries[i].Key == key)
                 return _filteredEntries[i];
         }
         return null;

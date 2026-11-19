@@ -301,12 +301,12 @@ public sealed class HarmonySparkleOverlay : MaskableGraphic
 
         float t = Time.unscaledTime;
 
-        // 1. Subtle ambient crystal halo (kept soft and refined)
+        // 1. Subtle ambient crystal halo (kept soft so facets stay crisp)
         if (drawAmbientHalo)
         {
             float breath = 0.85f + 0.15f * Mathf.Sin(t * 1.6f);
-            float haloA = (0.14f + hoverBlend * 0.10f) * breath;
-            AddSoftRadial(vh, Vector2.zero, Mathf.Min(half.x, half.y) * 1.06f, new Color(0.52f, 0.92f, 0.95f, haloA), 20);
+            float haloA = (0.09f + hoverBlend * 0.08f) * breath;
+            AddSoftRadial(vh, Vector2.zero, Mathf.Min(half.x, half.y) * 1.05f, new Color(0.45f, 0.86f, 0.92f, haloA), 20);
         }
 
         // 2. Five staggered crystalline 4-point facet glints
@@ -314,22 +314,21 @@ public sealed class HarmonySparkleOverlay : MaskableGraphic
         {
             SparkleSpec sp = CoreSparkles[i];
             float phase = Mathf.Repeat((t + sp.Phase) / sp.Period, 1f);
-            // Smooth active twinkle for ~48% of each point's period, staggered across 5 points
-            float env = phase < 0.48f ? Mathf.Sin((phase / 0.48f) * Mathf.PI) : 0f;
+            float env = phase < 0.54f ? Mathf.Sin((phase / 0.54f) * Mathf.PI) : 0f;
             env = env * env;
-            float intensity = Mathf.Clamp01(env * (0.78f + hoverBlend * 0.30f));
+            float intensity = Mathf.Clamp01(env * (0.90f + hoverBlend * 0.25f));
             if (intensity < 0.02f) continue;
 
             Vector2 pos = new Vector2(sp.Anchor.x * half.x, sp.Anchor.y * half.y);
-            float rot = Mathf.Sin(t * 0.9f + sp.Phase) * 0.32f;
-            float r = sp.MaxRadius * (0.55f + 0.55f * intensity);
+            float rot = Mathf.Sin(t * 0.9f + sp.Phase) * 0.34f;
+            float r = sp.MaxRadius * (0.62f + 0.58f * intensity);
 
             Color glowCol = sp.Tint;
-            glowCol.a = intensity * 0.32f;
+            glowCol.a = intensity * 0.38f;
             AddSoftRadial(vh, pos, r * 0.95f, glowCol, 12);
 
             Color starCol = sp.Tint;
-            starCol.a = intensity * 0.92f;
+            starCol.a = intensity;
             AddSoftStar(vh, pos, r, rot, starCol);
         }
 
