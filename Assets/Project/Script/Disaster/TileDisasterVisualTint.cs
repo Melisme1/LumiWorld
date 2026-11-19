@@ -32,6 +32,7 @@ namespace LumiWorld.Acs
         // để hoạt động với mọi shader được gán vào ô.
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int DisasterTintId = Shader.PropertyToID("_DisasterTint");
 
         [Header("Bật/Tắt")]
         [Tooltip("Tô màu ô khi bị thiên tai phủ để nhìn thấy hiệu quả bằng mắt. Tắt = chỉ dùng vòng highlight của UI.")]
@@ -101,16 +102,16 @@ namespace LumiWorld.Acs
                 // không có tác dụng dù đã đặt đúng.
                 Material shared = r.sharedMaterial;
                 if (shared != null &&
-                    !shared.HasProperty(BaseColorId) && !shared.HasProperty(ColorId))
+                    !shared.HasProperty(BaseColorId) && !shared.HasProperty(ColorId) &&
+                    !shared.HasProperty(DisasterTintId))
                 {
                     _diagShaderMismatch++;
                     if (!diagnosticsLogged)
                     {
                         Debug.LogWarning(
                             $"[LumiWorld Disaster Tint] Renderer '{r.name}' (ô '{name}') dùng shader " +
-                            $"'{(shared.shader != null ? shared.shader.name : "?")}' KHÔNG có property " +
-                            $"_BaseColor / _Color -> MaterialPropertyBlock không đổi được màu ô.\n" +
-                            $"  • Cần shader nhận _BaseColor (URP Lit/Unlit) hoặc bật tint bằng cách khác.", this);
+                            $"'{(shared.shader != null ? shared.shader.name : "?")}' không có property màu tint " +
+                            $"_BaseColor / _Color / _DisasterTint -> MaterialPropertyBlock không đổi được màu ô.", this);
                     }
                 }
             }
@@ -192,12 +193,18 @@ namespace LumiWorld.Acs
         /// </summary>
         private void CacheRenderers()
         {
-            if (tinted.Count > 0) return; // đã cache ở lần Apply trước
+            // Re-scan so replacement models/renderers added after the first tint also receive it.
+            var discovered = new List<Renderer>();
+            CollectRenderers(transform, discovered);
+            if (discovered.Count == 0 && transform.parent != null)
+                CollectRenderers(transform.parent, discovered);
 
-            tinted.Clear();
-            CollectRenderers(transform, tinted);
-            if (tinted.Count == 0 && transform.parent != null)
-                CollectRenderers(transform.parent, tinted);
+            for (int i = 0; i < discovered.Count; i++)
+            {
+                Renderer renderer = discovered[i];
+                if (renderer == null || tinted.Contains(renderer)) continue;
+                tinted.Add(renderer);
+            }
         }
 
         /// <summary>Thêm mọi Renderer của root (kể cả đang tắt) vào danh sách, bỏ qua prop của PlacedCard.</summary>
@@ -229,8 +236,11 @@ namespace LumiWorld.Acs
             }
 
             renderer.GetPropertyBlock(block);
-            block.SetColor(BaseColorId, color);
-            block.SetColor(ColorId, color);
+            Material shared = renderer.sharedMaterial;
+            bool hasDisasterTint = shared != null && shared.HasProperty(DisasterTintId);
+            if (hasDisasterTint) block.SetColor(DisasterTintId, color);
+            if (shared == null || shared.HasProperty(BaseColorId)) block.SetColor(BaseColorId, color);
+            if (shared == null || shared.HasProperty(ColorId)) block.SetColor(ColorId, color);
             renderer.SetPropertyBlock(block);
         }
 
