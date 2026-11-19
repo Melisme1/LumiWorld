@@ -35,6 +35,7 @@ namespace LumiWorld.Acs
         [SerializeField] private float worldTagHeightOffset = 1.6f;
         [SerializeField] private float worldTagWidth = 300f;
         [SerializeField] private float worldTagHeight = 64f;
+        [SerializeField] private float obstacleHudTopPadding = 48f;
 
         [Header("Chỉ hướng khi nằm ngoài camera")]
         [SerializeField] private float edgePadding = 16f;
@@ -64,6 +65,7 @@ namespace LumiWorld.Acs
         private TextMeshProUGUI distanceText;
         private Vector2 tagTargetPosition;
         private float tagTargetWidth;
+        private bool obstacleHudPinned;
 
         private Material highlightMaterial;
         private Mesh highlightMesh;
@@ -84,6 +86,13 @@ namespace LumiWorld.Acs
 
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
+            if (WorldLaunch.IsVisit || scene.name == VisitSession.VisitScene)
+            {
+                var visitUi = FindAnyObjectByType<DisasterWarningUI>(FindObjectsInactive.Include);
+                if (visitUi != null) Destroy(visitUi.gameObject);
+                return;
+            }
+
             var runtimeManager = FindAnyObjectByType<DisasterRuntimeManager>();
             if (runtimeManager == null)
             {
@@ -97,6 +106,7 @@ namespace LumiWorld.Acs
 
         private static void Spawn()
         {
+            if (WorldLaunch.IsVisit || SceneManager.GetActiveScene().name == VisitSession.VisitScene) return;
             var runtimeManager = FindAnyObjectByType<DisasterRuntimeManager>();
             if (runtimeManager == null) return; // Manager sẽ tự gọi lại qua AttachWhenReady.
 
@@ -118,6 +128,7 @@ namespace LumiWorld.Acs
         public static void AttachWhenReady(DisasterRuntimeManager runtimeManager)
         {
             if (runtimeManager == null) return;
+            if (WorldLaunch.IsVisit || SceneManager.GetActiveScene().name == VisitSession.VisitScene) return;
             var existing = FindAnyObjectByType<DisasterWarningUI>(FindObjectsInactive.Include);
             if (existing != null)
             {
@@ -138,7 +149,7 @@ namespace LumiWorld.Acs
             worldGenerator = FindAnyObjectByType<HexWorldGenerator>();
             if (targetCamera == null) targetCamera = Camera.main;
 
-            canvas = FindScreenCanvas();
+            canvas = FindScreenCanvas(manager != null ? manager.gameObject.scene : gameObject.scene);
             if (canvas == null)
             {
                 Debug.LogWarning("[LumiWorld Disaster UI] Không tìm thấy Canvas màn hình nên không vẽ được banner.");
@@ -222,7 +233,7 @@ namespace LumiWorld.Acs
             tail.gameObject.AddComponent<Image>().raycastTarget = false;
         }
 
-        private bool UpdateWorldTag(DisasterInstance top, Vector3 worldCenter)
+        private bool UpdateWorldTag(DisasterInstance top, Vector3 worldCenter, bool pinObstacleHud)
         {
             if (worldTagRoot == null) return false;
             if (targetCamera == null) targetCamera = Camera.main;
@@ -237,6 +248,22 @@ namespace LumiWorld.Acs
             worldTagAccentBar.color = accent;
             worldTagText.color = Color.white;
             worldTagText.text = $"{DisasterCatalog.DisplayName(top.kind)} · {Mathf.CeilToInt(Mathf.Max(0f, (float)top.remainingSeconds))}s";
+
+            if (pinObstacleHud && onScreen)
+            {
+                Vector3 tagViewport = targetCamera.WorldToViewportPoint(worldCenter + Vector3.up * worldTagHeightOffset);
+                tagTargetPosition = new Vector2((tagViewport.x - 0.5f) * canvasRect.rect.width,
+                                                (tagViewport.y - 0.5f) * canvasRect.rect.height);
+                tagTargetWidth = worldTagWidth;
+                arrowRoot.gameObject.SetActive(false);
+                distanceText.gameObject.SetActive(false);
+                obstacleHudPinned = true;
+                worldTagRoot.anchoredPosition = tagTargetPosition;
+                worldTagRoot.gameObject.SetActive(true);
+                return true;
+            }
+
+            obstacleHudPinned = false;
 
             float halfW = Mathf.Min(worldTagWidth, canvasRect.rect.width - edgePadding * 2f) * 0.5f;
             float halfH = worldTagHeight * 0.5f;
@@ -253,6 +280,18 @@ namespace LumiWorld.Acs
             }
             else
             {
+                if (pinObstacleHud)
+                {
+                    tagTargetPosition = new Vector2(0f, canvasRect.rect.height * 0.5f -
+                        worldTagHeight * 0.5f - obstacleHudTopPadding);
+                    tagTargetWidth = worldTagWidth;
+                    arrowRoot.gameObject.SetActive(false);
+                    distanceText.gameObject.SetActive(false);
+                    worldTagRoot.anchoredPosition = tagTargetPosition;
+                    worldTagRoot.gameObject.SetActive(true);
+                    return true;
+                }
+
                 float x = viewport.x - 0.5f;
                 float y = viewport.y - 0.5f;
                 if (viewport.z <= 0f) { x = -x; y = -y; }
@@ -306,6 +345,7 @@ namespace LumiWorld.Acs
         private void AnimateTag()
         {
             if (worldTagRoot == null || !worldTagRoot.gameObject.activeSelf) return;
+            if (obstacleHudPinned) return;
             float t = 1f - Mathf.Exp(-trackerLerpSpeed * Time.unscaledDeltaTime);
             worldTagRoot.anchoredPosition = Vector2.Lerp(worldTagRoot.anchoredPosition, tagTargetPosition, t);
             Vector2 size = worldTagRoot.sizeDelta;
@@ -313,20 +353,22 @@ namespace LumiWorld.Acs
             worldTagRoot.sizeDelta = size;
         }
 
-        private static Canvas FindScreenCanvas()
+        private static Canvas FindScreenCanvas(Scene targetScene)
         {
             Canvas fallback = null;
             foreach (var found in FindObjectsByType<Canvas>(FindObjectsInactive.Exclude))
             {
-                if (!found.isRootCanvas || found.renderMode == RenderMode.WorldSpace) continue;
+                if (!found.isRootCanvas || found.renderMode == RenderMode.WorldSpace ||
+                    found.gameObject.scene != targetScene) continue;
                 if (found.renderMode == RenderMode.ScreenSpaceOverlay) return found;
                 if (fallback == null) fallback = found;
             }
             if (fallback != null) return fallback;
             var go = new GameObject("DisasterUICanvas", typeof(RectTransform));
+            SceneManager.MoveGameObjectToScene(go, targetScene);
             var own = go.AddComponent<Canvas>();
             own.renderMode = RenderMode.ScreenSpaceOverlay;
-            own.sortingOrder = 60;
+            own.sortingOrder = 0;
             go.AddComponent<CanvasScaler>();
             go.AddComponent<GraphicRaycaster>();
             return own;
@@ -392,7 +434,7 @@ namespace LumiWorld.Acs
                 HideTag();
                 return;
             }
-            UpdateWorldTag(top, worldCenter);
+            UpdateWorldTag(top, worldCenter, top.kind == DisasterKind.Obstacle);
         }
 
         private bool TryGetAffectedCenter(DisasterInstance instance, out Vector3 center, out int tileCount)
