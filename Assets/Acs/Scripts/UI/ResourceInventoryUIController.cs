@@ -66,7 +66,10 @@ namespace LumiWorld.Acs
 
             view = new ResourceInventoryUIView((RectTransform)transform, skin, Actions());
             EconomyHUD.RegisterWindow(view.WarehouseWindow.gameObject, CloseWarehouse);
-            EconomyHUD.RegisterWindow(view.SelectorWindow.gameObject, CloseSelector);
+            EconomyHUD.RegisterWindow(view.SelectorWindow.gameObject, () =>
+            {
+                if (!view.TryCloseSelectorRecipePopover()) CloseSelector();
+            });
             EconomyHUD.RegisterWindow(view.SummaryWindow.gameObject, CloseSummary);
             warehouseItems = ResourceInventoryUIPresentation.Warehouse(manager.Catalog, inventory.GetAmount, onlyCollected: true);
             view.BuildWarehouseItems(warehouseItems);
@@ -85,9 +88,8 @@ namespace LumiWorld.Acs
             closeWarehouse = CloseWarehouse,
             closeSelector = CloseSelector,
             openSelector = OpenSelector,
-            chooseResource = id => { pendingResourceId = id; dirty = true; },
-            applySelection = ApplySelection,
-            clearSelection = () => { pendingResourceId = string.Empty; ApplySelection(); },
+            chooseResource = id => { pendingResourceId = id; RefreshSelector(); },
+            applySelection = () => ApplySelection(pendingResourceId),
             collectHabitat = () => production.CollectHabitat(selectedHabitatId),
             collectResource = id => production.CollectResource(selectedHabitatId, id),
             openRecovery = OpenRecovery,
@@ -185,23 +187,7 @@ namespace LumiWorld.Acs
                 view.UpdateWarehouse(warehouseItems, recoveryCount);
             }
 
-            if (view.SelectorWindow.gameObject.activeSelf)
-            {
-                var source = FindHabitat(selectorHabitatId);
-                if (source == null)
-                {
-                    CloseSelector();
-                    Notice("Habitat has changed. Please select again.");
-                }
-                else
-                {
-                    var options = ResourceInventoryUIPresentation.Options(source, manager.Catalog, selectorTier, selectorIndex);
-                    var eligible = HabitatEligibilityService.EvaluateSelection(source, selectorTier, selectorIndex, pendingResourceId, manager.Catalog);
-                    bool canApply = HabitatEligibilityService.IsSlotUnlocked(source, selectorTier, selectorIndex) &&
-                        (string.IsNullOrEmpty(pendingResourceId) || eligible.IsEligible);
-                    view.UpdateOptions(options, pendingResourceId, canApply, string.IsNullOrEmpty(pendingResourceId) ? "Deselect: Keep already produced goods." : eligible.Reason);
-                }
-            }
+            if (view.SelectorWindow.gameObject.activeSelf) RefreshSelector();
 
             if (view.SummaryWindow.gameObject.activeSelf)
                 view.BindSummary(summaryOffline ? ResourceInventoryUIPresentation.Buffers(production.States, manager.Catalog, production.Settings) : recovered, summaryOffline);
@@ -339,6 +325,7 @@ namespace LumiWorld.Acs
 
         public void OpenSelectorFor(string habitatId, ResourceTier tier, int index)
         {
+            if (view == null) return;
             var habitat = FindHabitat(habitatId);
             if (habitat == null) return;
             selectedHabitatId = habitatId;
@@ -347,31 +334,47 @@ namespace LumiWorld.Acs
 
         private void OpenSelector(ResourceTier tier, int index)
         {
+            if (view == null) return;
             var habitat = FindHabitat(selectedHabitatId);
             if (!HabitatEligibilityService.IsSlotUnlocked(habitat, tier, index)) return;
             selectorHabitatId = selectedHabitatId;
             selectorTier = tier;
             selectorIndex = index;
-            pendingResourceId = habitat.GetSlot(tier, index).selectedResourceId;
+            pendingResourceId = habitat.GetSlot(tier, index)?.selectedResourceId;
             var options = ResourceInventoryUIPresentation.Options(habitat, manager.Catalog, tier, index);
+            if (string.IsNullOrEmpty(pendingResourceId) || !options.Exists(o => o.id == pendingResourceId))
+                pendingResourceId = (options.Find(o => o.eligible) ?? options.Find(o => o != null))?.id;
             view.BuildOptions(options);
-            var eligible = HabitatEligibilityService.EvaluateSelection(habitat, tier, index, pendingResourceId, manager.Catalog);
-            bool canApply = HabitatEligibilityService.IsSlotUnlocked(habitat, tier, index) &&
-                (string.IsNullOrEmpty(pendingResourceId) || eligible.IsEligible);
-            view.UpdateOptions(options, pendingResourceId, canApply, string.IsNullOrEmpty(pendingResourceId) ? "Deselect: Keep already produced goods." : eligible.Reason);
+            view.UpdateOptions(options, pendingResourceId);
             ShowModal(view.SelectorWindow);
+        }
+
+        private void RefreshSelector()
+        {
+            var habitat = FindHabitat(selectorHabitatId);
+            if (!HabitatEligibilityService.IsSlotUnlocked(habitat, selectorTier, selectorIndex))
+            {
+                CloseSelector();
+                Notice("This production slot is no longer available.");
+                return;
+            }
+
+            var options = ResourceInventoryUIPresentation.Options(habitat, manager.Catalog, selectorTier, selectorIndex);
+            view.UpdateOptions(options, pendingResourceId);
         }
 
         public void CloseSelector()
         {
+            view?.TryCloseSelectorRecipePopover();
             view?.SelectorWindow.gameObject.SetActive(false);
             pendingResourceId = null;
             EconomyHUD.MarkWindowClosed();
         }
 
-        private void ApplySelection()
+        private void ApplySelection(string resourceId)
         {
-            if (manager.TrySelectResource(selectorHabitatId, selectorTier, selectorIndex, pendingResourceId, out string reason))
+            if (string.IsNullOrEmpty(resourceId) || !view.SelectorWindow.gameObject.activeSelf) return;
+            if (manager.TrySelectResource(selectorHabitatId, selectorTier, selectorIndex, resourceId, out string reason))
             {
                 CloseSelector();
                 HabitatCreaturePanelUI.Instance?.RefreshCurrentHabitat();

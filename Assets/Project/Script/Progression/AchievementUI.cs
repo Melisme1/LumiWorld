@@ -127,14 +127,9 @@ public class AchievementUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EconomyHUD.UnregisterWindow(_backdropGo);
         if (Instance == this)
             Instance = null;
-    }
-
-    private void Update()
-    {
-        if (IsOpen && Input.GetKeyDown(KeyCode.Escape))
-            CloseWindow();
     }
 
     private void HideLegacyHudButton()
@@ -159,7 +154,11 @@ public class AchievementUI : MonoBehaviour
         BuildModalIfNeeded();
         HideLegacyHudButton();
         if (_backdropGo != null)
+        {
             _backdropGo.SetActive(true);
+            EconomyHUD.RegisterWindow(_backdropGo, CloseWindow);
+            EconomyHUD.BringWindowToFront(_backdropGo);
+        }
 
         ApplyScale();
         _feedbackMsg = string.Empty;
@@ -172,6 +171,7 @@ public class AchievementUI : MonoBehaviour
 
     public void CloseWindow()
     {
+        if (IsOpen) EconomyHUD.MarkWindowClosed();
         if (_backdropGo != null)
             _backdropGo.SetActive(false);
     }
