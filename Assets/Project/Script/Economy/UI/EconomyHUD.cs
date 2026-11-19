@@ -103,7 +103,8 @@ public class EconomyHUD : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) TryCloseTopWindow();
+        if (!GameDialogUI.IsAnyOpen && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            TryCloseTopWindow();
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -173,7 +174,7 @@ public class EconomyHUD : MonoBehaviour
     {
         get
         {
-            if (windowClosedFrame == Time.frameCount) return true;
+            if (windowClosedFrame == Time.frameCount || GameDialogUI.IsAnyOpen) return true;
             windows.RemoveAll(window => window == null);
             foreach (GameObject window in windows)
             {
@@ -195,7 +196,10 @@ public class EconomyHUD : MonoBehaviour
     internal static void BringWindowToFront(GameObject window)
     {
         if (window == null) return;
-        window.transform.parent?.SetAsLastSibling();
+        var parent = window.transform.parent;
+        if (parent != null && !parent.TryGetComponent<Canvas>(out _))
+            parent.SetAsLastSibling();
+        window.transform.SetAsLastSibling();
         windows.Remove(window); windows.Add(window);
     }
 
