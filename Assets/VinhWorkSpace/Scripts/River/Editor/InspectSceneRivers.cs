@@ -158,7 +158,7 @@ public static class InspectSceneRivers
 
     private static void DumpAllRivers(string source)
     {
-        RiverTileSegment[] segments = Object.FindObjectsByType<RiverTileSegment>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        RiverTileSegment[] segments = Object.FindObjectsByType<RiverTileSegment>(FindObjectsInactive.Include);
         Debug.Log($"================= [RIVER SCENE DUMP ({source}) - Total Segments: {segments.Length}] =================");
         foreach (var seg in segments)
         {

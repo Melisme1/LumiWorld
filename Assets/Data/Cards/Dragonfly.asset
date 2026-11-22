@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Dragonfly
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_dragonfly
-  cardName: "Chu\u1ED3n Chu\u1ED3n"
+  cardName: Dragonfly
   cardImage: {fileID: 21300000, guid: d20f824a5c97db2449d5739d2562533a, type: 3}
   cardType: 0
   baseScore: 1

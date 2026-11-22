@@ -369,7 +369,7 @@ public class MarketUI : MonoBehaviour
         {
             "G-25",
             "G-26",
-            LumiWorldUITheme.Glyph("G-24") != null ? "G-24" : "G-04"
+            "G-04"
         };
         float[] tabWidths = { 126f, 126f, 186f };
 
@@ -383,9 +383,6 @@ public class MarketUI : MonoBehaviour
             LumiWorldUITheme.PlaceTopLeft(btn.GetComponent<RectTransform>(), tabX, tabY, tabWidths[i], 42f);
             tabX += tabWidths[i] + 10f;
         }
-
-        Sprite coinSprite = EconomyHUD.CoinSprite;
-        LumiWorldUITheme.CreateCoinChip(_windowRect, 70f, 20f, out _coinValueText, coinSprite, 132f, 34f);
 
         Button closeBtn = LumiWorldUITheme.CreateCloseButton(_windowRect, 22f, 20f, Close, 34f);
         closeBtn.transform.SetAsLastSibling();

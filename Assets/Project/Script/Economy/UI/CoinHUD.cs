@@ -2,6 +2,7 @@ using System.Collections;
 using System.Globalization;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Số Lumi Coin ở góc trên màn chơi. Khi số dư đổi, con số chạy dần tới số mới, ô Coins nảy nhẹ
@@ -75,12 +76,16 @@ public class CoinHUD : MonoBehaviour
         panelSize = new Vector2(138f, 48f);
         rect.sizeDelta = panelSize;
         if (!WorldLaunch.IsVisit && !VisitSession.Active)
-            rect.anchoredPosition = new Vector2(-76f, -14f);
+            rect.anchoredPosition = new Vector2(-100f, -14f);
 
         // Body nảy khi số dư đổi; số bay nằm ngoài Body nên không nảy theo
         body = EconomyHUD.CreateRect("Body", rect);
         EconomyHUD.Stretch(body);
-        EconomyHUD.CreatePanel(body, LumiWorld.Acs.LumiWorldUITheme.Primary);
+        Image bodyImg = body.gameObject.AddComponent<Image>();
+        bodyImg.sprite = LumiWorld.Acs.LumiWorldUITheme.GetCapsuleSprite(Mathf.RoundToInt(panelSize.y));
+        bodyImg.type = Image.Type.Sliced;
+        bodyImg.color = LumiWorld.Acs.LumiWorldUITheme.Primary;
+        bodyImg.raycastTarget = false;
         LumiWorld.Acs.LumiWorldUITheme.AddSoftElevation(body.gameObject, 3f, 0.16f);
 
         float iconSize = 28f;
@@ -93,7 +98,7 @@ public class CoinHUD : MonoBehaviour
         valueRect.anchorMin = Vector2.zero;
         valueRect.anchorMax = Vector2.one;
         valueRect.offsetMin = new Vector2(12f + iconSize + 4f, 2f);
-        valueRect.offsetMax = new Vector2(-12f, -2f);
+        valueRect.offsetMax = new Vector2(-16f, -2f);
         valueText.enableAutoSizing = true;
         valueText.fontSizeMin = 14f;
         valueText.fontSizeMax = 22f;

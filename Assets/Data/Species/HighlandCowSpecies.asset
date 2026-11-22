@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: HighlandCowSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: highlandcow
-  speciesName: "Bò Lông Dài"
+  speciesName: "Highland Cow"
   description: "Loài bò thảo nguyên rừng rậm với bộ lông dài ấm áp, bước đi vững chãi và đem lại nguồn sữa dồi dào giàu dưỡng chất."
   locomotionType: 0
   baseWalkSpeed: 0.42

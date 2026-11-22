@@ -281,7 +281,7 @@ namespace LumiWorld.Acs
             var rect = G.Rect(name, parent);
             G.Place(rect, x, y, w, h);
             var bg = rect.gameObject.AddComponent<Image>();
-            bg.sprite = LumiWorldUITheme.SurfaceSprite;
+            bg.sprite = LumiWorldUITheme.PillSprite;
             bg.type = Image.Type.Sliced;
             bg.color = active ? LumiWorldUITheme.Primary : LumiWorldUITheme.Inset;
             bg.raycastTarget = true;
@@ -315,7 +315,7 @@ namespace LumiWorld.Acs
             var rect = G.Rect(name, parent);
             G.Place(rect, x, y, w, h);
             var bg = rect.gameObject.AddComponent<Image>();
-            bg.sprite = LumiWorldUITheme.SurfaceSprite;
+            bg.sprite = LumiWorldUITheme.PillSprite;
             bg.type = Image.Type.Sliced;
             bg.color = LumiWorldUITheme.Inset;
             bg.raycastTarget = true;
@@ -365,7 +365,7 @@ namespace LumiWorld.Acs
                 G.Place(tabRect, curX, 86f, tabW, 48f);
 
                 var bg = tabRect.gameObject.AddComponent<Image>();
-                bg.sprite = LumiWorldUITheme.SurfaceSprite;
+                bg.sprite = LumiWorldUITheme.PillSprite;
                 bg.type = Image.Type.Sliced;
                 bg.raycastTarget = true;
                 tabRect.gameObject.AddComponent<ResourceUIInputBlocker>();
@@ -533,7 +533,7 @@ namespace LumiWorld.Acs
                     ic.raycastTarget = false;
                 }
 
-                var countTxt = G.Text(rect, "CountBox", "×" + item.stock, skin, 6f, 70f, slotW - 14f, 24f, 15.5f, LumiWorldUITheme.Text, bold: true);
+                var countTxt = G.Text(rect, "CountBox", item.stock.ToString(), skin, 4f, 70f, slotW - 20f, 24f, 15f, LumiWorldUITheme.Text, bold: true);
                 countTxt.alignment = TextAlignmentOptions.BottomRight;
                 countTxt.raycastTarget = false;
                 warehouseCounts[item.id] = countTxt;
@@ -565,7 +565,7 @@ namespace LumiWorld.Acs
             {
                 if (warehouseCounts.TryGetValue(item.id, out var label))
                 {
-                    label.text = "×" + item.stock;
+                    label.text = item.stock.ToString();
                     label.color = item.stock >= item.capacity ? LumiWorldUITheme.Muted : LumiWorldUITheme.Text;
                 }
             }
@@ -916,32 +916,7 @@ namespace LumiWorld.Acs
 
         private static Sprite CreateOutlineBox(int w, int h, int r, Color borderColor, float strokeWidth)
         {
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Bilinear;
-            tex.wrapMode = TextureWrapMode.Clamp;
-
-            Color[] px = new Color[w * h];
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
-                    float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-
-                    if (dist > r)
-                        px[y * w + x] = Color.clear;
-                    else if (dist >= r - strokeWidth || x < strokeWidth || x >= w - strokeWidth || y < strokeWidth || y >= h - strokeWidth)
-                        px[y * w + x] = borderColor;
-                    else
-                        px[y * w + x] = Color.clear;
-                }
-            }
-
-            tex.SetPixels(px);
-            tex.Apply();
-            Vector4 border = new Vector4(r + 2, r + 2, r + 2, r + 2);
-            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
+            return LumiWorldUITheme.GetBorderedSurfaceSprite($"OutlineBox_R{r}_S{strokeWidth:F1}", Color.clear, borderColor, Mathf.Max(r, 20), strokeWidth);
         }
 
         private static Sprite CreateCapsule(int w, int h, int r, Color fillColor, Color borderColor)

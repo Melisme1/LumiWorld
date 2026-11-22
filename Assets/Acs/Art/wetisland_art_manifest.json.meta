@@ -1,11 +1,6 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Data/Species/PufferfishSpecies.asset.meta
-guid: d2625c8ea0636f34c82c6c72c3c7d669
-NativeFormatImporter:
-========
 guid: 923b7d381e87dd044bb908828a18aa67
 TextScriptImporter:
->>>>>>>> origin/Acs:Assets/Acs/Art/wetisland_art_manifest.json.meta
   externalObjects: {}
   userData: 
   assetBundleName: 

@@ -468,14 +468,13 @@ public class AutoFeedUI : MonoBehaviour
         }
 
         float curX = 0f;
-        const float tabH = 42f;
-        const float gapX = 10f;
-        float tabLimit = (biomeTabsRow.sizeDelta.x - (biomesToShow.Count - 1) * gapX) / biomesToShow.Count;
+        const float tabH = 40f;
+        const float tabW = 150f;
+        const float gapX = 12f;
 
         foreach (BiomeAffinity affinity in biomesToShow)
         {
             string bName = HabitatCreaturePanelStyle.GetAffinityDisplayName(affinity);
-            float tabW = Mathf.Min(tabLimit, Mathf.Clamp(bName.Length * 9.5f + 62f, 136f, 168f));
 
             GameObject tabObj = new GameObject("BiomeTab_" + bName, typeof(RectTransform), typeof(Image), typeof(Button));
             tabObj.transform.SetParent(biomeTabsRow, false);
@@ -483,7 +482,7 @@ public class AutoFeedUI : MonoBehaviour
             SetTopLeft(tRect, new Vector2(curX, 0f), new Vector2(tabW, tabH));
 
             Image bg = tabObj.GetComponent<Image>();
-            bg.sprite = LumiWorldUITheme.PillSprite;
+            bg.sprite = LumiWorldUITheme.GetCapsuleSprite(Mathf.RoundToInt(tabH));
             bg.type = Image.Type.Sliced;
             LumiWorldUITheme.AddSoftElevation(tabObj, 2.5f, 0.14f);
 
@@ -513,7 +512,7 @@ public class AutoFeedUI : MonoBehaviour
             borderObj.transform.SetParent(tRect, false);
             EconomyHUD.Stretch(borderObj.GetComponent<RectTransform>());
             Image borderImg = borderObj.GetComponent<Image>();
-            borderImg.sprite = GetSelectionBorderSprite();
+            borderImg.sprite = GetTabSelectionBorderSprite(Mathf.RoundToInt(tabH));
             borderImg.type = Image.Type.Sliced;
             borderImg.color = Color.white;
             borderImg.raycastTarget = false;
@@ -648,7 +647,7 @@ public class AutoFeedUI : MonoBehaviour
         mpRect.anchoredPosition = new Vector2(-22f, -16f);
         mpRect.sizeDelta = new Vector2(118f, 28f);
         Image mpBg = maxPill.GetComponent<Image>();
-        mpBg.sprite = LumiWorldUITheme.PillSprite;
+        mpBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
         mpBg.type = Image.Type.Sliced;
         mpBg.color = LumiWorldUITheme.Inset;
         var mpTxt = CreateTMP(mpRect, "Label", "Max 3 foods", 12.5f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.Center);
@@ -1220,7 +1219,7 @@ public class AutoFeedUI : MonoBehaviour
         }
         else
         {
-            ShowFeedback($"Saved {biomeName} setup · Residents' pantries are full.", LumiWorldUITheme.Success);
+            ShowFeedback($"Saved {biomeName} setup. Food is ready for residents when hungry.", LumiWorldUITheme.Success);
         }
     }
 
@@ -1273,58 +1272,79 @@ public class AutoFeedUI : MonoBehaviour
         if (habManager == null) HabitatRuntimeManager.TryGetActive(out habManager);
         if (habManager == null || habManager.Habitats == null) return 0;
 
-        var slots = GetSlotsFor(targetBiome);
-        int totalDeposited = 0;
-
+        var residentsList = new List<(string habitatId, string individualId)>();
         foreach (var h in habManager.Habitats)
         {
             if (h == null || h.affinity != targetBiome || h.residents == null) continue;
-
             foreach (var resident in h.residents)
             {
                 if (resident == null || string.IsNullOrEmpty(resident.individualId)) continue;
-                matchingCreaturesCount++;
+                residentsList.Add((h.habitatId, resident.individualId));
+            }
+        }
 
-                for (int s = 0; s < 3; s++)
+        matchingCreaturesCount = residentsList.Count;
+        if (matchingCreaturesCount == 0) return 0;
+
+        var slots = GetSlotsFor(targetBiome);
+        int totalDeposited = 0;
+
+        int seedUnits = production.CareSettings != null
+            ? Mathf.Max(1, production.CareSettings.seedFoodUnitsToFull)
+            : 50;
+
+        for (int s = 0; s < 3; s++)
+        {
+            string foodId = slots.foodIds[s];
+            int remainingBudget = slots.budgets[s];
+            if (string.IsNullOrEmpty(foodId) || remainingBudget <= 0) continue;
+
+            int stock = production.Inventory.GetAmount(foodId);
+            if (stock <= 0)
+            {
+                lastFailureReason = "Out of food in Inventory.";
+                continue;
+            }
+
+            int distributedThisSlot = 0;
+
+            for (int r = 0; r < residentsList.Count; r++)
+            {
+                if (remainingBudget - distributedThisSlot <= 0 || stock - distributedThisSlot <= 0) break;
+
+                var (habId, indivId) = residentsList[r];
+                var care = production.GetCareState(indivId);
+
+                // Calculate how much food this creature currently needs based on hunger
+                int neededUnits = 0;
+                if (care != null)
                 {
-                    string foodId = slots.foodIds[s];
-                    int remainingBudget = slots.budgets[s];
-                    if (string.IsNullOrEmpty(foodId) || remainingBudget <= 0) continue;
+                    float satietyDeficit = Mathf.Clamp(100f - (float)care.Satiety, 0f, 100f);
+                    neededUnits = Mathf.CeilToInt(satietyDeficit / (100f / seedUnits));
+                }
 
-                    int stock = production.Inventory.GetAmount(foodId);
-                    if (stock <= 0)
-                    {
-                        lastFailureReason = "Out of food in Inventory.";
-                        continue;
-                    }
+                long currentPantry = production.GetCreatureFoodAmount(indivId, foodId);
+                int hungerDeficit = Mathf.Max(0, neededUnits - (int)currentPantry);
 
-                    // Try depositing a small batch (up to min(remainingBudget, stock, seedFoodUnitsToFull))
-                    int maxPerResident = production.CareSettings != null
-                        ? Mathf.Max(1, production.CareSettings.seedFoodUnitsToFull)
-                        : 5;
-                    long currentPantry = production.GetCreatureFoodAmount(resident.individualId, foodId);
-                    if (currentPantry >= maxPerResident) continue;
-                    int needed = maxPerResident - (int)currentPantry;
-                    int attemptAmount = Mathf.Min(remainingBudget, Mathf.Min(stock, needed));
+                // If creature is not hungry and has enough food, do not take food yet!
+                if (hungerDeficit <= 0) continue;
 
-                    if (production.DepositCreatureFood(h.habitatId, resident.individualId, foodId, attemptAmount, out string reason))
-                    {
-                        slots.budgets[s] = Mathf.Max(0, remainingBudget - attemptAmount);
-                        if (slots.budgets[s] == 0) slots.foodIds[s] = string.Empty;
-                        totalDeposited += attemptAmount;
-                    }
-                    else if (attemptAmount > 1 && production.DepositCreatureFood(h.habitatId, resident.individualId, foodId, 1, out reason))
-                    {
-                        slots.budgets[s] = Mathf.Max(0, remainingBudget - 1);
-                        if (slots.budgets[s] == 0) slots.foodIds[s] = string.Empty;
-                        totalDeposited += 1;
-                    }
-                    else if (!string.IsNullOrEmpty(reason))
-                    {
-                        lastFailureReason = reason;
-                    }
+                int availableForThis = Mathf.Min(hungerDeficit, Mathf.Min(remainingBudget - distributedThisSlot, stock - distributedThisSlot));
+                if (availableForThis <= 0) continue;
+
+                if (production.DepositCreatureFood(habId, indivId, foodId, availableForThis, out string reason))
+                {
+                    distributedThisSlot += availableForThis;
+                    totalDeposited += availableForThis;
+                }
+                else if (!string.IsNullOrEmpty(reason))
+                {
+                    lastFailureReason = reason;
                 }
             }
+
+            slots.budgets[s] = Mathf.Max(0, remainingBudget - distributedThisSlot);
+            if (slots.budgets[s] == 0) slots.foodIds[s] = string.Empty;
         }
 
         if (totalDeposited > 0)
@@ -1605,34 +1625,12 @@ public class AutoFeedUI : MonoBehaviour
 
     private static Sprite GetSelectionBorderSprite()
     {
-        if (s_SelectionBorderSprite != null) return s_SelectionBorderSprite;
+        return LumiWorldUITheme.GetBorderedSurfaceSprite("SelOutline_R20_S2.5", Color.clear, LumiWorldUITheme.Primary, 20, 2.5f);
+    }
 
-        int w = 64, h = 64, r = 12;
-        float stroke = 3f;
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        tex.wrapMode = TextureWrapMode.Clamp;
-        Color[] px = new Color[w * h];
-
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
-                float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                if (dist > r)
-                    px[y * w + x] = Color.clear;
-                else if (dist >= r - stroke || x < stroke || x >= w - stroke || y < stroke || y >= h - stroke)
-                    px[y * w + x] = LumiWorldUITheme.Primary;
-                else
-                    px[y * w + x] = Color.clear;
-            }
-        }
-
-        tex.SetPixels(px);
-        tex.Apply();
-        s_SelectionBorderSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r + 2, r + 2, r + 2, r + 2));
-        return s_SelectionBorderSprite;
+    private static Sprite GetTabSelectionBorderSprite(int height)
+    {
+        int r = Mathf.Max(6, height / 2);
+        return LumiWorldUITheme.GetBorderedSurfaceSprite("TabSelBorder_H" + height, Color.clear, Color.black, r, 2.5f);
     }
 }

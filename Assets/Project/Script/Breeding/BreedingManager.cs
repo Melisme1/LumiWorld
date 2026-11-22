@@ -260,7 +260,7 @@ public class BreedingManager : MonoBehaviour
 
     public static void UpgradeExistingBraluffCardsInHand()
     {
-        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include);
         if (cardUIs == null) return;
         foreach (var cui in cardUIs)
         {
@@ -360,7 +360,7 @@ public class BreedingManager : MonoBehaviour
     {
         if (targetData == null || CardDeskController.Instance == null) return;
 
-        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include);
         if (cardUIs == null) return;
 
         bool matchDeer = CreationLabUI.IsDeer(targetData);

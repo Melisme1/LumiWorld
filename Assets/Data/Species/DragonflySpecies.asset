@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DragonflySpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: dragonfly
-  speciesName: "Chu\u1ED3n Chu\u1ED3n"
+  speciesName: "Dragonfly"
   description: "Sinh v\u1EADt b\xE9 nh\u1ECF tho\u0103n tho\u1EAFt bay l\u01B0\u1EE3n
     tr\xEAn c\xE1c m\u1ECFm \u0111\xE1 \u0111\xF3n gi\xF3 n\xFAi, b\xE1o hi\u1EC7u
     s\u1EF1 thay \u0111\u1ED5i c\u1EE7a th\u1EDDi ti\u1EBFt."

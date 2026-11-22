@@ -439,7 +439,7 @@ public class AchievementManager : MonoBehaviour
                 }
             }
         }
-        var activeAnimals = FindObjectsByType<AnimalIndividual>(FindObjectsSortMode.None);
+        var activeAnimals = FindObjectsByType<AnimalIndividual>();
         if (!m1Met && activeAnimals != null && activeAnimals.Length > 0)
         {
             m1Met = true;
@@ -475,7 +475,7 @@ public class AchievementManager : MonoBehaviour
         }
         if (!m3Met)
         {
-            var identities = FindObjectsByType<HabitatPlacementIdentity>(FindObjectsSortMode.None);
+            var identities = FindObjectsByType<HabitatPlacementIdentity>();
             if (identities != null)
             {
                 foreach (var id in identities)

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BlossomFrog
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_blossomfrog
-  cardName: "\u1EBEch Hoa"
+  cardName: Blossom Frog
   cardImage: {fileID: 21300000, guid: d86ba906dd9049146900ec141ebde849, type: 3}
   cardType: 0
   baseScore: 2

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BlossomFrogSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: blossomfrog
-  speciesName: "Ếch Hoa"
+  speciesName: "Blossom Frog"
   description: "Loài ếch nhỏ mang hoa văn rực rỡ tựa cánh hoa dại, thích thú nhảy nhót quanh những vũng sương mai trong thung lũng."
   locomotionType: 0
   baseWalkSpeed: 0.45

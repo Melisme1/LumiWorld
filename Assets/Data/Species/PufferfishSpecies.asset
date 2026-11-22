@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PufferfishSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: canoc
-  speciesName: "Cá Nóc"
+  speciesName: "Pufferfish"
   description: "Chú cá nóc phát sáng bơi lội tung tăng trong làn nước trong vắt của vùng Lilywater."
   locomotionType: 0
   baseWalkSpeed: 0.45

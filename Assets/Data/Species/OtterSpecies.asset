@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: OtterSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: otter
-  speciesName: "Rái Cá"
+  speciesName: "Otter"
   description: "Chú rái cá linh hoạt tinh nghịch, thích đùa vui bên những dòng suối hoa và nhặt nhạnh vỏ sò ngọc quý."
   locomotionType: 0
   baseWalkSpeed: 0.52

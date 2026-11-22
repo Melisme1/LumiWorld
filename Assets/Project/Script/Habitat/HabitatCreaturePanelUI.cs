@@ -1719,35 +1719,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private static Sprite GetSelectionOutlineSprite()
     {
-        if (s_SelectionOutlineSprite != null) return s_SelectionOutlineSprite;
-
-        int w = 64, h = 64, r = 12;
-        float stroke = 3f;
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        tex.wrapMode = TextureWrapMode.Clamp;
-        Color[] px = new Color[w * h];
-
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
-                float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                if (dist > r)
-                    px[y * w + x] = Color.clear;
-                else if (dist >= r - stroke || x < stroke || x >= w - stroke || y < stroke || y >= h - stroke)
-                    px[y * w + x] = LumiWorldUITheme.Primary;
-                else
-                    px[y * w + x] = Color.clear;
-            }
-        }
-
-        tex.SetPixels(px);
-        tex.Apply();
-        s_SelectionOutlineSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r + 2, r + 2, r + 2, r + 2));
-        return s_SelectionOutlineSprite;
+        return LumiWorldUITheme.GetBorderedSurfaceSprite("SelOutline_R20_S2.5", Color.clear, LumiWorldUITheme.Primary, 20, 2.5f);
     }
 
     #endregion
@@ -1834,7 +1806,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private AnimalIndividual FindAnimalIndividual(string individualId, string speciesId)
     {
-        var allAnimals = FindObjectsByType<AnimalIndividual>(FindObjectsSortMode.None);
+        var allAnimals = FindObjectsByType<AnimalIndividual>();
         foreach (var a in allAnimals)
         {
             if (a == null) continue;

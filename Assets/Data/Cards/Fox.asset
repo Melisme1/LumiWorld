@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Fox
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_fox
-  cardName: "Cáo"
+  cardName: Fox
   cardImage: {fileID: 21300000, guid: c0c1d2e3f4a500190019000000000019, type: 3}
   cardType: 0
   baseScore: 2

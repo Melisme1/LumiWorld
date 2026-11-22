@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Grasshopper
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_grasshopper
-  cardName: "Ch\xE2u Ch\u1EA5u"
+  cardName: Grasshopper
   cardImage: {fileID: 21300000, guid: 589632740b9656942bec075a99e94bf3, type: 3}
   cardType: 0
   baseScore: 1

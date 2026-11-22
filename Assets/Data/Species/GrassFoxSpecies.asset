@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GrassFoxSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: grassfox
-  speciesName: "Cáo Cỏ"
+  speciesName: "Grass Fox"
   description: "Loài cáo huyền thoại được thiên nhiên ban tặng chiếc đuôi dương xỉ xanh biếc, hòa quyện tuyệt đối cùng cây cỏ đại ngàn."
   locomotionType: 0
   baseWalkSpeed: 0.52

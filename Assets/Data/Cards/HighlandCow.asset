@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: HighlandCow
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_highlandcow
-  cardName: "B\xF2 L\xF4ng D\xE0i"
+  cardName: Highland Cow
   cardImage: {fileID: 21300000, guid: a44a8e162bcc9234a835cca0f80e5be3, type: 3}
   cardType: 0
   baseScore: 2

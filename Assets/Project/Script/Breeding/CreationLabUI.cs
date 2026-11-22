@@ -1228,7 +1228,7 @@ public class CreationLabUI : MonoBehaviour
         var allCreatureCards = new List<CardData>();
         var handCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include);
         if (cardUIs != null && cardUIs.Length > 0)
         {
             foreach (var cui in cardUIs)
@@ -1450,7 +1450,7 @@ public class CreationLabUI : MonoBehaviour
 
     private CardData FindDeerCardInHand()
     {
-        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include);
         if (cardUIs != null)
         {
             foreach (var c in cardUIs)
@@ -1464,7 +1464,7 @@ public class CreationLabUI : MonoBehaviour
 
     private CardData FindCaterpillarCardInHand()
     {
-        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var cardUIs = FindObjectsByType<CardUI>(FindObjectsInactive.Include);
         if (cardUIs != null)
         {
             foreach (var c in cardUIs)

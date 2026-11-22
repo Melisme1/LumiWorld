@@ -532,7 +532,7 @@ public class EconomyHUD : MonoBehaviour
     {
         get
         {
-            if (circleSprite == null) circleSprite = CreateCircleSprite(64);
+            if (circleSprite == null) circleSprite = CreateCircleSprite(128);
             return circleSprite;
         }
     }
@@ -664,7 +664,7 @@ public class EconomyHUD : MonoBehaviour
         Color[] pixels = new Color[size * size];
 
         float center = size * 0.5f;
-        float radius = center - 1f;
+        float radius = center - 1.5f;
 
         for (int y = 0; y < size; y++)
         {
@@ -673,7 +673,7 @@ public class EconomyHUD : MonoBehaviour
                 float dx = x + 0.5f - center;
                 float dy = y + 0.5f - center;
                 float distance = Mathf.Sqrt(dx * dx + dy * dy);
-                pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(radius - distance + 0.5f));
+                pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(radius - distance + 1f));
             }
         }
 

@@ -33,7 +33,7 @@ public static class WorldSaveTools
 
         // Ô đất: prefab sinh đảo (đang mở trong scene) và hai đầu của mọi luật biến đổi trên thẻ
         var tiles = new Dictionary<string, TileCatalog.Entry>();
-        var generators = Object.FindObjectsByType<HexWorldGenerator>(FindObjectsSortMode.None);
+        var generators = Object.FindObjectsByType<HexWorldGenerator>();
         foreach (var generator in generators)
         {
             foreach (GameObject prefab in generator.TerrainPrefabs) AddTile(tiles, prefab);

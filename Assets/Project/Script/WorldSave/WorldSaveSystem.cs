@@ -104,7 +104,7 @@ public class WorldSaveSystem : MonoBehaviour
 
         keptPlacements = data.placements ?? new List<PlacementRecord>();
 
-        HexWorldGenerator generator = FindFirstObjectByType<HexWorldGenerator>();
+        HexWorldGenerator generator = FindAnyObjectByType<HexWorldGenerator>();
         if (generator == null || tileCatalog == null || data.tiles == null || data.tiles.Count == 0)
         {
             BlockSaves("Có file world nhưng chưa dựng được ô đất (thiếu HexWorldGenerator hoặc TileCatalog). Đảo hiện ra là đảo tạm.");
@@ -561,7 +561,7 @@ public class WorldSaveSystem : MonoBehaviour
         if (HexBiomeClusterConnector.Instance != null)
             data.nextClusterId = HexBiomeClusterConnector.Instance.NextClusterId;
 
-        HexWorldGenerator generator = FindFirstObjectByType<HexWorldGenerator>();
+        HexWorldGenerator generator = FindAnyObjectByType<HexWorldGenerator>();
         if (generator != null)
         {
             foreach (KeyValuePair<HexCoordinates, GameObject> pair in generator.MapTiles)
