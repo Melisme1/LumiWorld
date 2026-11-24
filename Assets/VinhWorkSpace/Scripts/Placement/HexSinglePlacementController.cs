@@ -829,10 +829,11 @@ public class HexSinglePlacementController : MonoBehaviour
             HexPlacementPreviewHUD.Instance.HidePreview();
         }
 
-        if (BiomeBuffVisualManager.Instance != null)
-        {
-            BiomeBuffVisualManager.Instance.HideHoverPreview();
-        }
+        // CancelPreview is also called from OnDisable while a scene is unloading.
+        // Use the non-creating accessor so cleanup cannot spawn a singleton during teardown.
+        BiomeBuffVisualManager buffVisualManager = BiomeBuffVisualManager.ExistingInstance;
+        if (buffVisualManager != null)
+            buffVisualManager.HideHoverPreview();
 
         if (ghostVisual != null)
         {
