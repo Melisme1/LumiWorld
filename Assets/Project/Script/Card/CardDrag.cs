@@ -6,7 +6,8 @@ using UnityEngine.InputSystem;
 public class CardDrag : MonoBehaviour,
     IBeginDragHandler,
     IDragHandler,
-    IEndDragHandler
+    IEndDragHandler,
+    IPointerClickHandler
 {
     [Header("Return Animation")]
     [SerializeField] private float returnDuration = 0.25f;
@@ -131,8 +132,29 @@ public class CardDrag : MonoBehaviour,
         transform.localRotation = Quaternion.Euler(0f, 0f, currentTilt);
     }
 
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (IsDragging || cardUI == null || cardUI.CardData == null || !cardUI.CardData.IsTerraformTool())
+        {
+            return;
+        }
+
+        if (cardUI.IsLocked)
+        {
+            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Card is locked: {cardUI.CurrentLockReason}");
+            return;
+        }
+
+        TerraformToolController.Instance.HandleCardClick(cardUI, eventData);
+    }
+
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (cardUI != null && cardUI.CardData != null && cardUI.CardData.IsTerraformTool())
+        {
+            return;
+        }
+
         // 0. Kiểm tra trạng thái khóa (Escrow, Breeding, Account-bound)
         if (cardUI != null && cardUI.IsLocked)
         {

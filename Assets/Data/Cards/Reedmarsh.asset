@@ -14,15 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: reedmarsh_001
   cardName: Reedmarsh
-  cardImage: {fileID: 21300000, guid: 38587557e4a92314d811f59c8ccc2936, type: 3}
+  cardImage: {fileID: 21300000, guid: ab07cca33a3b72947aa8817123bd8a18, type: 3}
   cardType: 1
+  rarity: 0
   islandId: wet
   reusable: 0
   elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 1
   alwaysBaseScore: 0
-  shopPrice: 20
-  placementFee: 0
+  shopPrice: 30
+  placementFee: 15
   prefabToPlace: {fileID: 0}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

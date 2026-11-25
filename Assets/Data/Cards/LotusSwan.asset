@@ -16,13 +16,16 @@ MonoBehaviour:
   cardName: Lotelle
   cardImage: {fileID: 21300000, guid: 2fc3b96a42bea3b4e8afae16f877438f, type: 3}
   cardType: 0
+  rarity: 0
   islandId: wet
   reusable: 0
   elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 3
   alwaysBaseScore: 0
-  shopPrice: 50
-  placementFee: 0
+  shopPrice: 75
+  placementFee: 15
   prefabToPlace: {fileID: 3616211192109015671, guid: cd98fbef545b3074d934e7a6843d3793, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

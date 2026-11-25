@@ -16,13 +16,16 @@ MonoBehaviour:
   cardName: Rain
   cardImage: {fileID: 21300000, guid: 7a2301fd1d54416db1820d3010861795, type: 3}
   cardType: 3
+  rarity: 0
   islandId: wet
   reusable: 0
   elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 1
   alwaysBaseScore: 1
-  shopPrice: 30
-  placementFee: 5
+  shopPrice: 45
+  placementFee: 15
   prefabToPlace: {fileID: 0}
   useEffectPrefab: {fileID: 5179857454117101156, guid: 666d43f9f3a0fde4ead3cc5e227ee31d, type: 3}
   useEffectOffset: {x: 0, y: 2, z: 0}

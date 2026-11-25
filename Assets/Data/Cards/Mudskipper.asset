@@ -16,13 +16,16 @@ MonoBehaviour:
   cardName: Reedle
   cardImage: {fileID: 21300000, guid: c6fb00001e809ed4c8c47a7ee9fabd4d, type: 3}
   cardType: 0
+  rarity: 0
   islandId: wet
   reusable: 0
   elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 3
   alwaysBaseScore: 0
-  shopPrice: 50
-  placementFee: 0
+  shopPrice: 75
+  placementFee: 15
   prefabToPlace: {fileID: 665323757822974834, guid: 10e21e0abb026c640a6de79ef471afe3, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

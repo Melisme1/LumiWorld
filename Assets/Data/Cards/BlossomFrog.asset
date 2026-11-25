@@ -16,13 +16,16 @@ MonoBehaviour:
   cardName: Puddleaf
   cardImage: {fileID: 21300000, guid: d86ba906dd9049146900ec141ebde849, type: 3}
   cardType: 0
+  rarity: 0
   islandId: wet
   reusable: 0
   elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 2
   alwaysBaseScore: 0
-  shopPrice: 50
-  placementFee: 0
+  shopPrice: 75
+  placementFee: 15
   prefabToPlace: {fileID: 6193276000993676348, guid: 90a568a2c9a4c0a4d86b322c46fd1e7d, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

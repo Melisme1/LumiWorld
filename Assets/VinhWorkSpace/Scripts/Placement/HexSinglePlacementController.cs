@@ -68,9 +68,15 @@ public class HexSinglePlacementController : MonoBehaviour
     private bool isPreviewing = false;
     private CardData currentCardData;
     private GameObject currentActiveTileObj;
+    private int triangleRainRotation = 0;
+    private int lastPreviewTriangleRotation = -1;
+    private float lastTriangleScrollTime = -10f;
+    private readonly List<HexCoordinates> cachedTriangleValidTargets = new List<HexCoordinates>(3);
+    private readonly List<(HexCoordinates hex, GameObject tileObj, bool valid)> cachedTriangleSlots = new List<(HexCoordinates, GameObject, bool)>(3);
 
     public bool IsPreviewing => isPreviewing;
     public bool IsHoveringValidTile => isHoveringValidTile;
+    public bool IsPreviewingTriangleRain => isPreviewing && currentCardData != null && currentCardData.isTriangleRain;
     public HexCoordinates CurrentHoverHex => currentHoverHex;
 
     private void Awake()
@@ -163,7 +169,35 @@ public class HexSinglePlacementController : MonoBehaviour
 
     private void Update()
     {
-        if (isPreviewing && ghostVisual != null && ghostVisual.IsGhostActive)
+        if (!isPreviewing) return;
+
+        if (IsPreviewingTriangleRain)
+        {
+            int deltaRot = 0;
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (kb != null)
+            {
+                if (kb.rKey.wasPressedThisFrame || kb.eKey.wasPressedThisFrame) deltaRot = 1;
+                else if (kb.qKey.wasPressedThisFrame) deltaRot = -1;
+            }
+            if (deltaRot == 0 && mouse != null && Time.unscaledTime > lastTriangleScrollTime + 0.12f)
+            {
+                float sy = mouse.scroll.ReadValue().y;
+                if (Mathf.Abs(sy) > 0.01f)
+                {
+                    deltaRot = sy > 0 ? 1 : -1;
+                    lastTriangleScrollTime = Time.unscaledTime;
+                }
+            }
+            if (deltaRot != 0)
+            {
+                triangleRainRotation = (triangleRainRotation + deltaRot + 6) % 6;
+                if (mouse != null) UpdatePreview(mouse.position.ReadValue());
+            }
+        }
+
+        if (ghostVisual != null && ghostVisual.IsGhostActive)
         {
             ghostVisual.AnimatePulseVisuals(isHoveringValidTile);
         }
@@ -186,6 +220,8 @@ public class HexSinglePlacementController : MonoBehaviour
         isPreviewing = true;
         isHoveringValidTile = false;
         hasValidPreviousHex = false;
+        triangleRainRotation = 0;
+        lastPreviewTriangleRotation = -1;
 
         if (ghostVisual != null)
         {
@@ -245,8 +281,17 @@ public class HexSinglePlacementController : MonoBehaviour
             int placementFee = currentCardData != null ? currentCardData.placementFee : 0;
             bool canAffordFee = placementFee <= 0 || CurrencyWallet.Instance.CanAfford(placementFee);
 
-            bool isValid = isTileInMap && validator != null && validator.ValidatePlacement(targetHex, worldGenerator, currentCardData, out _) && canAffordFee;
-            bool hexChanged = (!hasValidPreviousHex || targetHex != currentHoverHex);
+            bool isTriangleRain = currentCardData != null && currentCardData.isTriangleRain;
+            bool isValid;
+            if (isTriangleRain && validator != null)
+            {
+                isValid = validator.ValidateTriangleRain(targetHex, triangleRainRotation, worldGenerator, currentCardData, cachedTriangleValidTargets, cachedTriangleSlots) && canAffordFee;
+            }
+            else
+            {
+                isValid = isTileInMap && validator != null && validator.ValidatePlacement(targetHex, worldGenerator, currentCardData, out _) && canAffordFee;
+            }
+            bool hexChanged = !hasValidPreviousHex || targetHex != currentHoverHex || (isTriangleRain && lastPreviewTriangleRotation != triangleRainRotation);
 
             currentHoverHex = targetHex;
             isHoveringValidTile = isValid;
@@ -278,7 +323,20 @@ public class HexSinglePlacementController : MonoBehaviour
                 ghostVisual.SetPlacementFee(placementFee, canAffordFee);
                 ghostVisual.SetPositionAndOffset(baseTilePos, surfaceY, currentCardData);
 
-                if (hexChanged)
+                if (isTriangleRain)
+                {
+                    if (hexChanged)
+                    {
+                        currentActiveTileObj = tileObj;
+                        lastPreviewTriangleRotation = triangleRainRotation;
+                        ghostVisual.SyncTriangleHologramShells(cachedTriangleSlots, canAffordFee);
+                    }
+                    else
+                    {
+                        ghostVisual.AnimatePulseVisuals(isValid);
+                    }
+                }
+                else if (hexChanged)
                 {
                     currentActiveTileObj = tileObj;
                     ghostVisual.OnHexSelectionChanged(tileObj, isValid);
@@ -318,7 +376,22 @@ public class HexSinglePlacementController : MonoBehaviour
             return false;
         }
 
-        if (!validator.ValidatePlacement(currentHoverHex, worldGenerator, cardData, out GameObject targetTileObj))
+        bool isTriangle = cardData != null && cardData.isTriangleRain;
+        GameObject targetTileObj = null;
+        if (isTriangle)
+        {
+            if (!validator.ValidateTriangleRain(currentHoverHex, triangleRainRotation, worldGenerator, cardData, cachedTriangleValidTargets, cachedTriangleSlots))
+            {
+                if (!string.IsNullOrEmpty(validator.LastValidationError))
+                {
+                    Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
+                    HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Placement failed: {validator.LastValidationError}");
+                }
+                CancelPreview();
+                return false;
+            }
+        }
+        else if (!validator.ValidatePlacement(currentHoverHex, worldGenerator, cardData, out targetTileObj))
         {
             if (!string.IsNullOrEmpty(validator.LastValidationError))
             {
@@ -337,6 +410,11 @@ public class HexSinglePlacementController : MonoBehaviour
             HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Not enough Coins: Need {placementFee} Coins to place card.");
             CancelPreview();
             return false;
+        }
+
+        if (isTriangle)
+        {
+            return ConfirmTriangleRainPlacement(cardData, placementFee);
         }
 
         if (cardData != null && cardData.elevationChange != 0)
@@ -362,7 +440,7 @@ public class HexSinglePlacementController : MonoBehaviour
         if (cardData != null)
         {
             // Kiểm tra xem có phải thẻ Mưa (Rain Card) hay không
-            bool isRainCard = cardData.cardID == "Rain" || string.Equals(cardData.cardName, "Rain", System.StringComparison.OrdinalIgnoreCase);
+            bool isRainCard = cardData.IsRainCard();
             if (isRainCard)
             {
                 var disasterState = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
@@ -561,6 +639,115 @@ public class HexSinglePlacementController : MonoBehaviour
         WorldSaveSystem.RegisterPlacement(placedCardInstance);
         CancelPreview();
         return true;
+    }
+
+    private bool ConfirmTriangleRainPlacement(CardData cardData, int placementFee)
+    {
+        if (cardData == null || worldGenerator == null || worldGenerator.MapTiles == null || cachedTriangleValidTargets.Count == 0)
+        {
+            CancelPreview();
+            return false;
+        }
+
+        LumiWorld.Acs.HabitatRuntimeManager.PrepareForWorldChange();
+        currentActiveTileObj = null;
+
+        var targets = new List<HexCoordinates>(cachedTriangleValidTargets);
+        int appliedCount = 0;
+
+        for (int i = 0; i < targets.Count; i++)
+        {
+            HexCoordinates hex = targets[i];
+            if (!worldGenerator.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null)
+            {
+                continue;
+            }
+
+            float surfaceY = raycaster != null ? raycaster.GetTileSurfaceY(tileObj) : HexMetrics.TileHeight;
+            Vector3 spawnWorldPos = HexMetrics.HexToWorldPosition(hex, surfaceY) + cardData.placementOffset;
+
+            var disasterState = tileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
+            if (disasterState != null && disasterState.Has(LumiWorld.Acs.DisasterKind.Cyclone))
+            {
+                continue;
+            }
+
+            bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
+            bool hasPendingFire = LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var activeDisasterManager) &&
+                                  activeDisasterManager.IsTilePendingFire(tileObj);
+
+            if (hasDisasterOrBurned || hasPendingFire)
+            {
+                bool cured = false;
+                if (LumiWorld.Acs.DisasterRuntimeManager.Instance != null)
+                {
+                    cured = LumiWorld.Acs.DisasterRuntimeManager.Instance.ApplyRain(tileObj, LumiWorld.Acs.DisasterRainStrength.Heavy);
+                }
+                else if (disasterState != null)
+                {
+                    disasterState.isBurned = false;
+                    disasterState.ClearAll();
+                    disasterState.RefreshVisual();
+                    cured = true;
+                }
+
+                if (cured)
+                {
+                    PlayCardUseEffect(cardData, spawnWorldPos);
+                    appliedCount++;
+                }
+                continue;
+            }
+
+            if (cardData.IsTileTransformCard())
+            {
+                PlacedCard pc = TransformTile(tileObj, hex, cardData);
+                if (pc != null)
+                {
+                    if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out _))
+                    {
+                        LumiWorld.Acs.HabitatPlacementIdentity.BindPlacedCard(pc);
+                    }
+                    if (HexBiomeClusterConnector.Instance != null)
+                    {
+                        HexBiomeClusterConnector.Instance.ConnectCluster(pc);
+                    }
+                    if (RiverNetworkManager.Instance != null)
+                    {
+                        RiverNetworkManager.Instance.OnNeighborCardPlaced(hex, cardData);
+                    }
+                    PlayCardUseEffect(cardData, spawnWorldPos);
+                    ShowPlacementScorePopup(pc);
+                    WorldSaveSystem.RegisterPlacement(pc);
+                    appliedCount++;
+                }
+            }
+        }
+
+        if (appliedCount > 0)
+        {
+            if (placementFee > 0)
+            {
+                CurrencyWallet.Instance.TrySpend(placementFee, CoinReason.PlacementFee);
+            }
+            if (ScoreCalculator.Instance != null)
+            {
+                ScoreCalculator.Instance.RecalculateScore();
+            }
+            LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
+            if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var rainHabitatManager))
+            {
+                rainHabitatManager.RefreshNow();
+            }
+            if (LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var rainManager))
+            {
+                rainManager.RegisterRainCardUse();
+            }
+            WorldSaveSystem.MarkDirty();
+        }
+
+        CancelPreview();
+        return appliedCount > 0;
     }
 
     /// <summary>

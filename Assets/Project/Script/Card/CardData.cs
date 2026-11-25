@@ -9,6 +9,13 @@ public enum CardType
     Special
 }
 
+public enum CardRarity
+{
+    Common = 0,
+    Epic = 1,
+    Legend = 2
+}
+
 [CreateAssetMenu(
     fileName = "NewCard",
     menuName = "Card/Card Data"
@@ -22,11 +29,14 @@ public class CardData : ScriptableObject
 
     [Header("Type")]
     public CardType cardType;
+    public CardRarity rarity = CardRarity.Common;
 
     [Header("Island deck")]
     public string islandId = "starter";
     public bool reusable;
     [Range(-1, 1)] public int elevationChange;
+    public bool isTriangleRain = false;
+    public bool isTerraformTool = false;
 
     [Header("Score")]
     public int baseScore = 1;
@@ -121,6 +131,21 @@ public class CardData : ScriptableObject
     public bool IsRiverCard()
     {
         return isRiverCard || cardID == "River" || string.Equals(cardName, "River", System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool IsTerraformTool()
+    {
+        return isTerraformTool || elevationChange != 0;
+    }
+
+    public bool IsRainCard()
+    {
+        return isTriangleRain
+            || string.Equals(cardID, "Rain", System.StringComparison.OrdinalIgnoreCase)
+            || string.Equals(cardID, "Rain.Wet", System.StringComparison.OrdinalIgnoreCase)
+            || string.Equals(cardID, "Rain.Wet.Pouring", System.StringComparison.OrdinalIgnoreCase)
+            || string.Equals(cardName, "Rain", System.StringComparison.OrdinalIgnoreCase)
+            || string.Equals(cardName, "Pouring Rain", System.StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

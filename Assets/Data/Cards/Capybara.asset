@@ -16,13 +16,16 @@ MonoBehaviour:
   cardName: Pebbara
   cardImage: {fileID: 21300000, guid: 7db9f7d2e8754c54985bd4b8cc53dc6e, type: 3}
   cardType: 0
+  rarity: 0
   islandId: wet
   reusable: 0
   elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 3
   alwaysBaseScore: 0
-  shopPrice: 50
-  placementFee: 0
+  shopPrice: 75
+  placementFee: 15
   prefabToPlace: {fileID: 4212237079318299844, guid: b7a0b2b83ef8c094999df6aaad4ddba3, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

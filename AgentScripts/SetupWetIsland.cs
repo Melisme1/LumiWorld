@@ -53,7 +53,7 @@ public static class SetupWetIsland
         foreach (string name in new[] { "Lilywater", "Reedmarsh", "Rainleaf", "Streamstone" })
         {
             var card = Load<CardData>($"Assets/Data/Cards/{name}.asset");
-            card.cardImage = CardSprite($"Assets/UI_Icon_card/{name}.png");
+            card.cardImage = CardSprite($"Assets/Acs/UI Cards/Environment/{name}.png");
             EditorUtility.SetDirty(card);
             AssetDatabase.SaveAssetIfDirty(card);
         }
@@ -96,11 +96,15 @@ public static class SetupWetIsland
     {
         var shop = Load<ShopCatalog>("Assets/Data/Resources/Shop/ShopCatalog.asset");
         var saveCatalog = Load<CardCatalog>("Assets/Data/Save/CardCatalog.asset");
-        int defaultPrice = shop.defaultPrices.First(p => p.cardType == CardType.Creature).shopPrice;
-        if (defaultPrice <= 0) throw new InvalidOperationException("Configure a positive default Creature price.");
+        int starterPrice = shop.defaultPrices.First(p => p.cardType == CardType.Creature).shopPrice;
+        int starterFee = shop.defaultPrices.First(p => p.cardType == CardType.Creature).placementFee;
+        if (starterPrice <= 0) throw new InvalidOperationException("Configure a positive default Creature price.");
+        int wetPrice = Mathf.RoundToInt(starterPrice * 1.5f);
+        int wetFee = Mathf.RoundToInt(starterFee * 1.5f);
         foreach (var card in cards)
         {
-            if (card.shopPrice <= 0) { card.shopPrice = defaultPrice; Dirty(card); }
+            if (card.shopPrice != wetPrice) { card.shopPrice = wetPrice; Dirty(card); }
+            if (card.placementFee != wetFee) { card.placementFee = wetFee; Dirty(card); }
             if (!shop.cards.Contains(card)) shop.cards.Add(card);
             if (!shop.testCards.Contains(card)) shop.testCards.Add(card);
         }
@@ -247,8 +251,8 @@ public static class SetupWetIsland
                 var card = Asset<CardData>($"Assets/Data/Cards/{name}.asset");
                 card.cardID = name.ToLowerInvariant() + "_001";
                 card.cardName = name; card.cardType = CardType.Terrain; card.islandId = "wet";
-                card.cardImage = CardSprite($"Assets/UI_Icon_card/{name}.png");
-                card.shopPrice = 20; card.placementFee = 0; card.occupiesTile = true;
+                card.cardImage = CardSprite($"Assets/Acs/UI Cards/Environment/{name}.png");
+                card.shopPrice = 30; card.placementFee = 15; card.occupiesTile = true;
                 card.prefabToPlace = null; card.replacesTile = false;
                 card.allowedTilePrefabs = lush.ToList();
                 card.maxBiomeTilesOverride = 10;
@@ -264,20 +268,37 @@ public static class SetupWetIsland
             var wetRain = Asset<CardData>("Assets/Data/Cards/RainWet.asset");
             EditorUtility.CopySerialized(rain, wetRain);
             wetRain.name = "RainWet"; wetRain.cardID = "Rain.Wet"; wetRain.cardName = "Rain"; wetRain.islandId = "wet";
+            wetRain.rarity = CardRarity.Common; wetRain.isTriangleRain = false; wetRain.isTerraformTool = false;
+            wetRain.shopPrice = 45; wetRain.placementFee = 15;
+            wetRain.cardImage = CardSprite("Assets/Acs/UI Cards/Environment/Rain.png");
             wetRain.transformRules = new List<CardData.TileTransformPair>();
             for (int i=0;i<3;i++) wetRain.transformRules.Add(new CardData.TileTransformPair { aridTilePrefab=dry[i], lushTilePrefab=lush[i] });
             wetRain.allowedTilePrefabs = dry.ToList(); wetRain.prefabToPlace = null;
             Dirty(wetRain);
-            var tools = new List<CardData>();
-            foreach (int step in new[]{1,-1})
+            var pouringRain = Asset<CardData>("Assets/Data/Cards/PouringRain.asset");
+            EditorUtility.CopySerialized(wetRain, pouringRain);
+            pouringRain.name = "PouringRain"; pouringRain.cardID = "Rain.Wet.Pouring"; pouringRain.cardName = "Pouring Rain"; pouringRain.islandId = "wet";
+            pouringRain.reusable = false; pouringRain.isTriangleRain = true; pouringRain.isTerraformTool = false; pouringRain.elevationChange = 0;
+            pouringRain.rarity = CardRarity.Epic; pouringRain.shopPrice = 50; pouringRain.placementFee = 30;
+            pouringRain.baseScore = 1; pouringRain.alwaysBaseScore = true;
+            pouringRain.cardImage = CardSprite("Assets/Acs/UI Cards/Environment/PouringRain.png");
+            Dirty(pouringRain);
+            var raiseCard = Asset<CardData>("Assets/Data/Cards/Raise.asset");
+            raiseCard.cardID = "terraform.raise"; raiseCard.cardName = "Raise / Lower Land";
+            raiseCard.cardType = CardType.Special; raiseCard.islandId = "wet"; raiseCard.reusable = true;
+            raiseCard.isTerraformTool = true; raiseCard.isTriangleRain = false; raiseCard.elevationChange = 1;
+            raiseCard.rarity = CardRarity.Legend; raiseCard.shopPrice = 60; raiseCard.placementFee = 10; raiseCard.occupiesTile = false;
+            raiseCard.cardImage = CardSprite("Assets/Acs/UI Cards/Environment/RaiseLowerLand.png");
+            Dirty(raiseCard);
+            var lowerCard = Load<CardData>("Assets/Data/Cards/Lower.asset");
+            if (lowerCard != null)
             {
-                string name = step > 0 ? "Raise" : "Lower";
-                var card = Asset<CardData>($"Assets/Data/Cards/{name}.asset");
-                card.cardID = "terraform." + name.ToLowerInvariant(); card.cardName = name + " Land";
-                card.cardType = CardType.Special; card.islandId = "wet"; card.reusable = true; card.elevationChange = step;
-                card.shopPrice = 20; card.placementFee = 5; card.occupiesTile = false;
-                Dirty(card); tools.Add(card);
+                lowerCard.isTerraformTool = true; lowerCard.rarity = CardRarity.Legend;
+                lowerCard.shopPrice = 0; lowerCard.placementFee = 10;
+                lowerCard.cardImage = raiseCard.cardImage;
+                Dirty(lowerCard);
             }
+            var tools = new List<CardData> { raiseCard };
             catalog.islands = new List<IslandDefinition> {
                 new IslandDefinition { id="starter", displayName="Starter", habitatIsland=HabitatIsland.Starter,
                     center=new HexCoordinates(0,0), expansionRadius=3, dryTiles=world.TerrainPrefabs, rainCard=rain },
@@ -291,7 +312,8 @@ public static class SetupWetIsland
             RegisterCreatureCatalogs(creatures);
             Dirty(production); Dirty(catalog);
             var shop = Load<ShopCatalog>("Assets/Data/Resources/Shop/ShopCatalog.asset");
-            foreach (var card in nature.Concat(creatures).Concat(tools).Concat(new[]{wetRain}))
+            if (lowerCard != null) { shop.cards.RemoveAll(c => c == lowerCard); shop.testCards.RemoveAll(c => c == lowerCard); }
+            foreach (var card in nature.Concat(creatures).Concat(tools).Concat(new[]{wetRain, pouringRain}))
             {
                 if(!shop.cards.Contains(card)) shop.cards.Add(card);
                 if(!shop.testCards.Contains(card)) shop.testCards.Add(card);

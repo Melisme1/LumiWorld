@@ -43,6 +43,9 @@ public class CardShopUI : MonoBehaviour
         public CardData card;
         public RectTransform rect;
         public Image selectionBorder;
+        public Image rarityFrameOverlay;
+        public Image raiseArrow;
+        public Image lowerArrow;
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI priceText;
         public Button islandButton;
@@ -75,6 +78,9 @@ public class CardShopUI : MonoBehaviour
 
     // Right detail inspector
     private Image detailArt;
+    private Image detailRarityFrame;
+    private Image detailRaiseArrow;
+    private Image detailLowerArrow;
     private Image detailFallbackBg;
     private TextMeshProUGUI detailFallbackInitials;
     private TextMeshProUGUI detailTitle;
@@ -304,6 +310,9 @@ public class CardShopUI : MonoBehaviour
             detailBuyPriceValue.text = "-";
             detailFeeValue.text = "-";
             totalPriceText.text = "-";
+            if (detailRarityFrame != null) detailRarityFrame.enabled = false;
+            if (detailRaiseArrow != null) detailRaiseArrow.enabled = false;
+            if (detailLowerArrow != null) detailLowerArrow.enabled = false;
             if (detailIslandPillBtn != null) detailIslandPillBtn.gameObject.SetActive(false);
             buyButton.interactable = false;
             buyBtnBg.color = new Color(0.62f, 0.59f, 0.55f, 1f);
@@ -317,10 +326,19 @@ public class CardShopUI : MonoBehaviour
             detailArt.enabled = true;
             detailFallbackBg.enabled = false;
             detailFallbackInitials.gameObject.SetActive(false);
+            CardRarityFrameUtility.ApplyCardOverlays(
+                detailArt.rectTransform,
+                selectedCard,
+                ref detailRarityFrame,
+                ref detailRaiseArrow,
+                ref detailLowerArrow);
         }
         else
         {
             detailArt.enabled = false;
+            if (detailRarityFrame != null) detailRarityFrame.enabled = false;
+            if (detailRaiseArrow != null) detailRaiseArrow.enabled = false;
+            if (detailLowerArrow != null) detailLowerArrow.enabled = false;
             detailFallbackBg.enabled = true;
             detailFallbackBg.color = TypeColor(selectedCard.cardType);
             detailFallbackInitials.gameObject.SetActive(true);
@@ -631,16 +649,23 @@ public class CardShopUI : MonoBehaviour
         LumiWorldUITheme.ApplyButtonDisabledNeutral(cardBtn);
         cardBtn.onClick.AddListener(() => SelectCard(card));
 
-        // Left vertical Card Art (80 x 112 inside 174 x 132 tile)
+        // Left vertical Card Art (exact 2:3 74 x 111 inside 174 x 132 tile so overlays fit edge-to-edge)
         GameObject artObj = new GameObject("Art", typeof(RectTransform), typeof(Image));
         artObj.transform.SetParent(tile.rect, false);
-        LumiWorldUITheme.PlaceTopLeft(artObj.GetComponent<RectTransform>(), 8f, 10f, 80f, 112f);
+        RectTransform artRt = artObj.GetComponent<RectTransform>();
+        LumiWorldUITheme.PlaceTopLeft(artRt, 11f, 10.5f, 74f, 111f);
         Image artImg = artObj.GetComponent<Image>();
         artImg.raycastTarget = false;
         if (card.cardImage != null)
         {
             artImg.sprite = card.cardImage;
-            artImg.preserveAspect = true;
+            artImg.preserveAspect = false;
+            CardRarityFrameUtility.ApplyCardOverlays(
+                artRt,
+                card,
+                ref tile.rarityFrameOverlay,
+                ref tile.raiseArrow,
+                ref tile.lowerArrow);
         }
         else
         {
@@ -736,10 +761,10 @@ public class CardShopUI : MonoBehaviour
         RectTransform inspRt = inspImg.rectTransform;
         LumiWorldUITheme.PlaceTopLeft(inspRt, 594f, 60f, 262f, 476f);
 
-        // Card Art Box
+        // Card Art Box (exact 2:3 80 x 120)
         GameObject artBox = new GameObject("PreviewArt", typeof(RectTransform), typeof(Image));
         artBox.transform.SetParent(inspRt, false);
-        LumiWorldUITheme.PlaceTopLeft(artBox.GetComponent<RectTransform>(), 16f, 16f, 88f, 120f);
+        LumiWorldUITheme.PlaceTopLeft(artBox.GetComponent<RectTransform>(), 20f, 16f, 80f, 120f);
         detailFallbackBg = artBox.GetComponent<Image>();
         detailFallbackBg.sprite = LumiWorldUITheme.SurfaceSprite;
         detailFallbackBg.type = Image.Type.Sliced;
@@ -751,8 +776,13 @@ public class CardShopUI : MonoBehaviour
         imgObj.transform.SetParent(artBox.transform, false);
         LumiWorldUITheme.Stretch(imgObj.GetComponent<RectTransform>());
         detailArt = imgObj.GetComponent<Image>();
-        detailArt.preserveAspect = true;
+        detailArt.preserveAspect = false;
         detailArt.raycastTarget = false;
+        CardRarityFrameUtility.EnsureOverlayChildren(
+            detailArt.rectTransform,
+            ref detailRarityFrame,
+            ref detailRaiseArrow,
+            ref detailLowerArrow);
 
         detailTitle = LumiWorldUITheme.CreateLabel(inspRt, "Title", "Leafwood", 18.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.TopLeft, wrap: true);
         detailTitle.enableAutoSizing = true;

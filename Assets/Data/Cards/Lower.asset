@@ -14,15 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: terraform.lower
   cardName: Lower Land
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: fd33a622b0441f941b42fdd5c696e3af, type: 3}
   cardType: 3
+  rarity: 2
   islandId: wet
   reusable: 1
   elevationChange: -1
+  isTriangleRain: 0
+  isTerraformTool: 1
   baseScore: 1
   alwaysBaseScore: 0
-  shopPrice: 20
-  placementFee: 5
+  shopPrice: 0
+  placementFee: 10
   prefabToPlace: {fileID: 0}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

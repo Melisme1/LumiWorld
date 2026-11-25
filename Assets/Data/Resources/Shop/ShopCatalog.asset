@@ -33,8 +33,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
   - {fileID: 11400000, guid: 50825e7c01474c84585ac400c3b9a797, type: 2}
-  - {fileID: 11400000, guid: 469808dfefaca5248b6b47ee8a17a392, type: 2}
   - {fileID: 11400000, guid: 5459d5c122b1a294ab5b6f41c0a8e062, type: 2}
+  - {fileID: 11400000, guid: 93ed2826386172c4bbd8b04867122b47, type: 2}
   useTestCardList: 1
   testCards:
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
@@ -63,13 +63,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
   - {fileID: 11400000, guid: 50825e7c01474c84585ac400c3b9a797, type: 2}
-  - {fileID: 11400000, guid: 469808dfefaca5248b6b47ee8a17a392, type: 2}
   - {fileID: 11400000, guid: 5459d5c122b1a294ab5b6f41c0a8e062, type: 2}
+  - {fileID: 11400000, guid: 93ed2826386172c4bbd8b04867122b47, type: 2}
   unpricedTestCardPrice: 50
   defaultPrices:
   - cardType: 1
     shopPrice: 20
-    placementFee: 5
+    placementFee: 10
   - cardType: 0
     shopPrice: 50
     placementFee: 10
@@ -78,4 +78,4 @@ MonoBehaviour:
     placementFee: 10
   - cardType: 3
     shopPrice: 30
-    placementFee: 5
+    placementFee: 10

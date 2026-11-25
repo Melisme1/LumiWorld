@@ -102,7 +102,10 @@ public class HexCameraController : MonoBehaviour
         Vector2 mouseDelta = mouse.delta.ReadValue();
 
         bool isOverUI = EconomyHUD.IsPointerOverInteractiveUI(mouse.position.ReadValue());
-        bool isInPlacement = placementController != null && placementController.IsInPlacementMode;
+        bool isInClusterPlacement = placementController != null && placementController.IsInPlacementMode;
+        bool isTriangleRainPreview = HexSinglePlacementController.Instance != null && HexSinglePlacementController.Instance.IsPreviewingTriangleRain;
+        bool isInPlacement = isInClusterPlacement || TerraformToolController.IsActiveToolMode;
+        bool blockScrollZoom = isInClusterPlacement || isTriangleRainPreview;
 
         // 1. ĐIỀU KHIỂN CHUỘT
         if (!isCardDragging && !isOverUI)
@@ -164,10 +167,10 @@ public class HexCameraController : MonoBehaviour
         HandleKeyboardMovement(keyboard);
 
         // 3. ZOOM BẰNG CON LĂN CHUỘT (Mouse Scroll Wheel)
-        if (!isOverUI) HandleScrollZoom(mouse, isInPlacement, isAltHeld);
+        if (!isOverUI) HandleScrollZoom(mouse, blockScrollZoom, isAltHeld);
 
         // 4. XOAY BẰNG PHÍM Q / E (Khi không trong Placement Mode)
-        if (!isInPlacement)
+        if (!isInPlacement && !isTriangleRainPreview)
         {
             HandleKeyboardRotation(keyboard);
         }

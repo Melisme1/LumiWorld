@@ -48,6 +48,13 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private bool isPointerHovering;
     private Image artworkImage;
     private Image artworkCornerCoverImage;
+    private Image rarityFrameOverlay;
+    private Image terraformRaiseArrow;
+    private Image terraformLowerArrow;
+    private bool isTerraformActive;
+    private int terraformDirection = 1;
+    private bool terraformCanRaise = true;
+    private bool terraformCanLower = true;
 
     private static Sprite s_BadgeSprite;
     private static Sprite s_CardFrameSprite;
@@ -123,6 +130,12 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (artworkImage != null)
         {
             artworkImage.sprite = cardData.cardImage;
+            CardRarityFrameUtility.ApplyCardOverlays(
+                artworkImage.rectTransform.parent as RectTransform,
+                cardData,
+                ref rarityFrameOverlay,
+                ref terraformRaiseArrow,
+                ref terraformLowerArrow);
         }
         else if (cardImage != null)
         {
@@ -131,6 +144,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         UpdateCountBadge();
         UpdateLockBadge();
+        UpdateTerraformArrowsVisual();
         UpdateFrameHighlight();
     }
 
@@ -227,6 +241,12 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         artworkImage.preserveAspect = false;
         artworkImage.raycastTarget = false;
 
+        CardRarityFrameUtility.EnsureOverlayChildren(
+            maskRect,
+            ref rarityFrameOverlay,
+            ref terraformRaiseArrow,
+            ref terraformLowerArrow);
+
         // 3. Anti-aliased inner corner collar to smooth over the 1-bit stencil mask boundary
         Transform existingCover = transform.Find("ArtworkCornerCover");
         GameObject coverObj = existingCover != null
@@ -269,8 +289,98 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private void UpdateFrameHighlight()
     {
         if (!cardChromeApplied || cardImage == null) return;
-        bool highlight = isPointerHovering && !IsLocked;
+        bool highlight = (isPointerHovering || isTerraformActive) && !IsLocked;
         cardImage.sprite = highlight ? GetCardFrameHoverSprite() : GetCardFrameSprite();
+    }
+
+    public void SetTerraformVisualState(bool active, int direction, bool canRaise, bool canLower)
+    {
+        isTerraformActive = active;
+        terraformDirection = direction >= 0 ? 1 : -1;
+        terraformCanRaise = canRaise;
+        terraformCanLower = canLower;
+        UpdateFrameHighlight();
+        UpdateTerraformArrowsVisual();
+    }
+
+    public int GetTerraformClickZone(PointerEventData eventData)
+    {
+        RectTransform rt = transform as RectTransform;
+        if (rt == null || eventData == null) return 0;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, eventData.position, eventData.pressEventCamera, out Vector2 local))
+        {
+            return 0;
+        }
+        float halfW = rt.rect.width * 0.5f;
+        if (halfW <= 1f) return 0;
+        float normX = local.x / halfW;
+        if (normX <= -0.22f) return 1;
+        if (normX >= 0.22f) return -1;
+        return 0;
+    }
+
+    private void UpdateTerraformArrowsVisual()
+    {
+        bool show = cardData != null && cardData.IsTerraformTool();
+        if (terraformRaiseArrow != null)
+        {
+            terraformRaiseArrow.enabled = show && terraformRaiseArrow.sprite != null;
+            if (terraformRaiseArrow.enabled)
+            {
+                if (!isTerraformActive)
+                {
+                    terraformRaiseArrow.color = !terraformCanRaise
+                        ? new Color(0.55f, 0.55f, 0.55f, 0.28f)
+                        : new Color(1f, 1f, 1f, 0.96f);
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one;
+                }
+                else if (!terraformCanRaise)
+                {
+                    terraformRaiseArrow.color = new Color(0.55f, 0.55f, 0.55f, 0.24f);
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one * 0.88f;
+                }
+                else if (terraformDirection > 0)
+                {
+                    terraformRaiseArrow.color = Color.white;
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one * 1.14f;
+                }
+                else
+                {
+                    terraformRaiseArrow.color = new Color(0.85f, 0.85f, 0.85f, 0.48f);
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one * 0.94f;
+                }
+            }
+        }
+
+        if (terraformLowerArrow != null)
+        {
+            terraformLowerArrow.enabled = show && terraformLowerArrow.sprite != null;
+            if (terraformLowerArrow.enabled)
+            {
+                if (!isTerraformActive)
+                {
+                    terraformLowerArrow.color = !terraformCanLower
+                        ? new Color(0.55f, 0.55f, 0.55f, 0.28f)
+                        : new Color(1f, 1f, 1f, 0.96f);
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one;
+                }
+                else if (!terraformCanLower)
+                {
+                    terraformLowerArrow.color = new Color(0.55f, 0.55f, 0.55f, 0.24f);
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one * 0.88f;
+                }
+                else if (terraformDirection < 0)
+                {
+                    terraformLowerArrow.color = Color.white;
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one * 1.14f;
+                }
+                else
+                {
+                    terraformLowerArrow.color = new Color(0.85f, 0.85f, 0.85f, 0.48f);
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one * 0.94f;
+                }
+            }
+        }
     }
 
     private void UpdateLockBadge()
@@ -356,7 +466,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             }
         }
 
-        bool show = Count >= Mathf.Max(1, badgeShowFromCount);
+        bool show = !(cardData != null && cardData.reusable) && Count >= Mathf.Max(1, badgeShowFromCount);
         GameObject targetObj = badgeRootRect != null ? badgeRootRect.gameObject : countText.gameObject;
         if (targetObj.activeSelf != show)
         {

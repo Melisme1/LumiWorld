@@ -16,13 +16,16 @@ MonoBehaviour:
   cardName: Iriwing
   cardImage: {fileID: 21300000, guid: d20f824a5c97db2449d5739d2562533a, type: 3}
   cardType: 0
+  rarity: 0
   islandId: wet
   reusable: 0
   elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 1
   alwaysBaseScore: 0
-  shopPrice: 50
-  placementFee: 0
+  shopPrice: 75
+  placementFee: 15
   prefabToPlace: {fileID: 6112672474873694619, guid: 96ac9c98caa5a774ab78690283fcfabe, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}
