@@ -45,6 +45,44 @@ public class HexWorldGenerator : MonoBehaviour
     // Lưu danh sách các ô đã sinh ra để quản lý logic đặt bài sau này
     public Dictionary<HexCoordinates, GameObject> MapTiles { get; private set; } = new Dictionary<HexCoordinates, GameObject>();
 
+    public GameObject CreateTile(HexCoordinates hex, GameObject prefab, int elevation, bool lush, Quaternion rotation)
+    {
+        if (prefab == null || MapTiles.ContainsKey(hex)) return null;
+        var tile = Instantiate(prefab, HexMetrics.HexToWorldPosition(hex, spawnOffsetY), rotation, transform);
+        tile.name = $"Hex_{hex.Q}_{hex.R}_[{prefab.name}]_Type{elevation}";
+        var info = tile.GetComponent<HexTileInfo>() ?? tile.AddComponent<HexTileInfo>();
+        info.sourcePrefab = prefab;
+        info.coordinates = hex;
+        info.terrainTypeIndex = elevation;
+        info.elevationLevel = elevation;
+        info.hasLushEnvironment = lush;
+        if (tile.GetComponentInChildren<Collider>() == null)
+        {
+            var mesh = tile.GetComponentInChildren<MeshFilter>();
+            if (mesh != null && mesh.sharedMesh != null)
+            {
+                var collider = mesh.gameObject.AddComponent<BoxCollider>();
+                collider.center = mesh.sharedMesh.bounds.center;
+                collider.size = mesh.sharedMesh.bounds.size;
+            }
+        }
+        MapTiles.Add(hex, tile);
+        return tile;
+    }
+
+    public void CreateIslandCenter(HexCoordinates center, int radius, GameObject[] prefabs, int startingElevation)
+    {
+        for (int q = -radius; q <= radius; q++)
+            for (int r = Mathf.Max(-radius, -q - radius); r <= Mathf.Min(radius, -q + radius); r++)
+            {
+                var relative = new HexCoordinates(q, r);
+                // The opening Nature hand always has a legal three-hex home after Rain.
+                int level = (q == 0 && r == 0) || (q == 1 && r == 0) || (q == 0 && r == 1)
+                    ? startingElevation : Mathf.Abs(q * 7 + r * 11) % 3;
+                CreateTile(center + relative, prefabs[level], level, false, Quaternion.identity);
+            }
+    }
+
     private void Start()
     {
         // Đảo đã lưu thì dựng lại từ save (WorldSaveSystem chạy Start trước nhờ order -300).
@@ -217,9 +255,17 @@ public class HexWorldGenerator : MonoBehaviour
             if (tileInfo == null) tileInfo = tileInstance.AddComponent<HexTileInfo>();
             tileInfo.sourcePrefab = prefab;
             tileInfo.terrainTypeIndex = record.terrainTypeIndex;
+            tileInfo.elevationLevel = record.hasElevationLevel ? record.elevationLevel : record.terrainTypeIndex;
+            if (tileInfo.elevationLevel < 0)
+            {
+                // Legacy Rain kept its lush prefab but erased terrainTypeIndex. Infer once from its ground.
+                var (top, _, bottom) = HexBiomeClusterConnector.GetTileHeightLevels(tileInstance);
+                float height = top - bottom;
+                tileInfo.elevationLevel = height > 2.3f ? 2 : height > 1.5f ? 1 : 0;
+            }
             tileInfo.hasLushEnvironment = record.terrainDataVersion > 0
                 ? record.hasLushEnvironment
-                : prefab.name.IndexOf("_Lush", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                : prefab.name.IndexOf("Lush", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                   (!string.IsNullOrEmpty(record.objectName) &&
                    record.objectName.IndexOf("_Lush", System.StringComparison.OrdinalIgnoreCase) >= 0);
             tileInfo.coordinates = coords;

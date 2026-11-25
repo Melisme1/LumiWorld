@@ -13,11 +13,12 @@ MonoBehaviour:
   m_Name: BlossomFrogSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: blossomfrog
-  speciesName: "Ếch Hoa"
-  description: "Loài ếch nhỏ mang hoa văn rực rỡ tựa cánh hoa dại, thích thú nhảy nhót quanh những vũng sương mai trong thung lũng."
+  speciesName: Puddleaf
+  description: A lively blossom-crowned frog that hops gracefully between rain-kissed
+    leaves and puffs its throat in cheerful croaks.
   locomotionType: 0
-  baseWalkSpeed: 0.45
-  baseRunSpeed: 0.9
+  baseWalkSpeed: 0.48
+  baseRunSpeed: 0.96
   flightAltitude: 1.2
   personalRadius: 0.3
   yOffset: 0
@@ -28,10 +29,4 @@ MonoBehaviour:
   weight3Star: 14
   weight4Star: 6
   weight5Star: 2
-  traitPool:
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
+  traitPool: 000000000100000002000000030000000400000005000000

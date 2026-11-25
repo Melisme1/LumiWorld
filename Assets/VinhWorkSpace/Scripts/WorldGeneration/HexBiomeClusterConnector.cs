@@ -696,6 +696,9 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
 
         float baseY = tileObj.transform.position.y;
+        var surface = tileObj.GetComponent<HexTileInfo>()?.biomeSurface;
+        if (surface != null && surface.TryGetHeight(tileObj.transform.position, out float visualTop))
+            return (visualTop, visualTop - .09f, baseY);
         float localTop = 1.0f;
 
         MeshFilter tileMf = GetTileMeshFilter(tileObj);

@@ -1,0 +1,1672 @@
+[
+  {
+    "category": "Fern",
+    "modelName": "Fab_Fern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fab_Fern_01.obj",
+    "materialName": "M_Fab_Fern",
+    "albedoTex": "T_Fab_Fern_AlbedoAlpha.png",
+    "normalTex": "T_Fab_Fern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Fab_Fern_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fab_Fern_02.obj",
+    "materialName": "M_Fab_Fern",
+    "albedoTex": "T_Fab_Fern_AlbedoAlpha.png",
+    "normalTex": "T_Fab_Fern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Fern_AustralianSword_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fern_AustralianSword_01.obj",
+    "materialName": "M_Fern_AustralianSword",
+    "albedoTex": "T_Fern_AustralianSword_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Fern Plant Pack 1"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Fern_AustralianSword_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fern_AustralianSword_02.obj",
+    "materialName": "M_Fern_AustralianSword",
+    "albedoTex": "T_Fern_AustralianSword_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Fern Plant Pack 1"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Fern_Bead_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fern_Bead_01.obj",
+    "materialName": "M_Fern_Bead",
+    "albedoTex": "T_Fern_Bead_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Fern Plant Pack 1"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Fern_Bead_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fern_Bead_02.obj",
+    "materialName": "M_Fern_Bead",
+    "albedoTex": "T_Fern_Bead_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Fern Plant Pack 1"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Fern_Shuttlecock_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fern_Shuttlecock_01.obj",
+    "materialName": "M_Fern_Shuttlecock",
+    "albedoTex": "T_Fern_Shuttlecock_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Fern Plant Pack 1"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Fern_Shuttlecock_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Fern_Shuttlecock_02.obj",
+    "materialName": "M_Fern_Shuttlecock",
+    "albedoTex": "T_Fern_Shuttlecock_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Fern Plant Pack 1"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Field_Fern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Field_Fern_01.obj",
+    "materialName": "M_Grass_Fern",
+    "albedoTex": "T_Grass_Fern_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Fern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "Field_Fern_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Field_Fern_02.obj",
+    "materialName": "M_Grass_Fern",
+    "albedoTex": "T_Grass_Fern_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Fern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "JungleFol_GoldenFern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/JungleFol_GoldenFern_01.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "JungleFol_GoldenFern_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/JungleFol_GoldenFern_02.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "JungleFol_GoldenFern_03",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/JungleFol_GoldenFern_03.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "JungleFol_GreenFern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/JungleFol_GreenFern_01.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "JungleFol_GreenFern_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/JungleFol_GreenFern_02.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "JungleFol_GreenFern_03",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/JungleFol_GreenFern_03.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "NatureEnv_TropicalPalm_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/NatureEnv_TropicalPalm_02.obj",
+    "materialName": "Tropical/Materials/M_NatureEnv_Palm",
+    "albedoTex": "Tropical/Textures/T_NatureEnv_Palm_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "NatureEnv_TropicalPalm_03",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/NatureEnv_TropicalPalm_03.obj",
+    "materialName": "Tropical/Materials/M_NatureEnv_Palm",
+    "albedoTex": "Tropical/Textures/T_NatureEnv_Palm_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "StylizedTropical_FernTuft_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/StylizedTropical_FernTuft_01.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "StylizedTropical_FernTuft_02",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/StylizedTropical_FernTuft_02.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "SyloraBloom_Fern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/SyloraBloom_Fern_01.obj",
+    "materialName": "Tropical/Materials/M_SyloraBloomscape",
+    "albedoTex": "Tropical/Textures/T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Fab_FlowerBush_01",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Fab_FlowerBush_01.obj",
+    "materialName": "Tropical/Materials/M_Fab_FlowerBush",
+    "albedoTex": "Tropical/Textures/T_Fab_FlowerBush_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_Fab_FlowerBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Fab_FlowerBush_02",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Fab_FlowerBush_02.obj",
+    "materialName": "Tropical/Materials/M_Fab_FlowerBush",
+    "albedoTex": "Tropical/Textures/T_Fab_FlowerBush_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_Fab_FlowerBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Field_Grass_06",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Field_Grass_06.obj",
+    "materialName": "Grass/Materials/M_Grass_Field",
+    "albedoTex": "Grass/Textures/T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "Grass/Textures/T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Field_Grass_08",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Field_Grass_08.obj",
+    "materialName": "Grass/Materials/M_Grass_Field",
+    "albedoTex": "Grass/Textures/T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "Grass/Textures/T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Field_Grass_11",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Field_Grass_11.obj",
+    "materialName": "Grass/Materials/M_Grass_Field",
+    "albedoTex": "Grass/Textures/T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "Grass/Textures/T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Field_Grass_15",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Field_Grass_15.obj",
+    "materialName": "Grass/Materials/M_Grass_Field",
+    "albedoTex": "Grass/Textures/T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "Grass/Textures/T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Field_YarrowFlower_01",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Field_YarrowFlower_01.obj",
+    "materialName": "M_Grass_Yarrow",
+    "albedoTex": "T_Grass_Yarrow_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Yarrow_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Field_YarrowFlower_03",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Field_YarrowFlower_03.obj",
+    "materialName": "M_Grass_Yarrow",
+    "albedoTex": "T_Grass_Yarrow_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Yarrow_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Field_YarrowFlower_04",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Field_YarrowFlower_04.obj",
+    "materialName": "M_Grass_Yarrow",
+    "albedoTex": "T_Grass_Yarrow_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Yarrow_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_CloverPatch_03",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_CloverPatch_03.obj",
+    "materialName": "Grass/Materials/M_NatureEnv_Clover",
+    "albedoTex": "Grass/Textures/T_NatureEnv_Clover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_ReedCattail_01",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_ReedCattail_01.obj",
+    "materialName": "M_NatureEnv_Reed",
+    "albedoTex": "T_NatureEnv_Reed_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_ReedCattail_02",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_ReedCattail_02.obj",
+    "materialName": "M_NatureEnv_Reed",
+    "albedoTex": "T_NatureEnv_Reed_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_ReedCattail_03",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_ReedCattail_03.obj",
+    "materialName": "M_NatureEnv_Reed",
+    "albedoTex": "T_NatureEnv_Reed_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_ReedCattail_04",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_ReedCattail_04.obj",
+    "materialName": "M_NatureEnv_Reed",
+    "albedoTex": "T_NatureEnv_Reed_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_WaterLilyPad_01",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_WaterLilyPad_01.obj",
+    "materialName": "M_NatureEnv_LilyPad",
+    "albedoTex": "T_NatureEnv_LilyPad_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_WaterLilyPad_02",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_WaterLilyPad_02.obj",
+    "materialName": "M_NatureEnv_LilyPad",
+    "albedoTex": "T_NatureEnv_LilyPad_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_WaterLilyPad_03",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_WaterLilyPad_03.obj",
+    "materialName": "M_NatureEnv_LilyPad",
+    "albedoTex": "T_NatureEnv_LilyPad_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "NatureEnv_WaterLilyPad_04",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/NatureEnv_WaterLilyPad_04.obj",
+    "materialName": "M_NatureEnv_LilyPad",
+    "albedoTex": "T_NatureEnv_LilyPad_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_01",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_01.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_02",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_02.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_03",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_03.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_04",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_04.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_05",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_05.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_06",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_06.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_07",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_07.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_08",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_08.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_09",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_09.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_10",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_10.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_11",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_11.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_12",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_12.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_13",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_13.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_14",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_14.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_15",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_15.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_16",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_16.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_17",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_17.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_18",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_18.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_19",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_19.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_20",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_20.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_21",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_21.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_22",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_22.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_23",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_23.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Paliya_Flower_24",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Paliya_Flower_24.obj",
+    "materialName": "M_Paliya_Flowers",
+    "albedoTex": "T_Paliya_Flowers_AlbedoAlpha.png",
+    "normalTex": "T_Paliya_Flowers_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Paliya \u2013 Stylized Fantasy Flowers Pack 1"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_01.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_02.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_03",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_03.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_04",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_04.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_05",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_05.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_07",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_07.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_10",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_10.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_12",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_12.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_Grass_14",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_Grass_14.obj",
+    "materialName": "M_Grass_Field",
+    "albedoTex": "T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Field_YarrowFlower_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Field_YarrowFlower_02.obj",
+    "materialName": "Flower/Materials/M_Grass_Yarrow",
+    "albedoTex": "Flower/Textures/T_Grass_Yarrow_AlbedoAlpha.png",
+    "normalTex": "Flower/Textures/T_Grass_Yarrow_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Floralis_Clover_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Floralis_Clover_01.obj",
+    "materialName": "M_Floralis_Clover",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Floralis_Clover_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Floralis_Clover_02.obj",
+    "materialName": "M_Floralis_Clover",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Floralis_Clover_03",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Floralis_Clover_03.obj",
+    "materialName": "M_Floralis_Clover",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Floralis_Clover_05",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Floralis_Clover_05.obj",
+    "materialName": "M_Floralis_Clover",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "JungleFol_CloverPatch_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/JungleFol_CloverPatch_01.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "JungleFol_GrassClump_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/JungleFol_GrassClump_01.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "JungleFol_GrassTuft_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/JungleFol_GrassTuft_01.obj",
+    "materialName": "Tropical/Materials/M_JungleFoliage",
+    "albedoTex": "Tropical/Textures/T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "NatureEnv_BushFern_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/NatureEnv_BushFern_01.obj",
+    "materialName": "M_NatureEnv_BushFern",
+    "albedoTex": "T_NatureEnv_BushFern_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "NatureEnv_BushFern_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/NatureEnv_BushFern_02.obj",
+    "materialName": "M_NatureEnv_BushFern",
+    "albedoTex": "T_NatureEnv_BushFern_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "NatureEnv_BushFern_03",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/NatureEnv_BushFern_03.obj",
+    "materialName": "M_NatureEnv_BushFern",
+    "albedoTex": "T_NatureEnv_BushFern_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "NatureEnv_BushFern_04",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/NatureEnv_BushFern_04.obj",
+    "materialName": "M_NatureEnv_BushFern",
+    "albedoTex": "T_NatureEnv_BushFern_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "NatureEnv_CloverPatch_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/NatureEnv_CloverPatch_02.obj",
+    "materialName": "M_NatureEnv_Clover",
+    "albedoTex": "T_NatureEnv_Clover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "StylizedTropical_GrassPatch_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/StylizedTropical_GrassPatch_01.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "StylizedTropical_GrassPatch_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/StylizedTropical_GrassPatch_02.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "StylizedTropical_GrassPatch_03",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/StylizedTropical_GrassPatch_03.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "SyloraBloom_CloverPatch_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/SyloraBloom_CloverPatch_01.obj",
+    "materialName": "Tropical/Materials/M_SyloraBloomscape",
+    "albedoTex": "Tropical/Textures/T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "SyloraBloom_CloverPatch_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/SyloraBloom_CloverPatch_02.obj",
+    "materialName": "Tropical/Materials/M_SyloraBloomscape",
+    "albedoTex": "Tropical/Textures/T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "SyloraBloom_CloverPatch_03",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/SyloraBloom_CloverPatch_03.obj",
+    "materialName": "Tropical/Materials/M_SyloraBloomscape",
+    "albedoTex": "Tropical/Textures/T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "SyloraBloom_GrassCarpet_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/SyloraBloom_GrassCarpet_01.obj",
+    "materialName": "Tropical/Materials/M_SyloraBloomscape",
+    "albedoTex": "Tropical/Textures/T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "SyloraBloom_GrassCarpet_02",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/SyloraBloom_GrassCarpet_02.obj",
+    "materialName": "Tropical/Materials/M_SyloraBloomscape",
+    "albedoTex": "Tropical/Textures/T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "SyloraBloom_GrassCarpet_03",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/SyloraBloom_GrassCarpet_03.obj",
+    "materialName": "Tropical/Materials/M_SyloraBloomscape",
+    "albedoTex": "Tropical/Textures/T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Lotus",
+    "modelName": "Floralis_Clover_04",
+    "modelRelPath": "Assets/Acs/Art/Lotus/Models/Floralis_Clover_04.obj",
+    "materialName": "Grass/Materials/M_Floralis_Clover",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Lotus",
+    "modelName": "Floralis_Lotus_01",
+    "modelRelPath": "Assets/Acs/Art/Lotus/Models/Floralis_Lotus_01.obj",
+    "materialName": "M_Floralis_Lotus",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Lotus",
+    "modelName": "Floralis_Lotus_02",
+    "modelRelPath": "Assets/Acs/Art/Lotus/Models/Floralis_Lotus_02.obj",
+    "materialName": "M_Floralis_Lotus",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Lotus",
+    "modelName": "Floralis_Lotus_03",
+    "modelRelPath": "Assets/Acs/Art/Lotus/Models/Floralis_Lotus_03.obj",
+    "materialName": "M_Floralis_Lotus",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Lotus",
+    "modelName": "Floralis_Lotus_04",
+    "modelRelPath": "Assets/Acs/Art/Lotus/Models/Floralis_Lotus_04.obj",
+    "materialName": "M_Floralis_Lotus",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Lotus",
+    "modelName": "Floralis_Lotus_05",
+    "modelRelPath": "Assets/Acs/Art/Lotus/Models/Floralis_Lotus_05.obj",
+    "materialName": "M_Floralis_Lotus",
+    "albedoTex": "T_Floralis_LotusClover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Floralis _ Stylized Lotus & Clovers Plants Pack"
+  },
+  {
+    "category": "Lotus",
+    "modelName": "NatureEnv_CloverPatch_01",
+    "modelRelPath": "Assets/Acs/Art/Lotus/Models/NatureEnv_CloverPatch_01.obj",
+    "materialName": "Grass/Materials/M_NatureEnv_Clover",
+    "albedoTex": "Grass/Textures/T_NatureEnv_Clover_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Reed",
+    "modelName": "Wetland_CattailStylized_01",
+    "modelRelPath": "Assets/Acs/Art/Reed/Models/Wetland_CattailStylized_01.obj",
+    "materialName": "M_Wetland_CattailStylized_01",
+    "albedoTex": "T_Wetland_CattailStylized_01_Albedo.png",
+    "normalTex": "T_Wetland_CattailStylized_01_Normal.png",
+    "alphaClip": false,
+    "sourcePack": "Wetisland-newpack (Meshy)"
+  },
+  {
+    "category": "Reed",
+    "modelName": "Wetland_GoldenReedBush_01",
+    "modelRelPath": "Assets/Acs/Art/Reed/Models/Wetland_GoldenReedBush_01.obj",
+    "materialName": "M_Wetland_GoldenReedBush_01",
+    "albedoTex": "T_Wetland_GoldenReedBush_01_Albedo.png",
+    "normalTex": "T_Wetland_GoldenReedBush_01_Normal.png",
+    "alphaClip": false,
+    "sourcePack": "Wetisland-newpack (Meshy)"
+  },
+  {
+    "category": "Reed",
+    "modelName": "Wetland_GoldenReedSparse_01",
+    "modelRelPath": "Assets/Acs/Art/Reed/Models/Wetland_GoldenReedSparse_01.obj",
+    "materialName": "M_Wetland_GoldenReedSparse_01",
+    "albedoTex": "T_Wetland_GoldenReedSparse_01_Albedo.png",
+    "normalTex": "T_Wetland_GoldenReedSparse_01_Normal.png",
+    "alphaClip": false,
+    "sourcePack": "Wetisland-newpack (Meshy)"
+  },
+  {
+    "category": "Stone",
+    "modelName": "PropStone_MossyBoulder_01",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/PropStone_MossyBoulder_01.obj",
+    "materialName": "M_GameArt_PropStone",
+    "albedoTex": "T_PropStone_MossyBoulder_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "PropStone_MossyBoulder_02",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/PropStone_MossyBoulder_02.obj",
+    "materialName": "M_GameArt_PropStone",
+    "albedoTex": "T_PropStone_MossyBoulder_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "PropStone_MossyBoulder_03",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/PropStone_MossyBoulder_03.obj",
+    "materialName": "M_GameArt_PropStone",
+    "albedoTex": "T_PropStone_MossyBoulder_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "PropStone_MossyBoulder_04",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/PropStone_MossyBoulder_04.obj",
+    "materialName": "M_GameArt_PropStone",
+    "albedoTex": "T_PropStone_MossyBoulder_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "PropStone_MossyBoulder_05",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/PropStone_MossyBoulder_05.obj",
+    "materialName": "M_GameArt_PropStone",
+    "albedoTex": "T_PropStone_MossyBoulder_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "PropStone_MossyBoulder_06",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/PropStone_MossyBoulder_06.obj",
+    "materialName": "M_GameArt_PropStone",
+    "albedoTex": "T_PropStone_MossyBoulder_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Fab_BananaTree_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Fab_BananaTree_01.obj",
+    "materialName": "M_Fab_BananaTree",
+    "albedoTex": "T_Fab_BananaTree_AlbedoAlpha.png",
+    "normalTex": "T_Fab_BananaTree_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Fab_BananaTree_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Fab_BananaTree_02.obj",
+    "materialName": "M_Fab_BananaTree",
+    "albedoTex": "T_Fab_BananaTree_AlbedoAlpha.png",
+    "normalTex": "T_Fab_BananaTree_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Fab_PalmTree_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Fab_PalmTree_01.obj",
+    "materialName": "M_Fab_PalmTrunk|M_Fab_PalmLeaves",
+    "albedoTex": "T_Fab_PalmTrunk_Albedo.png|T_Fab_PalmLeaves_AlbedoAlpha.png",
+    "normalTex": "T_Fab_PalmTrunk_Normal.png|T_Fab_PalmLeaves_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Fab_PalmTree_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Fab_PalmTree_02.obj",
+    "materialName": "M_Fab_PalmTrunk|M_Fab_PalmLeaves",
+    "albedoTex": "T_Fab_PalmTrunk_Albedo.png|T_Fab_PalmLeaves_AlbedoAlpha.png",
+    "normalTex": "T_Fab_PalmTrunk_Normal.png|T_Fab_PalmLeaves_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Fab_PalmTree_03",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Fab_PalmTree_03.obj",
+    "materialName": "M_Fab_PalmTrunk|M_Fab_PalmLeaves",
+    "albedoTex": "T_Fab_PalmTrunk_Albedo.png|T_Fab_PalmLeaves_AlbedoAlpha.png",
+    "normalTex": "T_Fab_PalmTrunk_Normal.png|T_Fab_PalmLeaves_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tree",
+    "modelName": "StylizedTropical_BananaTree_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/StylizedTropical_BananaTree_01.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical_Bark|Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png|Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png|Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "StylizedTropical_PalmTree_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/StylizedTropical_PalmTree_01.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical_Bark|Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png|Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png|Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "StylizedTropical_PalmTree_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/StylizedTropical_PalmTree_02.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical_Bark|Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png|Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png|Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "StylizedTropical_PalmTree_03",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/StylizedTropical_PalmTree_03.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical_Bark|Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png|Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png|Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "StylizedTropical_PalmTree_04",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/StylizedTropical_PalmTree_04.obj",
+    "materialName": "Tropical/Materials/M_StylizedTropical_Bark|Tropical/Materials/M_StylizedTropical",
+    "albedoTex": "Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png|Tropical/Textures/T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_StylizedTropical_Normal.png|Tropical/Textures/T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Fab_Fern_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Fab_Fern_03.obj",
+    "materialName": "Fern/Materials/M_Fab_Fern",
+    "albedoTex": "Fern/Textures/T_Fab_Fern_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Fab_Fern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Fab_FlowerBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Fab_FlowerBush_03.obj",
+    "materialName": "M_Fab_FlowerBush",
+    "albedoTex": "T_Fab_FlowerBush_AlbedoAlpha.png",
+    "normalTex": "T_Fab_FlowerBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Fab_FlowerBush_04",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Fab_FlowerBush_04.obj",
+    "materialName": "M_Fab_FlowerBush",
+    "albedoTex": "T_Fab_FlowerBush_AlbedoAlpha.png",
+    "normalTex": "T_Fab_FlowerBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Fab_Orchid_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Fab_Orchid_01.obj",
+    "materialName": "M_Fab_Orchid",
+    "albedoTex": "T_Fab_Orchid_AlbedoAlpha.png",
+    "normalTex": "T_Fab_Orchid_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Field_Grass_09",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Field_Grass_09.obj",
+    "materialName": "Grass/Materials/M_Grass_Field",
+    "albedoTex": "Grass/Textures/T_Grass_Field_AlbedoAlpha.png",
+    "normalTex": "Grass/Textures/T_Grass_Field_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Grass Field Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_Broadleaf_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_Broadleaf_01.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_Broadleaf_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_Broadleaf_02.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_Broadleaf_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_Broadleaf_03.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_Monstera_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_Monstera_01.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_Monstera_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_Monstera_02.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_Monstera_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_Monstera_03.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_PalmBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_PalmBush_01.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_PalmBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_PalmBush_02.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_PalmBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_PalmBush_03.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "JungleFol_RoundLeaf_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/JungleFol_RoundLeaf_01.obj",
+    "materialName": "M_JungleFoliage",
+    "albedoTex": "T_JungleFoliage_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Low-Poly Jungle Foliage Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "NatureEnv_TropicalPalm_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/NatureEnv_TropicalPalm_01.obj",
+    "materialName": "M_NatureEnv_Palm",
+    "albedoTex": "T_NatureEnv_Palm_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "NatureEnv_TropicalPalm_04",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/NatureEnv_TropicalPalm_04.obj",
+    "materialName": "M_NatureEnv_Palm",
+    "albedoTex": "T_NatureEnv_Palm_AlbedoAlpha.png",
+    "normalTex": "",
+    "alphaClip": true,
+    "sourcePack": "Stylized Nature Environment Foliage Asset Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "StylizedTropical_AgaveBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/StylizedTropical_AgaveBush_01.obj",
+    "materialName": "M_StylizedTropical",
+    "albedoTex": "T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "StylizedTropical_BananaBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/StylizedTropical_BananaBush_01.obj",
+    "materialName": "M_StylizedTropical_Bark|M_StylizedTropical",
+    "albedoTex": "T_StylizedTropical_AlbedoAlpha.png|T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "T_StylizedTropical_Normal.png|T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "StylizedTropical_BroadleafBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/StylizedTropical_BroadleafBush_01.obj",
+    "materialName": "M_StylizedTropical",
+    "albedoTex": "T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "StylizedTropical_GiantShrub_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/StylizedTropical_GiantShrub_01.obj",
+    "materialName": "M_StylizedTropical",
+    "albedoTex": "T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "StylizedTropical_MonsteraBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/StylizedTropical_MonsteraBush_01.obj",
+    "materialName": "M_StylizedTropical_Bark|M_StylizedTropical",
+    "albedoTex": "T_StylizedTropical_AlbedoAlpha.png|T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "T_StylizedTropical_Normal.png|T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "StylizedTropical_MonsteraBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/StylizedTropical_MonsteraBush_02.obj",
+    "materialName": "M_StylizedTropical_Bark|M_StylizedTropical",
+    "albedoTex": "T_StylizedTropical_AlbedoAlpha.png|T_StylizedTropical_AlbedoAlpha.png",
+    "normalTex": "T_StylizedTropical_Normal.png|T_StylizedTropical_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Stylized Tropical Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SyloraBloom_Alocasia_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SyloraBloom_Alocasia_01.obj",
+    "materialName": "M_SyloraBloomscape",
+    "albedoTex": "T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SyloraBloom_Monstera_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SyloraBloom_Monstera_01.obj",
+    "materialName": "M_SyloraBloomscape",
+    "albedoTex": "T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SyloraBloom_RoundLeaf_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SyloraBloom_RoundLeaf_01.obj",
+    "materialName": "M_SyloraBloomscape",
+    "albedoTex": "T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SyloraBloom_SunlitBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SyloraBloom_SunlitBush_01.obj",
+    "materialName": "M_SyloraBloomscape",
+    "albedoTex": "T_SyloraBloomscape_AlbedoAlpha.png",
+    "normalTex": "T_SyloraBloomscape_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Sylora Bloomscape\u2013Stylized Foliage Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Fab_FlowerBush_06",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Fab_FlowerBush_06.obj",
+    "materialName": "Tropical/Materials/M_Fab_FlowerBush",
+    "albedoTex": "Tropical/Textures/T_Fab_FlowerBush_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_Fab_FlowerBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "FabCapture_Tropical_Plants_Pack_2026-11-10T15-10-11"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_01",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_01.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_02",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_02.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_03",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_03.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_04",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_04.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_05",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_05.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_06",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_06.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_07",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_07.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_08",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_08.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_09",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_09.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_10",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_10.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_11",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_11.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_12",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_12.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_13",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_13.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_14",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_14.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_15",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_15.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_16",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_16.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_17",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_17.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_18",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_18.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  },
+  {
+    "category": "Vine",
+    "modelName": "Vine_Plant_19",
+    "modelRelPath": "Assets/Acs/Art/Vine/Models/Vine_Plant_19.obj",
+    "materialName": "M_Vine_Plant",
+    "albedoTex": "T_Vine_Plant_AlbedoAlpha.png",
+    "normalTex": "T_Vine_Plant_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Vine Plants Pack"
+  }
+]

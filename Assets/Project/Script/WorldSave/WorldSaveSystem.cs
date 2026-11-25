@@ -617,6 +617,8 @@ public class WorldSaveSystem : MonoBehaviour
             model = model,
             objectName = tileObject.name,
             terrainTypeIndex = info.terrainTypeIndex,
+            hasElevationLevel = true,
+            elevationLevel = info.ElevationLevel,
             terrainDataVersion = 1,
             hasLushEnvironment = info.hasLushEnvironment,
             rotationStep = RotationStep(tileObject.transform.rotation),

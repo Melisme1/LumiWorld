@@ -231,7 +231,7 @@ public class CardShopUI : MonoBehaviour
         int idx = 0;
         foreach (TileView tile in allTiles)
         {
-            bool match = ClassifyShopCard(tile.card) == activeTab;
+            bool match = ClassifyShopCard(tile.card) == activeTab && CardShop.IsAvailable(tile.card);
             tile.rect.gameObject.SetActive(match);
             if (!match) continue;
 
@@ -254,7 +254,7 @@ public class CardShopUI : MonoBehaviour
             emptyGridLabel.gameObject.SetActive(visibleTiles.Count == 0);
         }
 
-        if (selectedCard == null || ClassifyShopCard(selectedCard) != activeTab)
+        if (selectedCard == null || !CardShop.IsAvailable(selectedCard) || ClassifyShopCard(selectedCard) != activeTab)
         {
             selectedCard = visibleTiles.Count > 0 ? visibleTiles[0].card : null;
             selectedQuantity = 1;

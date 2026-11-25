@@ -23,6 +23,11 @@ public class CardData : ScriptableObject
     [Header("Type")]
     public CardType cardType;
 
+    [Header("Island deck")]
+    public string islandId = "starter";
+    public bool reusable;
+    [Range(-1, 1)] public int elevationChange;
+
     [Header("Score")]
     public int baseScore = 1;
 

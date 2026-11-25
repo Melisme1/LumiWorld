@@ -34,6 +34,21 @@ public class HexCameraController : MonoBehaviour
     private bool isOrbiting = false;
 
     private bool isCardDragging;
+    public bool IsCardDragging => isCardDragging;
+    public bool IsFocusing { get; private set; }
+    public event System.Action<bool> FocusFinished;
+
+    public bool TryGetGroundFocus(out Vector3 point)
+    {
+        var ray = new Ray(transform.position, transform.forward);
+        if (new Plane(Vector3.up, Vector3.zero).Raycast(ray, out float distance) && distance >= 0f)
+        {
+            point = ray.GetPoint(distance);
+            return true;
+        }
+        point = default;
+        return false;
+    }
     private HexPlacementController placementController;
     public static HexCameraController Instance { get; private set; }
 
@@ -46,6 +61,8 @@ public class HexCameraController : MonoBehaviour
     {
         if (Instance == this) Instance = null;
     }
+
+    private void OnDisable() => CancelFocus();
 
     private void Start()
     {
@@ -72,6 +89,8 @@ public class HexCameraController : MonoBehaviour
 
     private void LateUpdate()
     {
+        // Focus owns the transform while moving. Manual input cancels it in the coroutine.
+        if (IsFocusing) return;
         var keyboard = Keyboard.current;
         var mouse = Mouse.current;
         if (mouse == null) return;
@@ -327,8 +346,27 @@ public class HexCameraController : MonoBehaviour
     /// </summary>
     public void FocusOnTarget(Vector3 targetWorldPos, float targetDistance = 5.5f, float duration = 1.25f)
     {
+        CancelFocus();
+        if (!isActiveAndEnabled) return;
+        IsFocusing = true;
+        focusCoroutine = StartCoroutine(FocusOnTargetRoutine(targetWorldPos, Mathf.Max(1f, targetDistance), Mathf.Max(0.01f, duration)));
+    }
+
+    public void CancelFocus()
+    {
+        if (!IsFocusing) return;
         if (focusCoroutine != null) StopCoroutine(focusCoroutine);
-        focusCoroutine = StartCoroutine(FocusOnTargetRoutine(targetWorldPos, targetDistance, duration));
+        FinishFocus(false);
+    }
+
+    private void FinishFocus(bool arrived)
+    {
+        targetPosition = transform.position;
+        targetEulerRotation = transform.eulerAngles;
+        UpdateOrbitPivot();
+        focusCoroutine = null;
+        IsFocusing = false;
+        FocusFinished?.Invoke(arrived);
     }
 
     private System.Collections.IEnumerator FocusOnTargetRoutine(Vector3 targetWorldPos, float targetDistance, float duration)
@@ -346,24 +384,35 @@ public class HexCameraController : MonoBehaviour
         currentOrbitDistance = targetDistance;
 
         Vector3 startPos = transform.position;
+        Quaternion startRotation = transform.rotation;
+        Quaternion endRotation = Quaternion.LookRotation(targetWorldPos - desiredCameraPos, Vector3.up);
         float elapsed = 0f;
+
+        // Ignore the click that requested the focus, not the player's next input.
+        yield return null;
 
         while (elapsed < duration)
         {
             var mouse = Mouse.current;
-            if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame || mouse.middleButton.wasPressedThisFrame || Mathf.Abs(mouse.scroll.ReadValue().y) > 0.1f))
+            var keyboard = Keyboard.current;
+            bool keyboardMovement = keyboard != null && (keyboard.wKey.isPressed || keyboard.aKey.isPressed ||
+                keyboard.sKey.isPressed || keyboard.dKey.isPressed || keyboard.upArrowKey.isPressed ||
+                keyboard.downArrowKey.isPressed || keyboard.leftArrowKey.isPressed || keyboard.rightArrowKey.isPressed ||
+                keyboard.escapeKey.wasPressedThisFrame);
+            if (keyboardMovement || isCardDragging || (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame || mouse.middleButton.wasPressedThisFrame || Mathf.Abs(mouse.scroll.ReadValue().y) > 0.1f)))
             {
-                focusCoroutine = null;
+                FinishFocus(false);
                 yield break;
             }
 
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
             targetPosition = Vector3.Lerp(startPos, desiredCameraPos, t);
+            transform.SetPositionAndRotation(targetPosition, Quaternion.Slerp(startRotation, endRotation, t));
             yield return null;
         }
 
         targetPosition = desiredCameraPos;
-        focusCoroutine = null;
+        FinishFocus(true);
     }
 }

@@ -19,6 +19,22 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+  - {fileID: 11400000, guid: 30968363e4ee01e44969f52482d6a2ad, type: 2}
+  - {fileID: 11400000, guid: 019f359a5517d6642800e7072f4b8e45, type: 2}
+  - {fileID: 11400000, guid: 9d6d45f221056a342a2fe04a89bc2832, type: 2}
+  - {fileID: 11400000, guid: 7f44c078bfa786045a711741b9a6d7ec, type: 2}
+  - {fileID: 11400000, guid: def0ed40bee6ced428f6e562ef186c34, type: 2}
+  - {fileID: 11400000, guid: bc4786938dbf4874c9149d416f82e4f4, type: 2}
+  - {fileID: 11400000, guid: fffa63d6ce12e0149ba14caed660b01c, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000016, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
+  - {fileID: 11400000, guid: 50825e7c01474c84585ac400c3b9a797, type: 2}
+  - {fileID: 11400000, guid: 469808dfefaca5248b6b47ee8a17a392, type: 2}
+  - {fileID: 11400000, guid: 5459d5c122b1a294ab5b6f41c0a8e062, type: 2}
   useTestCardList: 1
   testCards:
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
@@ -33,6 +49,22 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+  - {fileID: 11400000, guid: 30968363e4ee01e44969f52482d6a2ad, type: 2}
+  - {fileID: 11400000, guid: 019f359a5517d6642800e7072f4b8e45, type: 2}
+  - {fileID: 11400000, guid: 9d6d45f221056a342a2fe04a89bc2832, type: 2}
+  - {fileID: 11400000, guid: 7f44c078bfa786045a711741b9a6d7ec, type: 2}
+  - {fileID: 11400000, guid: def0ed40bee6ced428f6e562ef186c34, type: 2}
+  - {fileID: 11400000, guid: bc4786938dbf4874c9149d416f82e4f4, type: 2}
+  - {fileID: 11400000, guid: fffa63d6ce12e0149ba14caed660b01c, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000016, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
+  - {fileID: 11400000, guid: 50825e7c01474c84585ac400c3b9a797, type: 2}
+  - {fileID: 11400000, guid: 469808dfefaca5248b6b47ee8a17a392, type: 2}
+  - {fileID: 11400000, guid: 5459d5c122b1a294ab5b6f41c0a8e062, type: 2}
   unpricedTestCardPrice: 50
   defaultPrices:
   - cardType: 1

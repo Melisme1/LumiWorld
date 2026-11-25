@@ -5,6 +5,10 @@ using UnityEngine;
 /// </summary>
 public class HexTileInfo : MonoBehaviour
 {
+    [System.NonSerialized] public LumiWorld.Acs.BiomeSurface biomeSurface;
+    // Independent from terrainTypeIndex, which Rain sets to -1.
+    public int elevationLevel = -1;
+    public int ElevationLevel => elevationLevel >= 0 ? elevationLevel : terrainTypeIndex;
     [Tooltip("Prefab gốc được dùng để sinh ra ô này")]
     public GameObject sourcePrefab;
 

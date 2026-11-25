@@ -13,13 +13,12 @@ MonoBehaviour:
   m_Name: ParrotSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: parrot
-  speciesName: "Chim V\u1EB9t"
-  description: "Lo\xE0i v\u1EB9t 7 m\xE0u r\u1EF1c r\u1EE1 bay l\u01B0\u1EE3n tr\xEAn
-    nh\u1EEFng \u0111\u1EC9nh n\xFAi cao l\u1ED9ng gi\xF3, ti\u1EBFng h\xF3t vang
-    v\u1ECDng mang l\u1EA1i kh\xF4ng kh\xED vui t\u01B0\u01A1i."
-  locomotionType: 0
+  speciesName: Heliko
+  description: A vibrant tropical blossom bird that beats its floral wings powerfully
+    and swoops gracefully across the Wet Island skies.
+  locomotionType: 1
   baseWalkSpeed: 0.5
-  baseRunSpeed: 1.0
+  baseRunSpeed: 1
   flightAltitude: 1.4
   personalRadius: 0.35
   yOffset: 0
@@ -30,10 +29,4 @@ MonoBehaviour:
   weight3Star: 14
   weight4Star: 6
   weight5Star: 2
-  traitPool:
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
+  traitPool: 000000000100000002000000030000000400000005000000

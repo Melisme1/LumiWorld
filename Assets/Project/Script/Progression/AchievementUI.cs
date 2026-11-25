@@ -81,6 +81,7 @@ public class AchievementUI : MonoBehaviour
     private TextMeshProUGUI _claimBtnLabel;
 
     private AchievementCategory _activeCategory = AchievementCategory.All;
+    private string _islandChapter = "starter";
     private readonly List<AchievementEntry> _allEntries = new List<AchievementEntry>();
     private readonly List<AchievementEntry> _filteredEntries = new List<AchievementEntry>();
     private readonly Dictionary<string, GameObject> _selectionBorders = new Dictionary<string, GameObject>();
@@ -252,6 +253,14 @@ public class AchievementUI : MonoBehaviour
 
     private void BuildHeader()
     {
+        for (int i = 0; i < 2; i++)
+        {
+            string chapter = i == 0 ? "starter" : "wet";
+            var chapterButton = LumiWorldUITheme.CreatePillButton(_windowRect, chapter + "Chapter", i == 0 ? "Starter" : "Wet",
+                null, false, 14f, () => { _islandChapter = chapter; _selectedKey = null; RebuildEntries(); ApplyCategoryFilter(true); },
+                out _, out _, out _);
+            LumiWorldUITheme.PlaceTopLeft(chapterButton.GetComponent<RectTransform>(), 230f + i * 105f, 20f, 98f, 34f);
+        }
         string headerGlyph = LumiWorldUITheme.Glyph("G-02") != null ? "G-02" : "G-03";
         Button badgeTitle = LumiWorldUITheme.CreatePillButton(
             _windowRect, "TitleBadge", "Achievements", headerGlyph, true, 16f,
@@ -512,7 +521,7 @@ public class AchievementUI : MonoBehaviour
             for (int i = 0; i < mgr.Milestones.Count; i++)
             {
                 IslandMilestone m = mgr.Milestones[i];
-                if (m == null) continue;
+                if (m == null || (string.IsNullOrEmpty(m.islandId) ? "starter" : m.islandId) != _islandChapter) continue;
                 AchievementCategory cat = ResolveCategory(m.id);
                 float frac = m.isCompleted ? 1f : Mathf.Clamp01(m.currentProgress);
                 _allEntries.Add(new AchievementEntry
@@ -543,7 +552,7 @@ public class AchievementUI : MonoBehaviour
             for (int i = 0; i < mgr.Achievements.Count; i++)
             {
                 AchievementGoal g = mgr.Achievements[i];
-                if (g == null) continue;
+                if (g == null || (string.IsNullOrEmpty(g.islandId) ? "starter" : g.islandId) != _islandChapter) continue;
                 AchievementCategory cat = ResolveCategory(g.id);
                 int target = Mathf.Max(1, g.targetCount);
                 int cur = Mathf.Clamp(g.currentCount, 0, target);
@@ -887,6 +896,7 @@ public class AchievementUI : MonoBehaviour
 
     private static AchievementCategory ResolveCategory(string id)
     {
+        if (id != null && id.Contains(":")) id = id.Substring(id.IndexOf(':') + 1);
         switch (id)
         {
             case "M1_FIRST_HABITAT":
@@ -913,6 +923,7 @@ public class AchievementUI : MonoBehaviour
 
     private static string ResolveBadgeId(string id, bool isMilestone, int fallbackIndex)
     {
+        if (id != null && id.Contains(":")) id = id.Substring(id.IndexOf(':') + 1);
         switch (id)
         {
             case "M1_FIRST_HABITAT": return "A-01";

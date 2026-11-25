@@ -67,6 +67,7 @@ public class HexPlacementController : MonoBehaviour
     [SerializeField] private List<CardData> landPlacementRewardCards = new();
 
     public int AvailableExpansionCharges => availableExpansionCharges;
+    public void RegisterClusterCenter(HexCoordinates center) => placedClusterCenters.Add(center);
     public UnityEngine.UI.Button CreateLandButton => createLandButton;
 
     private void Awake()
@@ -243,6 +244,12 @@ public class HexPlacementController : MonoBehaviour
         }
 
         // Đảm bảo đảo khởi đầu đã có tâm (0, 0)
+        var islandRuntime = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
+        if (islandRuntime != null)
+        {
+            if (!islandRuntime.IsUnlocked(islandRuntime.ActiveIslandId)) return;
+            terrainPrefabs = islandRuntime.ActiveTerrain;
+        }
         if (placedClusterCenters.Count == 0)
         {
             placedClusterCenters.Add(new HexCoordinates(0, 0));
@@ -449,6 +456,8 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     private bool IsRegionPlacementValid(HexCoordinates candidateCenter)
     {
+        var islands = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
+        if (islands != null && !islands.AllowsExpansion(candidateCenter)) return false;
         if (worldGenerator == null || worldGenerator.MapTiles == null || currentCluster == null) return false;
         var existingTiles = worldGenerator.MapTiles;
 
@@ -488,7 +497,7 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     private void ConfirmPlacement()
     {
-        if (worldGenerator == null) return;
+        if (worldGenerator == null || availableExpansionCharges <= 0 || !IsRegionPlacementValid(currentHoverHex)) return;
 
         foreach (var tile in currentCluster.tiles)
         {
@@ -545,6 +554,15 @@ public class HexPlacementController : MonoBehaviour
         // Tặng ngay gói thẻ bài khai hoang vào tay để có bài phủ xanh mảng đất mới
         if (landPlacementRewardCards != null && landPlacementRewardCards.Count > 0 && CardDeskController.Instance != null)
         {
+            var island = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
+            if (island != null && island.ActiveIslandId != "starter")
+            {
+                var definition = island.Catalog.Find(island.ActiveIslandId);
+                var nature = definition.startingNature[Random.Range(0, definition.startingNature.Length)];
+                for (int i = 0; i < 3; i++) CardDeskController.Instance.AddRewardCard(nature);
+                for (int i = 0; i < 6; i++) CardDeskController.Instance.AddRewardCard(definition.rainCard);
+            }
+            else
             foreach (var card in landPlacementRewardCards)
             {
                 if (card != null)

@@ -387,7 +387,11 @@ namespace LumiWorld.Acs
                         "; còn " + item.Remaining + "; " + item.Reason, this);
                 // Events see both final stock and final source buffers.
                 PublishState();
-                if (LastCollection.TotalTransferred > 0) PersistAfterCollect();
+                if (LastCollection.TotalTransferred > 0)
+                {
+                    AchievementManager.Instance?.ReportHarvest(LastCollection);
+                    PersistAfterCollect();
+                }
                 var listeners = ResourcesCollected;
                 if (listeners != null)
                     foreach (Action<ResourceCollectionReceipt> listener in listeners.GetInvocationList())

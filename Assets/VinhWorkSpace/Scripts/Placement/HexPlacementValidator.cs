@@ -48,6 +48,8 @@ public class HexPlacementValidator : MonoBehaviour
         }
 
         bool useHabitatRules = LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager);
+        if (!LumiWorld.Acs.Islands.IslandPlacementRules.CanUse(cardData, coords, tileObj, out lastValidationError)) return false;
+        if (cardData != null && cardData.elevationChange != 0) return true;
 
         // 0. Kiểm tra thẻ Mưa (Rain Card) và trạng thái thiên tai / cháy rụi (isBurned)
         var disasterState = tileObj != null ? tileObj.GetComponent<LumiWorld.Acs.TileDisasterState>() : null;
@@ -274,7 +276,7 @@ public class HexPlacementValidator : MonoBehaviour
         }
 
         // Mapped creature residency follows GDD affinities; physical prefab lists remain for other cards.
-        if (cardData != null && !(useHabitatRules && cardData.cardType == CardType.Creature) && !cardData.IsTileAllowed(tileObj, worldGen))
+        if (cardData != null && !LumiWorld.Acs.Islands.IslandPlacementRules.IsWetNature(cardData) && !(useHabitatRules && cardData.cardType == CardType.Creature) && !cardData.IsTileAllowed(tileObj, worldGen))
         {
             lastValidationError = "Terrain is not suitable for this creature/card.";
             return false;

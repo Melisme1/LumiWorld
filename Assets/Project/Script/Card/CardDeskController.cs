@@ -579,7 +579,7 @@ public class CardDeskController : MonoBehaviour
         {
             if (card == null) continue;
             CardUI ui = card.GetComponent<CardUI>();
-            if (ui == null || ui.CardData == null) continue;
+            if (ui == null || !BelongsToActiveIsland(ui.CardData)) continue;
             TrayCategory cat = ClassifyCard(ui.CardData);
             countsByCat[cat] = countsByCat[cat] + Mathf.Max(1, ui.Count);
         }
@@ -755,7 +755,7 @@ public class CardDeskController : MonoBehaviour
         foreach (GameObject card in cards)
         {
             CardUI ui = card.GetComponent<CardUI>();
-            bool match = ui != null && ui.CardData != null && ClassifyCard(ui.CardData) == activeCategory;
+            bool match = ui != null && BelongsToActiveIsland(ui.CardData) && ClassifyCard(ui.CardData) == activeCategory;
             if (match)
             {
                 visibleCards.Add(card);
@@ -980,6 +980,18 @@ public class CardDeskController : MonoBehaviour
 
     private bool deferHandFileWrite;
 
+    public string ActiveIslandId { get; private set; } = "starter";
+    private bool BelongsToActiveIsland(CardData data) => data != null &&
+        (string.IsNullOrEmpty(data.islandId) ? "starter" : data.islandId) == ActiveIslandId;
+
+    public void SelectIsland(string islandId)
+    {
+        if (string.IsNullOrEmpty(islandId) || islandId == ActiveIslandId) return;
+        ActiveIslandId = islandId;
+        UpdateCategoryTabVisuals();
+        LayoutVisibleCards(initialSpawn: true);
+    }
+
     public bool HandReady => handLoaded && !WorldLaunch.IsVisit;
 
     public int GetHeldCount(string cardId) => handCounts.TryGetValue(cardId, out int held) ? held : 0;
@@ -1150,6 +1162,8 @@ public class CardDeskController : MonoBehaviour
         }
 
         string key = GetCardKey(cardData);
+
+        if (cardData.reusable && GetHeldCount(key) > 0) return;
 
         handCounts[key] = (handCounts.TryGetValue(key, out int heldBefore) ? heldBefore : 0) + 1;
         SaveHand();

@@ -98,6 +98,7 @@ public class PendingFireRecord
 [Serializable]
 public class HabitatSaveRecord
 {
+    public bool confirmedFormation;
     public string habitatId;
     public string islandId;
     public string natureCardId;
@@ -179,6 +180,8 @@ public class HexPointRecord
 [Serializable]
 public class TileRecord
 {
+    public bool hasElevationLevel;
+    public int elevationLevel;
     public int q, r;
     public string model;          // khóa prefab trong TileCatalog (GUID của asset)
     public string objectName;     // tên GameObject y hệt lúc lưu, thiên tai tìm ô theo tên

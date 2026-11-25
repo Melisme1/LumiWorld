@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &876550721981591534
+--- !u!1001 &5446665499259494960
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -8,95 +8,125 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: -7981514964708312862, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
-      propertyPath: m_Name
-      value: thiennga_anm
-      objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.5
+      value: 0.6
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalRotation.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -6601043233671942095, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -3910990755373119420, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8425563529021635733, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -2272193907538426981, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: m_WrapMode
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -2272193907538426981, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: m_Animation
+      value: 
+      objectReference: {fileID: 8513874004014098567, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -2272193907538426981, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: 'm_Animations.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8513874004014098567, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -2272193907538426981, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: 'm_Animations.Array.data[1]'
+      value: 
+      objectReference: {fileID: -8249539073266652428, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -2272193907538426981, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: 'm_Animations.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2113812383101728488, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - target: {fileID: -2246336462756051289, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: bff056ae5eb21314a8f3714dc995bb51, type: 2}
-    - target: {fileID: 8554863620008749381, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
-      propertyPath: m_Animations.Array.size
-      value: 2
+    - target: {fileID: 8771091787928289351, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      propertyPath: m_Name
+      value: thiennga_anm
       objectReference: {fileID: 0}
-    - target: {fileID: 8554863620008749381, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
-      propertyPath: 'm_Animations.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2113812383101728488, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: -7981514964708312862, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -6248712355040239368}
-  m_SourcePrefab: {fileID: 3150474306388093854, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
---- !u!1 &2094688748817848076 stripped
+      addedObject: {fileID: 521237203926301635}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5197388145898524048}
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 975813738591427517}
+  m_SourcePrefab: {fileID: -4161369568681901532, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+--- !u!1 &3616211192109015671 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: -7981514964708312862, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
-  m_PrefabInstance: {fileID: 876550721981591534}
+  m_CorrespondingSourceObject: {fileID: 8771091787928289351, guid: c67e4dba0964e1b4897a3db649fd0036, type: 3}
+  m_PrefabInstance: {fileID: 5446665499259494960}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &-6248712355040239368
+--- !u!114 &521237203926301635
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2094688748817848076}
+  m_GameObject: {fileID: 3616211192109015671}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04b802f65120a3b438c9d81ff7bb2d3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmAnimalAI
-  animalID: 
+  animalID: thiennga_anm
   biome: 0
-  isAquatic: 0
-  moveAnimName: Walk
+  isAquatic: 1
+  isFlying: 0
+  flightAltitude: 1.2
+  flightBobbingAmplitude: 0.08
+  flightBobbingFrequency: 3.2
+  moveAnimName: Swim_Horizontal
   idleAnimName: Idle
   mountainTileTag: MountainTile
   forestTileTag: ForestTile
@@ -107,10 +137,76 @@ MonoBehaviour:
   stayInCurrentHexChance: 0.7
   circleRadius: 0.45
   connectionDuration: 20
-  yOffset: 0.05
+  yOffset: 0
   currentState: 0
   groupPartners: []
   fastCooldownForTesting: 0
   isConnectionOnCooldown: 0
   cooldownRemainingSeconds: 0
-  formattedCooldownRemaining: "S\u1EB5n s\xE0ng (Ready)"
+  formattedCooldownRemaining: Ready
+--- !u!114 &5197388145898524048
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3616211192109015671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e075c4bf0a40e49a87faf5df5942d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalMovementAI
+  walkSpeed: 0.45
+  runSpeed: 0.9
+  swimSpeed: 0.55
+  flySpeed: 0.9
+  locomotionType: 0
+  autoDetectFlying: 0
+  flightAltitude: 1.2
+  flightBobbingFrequency: 3.2
+  flightBobbingAmplitude: 0.08
+  maxBankAngle: 22
+  bankSpeed: 6
+  landChance: 0
+  altitudeSmoothSpeed: 2.8
+  rotationSpeed: 160
+  turnBeforeWalking: 1
+  turnThresholdAngle: 60
+  yOffset: 0
+  autoDetectYOffset: 0
+  stayInCurrentHexChance: 0.55
+  maxWanderRadius: 0.45
+  safeHexRadius: 0.78
+  minIdleTime: 1.4
+  maxIdleTime: 3
+  idleTurnChance: 0.3
+  preferCameraFacingGlade: 1
+  personalRadius: 0.22
+  avoidanceWeight: 1.4
+  separationSpeed: 2.2
+--- !u!114 &975813738591427517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3616211192109015671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e64c5713fc39394abcbc517af91b1f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalVisualEnhancer
+  enableCanopyFade: 1
+  fadedCanopyAlpha: 0.35
+  fadeSpeed: 5
+  canopyCheckRadius: 1.8
+  enableOverheadCrest: 1
+  crestHeightOffset: 0.35
+  crestScale: 0.1
+  crestColor: {r: 2.5, g: 2.1, b: 1, a: 1}
+  crestBobSpeed: 2.8
+  crestBobAmplitude: 0.04
+  enableRimGlow: 1
+  rimColor: {r: 1.8, g: 1.4, b: 0.7, a: 1}
+  rimPower: 2.2
+  rimIntensity: 2.5

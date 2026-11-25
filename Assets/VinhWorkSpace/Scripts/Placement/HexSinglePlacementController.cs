@@ -339,6 +339,12 @@ public class HexSinglePlacementController : MonoBehaviour
             return false;
         }
 
+        if (cardData != null && cardData.elevationChange != 0)
+        {
+            bool changed = LumiWorld.Acs.Islands.IslandPlacementRules.TryTerraform(cardData, currentHoverHex, worldGenerator);
+            CancelPreview();
+            return changed;
+        }
         LumiWorld.Acs.HabitatRuntimeManager.PrepareForWorldChange();
         currentActiveTileObj = null;
 
@@ -580,6 +586,8 @@ public class HexSinglePlacementController : MonoBehaviour
         Vector3 tilePos = oldTileObj.transform.position;
         Quaternion tileRot = oldTileObj.transform.rotation;
         Transform parentTransform = oldTileObj.transform.parent;
+        int previousElevation = oldTileObj.GetComponent<HexTileInfo>()?.ElevationLevel ?? -1;
+        BiomeAffinity previousAffinity = LumiWorld.Acs.DisasterRuntimeManager.ResolveAffinity(oldTileObj);
 
         // 2. Xóa ô cũ khỏi Scene
         Destroy(oldTileObj);
@@ -615,6 +623,7 @@ public class HexSinglePlacementController : MonoBehaviour
             newTileInfo = newTileObj.AddComponent<HexTileInfo>();
         }
         newTileInfo.sourcePrefab = transformedPrefab;
+        newTileInfo.elevationLevel = previousElevation;
         newTileInfo.terrainTypeIndex = -1;
         newTileInfo.hasLushEnvironment = true;
         newTileInfo.coordinates = coords;
@@ -635,8 +644,7 @@ public class HexSinglePlacementController : MonoBehaviour
         if (newDisasterState != null)
         {
             // Ô sau biến đổi là Lush (đất tươi tốt) — giữ biome cũ để cháy/hạn lan đúng vùng.
-            BiomeAffinity affinity = LumiWorld.Acs.DisasterRuntimeManager.ResolveAffinity(oldTileObj);
-            newDisasterState.affinity = affinity;
+            newDisasterState.affinity = previousAffinity;
 
             // Đồng bộ toạ độ: state là nơi các xử lý theo vị trí (mưa dập lửa tại ô)
             // đọc để biết ô này nằm ở đâu.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using UnityEngine;
 
 namespace LumiWorld.Acs
@@ -139,6 +140,8 @@ namespace LumiWorld.Acs
                 var member = new HabitatHexMember { placementId = identity.PlacementId, hex = identity.HomeHex,
                     islandId = worldId + ":" + (int)definition.island, natureCardId = record.CardID,
                     affinity = definition.affinity, island = definition.island, connectionClusterId = record.clusterId };
+                if (worldGenerator.MapTiles.TryGetValue(identity.HomeHex, out var ground) && ground != null)
+                    member.elevationLevel = ground.GetComponent<HexTileInfo>()?.ElevationLevel ?? -1;
                 terrainByHex.Add(member.hex, member);
                 members.Add(member);
             }
@@ -177,7 +180,8 @@ namespace LumiWorld.Acs
             foreach (var member in members)
                 value.Append(member.placementId).Append('|').Append(member.hex.Q).Append(',').Append(member.hex.R)
                     .Append('|').Append(member.islandId).Append('|').Append(member.natureCardId).Append('|')
-                    .Append((int)member.affinity).Append('|').Append(member.connectionClusterId).Append(';');
+                    .Append((int)member.affinity).Append('|').Append(member.connectionClusterId)
+                    .Append('|').Append(member.elevationLevel).Append(';');
             value.Append("Residents:");
             foreach (var resident in residents)
                 value.Append(resident.individualId).Append('|').Append(resident.speciesId).Append('|')
@@ -187,6 +191,23 @@ namespace LumiWorld.Acs
         }
 
         public HabitatState FindHabitat(string habitatId) => habitats.Find(h => h != null && h.habitatId == habitatId);
+
+        public List<BiomeFormationCandidate> GetFormationCandidates()
+        {
+            return WetBiomeFormation.FindCandidates(habitats.SelectMany(h => h.members), habitats);
+        }
+
+        public bool ConfirmFormation(string candidateKey)
+        {
+            if (WorldLaunch.IsVisit || SaveSync.SavesSuspended || WorldSaveSystem.Instance?.SavesBlocked == true) return false;
+            RefreshNow();
+            if (!WetBiomeFormation.TryConfirm(candidateKey, habitats, out var confirmed)) return false;
+            BeforeStateChanged?.Invoke(habitats);
+            habitats = confirmed;
+            HabitatsChanged?.Invoke();
+            WorldSaveSystem.MarkDirty();
+            return true;
+        }
 
         public HabitatState FindHabitatByHex(HexCoordinates hex) => habitats.Find(h => h != null && h.ContainsHex(hex));
 
@@ -265,6 +286,7 @@ namespace LumiWorld.Acs
             {
                 if (habitat == null || string.IsNullOrEmpty(habitat.habitatId)) continue;
                 var record = new HabitatSaveRecord { habitatId = habitat.habitatId, islandId = habitat.islandId,
+                    confirmedFormation = habitat.confirmedFormation,
                     natureCardId = habitat.natureCardId, affinity = (int)habitat.affinity, island = (int)habitat.island };
                 foreach (var member in habitat.members) if (member != null) record.memberIds.Add(member.placementId);
                 foreach (var slot in habitat.slots)
@@ -287,12 +309,13 @@ namespace LumiWorld.Acs
             {
                 if (record == null || string.IsNullOrEmpty(record.habitatId)) continue;
                 var state = new HabitatState { habitatId = record.habitatId, islandId = record.islandId,
+                    confirmedFormation = record.confirmedFormation,
                     natureCardId = record.natureCardId, affinity = (BiomeAffinity)record.affinity, island = (HabitatIsland)record.island };
-                foreach (string id in record.memberIds)
+                foreach (string id in record.memberIds ?? new List<string>())
                     if (!string.IsNullOrEmpty(id)) state.members.Add(new HabitatHexMember { placementId = id,
                         islandId = record.islandId, natureCardId = record.natureCardId,
                         affinity = state.affinity, island = state.island });
-                foreach (var slot in record.slots)
+                foreach (var slot in record.slots ?? new List<HabitatSlotRecord>())
                     if (slot != null) state.slots.Add(new HabitatResourceSlot { tier = (ResourceTier)slot.tier, index = slot.index,
                         selectedResourceId = slot.resourceId ?? string.Empty });
                 seeded.Add(state);

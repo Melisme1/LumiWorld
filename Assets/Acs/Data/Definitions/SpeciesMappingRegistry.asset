@@ -62,3 +62,66 @@ MonoBehaviour:
     primaryAffinity: 3
     secondaryAffinity: 2
     integrationStatus: 0
+  - gddKey: reedle
+    displayName: Reedle
+    species: {fileID: 11400000, guid: 45d8845ecfc18774ab8e68bbe2f08000, type: 2}
+    creatureCard: {fileID: 11400000, guid: def0ed40bee6ced428f6e562ef186c34, type: 2}
+    primaryAffinity: 4
+    secondaryAffinity: 6
+    integrationStatus: 0
+  - gddKey: craggle
+    displayName: Craggle
+    species: {fileID: 11400000, guid: 504d6d62cd502834d969fcc4f7e311e8, type: 2}
+    creatureCard: {fileID: 11400000, guid: bc4786938dbf4874c9149d416f82e4f4, type: 2}
+    primaryAffinity: 4
+    secondaryAffinity: 6
+    integrationStatus: 0
+  - gddKey: lotelle
+    displayName: Lotelle
+    species: {fileID: 11400000, guid: cbfdc0104849a354abe97c1c079508ee, type: 2}
+    creatureCard: {fileID: 11400000, guid: fffa63d6ce12e0149ba14caed660b01c, type: 2}
+    primaryAffinity: 5
+    secondaryAffinity: 4
+    integrationStatus: 0
+  - gddKey: iriwing
+    displayName: Iriwing
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000003, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
+    primaryAffinity: 5
+    secondaryAffinity: 6
+    integrationStatus: 0
+  - gddKey: rivlet
+    displayName: Rivlet
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000016, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000016, type: 2}
+    primaryAffinity: 6
+    secondaryAffinity: 5
+    integrationStatus: 0
+  - gddKey: pebbara
+    displayName: Pebbara
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000014, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000014, type: 2}
+    primaryAffinity: 6
+    secondaryAffinity: 4
+    integrationStatus: 0
+  - gddKey: fernkin
+    displayName: Fernkin
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000009, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000009, type: 2}
+    primaryAffinity: 7
+    secondaryAffinity: 6
+    integrationStatus: 0
+  - gddKey: puddleaf
+    displayName: Puddleaf
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000013, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000013, type: 2}
+    primaryAffinity: 7
+    secondaryAffinity: 4
+    integrationStatus: 0
+  - gddKey: heliko
+    displayName: Heliko
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000001, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000001, type: 2}
+    primaryAffinity: 7
+    secondaryAffinity: 6
+    integrationStatus: 0

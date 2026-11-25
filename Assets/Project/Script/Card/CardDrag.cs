@@ -300,7 +300,11 @@ public class CardDrag : MonoBehaviour,
             // Nếu chồng còn lá (slot được giữ lại), card phải trở về trạng thái rõ nét.
             RestoreVisualAfterPlacement();
 
-            if (deskController != null)
+            if (draggedCard != null && draggedCard.reusable)
+            {
+                ReturnToHand();
+            }
+            else if (deskController != null)
             {
                 deskController.RemoveCard(gameObject);
             }

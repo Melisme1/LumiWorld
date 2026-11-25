@@ -42,6 +42,7 @@ namespace LumiWorld.Acs
 
             var groups = new List<HabitatState>();
             var visited = new HashSet<HabitatHexMember>();
+            WetBiomeFormation.RestoreConfirmed(members, previous, groups, visited);
             foreach (var seed in members)
             {
                 if (!visited.Add(seed)) continue;
@@ -53,6 +54,8 @@ namespace LumiWorld.Acs
                 {
                     var current = queue.Dequeue();
                     group.members.Add(current);
+                    // Unconfirmed Wet cards remain independent until an explicit formation approval.
+                    if (seed.island == HabitatIsland.Wet) continue;
                     for (int direction = 0; direction < 6; direction++)
                     {
                         if (group.members.Count + queue.Count >= MaximumHexCount) break;
