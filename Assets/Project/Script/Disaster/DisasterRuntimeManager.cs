@@ -186,6 +186,45 @@ namespace LumiWorld.Acs
                 SuppressHabitatOnTile(tileObj);
                 state.RefreshVisual();
             }
+
+            ApplyVisitDisasterTiles();
+        }
+
+        /// <summary>
+        /// Đang thăm đảo: vẽ lại thiên tai đang chạy lúc chủ đảo Share (lửa, lốc, khối vật cản, màu hạn hán/khô cằn).
+        /// Chỉ đánh dấu ô và hiệu ứng, không tạo DisasterInstance nên không có gì chạy, lan hay hết hạn.
+        /// </summary>
+        private void ApplyVisitDisasterTiles()
+        {
+            foreach (SnapshotDisasterTile shown in VisitSession.DisasterTiles)
+            {
+                if (shown == null) continue;
+                var hex = new HexCoordinates(shown.q, shown.r);
+                if (!worldGenerator.MapTiles.TryGetValue(hex, out var tileObj) || tileObj == null) continue;
+                var state = TileDisasterState.Ensure(tileObj);
+                if (state == null) continue;
+
+                string visitId = $"visit-{shown.q}-{shown.r}";
+                state.coordinates = hex;
+                state.hasObstacle = shown.hasObstacle;
+                state.aridity = Mathf.Clamp01(shown.aridity);
+                if (shown.kinds != null)
+                    foreach (string name in shown.kinds)
+                    {
+                        if (!Enum.TryParse(name, out DisasterKind kind)) continue;
+                        state.Mark(kind, visitId);
+                        if (kind == DisasterKind.ForestFire) ShowFireOnTile(visitId, tileObj);
+                        else if (kind == DisasterKind.Cyclone)
+                        {
+                            var fx = GetTileParticles(tileObj, hex);
+                            if (fx != null) { fx.ShowCyclone(); TrackParticleTile(visitId, hex); }
+                        }
+                    }
+
+                if (shown.hasObstacle)
+                    SpawnObstacleVisual(new DisasterInstance { instanceId = visitId, kind = DisasterKind.Obstacle, origin = hex }, tileObj);
+                state.RefreshVisual();
+            }
         }
 
         // ------------------------------------------------------------------

@@ -17,6 +17,19 @@ public class WorldSnapshot
 
     // Ô đã cháy thành tro: người thăm thấy ô đen, không có cây. Snapshot cũ không có trường này.
     public List<HexPointRecord> burned = new List<HexPointRecord>();
+
+    // Thiên tai đang chạy lúc Share (cháy rừng, lốc xoáy, hạn hán, vật cản...): người thăm thấy lửa, lốc,
+    // khối vật cản và màu ô như chủ đảo. Chỉ để xem, không chạy hay lan. Snapshot cũ không có trường này.
+    public List<SnapshotDisasterTile> disasterTiles = new List<SnapshotDisasterTile>();
+}
+
+[Serializable]
+public class SnapshotDisasterTile
+{
+    public int q, r;
+    public bool hasObstacle;
+    public float aridity;
+    public List<string> kinds = new List<string>(); // tên DisasterKind đang đánh dấu ô này
 }
 
 /// <summary>
