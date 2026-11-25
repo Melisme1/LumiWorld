@@ -77,6 +77,7 @@ public class CardShopUI : MonoBehaviour
     private TextMeshProUGUI emptyGridLabel;
 
     // Right detail inspector
+    private RectTransform detailArtBoxRect;
     private Image detailArt;
     private Image detailRarityFrame;
     private Image detailRaiseArrow;
@@ -327,6 +328,7 @@ public class CardShopUI : MonoBehaviour
             detailFallbackBg.enabled = false;
             detailFallbackInitials.gameObject.SetActive(false);
             CardRarityFrameUtility.ApplyCardOverlays(
+                detailArtBoxRect != null ? detailArtBoxRect : detailArt.rectTransform,
                 detailArt.rectTransform,
                 selectedCard,
                 ref detailRarityFrame,
@@ -650,18 +652,36 @@ public class CardShopUI : MonoBehaviour
         cardBtn.onClick.AddListener(() => SelectCard(card));
 
         // Left vertical Card Art (exact 2:3 74 x 111 inside 174 x 132 tile so overlays fit edge-to-edge)
-        GameObject artObj = new GameObject("Art", typeof(RectTransform), typeof(Image));
+        GameObject artObj = new GameObject("Art", typeof(RectTransform));
         artObj.transform.SetParent(tile.rect, false);
         RectTransform artRt = artObj.GetComponent<RectTransform>();
         LumiWorldUITheme.PlaceTopLeft(artRt, 11f, 10.5f, 74f, 111f);
-        Image artImg = artObj.GetComponent<Image>();
-        artImg.raycastTarget = false;
         if (card.cardImage != null)
         {
+            GameObject maskObj = new GameObject("ArtMask", typeof(RectTransform), typeof(Image), typeof(Mask));
+            maskObj.transform.SetParent(artRt, false);
+            RectTransform maskRt = maskObj.GetComponent<RectTransform>();
+            LumiWorldUITheme.Stretch(maskRt);
+            maskRt.offsetMin = new Vector2(1f, 1f);
+            maskRt.offsetMax = new Vector2(-1f, -1f);
+            Image maskImg = maskObj.GetComponent<Image>();
+            maskImg.sprite = CardRarityFrameUtility.GetRoundedMaskSprite(6);
+            maskImg.type = Image.Type.Sliced;
+            maskImg.color = Color.white;
+            maskImg.raycastTarget = false;
+            maskObj.GetComponent<Mask>().showMaskGraphic = false;
+
+            GameObject imgObj = new GameObject("ArtImage", typeof(RectTransform), typeof(Image));
+            imgObj.transform.SetParent(maskRt, false);
+            LumiWorldUITheme.Stretch(imgObj.GetComponent<RectTransform>());
+            Image artImg = imgObj.GetComponent<Image>();
+            artImg.raycastTarget = false;
             artImg.sprite = card.cardImage;
             artImg.preserveAspect = false;
+
             CardRarityFrameUtility.ApplyCardOverlays(
                 artRt,
+                artImg.rectTransform,
                 card,
                 ref tile.rarityFrameOverlay,
                 ref tile.raiseArrow,
@@ -669,6 +689,8 @@ public class CardShopUI : MonoBehaviour
         }
         else
         {
+            Image artImg = artObj.AddComponent<Image>();
+            artImg.raycastTarget = false;
             artImg.sprite = LumiWorldUITheme.SurfaceSprite;
             artImg.type = Image.Type.Sliced;
             artImg.color = TypeColor(card.cardType);
@@ -764,7 +786,8 @@ public class CardShopUI : MonoBehaviour
         // Card Art Box (exact 2:3 80 x 120)
         GameObject artBox = new GameObject("PreviewArt", typeof(RectTransform), typeof(Image));
         artBox.transform.SetParent(inspRt, false);
-        LumiWorldUITheme.PlaceTopLeft(artBox.GetComponent<RectTransform>(), 20f, 16f, 80f, 120f);
+        detailArtBoxRect = artBox.GetComponent<RectTransform>();
+        LumiWorldUITheme.PlaceTopLeft(detailArtBoxRect, 20f, 16f, 80f, 120f);
         detailFallbackBg = artBox.GetComponent<Image>();
         detailFallbackBg.sprite = LumiWorldUITheme.SurfaceSprite;
         detailFallbackBg.type = Image.Type.Sliced;
@@ -772,13 +795,27 @@ public class CardShopUI : MonoBehaviour
         detailFallbackInitials = LumiWorldUITheme.CreateLabel(artBox.transform, "Init", "", 24f, Color.white, true, TextAlignmentOptions.Center);
         LumiWorldUITheme.Stretch(detailFallbackInitials.rectTransform);
 
+        GameObject detailMaskObj = new GameObject("ArtMask", typeof(RectTransform), typeof(Image), typeof(Mask));
+        detailMaskObj.transform.SetParent(detailArtBoxRect, false);
+        RectTransform detailMaskRt = detailMaskObj.GetComponent<RectTransform>();
+        LumiWorldUITheme.Stretch(detailMaskRt);
+        detailMaskRt.offsetMin = new Vector2(1f, 1f);
+        detailMaskRt.offsetMax = new Vector2(-1f, -1f);
+        Image detailMaskImg = detailMaskObj.GetComponent<Image>();
+        detailMaskImg.sprite = CardRarityFrameUtility.GetRoundedMaskSprite(6);
+        detailMaskImg.type = Image.Type.Sliced;
+        detailMaskImg.color = Color.white;
+        detailMaskImg.raycastTarget = false;
+        detailMaskObj.GetComponent<Mask>().showMaskGraphic = false;
+
         GameObject imgObj = new GameObject("Sprite", typeof(RectTransform), typeof(Image));
-        imgObj.transform.SetParent(artBox.transform, false);
+        imgObj.transform.SetParent(detailMaskRt, false);
         LumiWorldUITheme.Stretch(imgObj.GetComponent<RectTransform>());
         detailArt = imgObj.GetComponent<Image>();
         detailArt.preserveAspect = false;
         detailArt.raycastTarget = false;
         CardRarityFrameUtility.EnsureOverlayChildren(
+            detailArtBoxRect,
             detailArt.rectTransform,
             ref detailRarityFrame,
             ref detailRaiseArrow,

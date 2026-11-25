@@ -40,7 +40,8 @@ namespace LumiWorld.Acs
 
         private void AddSurface(MeshFilter filter)
         {
-            var collider = filter.GetComponent<MeshCollider>() ?? filter.gameObject.AddComponent<MeshCollider>();
+            var collider = filter.GetComponent<MeshCollider>();
+            if (collider == null) collider = filter.gameObject.AddComponent<MeshCollider>();
             collider.sharedMesh = filter.sharedMesh;
             collider.enabled = true;
             surfaces.Add(collider);

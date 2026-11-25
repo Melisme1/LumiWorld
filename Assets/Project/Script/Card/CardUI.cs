@@ -8,7 +8,11 @@ using LumiWorld.Acs;
 public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     private const float FrameInset = 7f;
+    private const float RareArtInset = 2f;
     private const float CoverInset = 6f;
+
+    private static readonly Color EpicBackdropTint   = new Color(0.84f, 0.87f, 0.91f, 1f);
+    private static readonly Color LegendBackdropTint = new Color(0.90f, 0.80f, 0.56f, 1f);
 
     [Header("Card Data")]
     [SerializeField] private CardData cardData;
@@ -46,6 +50,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private Coroutine badgePunchCoroutine;
     private bool cardChromeApplied;
     private bool isPointerHovering;
+    private RectTransform artworkMaskRect;
     private Image artworkImage;
     private Image artworkCornerCoverImage;
     private Image rarityFrameOverlay;
@@ -131,7 +136,8 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         {
             artworkImage.sprite = cardData.cardImage;
             CardRarityFrameUtility.ApplyCardOverlays(
-                artworkImage.rectTransform.parent as RectTransform,
+                (RectTransform)transform,
+                artworkMaskRect != null ? artworkMaskRect : (artworkImage.rectTransform.parent as RectTransform),
                 cardData,
                 ref rarityFrameOverlay,
                 ref terraformRaiseArrow,
@@ -146,6 +152,8 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         UpdateLockBadge();
         UpdateTerraformArrowsVisual();
         UpdateFrameHighlight();
+        ApplyRarityBackdropChrome();
+        EnsureOverlaySiblingOrder();
     }
 
     private void EnsureCardChrome()
@@ -204,6 +212,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
 
         RectTransform maskRect = (RectTransform)maskObj.transform;
+        artworkMaskRect = maskRect;
         maskRect.anchorMin = Vector2.zero;
         maskRect.anchorMax = Vector2.one;
         maskRect.pivot = new Vector2(0.5f, 0.5f);
@@ -241,7 +250,14 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         artworkImage.preserveAspect = false;
         artworkImage.raycastTarget = false;
 
+        Transform legacyOverlay = maskRect.Find("RarityFrameOverlay");
+        if (legacyOverlay != null)
+        {
+            legacyOverlay.SetParent(transform, false);
+        }
+
         CardRarityFrameUtility.EnsureOverlayChildren(
+            (RectTransform)transform,
             maskRect,
             ref rarityFrameOverlay,
             ref terraformRaiseArrow,
@@ -276,6 +292,18 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void EnsureOverlaySiblingOrder()
     {
+        if (artworkMaskRect != null && artworkMaskRect.parent == transform)
+        {
+            artworkMaskRect.SetSiblingIndex(0);
+        }
+        if (artworkCornerCoverImage != null && artworkCornerCoverImage.transform.parent == transform)
+        {
+            artworkCornerCoverImage.transform.SetSiblingIndex(1);
+        }
+        if (rarityFrameOverlay != null && rarityFrameOverlay.transform.parent == transform)
+        {
+            rarityFrameOverlay.transform.SetAsLastSibling();
+        }
         if (badgeRootRect != null)
         {
             badgeRootRect.SetAsLastSibling();
@@ -286,11 +314,59 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
     }
 
+    private void ApplyRarityBackdropChrome()
+    {
+        bool isRare = cardData != null && cardData.rarity != CardRarity.Common;
+        if (artworkMaskRect != null)
+        {
+            float inset = isRare ? RareArtInset : FrameInset;
+            artworkMaskRect.offsetMin = new Vector2(inset, inset);
+            artworkMaskRect.offsetMax = new Vector2(-inset, -inset);
+        }
+
+        if (artworkCornerCoverImage != null)
+        {
+            artworkCornerCoverImage.enabled = !isRare;
+        }
+
+        if (cardImage != null)
+        {
+            if (isRare)
+            {
+                Color baseTint = cardData.rarity == CardRarity.Legend ? LegendBackdropTint : EpicBackdropTint;
+                cardImage.color = IsLocked
+                    ? new Color(baseTint.r * 0.85f, baseTint.g * 0.85f, baseTint.b * 0.85f, 0.95f)
+                    : baseTint;
+            }
+            else
+            {
+                cardImage.color = IsLocked ? new Color(0.95f, 0.94f, 0.92f, 0.95f) : Color.white;
+            }
+        }
+    }
+
     private void UpdateFrameHighlight()
     {
         if (!cardChromeApplied || cardImage == null) return;
         bool highlight = (isPointerHovering || isTerraformActive) && !IsLocked;
         cardImage.sprite = highlight ? GetCardFrameHoverSprite() : GetCardFrameSprite();
+
+        if (rarityFrameOverlay != null)
+        {
+            bool isRare = cardData != null && cardData.rarity != CardRarity.Common;
+            if (!isRare)
+            {
+                rarityFrameOverlay.color = Color.white;
+            }
+            else if (IsLocked)
+            {
+                rarityFrameOverlay.color = new Color(0.80f, 0.80f, 0.80f, 0.92f);
+            }
+            else
+            {
+                rarityFrameOverlay.color = highlight ? new Color(1.08f, 1.08f, 1.08f, 1f) : Color.white;
+            }
+        }
     }
 
     public void SetTerraformVisualState(bool active, int direction, bool canRaise, bool canLower)

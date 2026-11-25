@@ -42,17 +42,20 @@ namespace LumiWorld.Acs.Islands
                 buttons.Add(id, button);
                 x += 128;
                 if (id == "starter") continue;
+                // Cover and boundary have one lifecycle: both disappear when this island opens.
+                var cloudRoot = new GameObject("IslandClouds_" + id);
+                cloudRoot.transform.SetParent(transform, false);
+                covers.Add(id, cloudRoot);
                 var cover = new GameObject("CloudCover_" + id);
-                cover.transform.SetParent(transform, false);
+                cover.transform.SetParent(cloudRoot.transform, false);
                 cover.transform.position = HexMetrics.HexToWorldPosition(island.center, 0);
                 var extent = LandExtent(island);
                 cover.AddComponent<FloatingCloudsManager>().ConfigureLowCover(extent, 90);
-                covers.Add(id, cover);
                 var previous = islands.Catalog.Find(island.prerequisiteIsland);
                 if (previous != null)
                 {
                     var boundary = new GameObject("LowCloudBoundary_" + id);
-                    boundary.transform.SetParent(transform, false);
+                    boundary.transform.SetParent(cloudRoot.transform, false);
                     Vector3 from = HexMetrics.HexToWorldPosition(previous.center, 0);
                     Vector3 to = HexMetrics.HexToWorldPosition(island.center, 0);
                     boundary.transform.position = (from + to) * .5f;
@@ -80,7 +83,12 @@ namespace LumiWorld.Acs.Islands
         {
             if (islands == null || openButton == null) return;
             foreach (var pair in buttons) pair.Value.gameObject.SetActive(islands.Stage(pair.Key) != IslandAccessStage.Hidden);
-            foreach (var pair in covers) if (pair.Value != null && islands.IsUnlocked(pair.Key)) Destroy(pair.Value);
+            foreach (var pair in covers)
+                if (pair.Value != null && islands.IsUnlocked(pair.Key))
+                {
+                    pair.Value.SetActive(false);
+                    Destroy(pair.Value);
+                }
             openButton.gameObject.SetActive(islands.Stage(islands.ActiveIslandId) == IslandAccessStage.Discovered);
             var active = islands.Catalog.Find(islands.ActiveIslandId);
             if (active != null) openLabel.text = $"Open · {active.unlockCoins} Coins";
@@ -92,6 +100,11 @@ namespace LumiWorld.Acs.Islands
             formButton.interactable = !dragging;
         }
 
-        private void OnDestroy() { if (root != null) Destroy(root); }
+        private void OnDestroy()
+        {
+            if (root != null) Destroy(root);
+            foreach (var cover in covers.Values) if (cover != null) Destroy(cover);
+            covers.Clear();
+        }
     }
 }
