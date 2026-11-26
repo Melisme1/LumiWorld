@@ -58,7 +58,7 @@ namespace LumiWorld.Economy.Crafting
             { "resource.windheath.rosemary", "Assets/Acs/Icons/Windheath/lumi_t2_windheath_rosemary.png" },
             { "resource.windheath.juniper_berries", "Assets/Acs/Icons/Windheath/lumi_t2_windheath_juniper_berries.png" },
             { "resource.windheath.foxtail_plumes", "Assets/Acs/Icons/Windheath/lumi_t1_windheath_foxtail_plumes.png" },
-            { "resource.plain.wheat", "Assets/Acs/Icons/Windheath/lumi_t1_windheath_foxtail_plumes.png" },
+            { "resource.bloomfield.wheat", "Assets/Acs/Icons/Bloomfield/lumi_t2_bloomfield_wheat.png" },
             { "resource.windheath.flax_stalks", "Assets/Acs/Icons/Windheath/lumi_t2_windheath_flax_stalks.png" },
             { "resource.windheath.lichen", "Assets/Acs/Icons/Windheath/lumi_t1_windheath_lichen.png" }
         };
@@ -206,7 +206,7 @@ namespace LumiWorld.Economy.Crafting
             { "resource.windheath.rosemary", "Rosemary" },
             { "resource.windheath.juniper_berries", "Juniper Berries" },
             { "resource.windheath.foxtail_plumes", "Foxtail Plumes" },
-            { "resource.plain.wheat", "Wheat" },
+            { "resource.bloomfield.wheat", "Wheat" },
             { "resource.windheath.flax_stalks", "Flax Stalks" },
             { "resource.windheath.lichen", "Mountain Lichen" }
         };
@@ -310,12 +310,12 @@ namespace LumiWorld.Economy.Crafting
                 capacity = fallenBark != null && fallenBark.maxStackSize > 0 ? fallenBark.maxStackSize : 999
             });
 
-            var wheat = GetResource("resource.plain.wheat");
+            var wheat = GetResource("resource.bloomfield.wheat");
             list.Add(new WarehouseExtraItem
             {
-                id = "resource.plain.wheat",
+                id = "resource.bloomfield.wheat",
                 name = wheat != null ? wheat.resourceName : "Wheat",
-                biome = "Meadows",
+                biome = "Bloomfield",
                 tier = "Raw",
                 description = wheat != null ? wheat.description : "Golden grain stalks brimming with nutritious starch.",
                 icon = wheat?.icon,
@@ -424,7 +424,7 @@ namespace LumiWorld.Economy.Crafting
                 "Sturdy oak bark peeled naturally from aged trunks in Leafwood, rich in fiber for papercraft.",
                 new Color(0.48f, 0.32f, 0.20f, 1f));
 
-            AddRawFallback("resource.plain.wheat", "Wheat",
+            AddRawFallback("resource.bloomfield.wheat", "Wheat",
                 "Golden grain stalks brimming with nutritious starch.",
                 new Color(0.92f, 0.78f, 0.30f, 1f));
 
@@ -469,7 +469,7 @@ namespace LumiWorld.Economy.Crafting
             AddFallback("recipe.refined.wheat_flour", "Wheat Flour",
                 "Finely milled golden wheat flour, the fundamental base for hearty baked goods.",
                 CraftingCategory.Refined, "resource.plain.wheat_flour", 1, false, 6f, 0,
-                new (string, int)[] { ("resource.plain.wheat", 3) },
+                new (string, int)[] { ("resource.bloomfield.wheat", 3) },
                 new Color(0.95f, 0.92f, 0.80f, 1f));
 
             // Tier 1 - Herbal & Paper

@@ -59,7 +59,7 @@ public class CurrencyWallet : MonoBehaviour
 
     [Tooltip("Số Coins người chơi mới nhận một lần duy nhất (Starter Kit)")]
     [Min(0)]
-    [SerializeField] private int starterCoins = 200;
+    [SerializeField] private int starterCoins = 150;
 
     [Tooltip("Số dư hiện tại, chỉ để xem khi đang chạy game. Muốn đổi số dư khi test hãy dùng menu ⋮ của component.")]
     [SerializeField] private int balance;

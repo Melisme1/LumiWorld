@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7b7652ee60c4d19a56e9a81cc64e26d, type: 3}
+  m_Name: order_berries_t2
+  m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
+  templateId: order_berries_t2
+  customerName: Berry Cart
+  portrait: {fileID: 0}
+  portraitColor: {r: 0.76, g: 0.24, b: 0.36, a: 1}
+  requirements:
+  - resource: {fileID: 11400000, guid: 26470e564c4230f41a2535bc43ef88eb, type: 2}
+    minAmount: 4
+    maxAmount: 6
+  - resource: {fileID: 11400000, guid: 2fdc25031f4d2f54eaced46ba7d85239, type: 2}
+    minAmount: 8
+    maxAmount: 12
+  rewardMultiplier: 1.65
+  isBaseline: 0
+  minScoreRequired: 48

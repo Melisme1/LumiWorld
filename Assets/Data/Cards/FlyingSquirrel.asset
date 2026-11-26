@@ -18,8 +18,8 @@ MonoBehaviour:
   cardType: 0
   baseScore: 2
   alwaysBaseScore: 0
-  shopPrice: 0
-  placementFee: 0
+  shopPrice: 130
+  placementFee: 20
   prefabToPlace: {fileID: 3382882573419615745, guid: 0304e988658d5924b8d4789a5e8c1667, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0

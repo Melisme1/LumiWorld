@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7b7652ee60c4d19a56e9a81cc64e26d, type: 3}
+  m_Name: order_leafwood_leaves
+  m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
+  templateId: order_leafwood_leaves
+  customerName: Canopy Kitchen
+  portrait: {fileID: 0}
+  portraitColor: {r: 0.25, g: 0.58, b: 0.34, a: 1}
+  requirements:
+  - resource: {fileID: 11400000, guid: 46fd0d10fb699024587e4b4605a5eb8b, type: 2}
+    minAmount: 10
+    maxAmount: 14
+  rewardMultiplier: 1.5
+  isBaseline: 1
+  minScoreRequired: 0

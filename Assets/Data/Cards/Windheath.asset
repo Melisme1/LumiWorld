@@ -18,8 +18,8 @@ MonoBehaviour:
   cardType: 1
   baseScore: 1
   alwaysBaseScore: 0
-  shopPrice: 20
-  placementFee: 5
+  shopPrice: 35
+  placementFee: 10
   prefabToPlace: {fileID: 0}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

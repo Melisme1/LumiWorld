@@ -345,6 +345,12 @@ public class OrderBoardSystem : MonoBehaviour
     /// </summary>
     private static bool CanMake(OrderTemplate template, HashSet<string> producing)
     {
+        if (template.minScoreRequired > 0 && ScoreManager.Instance != null &&
+            ScoreManager.Instance.CurrentScore < template.minScoreRequired)
+        {
+            return false;
+        }
+
         ResourceInventory inventory = ResourceInventory.Instance;
         foreach (OrderRequirement requirement in template.requirements)
         {

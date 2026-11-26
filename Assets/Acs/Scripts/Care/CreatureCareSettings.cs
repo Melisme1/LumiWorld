@@ -27,15 +27,15 @@ namespace LumiWorld.Acs
     [Serializable]
     public sealed class CreatureCareSettings
     {
-        [Min(.01f)] public float rankIHungerSeconds = 60;
-        [Min(.01f)] public float rankIIHungerSeconds = 90;
-        [Min(.01f)] public float rankIIIHungerSeconds = 120;
+        [Min(.01f)] public float rankIHungerSeconds = 180;
+        [Min(.01f)] public float rankIIHungerSeconds = 270;
+        [Min(.01f)] public float rankIIIHungerSeconds = 360;
         [Range(0, 99)] public float autoFeedAtSatiety = 50;
         [Min(.01f)] public float foodUnitsPerSecond = 10;
         [Tooltip("Seed để test, giữ reference cũ nếu đã gán. Bổ sung thực phẩm khác ở Additional Foods.")]
         public ResourceData food;
         public string fallbackFoodResourceId = "resource.leafwood.raspberries";
-        [Min(1)] public int seedFoodUnitsToFull = 50;
+        [Min(1)] public int seedFoodUnitsToFull = 2;
         public List<CreatureFoodSettings> additionalFoods = new List<CreatureFoodSettings>();
         public List<SpeciesDietSettings> speciesDiets = new List<SpeciesDietSettings>();
         public string FoodResourceId => food != null ? food.resourceID : fallbackFoodResourceId;
@@ -71,25 +71,25 @@ namespace LumiWorld.Acs
                     }
                 }
 
-                // Các loại thực phẩm thu hoạch và chế biến thông dụng
-                string[] knownFoodIds = new[]
+                // Các loại thực phẩm thu hoạch và chế biến thông dụng, cân bằng độ no theo tier
+                (string id, double satiety)[] knownFoods = new[]
                 {
-                    "resource.leafwood.raspberries",
-                    "resource.leafwood.acorns",
-                    "resource.leafwood.tender_leaves_crispy",
-                    "resource.leafwood.roasted_acorns",
-                    "resource.leafwood.dried_raspberries",
-                    "resource.windheath.mountain_blueberries",
-                    "resource.windheath.dried_mountain_blueberries",
-                    "resource.food.dried_wild_berries_mix",
-                    "resource.leafwood.honey_glazed_acorns",
-                    "resource.food.wild_berry_nut_cake"
+                    ("resource.leafwood.raspberries", 50.0),
+                    ("resource.leafwood.acorns", 50.0),
+                    ("resource.windheath.mountain_blueberries", 50.0),
+                    ("resource.leafwood.tender_leaves_crispy", 75.0),
+                    ("resource.leafwood.roasted_acorns", 75.0),
+                    ("resource.leafwood.dried_raspberries", 75.0),
+                    ("resource.windheath.dried_mountain_blueberries", 75.0),
+                    ("resource.food.dried_wild_berries_mix", 100.0),
+                    ("resource.leafwood.honey_glazed_acorns", 100.0),
+                    ("resource.food.wild_berry_nut_cake", 100.0)
                 };
-                foreach (var kf in knownFoodIds)
+                foreach (var kf in knownFoods)
                 {
-                    if (ids.Add(kf))
+                    if (ids.Add(kf.id))
                     {
-                        foods.Add(new CreatureFoodRule(kf, 2.0));
+                        foods.Add(new CreatureFoodRule(kf.id, kf.satiety));
                     }
                 }
 
@@ -111,7 +111,7 @@ namespace LumiWorld.Acs
                                 object outVal = outProp is System.Reflection.FieldInfo ofi ? ofi.GetValue(item) : (outProp is System.Reflection.PropertyInfo opi ? opi.GetValue(item) : null);
                                 if (outVal is ResourceData rd && !string.IsNullOrEmpty(rd.resourceID) && ids.Add(rd.resourceID))
                                 {
-                                    foods.Add(new CreatureFoodRule(rd.resourceID, 2.0));
+                                    foods.Add(new CreatureFoodRule(rd.resourceID, 50.0));
                                 }
                             }
                         }

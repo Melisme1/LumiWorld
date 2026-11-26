@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: Pufferfish
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: creature_pufferfish
-  cardName: "Cá Nóc"
+  cardName: "CÃ¡ NÃ³c"
   cardImage: {fileID: 21300000, guid: c0c1d2e3f4a500200020000000000020, type: 3}
   cardType: 0
   baseScore: 2
   alwaysBaseScore: 0
-  shopPrice: 50
-  placementFee: 10
+  shopPrice: 130
+  placementFee: 20
   prefabToPlace: {fileID: 4246348873686346572, guid: b6e5f5a802c8bc341a3675b4700e8cee, type: 3}
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
