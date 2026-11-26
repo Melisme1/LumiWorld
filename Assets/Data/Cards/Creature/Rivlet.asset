@@ -18,6 +18,7 @@ MonoBehaviour:
   cardType: 0
   rarity: 0
   islandId: wet
+  sharedAcrossRainIslands: 0
   reusable: 0
   elevationChange: 0
   isTriangleRain: 0
@@ -26,7 +27,7 @@ MonoBehaviour:
   alwaysBaseScore: 0
   shopPrice: 75
   placementFee: 15
-  prefabToPlace: {fileID: 6956003824428999412, guid: 0d833fcc247355e459037b30ff32e074, type: 3}
+  prefabToPlace: {fileID: 7281603018243129610, guid: 0d833fcc247355e459037b30ff32e074, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}
   useEffectScale: 1
@@ -35,6 +36,7 @@ MonoBehaviour:
   clearPropsOnTransform: 0
   occupiesTile: 1
   isRiverCard: 0
+  isSettlementCard: 0
   animalSpeciesData: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000016, type: 2}
   producedResource: {fileID: 0}
   landResourceBonus: 0

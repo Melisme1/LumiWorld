@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using LumiWorld.Acs;
 using UnityEngine;
 
 /// <summary>
@@ -83,6 +84,8 @@ public class BiomeBuffVisualManager : MonoBehaviour
         EnsureContainers();
     }
 
+    private HabitatRuntimeManager _habitatManager;
+
     private void Start()
     {
         HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
@@ -90,10 +93,23 @@ public class BiomeBuffVisualManager : MonoBehaviour
         {
             RefreshAllBuffs(worldGen);
         }
+        if (HabitatRuntimeManager.TryGetActive(out _habitatManager))
+        {
+            _habitatManager.HabitatsChanged += OnHabitatsChanged;
+        }
+    }
+
+    private void OnHabitatsChanged()
+    {
+        RefreshAllBuffs();
     }
 
     private void OnDestroy()
     {
+        if (_habitatManager != null)
+        {
+            _habitatManager.HabitatsChanged -= OnHabitatsChanged;
+        }
         foreach (var kvp in _borderVisuals)
         {
             DestroyBorderVisual(kvp.Value);
@@ -303,6 +319,15 @@ public class BiomeBuffVisualManager : MonoBehaviour
     private static string GetBiomeTerrainIdAt(HexCoordinates hex, HexWorldGenerator worldGen)
     {
         if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null) return null;
+        if (HabitatRuntimeManager.TryGetActive(out var habitatMgr))
+        {
+            var habitat = habitatMgr.FindHabitatByHex(hex);
+            if (habitat != null)
+            {
+                if (!habitat.IsFormedBiome) return null;
+                return habitat.natureCardId;
+            }
+        }
         PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>(true);
         for (int i = 0; i < cards.Length; i++)
         {
@@ -318,6 +343,15 @@ public class BiomeBuffVisualManager : MonoBehaviour
     private static int GetBiomeClusterIdAt(HexCoordinates hex, HexWorldGenerator worldGen)
     {
         if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null) return 0;
+        if (HabitatRuntimeManager.TryGetActive(out var habitatMgr))
+        {
+            var habitat = habitatMgr.FindHabitatByHex(hex);
+            if (habitat != null && habitat.IsFormedBiome && !string.IsNullOrEmpty(habitat.habitatId))
+            {
+                int hash = habitat.habitatId.GetHashCode() & 0x7FFFFFFF;
+                return hash == 0 ? 1 : hash;
+            }
+        }
         PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>(true);
         for (int i = 0; i < cards.Length; i++)
         {
@@ -462,8 +496,8 @@ public class BiomeBuffVisualManager : MonoBehaviour
             if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null) continue;
 
             Vector3 center = tileObj.transform.position;
-            float y = GetTileSurfaceY(tileObj) + borderYOffset;
-            float yTop = y + borderRimHeight;
+            var surface = tileObj.GetComponent<HexTileInfo>()?.biomeSurface;
+            float baseY = GetTileSurfaceY(tileObj) + borderYOffset;
 
             for (int dir = 0; dir < 6; dir++)
             {
@@ -477,12 +511,24 @@ public class BiomeBuffVisualManager : MonoBehaviour
                 Vector3 dir0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0));
                 Vector3 dir1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1));
 
-                // 1. Dải viền mặt đất (mờ dần vào trong)
+                // 1. Dải viền mặt đất (mờ dần vào trong) — bám sát bờ viền thực tế của Wet BiomeSurface nếu có
                 int baseIdx = vertices.Count;
-                Vector3 pInner0 = new Vector3(center.x + dir0.x * rInner, y, center.z + dir0.z * rInner);
-                Vector3 pOuter0 = new Vector3(center.x + dir0.x * rOuter, y, center.z + dir0.z * rOuter);
-                Vector3 pOuter1 = new Vector3(center.x + dir1.x * rOuter, y, center.z + dir1.z * rOuter);
-                Vector3 pInner1 = new Vector3(center.x + dir1.x * rInner, y, center.z + dir1.z * rInner);
+                Vector3 pInner0 = new Vector3(center.x + dir0.x * rInner, baseY, center.z + dir0.z * rInner);
+                Vector3 pOuter0 = new Vector3(center.x + dir0.x * rOuter, baseY, center.z + dir0.z * rOuter);
+                Vector3 pOuter1 = new Vector3(center.x + dir1.x * rOuter, baseY, center.z + dir1.z * rOuter);
+                Vector3 pInner1 = new Vector3(center.x + dir1.x * rInner, baseY, center.z + dir1.z * rInner);
+
+                if (surface != null)
+                {
+                    float y0 = baseY;
+                    float y1 = baseY;
+                    if (surface.TryGetHeight(pOuter0, out float hOut0)) y0 = Mathf.Max(y0, hOut0 + borderYOffset);
+                    if (surface.TryGetHeight(pInner0, out float hIn0)) y0 = Mathf.Max(y0, hIn0 + borderYOffset);
+                    if (surface.TryGetHeight(pOuter1, out float hOut1)) y1 = Mathf.Max(y1, hOut1 + borderYOffset);
+                    if (surface.TryGetHeight(pInner1, out float hIn1)) y1 = Mathf.Max(y1, hIn1 + borderYOffset);
+                    pInner0.y = pOuter0.y = y0;
+                    pInner1.y = pOuter1.y = y1;
+                }
 
                 vertices.Add(pInner0); colors.Add(innerColor);
                 vertices.Add(pOuter0); colors.Add(outerColor);
@@ -500,8 +546,8 @@ public class BiomeBuffVisualManager : MonoBehaviour
                 if (borderRimHeight > 0.001f)
                 {
                     int rimIdx = vertices.Count;
-                    Vector3 pTop0 = new Vector3(pOuter0.x, yTop, pOuter0.z);
-                    Vector3 pTop1 = new Vector3(pOuter1.x, yTop, pOuter1.z);
+                    Vector3 pTop0 = new Vector3(pOuter0.x, pOuter0.y + borderRimHeight, pOuter0.z);
+                    Vector3 pTop1 = new Vector3(pOuter1.x, pOuter1.y + borderRimHeight, pOuter1.z);
 
                     vertices.Add(pOuter0); colors.Add(outerColor);
                     vertices.Add(pTop0);   colors.Add(topFadeColor);

@@ -115,7 +115,8 @@ public static class AnimalLocomotionRunner
                 }
 
                 float overlap = minAllowedDist - dist;
-                if (overlap > 0.015f)
+                float threshold = ai.IsMoving ? 0.045f : 0.02f;
+                if (overlap > threshold)
                 {
                     totalPush += pushDir * overlap;
                     overlapCount++;
@@ -127,8 +128,10 @@ public static class AnimalLocomotionRunner
         {
             Vector3 avgPush = totalPush / overlapCount;
             Vector3 targetPos = myPos + avgPush;
-            Vector3 pushedPos = Vector3.MoveTowards(myPos, targetPos, ai.SeparationSpeed * Time.deltaTime);
+            float speedFactor = ai.IsMoving ? 0.45f : 1.0f;
+            Vector3 pushedPos = Vector3.MoveTowards(myPos, targetPos, ai.SeparationSpeed * speedFactor * Time.deltaTime);
             Vector3 newPos = ClampToValidHabitat(ai, pushedPos, myPos);
+            if (!ai.IsPointTraversable(newPos)) newPos = myPos;
 
             UpdateElevationAndBanking(ai, newPos, Vector3.zero);
             ai.UpdateCurrentHexFromPosition();
@@ -137,15 +140,23 @@ public static class AnimalLocomotionRunner
 
     public static void UpdateElevationAndBanking(AnimalMovementAI ai, Vector3 flatPos, Vector3 moveDir)
     {
-        float surfaceY = GetSurfaceYAt(ai, flatPos);
         ai.currentAltitudeOffset = Mathf.MoveTowards(ai.currentAltitudeOffset, ai.targetAltitudeOffset, ai.AltitudeSmoothSpeed * Time.deltaTime);
 
-        float targetWorldY = surfaceY + ai.currentAltitudeOffset;
-        ai.currentWorldY = Mathf.MoveTowards(ai.currentWorldY, targetWorldY, ai.AltitudeSmoothSpeed * 1.5f * Time.deltaTime);
+        float targetWorldY = ai.ComputeTargetWorldYAt(flatPos);
+        float verticalSpeed = ai.LocomotionType == AnimalLocomotionType.Flying
+            ? ai.AltitudeSmoothSpeed * 1.5f
+            : Mathf.Max(2.4f, ai.AltitudeSmoothSpeed * 1.15f);
+        ai.currentWorldY = Mathf.MoveTowards(ai.currentWorldY, targetWorldY, verticalSpeed * Time.deltaTime);
 
-        float bobbing = (ai.LocomotionType == AnimalLocomotionType.Flying && ai.IsAirborne)
-            ? Mathf.Sin(Time.time * ai.FlightBobbingFrequency) * ai.FlightBobbingAmplitude
-            : 0f;
+        float bobbing = 0f;
+        if (ai.LocomotionType == AnimalLocomotionType.Flying && ai.IsAirborne)
+        {
+            bobbing = Mathf.Sin(Time.time * ai.FlightBobbingFrequency) * ai.FlightBobbingAmplitude;
+        }
+        else if (ai.IsInWater)
+        {
+            bobbing = Mathf.Sin(Time.time * 2.3f + (ai.GetEntityId().GetHashCode() & 0xFF) * 0.13f) * 0.012f;
+        }
 
         ai.transform.position = new Vector3(flatPos.x, ai.currentWorldY + bobbing, flatPos.z);
 
@@ -220,22 +231,34 @@ public static class AnimalLocomotionRunner
     public static Vector3 PickDestination(AnimalMovementAI ai)
     {
         HexCoordinates targetHex = ai.currentHex;
+        List<HexCoordinates> roamableHexes = new List<HexCoordinates>();
+        ai.GetRoamableHexes(roamableHexes);
 
-        if (ai.worldGen != null && ai.worldGen.MapTiles != null)
+        if (roamableHexes.Count > 1)
         {
-            List<HexCoordinates> matchingNeighbors = new List<HexCoordinates>();
-            for (int dir = 0; dir < 6; dir++)
+            // Encourage roaming across the entire 3/6/10-hex biome instead of staying stuck in 1 hex
+            float stayChance = Mathf.Min(ai.StayInCurrentHexChance, 0.24f);
+            if (Random.value > stayChance)
             {
-                HexCoordinates nHex = ai.currentHex.GetNeighbor(dir);
-                if (ai.CanMoveToHex(nHex))
+                List<HexCoordinates> otherHexes = new List<HexCoordinates>();
+                List<HexCoordinates> neighborHexes = new List<HexCoordinates>();
+                for (int i = 0; i < roamableHexes.Count; i++)
                 {
-                    matchingNeighbors.Add(nHex);
+                    HexCoordinates h = roamableHexes[i];
+                    if (h == ai.currentHex) continue;
+                    otherHexes.Add(h);
+                    if (h.DistanceTo(ai.currentHex) == 1) neighborHexes.Add(h);
                 }
-            }
 
-            if (matchingNeighbors.Count > 0 && Random.value > ai.StayInCurrentHexChance)
-            {
-                targetHex = matchingNeighbors[Random.Range(0, matchingNeighbors.Count)];
+                // 65% pick adjacent hex in biome, 35% pick any hex across the biome so creatures traverse 6/10-hex biomes naturally
+                if (neighborHexes.Count > 0 && (otherHexes.Count == neighborHexes.Count || Random.value < 0.65f))
+                {
+                    targetHex = neighborHexes[Random.Range(0, neighborHexes.Count)];
+                }
+                else if (otherHexes.Count > 0)
+                {
+                    targetHex = otherHexes[Random.Range(0, otherHexes.Count)];
+                }
             }
         }
 
@@ -250,7 +273,6 @@ public static class AnimalLocomotionRunner
 
         if (ai.LocomotionType == AnimalLocomotionType.Flying && ai.IsAirborne)
         {
-            // Sample up to 6 valid airborne points and pick the furthest one so flying creatures cruise in graceful arcs instead of twitching short hops.
             Vector3 bestCandidate = hexCenter;
             float bestDistSqr = -1f;
             Vector3 myFlat = new Vector3(ai.transform.position.x, hexCenter.y, ai.transform.position.z);
@@ -267,18 +289,45 @@ public static class AnimalLocomotionRunner
                         bestDistSqr = dSqr;
                         bestCandidate = airCandidate;
                     }
-                    if (dSqr >= 0.36f) break; // >= 0.60m graceful flight leg found
+                    if (dSqr >= 0.36f) break;
                 }
             }
             ai.lastTargetDestination = bestCandidate;
             return bestCandidate;
         }
 
+        // For AquaticOnly or Amphibious creatures: allow sampling points inside water ponds too
+        if (ai.WaterCapability == AnimalWaterCapability.AquaticOnly || ai.WaterCapability == AnimalWaterCapability.Amphibious)
+        {
+            bool preferWaterSample = ai.WaterCapability == AnimalWaterCapability.AquaticOnly || Random.value < 0.50f;
+            if (preferWaterSample)
+            {
+                for (int attempt = 0; attempt < 10; attempt++)
+                {
+                    HexCoordinates sampleHex = roamableHexes.Count > 0
+                        ? roamableHexes[Random.Range(0, roamableHexes.Count)]
+                        : targetHex;
+                    Vector3 sCenter = HexMetrics.HexToWorldPosition(sampleHex, targetSurfaceY);
+                    Vector2 jitter = Random.insideUnitCircle * Mathf.Min(ai.SafeHexRadius * 0.85f, 0.70f);
+                    Vector3 cand = new Vector3(sCenter.x + jitter.x, targetSurfaceY, sCenter.z + jitter.y);
+                    if (!ai.IsPointTraversable(cand)) continue;
+                    if (ai.TrySampleWaterAt(cand, out _, out _, out float depth) && depth >= AnimalMovementAI.EnterWaterDepth)
+                    {
+                        if ((cand - ai.transform.position).sqrMagnitude >= 0.16f)
+                        {
+                            ai.lastTargetDestination = cand;
+                            return cand;
+                        }
+                    }
+                }
+            }
+        }
+
         ai.lastTargetDestination = AnimalSectorNavigator.PickGroundDestination(
             ai.transform.position, ai.currentHex, targetHex, hexCenter,
             ai.MaxWanderRadius, ai.SafeHexRadius, ai.PreferCameraFacingGlade,
             ai.transform.forward, ai.PersonalRadius, ai, AnimalMovementAI.GetActiveAnimals(),
-            ai.tempNearbyObstacles, ai.worldGen, ai.CanMoveToHex);
+            ai.tempNearbyObstacles, ai.worldGen, ai.CanMoveToHex, ai.IsPointTraversable);
 
         return ai.lastTargetDestination;
     }
@@ -287,20 +336,24 @@ public static class AnimalLocomotionRunner
     {
         ai.isMoving = true;
 
-        if (Vector3.Distance(ai.transform.position, targetWorldPos) < 0.08f)
+        Vector3 startFlatDiff = targetWorldPos - ai.transform.position;
+        startFlatDiff.y = 0f;
+        if (startFlatDiff.sqrMagnitude < 0.008f)
         {
             ai.StopMoveAnimation(moveClip);
             ai.isMoving = false;
             yield break;
         }
 
-        float maxDuration = 5.0f;
+        float maxDuration = 7.0f;
         float elapsed = 0f;
         float blockedTimer = 0f;
         float stuckCheckTimer = 0f;
         int consecutiveStuckCount = 0;
         Vector3 windowStartPos = ai.transform.position;
         Vector3 smoothedAvoidance = Vector3.zero;
+        string activeMoveClip = moveClip;
+        float activeSpeed = speed;
 
         bool shouldTurnInPlace = ai.TurnBeforeWalking && (!ai.IsAirborne || ai.LocomotionType != AnimalLocomotionType.Flying);
         if (shouldTurnInPlace)
@@ -313,15 +366,10 @@ public static class AnimalLocomotionRunner
                 ai.PlayIdleAnimation();
 
                 Quaternion faceRot = Quaternion.LookRotation(initialDir);
-                while (Quaternion.Angle(ai.transform.rotation, faceRot) > ai.TurnThresholdAngle && elapsed < 0.8f)
+                float turnElapsed = 0f;
+                while (Quaternion.Angle(ai.transform.rotation, faceRot) > ai.TurnThresholdAngle && turnElapsed < 0.75f)
                 {
-                    if (ai.FarmAI != null && ai.FarmAI.currentState != AnimalState.WanderRandom)
-                    {
-                        ai.StopMoveAnimation(moveClip);
-                        ai.isMoving = false;
-                        yield break;
-                    }
-                    elapsed += Time.deltaTime;
+                    turnElapsed += Time.deltaTime;
                     ai.transform.rotation = Quaternion.RotateTowards(ai.transform.rotation, faceRot, ai.RotationSpeed * Time.deltaTime);
                     UpdateElevationAndBanking(ai, ai.transform.position, Vector3.zero);
                     yield return null;
@@ -329,23 +377,35 @@ public static class AnimalLocomotionRunner
             }
         }
 
-        ai.PlayMoveAnimation(moveClip);
+        // Ensure clip & speed match current water state before stepping
+        if (ai.LocomotionType != AnimalLocomotionType.Flying)
+        {
+            ai.UpdateWaterStateAt(ai.transform.position, forceImmediate: false);
+            if (ai.IsInWater)
+            {
+                string swimClip = AnimalAnimationClassifier.GetSwimClip(ai.moveClips);
+                if (!string.IsNullOrEmpty(swimClip)) activeMoveClip = swimClip;
+                activeSpeed = ai.SwimSpeed;
+            }
+        }
+
+        ai.PlayMoveAnimation(activeMoveClip);
 
         while (elapsed < maxDuration)
         {
-            if (ai.FarmAI != null && ai.FarmAI.currentState != AnimalState.WanderRandom)
+            float dt = Time.deltaTime;
+            if (dt <= 0.00001f)
             {
-                ai.StopMoveAnimation(moveClip);
-                ai.isMoving = false;
-                yield break;
+                yield return null;
+                continue;
             }
-            elapsed += Time.deltaTime;
+            elapsed += dt;
 
             Vector3 currentPos = ai.transform.position;
             Vector3 diff = targetWorldPos - currentPos;
             Vector3 flatDir = new Vector3(diff.x, 0f, diff.z);
 
-            if (flatDir.sqrMagnitude < 0.0036f)
+            if (flatDir.sqrMagnitude < 0.0064f)
             {
                 break;
             }
@@ -353,14 +413,17 @@ public static class AnimalLocomotionRunner
             Vector3 avoidance = AnimalSectorNavigator.ComputeAvoidanceVector(
                 currentPos, flatDir.normalized, ai, AnimalMovementAI.GetActiveAnimals(),
                 ai.LocomotionType, ai.IsAirborne, ai.PersonalRadius, ai.tempNearbyObstacles,
-                ai.worldGen, ai.currentHex, ai.SafeHexRadius, ai.CanMoveToHex, out bool isBlockedDirectly);
+                ai.worldGen, ai.currentHex, ai.SafeHexRadius, ai.CanMoveToHex, out bool isBlockedDirectly,
+                ai.IsPointTraversable);
 
             if (isBlockedDirectly)
             {
-                ai.StopMoveAnimation(moveClip);
-
-                blockedTimer += Time.deltaTime;
-                if (blockedTimer > 0.30f)
+                blockedTimer += dt;
+                if (blockedTimer > 0.18f)
+                {
+                    ai.StopMoveAnimation(activeMoveClip);
+                }
+                if (blockedTimer > 0.38f)
                 {
                     break;
                 }
@@ -372,15 +435,16 @@ public static class AnimalLocomotionRunner
             else
             {
                 blockedTimer = 0f;
-                ai.PlayMoveAnimation(moveClip);
+                ai.PlayMoveAnimation(activeMoveClip);
             }
 
-            smoothedAvoidance = Vector3.MoveTowards(smoothedAvoidance, avoidance, 6.0f * Time.deltaTime);
+            smoothedAvoidance = Vector3.MoveTowards(smoothedAvoidance, avoidance, 6.0f * dt);
 
             Vector3 moveDir = flatDir.normalized;
             if (smoothedAvoidance.sqrMagnitude > 0.001f)
             {
-                moveDir = (flatDir.normalized + smoothedAvoidance * ai.AvoidanceWeight).normalized;
+                Vector3 combined = flatDir.normalized + smoothedAvoidance * ai.AvoidanceWeight;
+                if (combined.sqrMagnitude > 0.001f) moveDir = combined.normalized;
             }
 
             if (moveDir.sqrMagnitude > 0.001f)
@@ -388,15 +452,15 @@ public static class AnimalLocomotionRunner
                 Quaternion desiredRot = Quaternion.LookRotation(moveDir);
                 if (ai.LocomotionType == AnimalLocomotionType.Flying && ai.IsAirborne)
                 {
-                    ai.transform.rotation = Quaternion.RotateTowards(ai.transform.rotation, desiredRot * Quaternion.Euler(0f, 0f, ai.currentBankAngle), ai.RotationSpeed * Time.deltaTime);
+                    ai.transform.rotation = Quaternion.RotateTowards(ai.transform.rotation, desiredRot * Quaternion.Euler(0f, 0f, ai.currentBankAngle), ai.RotationSpeed * dt);
                 }
                 else
                 {
-                    ai.transform.rotation = Quaternion.RotateTowards(ai.transform.rotation, desiredRot, ai.RotationSpeed * Time.deltaTime);
+                    ai.transform.rotation = Quaternion.RotateTowards(ai.transform.rotation, desiredRot, ai.RotationSpeed * dt);
                 }
             }
 
-            Vector3 step = moveDir * (speed * Time.deltaTime);
+            Vector3 step = moveDir * (activeSpeed * dt);
             if (step.sqrMagnitude > flatDir.sqrMagnitude)
             {
                 step = flatDir;
@@ -448,8 +512,21 @@ public static class AnimalLocomotionRunner
 
             Vector3 nextPos = ClampToValidHabitat(ai, candidatePos, currentPos);
 
+            // Prevent LandOnly creatures from stepping into deep water (slide tangentially along the shoreline instead!)
+            if (!ai.IsPointTraversable(nextPos) && ai.IsPointTraversable(currentPos))
+            {
+                Vector3 right = Vector3.Cross(Vector3.up, moveDir).normalized;
+                Vector3 slideR = ClampToValidHabitat(ai, currentPos + right * (activeSpeed * dt * 0.75f), currentPos);
+                Vector3 slideL = ClampToValidHabitat(ai, currentPos - right * (activeSpeed * dt * 0.75f), currentPos);
+                if (ai.IsPointTraversable(slideR)) nextPos = slideR;
+                else if (ai.IsPointTraversable(slideL)) nextPos = slideL;
+                else nextPos = currentPos;
+            }
+
+            // Framerate-independent movement progress check (fixes >100 FPS jitter & Walk<->Idle animation thrashing!)
             float stepDistSqr = (nextPos - currentPos).sqrMagnitude;
-            if (stepDistSqr < 0.000025f)
+            float minExpectedStep = Mathf.Max(0.00015f, activeSpeed * dt * 0.18f);
+            if (stepDistSqr < minExpectedStep * minExpectedStep)
             {
                 Vector3 hexCenter = HexMetrics.HexToWorldPosition(ai.currentHex, currentPos.y);
                 Vector3 radial = currentPos - hexCenter;
@@ -460,7 +537,7 @@ public static class AnimalLocomotionRunner
                     Vector3 tangent = Vector3.Cross(Vector3.up, radial).normalized;
                     Vector3 tangentStep = Vector3.Project(step, tangent);
                     Vector3 slidePos = ClampToValidHabitat(ai, currentPos + tangentStep, currentPos);
-                    if ((slidePos - currentPos).sqrMagnitude > 0.000025f)
+                    if ((slidePos - currentPos).sqrMagnitude >= minExpectedStep * minExpectedStep && ai.IsPointTraversable(slidePos))
                     {
                         nextPos = slidePos;
                         borderSlid = true;
@@ -469,10 +546,10 @@ public static class AnimalLocomotionRunner
 
                 if (!borderSlid)
                 {
-                    ai.StopMoveAnimation(moveClip);
-                    blockedTimer += Time.deltaTime;
-                    if (blockedTimer > 0.20f)
+                    blockedTimer += dt;
+                    if (blockedTimer > 0.22f)
                     {
+                        ai.StopMoveAnimation(activeMoveClip);
                         break;
                     }
                     UpdateElevationAndBanking(ai, currentPos, Vector3.zero);
@@ -481,14 +558,45 @@ public static class AnimalLocomotionRunner
                 }
             }
 
+            // Smooth mid-stride Land <-> Water state & animation transition for Amphibious creatures (Lotelle & Rivlet)
+            if (ai.LocomotionType != AnimalLocomotionType.Flying)
+            {
+                if (ai.UpdateWaterStateAt(nextPos, forceImmediate: false))
+                {
+                    if (ai.IsInWater)
+                    {
+                        string swimClip = AnimalAnimationClassifier.GetSwimClip(ai.moveClips);
+                        if (!string.IsNullOrEmpty(swimClip))
+                        {
+                            activeMoveClip = swimClip;
+                            activeSpeed = ai.SwimSpeed;
+                            ai.PlayMoveAnimation(activeMoveClip, 0.25f);
+                        }
+                    }
+                    else
+                    {
+                        string walkClip = AnimalAnimationClassifier.GetGroundMoveClip(ai.moveClips, ai.idleClips, isLongDistance: false);
+                        if (!string.IsNullOrEmpty(walkClip))
+                        {
+                            activeMoveClip = walkClip;
+                            activeSpeed = AnimalAnimationClassifier.GetSpeedForClip(
+                                activeMoveClip, ai.LocomotionType, false, ai.WalkSpeed, ai.RunSpeed, ai.SwimSpeed, ai.FlySpeed);
+                            ai.PlayMoveAnimation(activeMoveClip, 0.25f);
+                        }
+                    }
+                }
+            }
+
             UpdateElevationAndBanking(ai, nextPos, moveDir);
             ai.UpdateCurrentHexFromPosition();
 
-            stuckCheckTimer += Time.deltaTime;
-            if (stuckCheckTimer >= 0.25f)
+            stuckCheckTimer += dt;
+            if (stuckCheckTimer >= 0.40f)
             {
-                float netMoved = Vector3.Distance(ai.transform.position, windowStartPos);
-                if (netMoved < 0.03f)
+                float netMoved = Vector3.Distance(
+                    new Vector3(ai.transform.position.x, 0f, ai.transform.position.z),
+                    new Vector3(windowStartPos.x, 0f, windowStartPos.z));
+                if (netMoved < 0.04f)
                 {
                     consecutiveStuckCount++;
                     if (consecutiveStuckCount >= 2)
@@ -508,7 +616,7 @@ public static class AnimalLocomotionRunner
             yield return null;
         }
 
-        ai.StopMoveAnimation(moveClip);
+        ai.StopMoveAnimation(activeMoveClip);
         ai.UpdateCurrentHexFromPosition();
         ai.isMoving = false;
     }
@@ -738,31 +846,21 @@ public static class AnimalLocomotionRunner
         ai.PlayStationaryAnimation();
         yield return new WaitForSeconds(0.25f);
 
-        bool wasInterruptedByFarmAI = false;
-
         while (true)
         {
             if (ai.anim == null) yield break;
 
-            if (ai.FarmAI != null && ai.FarmAI.currentState != AnimalState.WanderRandom)
+            // Recovery guard: if a LandOnly or AquaticOnly creature ended up in non-traversable terrain (e.g. after Wet biome upgrade 3->6->10), smoothly relocate to nearest valid point inside its biome
+            if (ai.LocomotionType != AnimalLocomotionType.Flying && !ai.IsPointTraversable(ai.transform.position))
             {
-                wasInterruptedByFarmAI = true;
-                yield return new WaitForSeconds(0.25f);
-                continue;
-            }
-
-            if (wasInterruptedByFarmAI)
-            {
-                wasInterruptedByFarmAI = false;
-                ai.UpdateCurrentHexFromPosition();
-                ai.currentWorldY = ai.transform.position.y;
-                if (ai.LocomotionType == AnimalLocomotionType.Flying)
+                Vector3 safePos = ai.FindNearestTraversablePoint(ai.transform.position);
+                if (ai.IsPointTraversable(safePos))
                 {
-                    ai.isAirborne = true;
-                    ai.targetAltitudeOffset = ai.FlightAltitude;
-                    ai.currentAltitudeOffset = ai.FlightAltitude;
+                    ai.UpdateWaterStateAt(safePos, forceImmediate: true);
+                    ai.currentWorldY = ai.ComputeTargetWorldYAt(safePos);
+                    ai.transform.position = new Vector3(safePos.x, ai.currentWorldY, safePos.z);
+                    ai.UpdateCurrentHexFromPosition();
                 }
-                ai.PlayStationaryAnimation();
             }
 
             if (ai.LocomotionType == AnimalLocomotionType.Flying)

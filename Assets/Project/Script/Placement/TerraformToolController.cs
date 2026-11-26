@@ -499,28 +499,9 @@ public class TerraformToolController : MonoBehaviour
         var shell = new GameObject(shellName);
         shell.transform.position = tileObj.transform.position + new Vector3(0f, yOffset, 0f);
         shell.transform.rotation = tileObj.transform.rotation;
-        shell.transform.localScale = new Vector3(1.028f, 1.045f, 1.028f);
+        shell.transform.localScale = Vector3.Scale(tileObj.transform.lossyScale, new Vector3(1.028f, 1.045f, 1.028f));
 
-        MeshFilter[] filters = tileObj.GetComponentsInChildren<MeshFilter>(false);
-        foreach (var srcMf in filters)
-        {
-            if (srcMf == null || srcMf.sharedMesh == null) continue;
-            if (IsPartOfPlacedProp(srcMf.transform, tileObj.transform)) continue;
-
-            var part = new GameObject(srcMf.name);
-            part.transform.SetParent(shell.transform, false);
-            part.transform.localPosition = tileObj.transform.InverseTransformPoint(srcMf.transform.position);
-            part.transform.localRotation = Quaternion.Inverse(tileObj.transform.rotation) * srcMf.transform.rotation;
-            part.transform.localScale = (srcMf.gameObject == tileObj) ? Vector3.one : srcMf.transform.localScale;
-
-            var mf = part.AddComponent<MeshFilter>();
-            mf.sharedMesh = srcMf.sharedMesh;
-
-            var mr = part.AddComponent<MeshRenderer>();
-            mr.sharedMaterial = highlightMaterial;
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
-        }
+        HexHighlightShellUtility.PopulateMeshHierarchy(tileObj.transform, shell.transform, highlightMaterial, skipPlacedProps: true);
 
         TintShell(shell, color);
         return shell;
@@ -693,19 +674,5 @@ public class TerraformToolController : MonoBehaviour
         applyBtnBg.color = canApply ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
         applyBtnLabel.color = Color.white;
         applyBtnLabel.text = count > 0 ? $"Apply ({total})" : "Apply";
-    }
-
-    private static bool IsPartOfPlacedProp(Transform t, Transform tileTransform)
-    {
-        Transform curr = t;
-        while (curr != null && curr != tileTransform)
-        {
-            if (curr.GetComponent<PlacedCard>() != null || curr.name.StartsWith("Habitat_"))
-            {
-                return true;
-            }
-            curr = curr.parent;
-        }
-        return false;
     }
 }

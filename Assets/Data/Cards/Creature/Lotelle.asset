@@ -18,6 +18,7 @@ MonoBehaviour:
   cardType: 0
   rarity: 0
   islandId: wet
+  sharedAcrossRainIslands: 0
   reusable: 0
   elevationChange: 0
   isTriangleRain: 0
@@ -35,6 +36,7 @@ MonoBehaviour:
   clearPropsOnTransform: 1
   occupiesTile: 1
   isRiverCard: 0
+  isSettlementCard: 0
   animalSpeciesData: {fileID: 11400000, guid: cbfdc0104849a354abe97c1c079508ee, type: 2}
   producedResource: {fileID: 0}
   landResourceBonus: 0

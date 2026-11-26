@@ -1,8 +1,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using LumiWorld.Acs;
 using UnityEngine;
 using Random = UnityEngine.Random;
+
+public enum AnimalWaterCapability
+{
+    LandOnly = 0,
+    Amphibious = 1,
+    AquaticOnly = 2
+}
 
 /// <summary>
 /// AI điều khiển hành vi động vật tự nhiên trong LumiWorld:
@@ -138,6 +146,7 @@ public class AnimalMovementAI : MonoBehaviour
     // Component nội bộ
     internal Animation anim;
     internal HexWorldGenerator worldGen;
+    internal HexCoordinates homeHex;
     internal HexCoordinates currentHex;
     internal bool isMoving = false;
     private FarmAnimalAI farmAI;
@@ -150,6 +159,18 @@ public class AnimalMovementAI : MonoBehaviour
     internal float currentBankAngle = 0f;
     internal float currentWorldY = 0f;
 
+    // Năng lực nước / lưỡng cư (tự nhận diện từ clip thực có trên model: Walk + Swim => Amphibious)
+    internal AnimalWaterCapability waterCapability = AnimalWaterCapability.LandOnly;
+    internal bool isInWater = false;
+    internal float waterStateChangedTime = -10f;
+    internal string currentAnimationClip = string.Empty;
+
+    internal const float EnterWaterDepth = 0.12f;
+    internal const float ExitWaterDepth = 0.05f;
+    internal const float LandMaxWaterDepth = 0.08f;
+    internal const float WaterStateHoldSeconds = 0.45f;
+    internal const float SwimSinkOffset = 0.045f;
+
     // Cờ bảo vệ ngăn Start() tự ý ghi đè khi đã được cấu hình từ SpeciesData / Code
     private bool isLocomotionExplicitlyConfigured = false;
     private bool isYOffsetExplicitlyConfigured = false;
@@ -160,6 +181,8 @@ public class AnimalMovementAI : MonoBehaviour
 
     public static List<AnimalMovementAI> GetActiveAnimals() => ActiveAnimals;
     public bool IsMoving => isMoving;
+    public bool IsInWater => isInWater;
+    public AnimalWaterCapability WaterCapability => waterCapability;
     public float YOffset => yOffset;
     public AnimalLocomotionType LocomotionType => locomotionType;
     public bool IsAirborne => isAirborne;
@@ -402,6 +425,26 @@ public class AnimalMovementAI : MonoBehaviour
             locomotionType = AnimalLocomotionType.Ground;
         }
 
+        // Tự động xác định năng lực nước / lưỡng cư dựa trên clip thực tế của model
+        bool hasWalk = AnimalAnimationClassifier.HasGroundWalk(moveClips);
+        bool hasSwim = AnimalAnimationClassifier.HasSwimAnimation(moveClips);
+        if (locomotionType == AnimalLocomotionType.Flying)
+        {
+            waterCapability = AnimalWaterCapability.LandOnly;
+        }
+        else if (hasWalk && hasSwim)
+        {
+            waterCapability = AnimalWaterCapability.Amphibious;
+        }
+        else if (hasSwim)
+        {
+            waterCapability = AnimalWaterCapability.AquaticOnly;
+        }
+        else
+        {
+            waterCapability = AnimalWaterCapability.LandOnly;
+        }
+
         if (locomotionType == AnimalLocomotionType.Flying)
         {
             isAirborne = true;
@@ -413,6 +456,7 @@ public class AnimalMovementAI : MonoBehaviour
             if (anim != null && !string.IsNullOrEmpty(flyClip) && anim.GetClip(flyClip) != null)
             {
                 anim.Play(flyClip);
+                currentAnimationClip = flyClip;
             }
         }
         else
@@ -420,12 +464,13 @@ public class AnimalMovementAI : MonoBehaviour
             isAirborne = false;
             targetAltitudeOffset = yOffset;
             currentAltitudeOffset = yOffset;
-            maxWanderRadius = Mathf.Clamp(maxWanderRadius, 0.35f, 0.50f);
+            maxWanderRadius = Mathf.Clamp(maxWanderRadius, 0.45f, 0.65f);
 
             string groundIdle = AnimalAnimationClassifier.GetGroundIdleClip(idleClips, moveClips);
             if (anim != null && !string.IsNullOrEmpty(groundIdle) && anim.GetClip(groundIdle) != null)
             {
                 anim.Play(groundIdle);
+                currentAnimationClip = groundIdle;
             }
         }
 
@@ -457,11 +502,16 @@ public class AnimalMovementAI : MonoBehaviour
                 currentHex = bestHex;
             }
         }
+        homeHex = currentHex;
 
         Vector3 curPos = transform.position;
         Vector3 clampedPos = ClampToValidHabitat(curPos, curPos);
-        float initSurfaceY = GetSurfaceYAt(clampedPos);
-        currentWorldY = initSurfaceY + currentAltitudeOffset;
+        if (locomotionType != AnimalLocomotionType.Flying && !IsPointTraversable(clampedPos))
+        {
+            clampedPos = FindNearestTraversablePoint(clampedPos);
+        }
+        UpdateWaterStateAt(clampedPos, forceImmediate: true);
+        currentWorldY = ComputeTargetWorldYAt(clampedPos);
         transform.position = new Vector3(clampedPos.x, currentWorldY, clampedPos.z);
 
         AnimalLocomotionRunner.SeparateInitialPosition(this);
@@ -470,34 +520,39 @@ public class AnimalMovementAI : MonoBehaviour
         StartCoroutine(AnimalLocomotionRunner.BehaviorLoopRoutine(this));
     }
 
-    internal void PlayMoveAnimation(string clipName)
+    internal void PlayMoveAnimation(string clipName, float fadeLength = 0.22f)
     {
         if (anim == null || string.IsNullOrEmpty(clipName)) return;
-        if (anim.GetClip(clipName) != null && !anim.IsPlaying(clipName))
-        {
-            anim.CrossFade(clipName, 0.2f);
-        }
+        if (anim.GetClip(clipName) == null) return;
+        if (string.Equals(currentAnimationClip, clipName, StringComparison.Ordinal) && anim.IsPlaying(clipName)) return;
+        anim.CrossFade(clipName, fadeLength);
+        currentAnimationClip = clipName;
     }
 
     internal void PlayStationaryAnimation()
     {
         if (anim == null) return;
 
+        string targetClip;
         if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
         {
-            string hoverClip = AnimalAnimationClassifier.GetFlightClip(moveClips, preferHover: true);
-            if (!string.IsNullOrEmpty(hoverClip) && anim.GetClip(hoverClip) != null)
-            {
-                anim.CrossFade(hoverClip, 0.30f);
-            }
+            targetClip = AnimalAnimationClassifier.GetFlightClip(moveClips, preferHover: true);
+        }
+        else if (isInWater)
+        {
+            targetClip = AnimalAnimationClassifier.GetWaterIdleClip(idleClips, moveClips);
         }
         else
         {
-            string idleClip = AnimalAnimationClassifier.GetGroundIdleClip(idleClips, moveClips);
-            if (!string.IsNullOrEmpty(idleClip) && anim.GetClip(idleClip) != null)
-            {
-                anim.CrossFade(idleClip, 0.35f);
-            }
+            targetClip = AnimalAnimationClassifier.GetGroundIdleClip(idleClips, moveClips);
+        }
+
+        if (!string.IsNullOrEmpty(targetClip) && anim.GetClip(targetClip) != null)
+        {
+            if (string.Equals(currentAnimationClip, targetClip, StringComparison.Ordinal) && anim.IsPlaying(targetClip))
+                return;
+            anim.CrossFade(targetClip, 0.28f);
+            currentAnimationClip = targetClip;
         }
     }
 
@@ -510,38 +565,29 @@ public class AnimalMovementAI : MonoBehaviour
     {
         if (anim == null) return;
 
-        // Smoothly CrossFade into hover/idle clip instead of hard-zeroing move weights (avoids 1-frame snap pop, especially for flying birds transitioning Glide -> Flap).
+        // Smoothly CrossFade into hover/idle/water-idle clip instead of hard-zeroing move weights
+        string targetClip;
         if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
         {
-            string hoverClip = AnimalAnimationClassifier.GetFlightClip(moveClips, preferHover: true);
-            if (!string.IsNullOrEmpty(hoverClip) && anim.GetClip(hoverClip) != null)
-            {
-                anim.CrossFade(hoverClip, 0.30f);
-                return;
-            }
+            targetClip = AnimalAnimationClassifier.GetFlightClip(moveClips, preferHover: true);
+        }
+        else if (isInWater)
+        {
+            targetClip = AnimalAnimationClassifier.GetWaterIdleClip(idleClips, moveClips);
         }
         else
         {
-            string idleClip = AnimalAnimationClassifier.GetGroundIdleClip(idleClips, moveClips);
-            if (!string.IsNullOrEmpty(idleClip) && anim.GetClip(idleClip) != null)
-            {
-                anim.CrossFade(idleClip, 0.28f);
-                return;
-            }
+            targetClip = AnimalAnimationClassifier.GetGroundIdleClip(idleClips, moveClips);
         }
 
-        if (!string.IsNullOrEmpty(activeMoveClip) && anim[activeMoveClip] != null)
+        if (!string.IsNullOrEmpty(targetClip) && anim.GetClip(targetClip) != null)
         {
-            anim[activeMoveClip].weight = 0f;
-        }
-
-        for (int i = 0; i < moveClips.Count; i++)
-        {
-            string c = moveClips[i];
-            if (!string.IsNullOrEmpty(c) && anim[c] != null)
+            if (!string.Equals(currentAnimationClip, targetClip, StringComparison.Ordinal) || !anim.IsPlaying(targetClip))
             {
-                anim[c].weight = 0f;
+                anim.CrossFade(targetClip, 0.26f);
+                currentAnimationClip = targetClip;
             }
+            return;
         }
 
         PlayStationaryAnimation();
@@ -557,10 +603,13 @@ public class AnimalMovementAI : MonoBehaviour
             {
                 return AnimalAnimationClassifier.GetFlightClip(moveClips, preferHover: false);
             }
-            else
-            {
-                return AnimalAnimationClassifier.GetGroundMoveClip(moveClips, idleClips, isLongDistance);
-            }
+            return AnimalAnimationClassifier.GetGroundMoveClip(moveClips, idleClips, isLongDistance);
+        }
+
+        if (isInWater)
+        {
+            string swimClip = AnimalAnimationClassifier.GetSwimClip(moveClips);
+            if (!string.IsNullOrEmpty(swimClip)) return swimClip;
         }
 
         return AnimalAnimationClassifier.GetGroundMoveClip(moveClips, idleClips, isLongDistance);
@@ -597,11 +646,224 @@ public class AnimalMovementAI : MonoBehaviour
         UpdateCurrentHex();
     }
 
+    public HabitatState GetMyHabitat()
+    {
+        if (!HabitatRuntimeManager.TryGetActive(out var habitatMgr)) return null;
+        var hab = habitatMgr.FindHabitatByHex(homeHex);
+        if (hab == null && currentHex != homeHex)
+            hab = habitatMgr.FindHabitatByHex(currentHex);
+        return hab;
+    }
+
+    public void GetRoamableHexes(List<HexCoordinates> results)
+    {
+        results.Clear();
+        var hab = GetMyHabitat();
+        if (hab != null && hab.IsFormedBiome && hab.members != null && hab.members.Count > 0)
+        {
+            for (int i = 0; i < hab.members.Count; i++)
+            {
+                if (hab.members[i] != null) results.Add(hab.members[i].hex);
+            }
+            return;
+        }
+
+        results.Add(currentHex);
+        for (int dir = 0; dir < 6; dir++)
+        {
+            HexCoordinates nHex = currentHex.GetNeighbor(dir);
+            if (CanMoveToHex(nHex)) results.Add(nHex);
+        }
+    }
+
+    public BiomeSurface GetBiomeSurfaceAt(Vector3 worldPos)
+    {
+        if (worldGen == null || worldGen.MapTiles == null) return null;
+        HexCoordinates hex = HexMetrics.WorldToHex(worldPos);
+        if (worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) && tileObj != null)
+        {
+            var s = tileObj.GetComponent<HexTileInfo>()?.biomeSurface;
+            if (s != null) return s;
+        }
+        if (worldGen.MapTiles.TryGetValue(currentHex, out GameObject curObj) && curObj != null)
+        {
+            var s = curObj.GetComponent<HexTileInfo>()?.biomeSurface;
+            if (s != null) return s;
+        }
+        if (homeHex != currentHex && worldGen.MapTiles.TryGetValue(homeHex, out GameObject homeObj) && homeObj != null)
+        {
+            var s = homeObj.GetComponent<HexTileInfo>()?.biomeSurface;
+            if (s != null) return s;
+        }
+        return null;
+    }
+
+    public bool TrySampleWaterAt(Vector3 worldPos, out float groundY, out float waterY, out float waterDepth)
+    {
+        groundY = 0f;
+        waterY = 0f;
+        waterDepth = 0f;
+        var surface = GetBiomeSurfaceAt(worldPos);
+        if (surface == null) return false;
+        return surface.TrySampleSurface(worldPos, out groundY, out waterY, out _, out waterDepth);
+    }
+
+    public bool IsPointTraversable(Vector3 worldPos)
+    {
+        HexCoordinates hex = HexMetrics.WorldToHex(worldPos);
+        if (!CanMoveToHex(hex)) return false;
+
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
+            return true;
+
+        if (waterCapability == AnimalWaterCapability.Amphibious)
+            return true;
+
+        var surface = GetBiomeSurfaceAt(worldPos);
+        if (surface == null || !surface.HasWaterSurface)
+            return true;
+
+        if (!surface.TrySampleSurface(worldPos, out _, out _, out bool hasWater, out float waterDepth))
+            return true;
+
+        if (waterCapability == AnimalWaterCapability.LandOnly)
+        {
+            return !hasWater || waterDepth <= LandMaxWaterDepth;
+        }
+
+        // AquaticOnly: stay in water whenever the biome has water
+        return hasWater && waterDepth >= 0.06f;
+    }
+
+    public bool UpdateWaterStateAt(Vector3 worldPos, bool forceImmediate = false)
+    {
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
+        {
+            bool changed = isInWater;
+            isInWater = false;
+            return changed;
+        }
+
+        if (waterCapability == AnimalWaterCapability.LandOnly)
+        {
+            bool changed = isInWater;
+            isInWater = false;
+            return changed;
+        }
+
+        bool sampled = TrySampleWaterAt(worldPos, out _, out _, out float waterDepth);
+        if (!sampled)
+        {
+            if (isInWater)
+            {
+                isInWater = false;
+                waterStateChangedTime = Time.time;
+                return true;
+            }
+            return false;
+        }
+
+        if (waterCapability == AnimalWaterCapability.AquaticOnly)
+        {
+            bool nextAquatic = waterDepth >= 0.04f;
+            if (nextAquatic != isInWater)
+            {
+                isInWater = nextAquatic;
+                waterStateChangedTime = Time.time;
+                return true;
+            }
+            return false;
+        }
+
+        // Amphibious (Lotelle, Rivlet): smooth depth hysteresis + minimum hold time to prevent shoreline flicker
+        if (!forceImmediate && (Time.time - waterStateChangedTime) < WaterStateHoldSeconds)
+            return false;
+
+        if (!isInWater && waterDepth >= EnterWaterDepth)
+        {
+            isInWater = true;
+            waterStateChangedTime = Time.time;
+            return true;
+        }
+
+        if (isInWater && waterDepth <= ExitWaterDepth)
+        {
+            isInWater = false;
+            waterStateChangedTime = Time.time;
+            return true;
+        }
+
+        return false;
+    }
+
+    public float ComputeTargetWorldYAt(Vector3 flatPos)
+    {
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
+        {
+            return GetSurfaceYAt(flatPos) + currentAltitudeOffset;
+        }
+
+        if (TrySampleWaterAt(flatPos, out float groundY, out float waterY, out float waterDepth))
+        {
+            if (isInWater && waterDepth > 0.02f)
+            {
+                return waterY + yOffset - SwimSinkOffset;
+            }
+            return groundY + yOffset;
+        }
+
+        return GetSurfaceYAt(flatPos) + currentAltitudeOffset;
+    }
+
+    public Vector3 FindNearestTraversablePoint(Vector3 originPos)
+    {
+        List<HexCoordinates> hexes = new List<HexCoordinates>();
+        GetRoamableHexes(hexes);
+
+        Vector3 best = originPos;
+        float bestDistSqr = float.MaxValue;
+        bool found = false;
+
+        for (int h = 0; h < hexes.Count; h++)
+        {
+            Vector3 center = HexMetrics.HexToWorldPosition(hexes[h], originPos.y);
+            // Sample center + 2 concentric rings across each biome hex
+            for (int ring = 0; ring < 3; ring++)
+            {
+                int samples = ring == 0 ? 1 : (ring == 1 ? 6 : 12);
+                float r = ring == 0 ? 0f : (ring == 1 ? 0.36f : 0.68f);
+                for (int s = 0; s < samples; s++)
+                {
+                    float a = (s * (360f / samples)) * Mathf.Deg2Rad;
+                    Vector3 cand = new Vector3(center.x + Mathf.Cos(a) * r, originPos.y, center.z + Mathf.Sin(a) * r);
+                    if (!IsPointTraversable(cand)) continue;
+                    float dSqr = (cand - originPos).sqrMagnitude;
+                    if (dSqr < bestDistSqr)
+                    {
+                        bestDistSqr = dSqr;
+                        best = cand;
+                        found = true;
+                    }
+                }
+            }
+        }
+
+        return found ? best : originPos;
+    }
+
     public bool CanMoveToHex(HexCoordinates hex)
     {
-        if (hex == currentHex) return true;
-        if (worldGen == null || worldGen.MapTiles == null) return false;
+        if (worldGen == null || worldGen.MapTiles == null) return hex == currentHex;
         if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null) return false;
+
+        // Authoritative path: use the creature's formed HabitatState (works identically for all 3/6/10 Starter & Wet biomes)
+        var myHabitat = GetMyHabitat();
+        if (myHabitat != null && myHabitat.IsFormedBiome)
+        {
+            return myHabitat.ContainsHex(hex);
+        }
+
+        if (hex == currentHex) return true;
 
         CardData curHabitat = GetCurrentHabitat();
         if (curHabitat == null) return false;
@@ -609,7 +871,8 @@ public class AnimalMovementAI : MonoBehaviour
         PlacedCard nCard = HexBiomeClusterConnector.GetHabitatCardOnTile(tileObj);
         if (nCard != null && nCard.cardData != null)
         {
-            if (!HexBiomeClusterConnector.AreHabitatsMatching(curHabitat, nCard.cardData))
+            if (!HexBiomeClusterConnector.AreNatureCardsMatching(curHabitat, nCard.cardData) &&
+                !HexBiomeClusterConnector.AreHabitatsMatching(curHabitat, nCard.cardData))
                 return false;
 
             if (worldGen.MapTiles.TryGetValue(currentHex, out GameObject curTileObj) && curTileObj != null)

@@ -179,17 +179,18 @@ namespace LumiWorld.Acs.Islands
             }
             if (record.initialHandGranted) return;
             int oldNature = hand.GetHeldCount(nature.cardID);
-            int oldRain = hand.GetHeldCount(island.rainCard.cardID);
+            bool grantRain = island.allowsRain && island.rainCard != null && island.startingRain > 0;
+            int oldRain = grantRain ? hand.GetHeldCount(island.rainCard.cardID) : 0;
             hand.AddCardsWithoutSaving(nature, 3);
-            hand.AddCardsWithoutSaving(island.rainCard, island.startingRain);
+            if (grantRain) hand.AddCardsWithoutSaving(island.rainCard, island.startingRain);
             record.initialHandGranted = hand.GetHeldCount(nature.cardID) == oldNature + 3 &&
-                hand.GetHeldCount(island.rainCard.cardID) == oldRain + island.startingRain;
+                (!grantRain || hand.GetHeldCount(island.rainCard.cardID) == oldRain + island.startingRain);
             save.MarkDirty();
             if (!record.initialHandGranted || !save.SaveNow())
             {
                 record.initialHandGranted = false;
                 hand.TakeCardsWithoutSaving(nature.cardID, hand.GetHeldCount(nature.cardID) - oldNature);
-                hand.TakeCardsWithoutSaving(island.rainCard.cardID, hand.GetHeldCount(island.rainCard.cardID) - oldRain);
+                if (grantRain) hand.TakeCardsWithoutSaving(island.rainCard.cardID, hand.GetHeldCount(island.rainCard.cardID) - oldRain);
             }
         }
     }

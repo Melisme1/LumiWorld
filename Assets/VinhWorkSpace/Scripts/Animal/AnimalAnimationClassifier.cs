@@ -33,23 +33,31 @@ public static class AnimalAnimationClassifier
         {
             string cName = state.name;
 
-            // BỎ QUA HOÀN TOÀN Rest_Pose / BindPose (vì đây là T-pose tĩnh của exporter 3D, không phải animation diễn hoạt)
-            // BỎ QUA Death / Die để thú không tự nhiên gục chết khi đứng nghỉ
+            // BỎ QUA HOÀN TOÀN Rest_Pose / BindPose (T-pose tĩnh của exporter 3D), Death/Die/Dead và Fall
             if (cName.IndexOf("Rest_Pose", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 cName.IndexOf("RestPose", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 cName.IndexOf("BindPose", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 cName.IndexOf("Death", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                cName.IndexOf("Die", StringComparison.OrdinalIgnoreCase) >= 0)
+                cName.IndexOf("Dead", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                cName.IndexOf("Die", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                cName.IndexOf("Fall", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 continue;
             }
 
             if (IsMovementAnimation(cName))
             {
+                state.wrapMode = WrapMode.Loop;
                 moveClips.Add(cName);
             }
             else
             {
+                if (cName.IndexOf("Idle", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    cName.IndexOf("Rest", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    cName.IndexOf("Sit", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    state.wrapMode = WrapMode.Loop;
+                }
                 idleClips.Add(cName);
             }
         }
@@ -123,9 +131,42 @@ public static class AnimalAnimationClassifier
                name.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
                name.IndexOf("Flap", StringComparison.OrdinalIgnoreCase) >= 0 ||
                name.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
-               name.IndexOf("Fall", StringComparison.OrdinalIgnoreCase) >= 0 ||
-               name.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
-               name.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0;
+               name.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    public static bool HasSwimAnimation(List<string> moveClips)
+    {
+        if (moveClips == null) return false;
+        return moveClips.Exists(c => c.IndexOf("Swim", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    public static string GetSwimClip(List<string> moveClips)
+    {
+        if (moveClips == null || moveClips.Count == 0) return "";
+        string horizontal = moveClips.Find(c =>
+            c.IndexOf("Swim_Horizontal", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("SwimHorizontal", StringComparison.OrdinalIgnoreCase) >= 0);
+        if (!string.IsNullOrEmpty(horizontal)) return horizontal;
+
+        string anySwim = moveClips.Find(c => c.IndexOf("Swim", StringComparison.OrdinalIgnoreCase) >= 0);
+        return anySwim ?? "";
+    }
+
+    public static string GetWaterIdleClip(List<string> idleClips, List<string> moveClips)
+    {
+        if (idleClips != null && idleClips.Count > 0)
+        {
+            string baseIdle = idleClips.Find(c =>
+                c.Equals("Idle", StringComparison.OrdinalIgnoreCase) ||
+                c.IndexOf("Idle", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (!string.IsNullOrEmpty(baseIdle)) return baseIdle;
+
+            string rest = idleClips.Find(c => c.IndexOf("Rest", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (!string.IsNullOrEmpty(rest)) return rest;
+        }
+        string swim = GetSwimClip(moveClips);
+        if (!string.IsNullOrEmpty(swim)) return swim;
+        return GetGroundIdleClip(idleClips, moveClips);
     }
 
     /// <summary>
@@ -170,8 +211,8 @@ public static class AnimalAnimationClassifier
             c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0 ||
             c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
             c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0);
+            c.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     /// <summary>
@@ -213,43 +254,31 @@ public static class AnimalAnimationClassifier
         if (moveClips == null || moveClips.Count == 0)
         {
             if (idleClips != null && idleClips.Count > 0) return idleClips[0];
-            return GetFlightClip(moveClips, false);
+            return "";
         }
 
         string walkClip = moveClips.Find(c => c.IndexOf("Walk", StringComparison.OrdinalIgnoreCase) >= 0);
         string trotClip = moveClips.Find(c => c.IndexOf("Trot", StringComparison.OrdinalIgnoreCase) >= 0);
         string runClip = moveClips.Find(c => c.IndexOf("Run", StringComparison.OrdinalIgnoreCase) >= 0);
         string hopClip = moveClips.Find(c => c.IndexOf("Fetch", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                             c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                             c.IndexOf("Bite", StringComparison.OrdinalIgnoreCase) >= 0);
-        string glideClip = moveClips.Find(c => c.IndexOf("Fall", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                              c.IndexOf("Glide", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                              c.IndexOf("Fly", StringComparison.OrdinalIgnoreCase) >= 0);
+                                             c.IndexOf("Hop", StringComparison.OrdinalIgnoreCase) >= 0);
 
-        if (!isLongDistance)
+        if (isLongDistance && Random.value < 0.45f && !string.IsNullOrEmpty(runClip))
         {
-            if (!string.IsNullOrEmpty(walkClip)) return walkClip;
-            if (!string.IsNullOrEmpty(trotClip)) return trotClip;
-            if (!string.IsNullOrEmpty(hopClip)) return hopClip;
-        }
-        else
-        {
-            if (Random.value < 0.50f && !string.IsNullOrEmpty(runClip))
-            {
-                return runClip;
-            }
-            if (Random.value < 0.50f && !string.IsNullOrEmpty(glideClip))
-            {
-                return glideClip;
-            }
-            if (!string.IsNullOrEmpty(walkClip)) return walkClip;
-            if (!string.IsNullOrEmpty(trotClip)) return trotClip;
-            if (!string.IsNullOrEmpty(hopClip)) return hopClip;
+            return runClip;
         }
 
-        if (moveClips.Count > 0) return moveClips[0];
+        if (!string.IsNullOrEmpty(walkClip)) return walkClip;
+        if (!string.IsNullOrEmpty(trotClip)) return trotClip;
+        if (!string.IsNullOrEmpty(runClip)) return runClip;
+        if (!string.IsNullOrEmpty(hopClip)) return hopClip;
+
+        // Pure aquatic fallback if no ground walk exists
+        string swimClip = GetSwimClip(moveClips);
+        if (!string.IsNullOrEmpty(swimClip)) return swimClip;
+
         if (idleClips != null && idleClips.Count > 0) return idleClips[0];
-        return GetFlightClip(moveClips, false);
+        return moveClips[0];
     }
 
     /// <summary>

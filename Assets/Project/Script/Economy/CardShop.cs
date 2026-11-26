@@ -16,8 +16,21 @@ public static class CardShop
     public static bool IsAvailable(CardData card)
     {
         if (card == null || WorldLaunch.IsVisit) return false;
-        string islandId = string.IsNullOrEmpty(card.islandId) ? "starter" : card.islandId;
         var islands = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
+        if (card.IsSharedRainCard())
+        {
+            if (islands == null || islands.Catalog == null || islands.Catalog.islands == null)
+                return true;
+
+            for (int i = 0; i < islands.Catalog.islands.Count; i++)
+            {
+                var island = islands.Catalog.islands[i];
+                if (island != null && island.allowsRain && islands.IsUnlocked(island.id))
+                    return true;
+            }
+            return false;
+        }
+        string islandId = string.IsNullOrEmpty(card.islandId) ? "starter" : card.islandId;
         return islandId == "starter" || (islands != null && islands.IsUnlocked(islandId));
     }
 

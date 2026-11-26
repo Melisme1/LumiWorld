@@ -3,7 +3,6 @@ using LumiWorld.Acs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
@@ -294,10 +293,10 @@ public class ScoreUI : MonoBehaviour
         }
 
         // Live 3D mouse-tracking parallax while hovered
-        if (stage3D != null && isCoreHovered && coreHitRect != null && Mouse.current != null)
+        if (stage3D != null && isCoreHovered && coreHitRect != null)
         {
-            Vector2 mousePos = Mouse.current.position.ReadValue();
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(coreHitRect, mousePos, null, out Vector2 localPt))
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (mouse != null && RectTransformUtility.ScreenPointToLocalPointInRectangle(coreHitRect, mouse.position.ReadValue(), null, out Vector2 localPt))
             {
                 Vector2 half = coreHitRect.rect.size * 0.5f;
                 Vector2 norm = new Vector2(
