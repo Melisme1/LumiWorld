@@ -28,20 +28,22 @@ namespace LumiWorld.Testing
         [Header("Trạng thái giao diện")]
         [SerializeField] private bool isOpen = false;
 
-        private Rect windowRect = new Rect(20, 40, 560, 580);
+        private Rect windowRect = new Rect(20, 40, 700, 580);
         private int selectedTab = 0;
         private readonly string[] tabNames = new string[]
         {
-            "📦 Tài Nguyên",
-            "🐺 Thú Hoang",
+            "📦 Kho",
+            "🐺 Thú",
             "🌪️ Thiên Tai",
             "💰 Tiền & Giờ",
+            "⭐ Score",
             "🃏 Thẻ Bài"
         };
 
         private Vector2 resourceScrollPos;
         private Vector2 cardScrollPos;
         private string cardSearchText = "";
+        private string scoreInput = "";
         private GUIStyle windowStyle;
         private GUIStyle headerStyle;
         private GUIStyle sectionStyle;
@@ -193,6 +195,9 @@ namespace LumiWorld.Testing
                     DrawTimeAndMoneyTab();
                     break;
                 case 4:
+                    DrawScoreTab();
+                    break;
+                case 5:
                     DrawCardsTab();
                     break;
             }
@@ -416,7 +421,50 @@ namespace LumiWorld.Testing
         }
 
         // ====================================================================
-        // TAB 5: THẺ BÀI (CARD CHEAT)
+        // TAB 5: SCORE CHEAT
+        // ====================================================================
+        private void DrawScoreTab()
+        {
+            GUILayout.BeginVertical(sectionStyle);
+            GUILayout.Label("<b>⭐ ĐIỂM SCORE</b>", headerStyle);
+
+            ScoreManager scoreManager = ScoreManager.Instance;
+            if (scoreManager == null)
+            {
+                GUILayout.Label("⚠️ ScoreManager chưa có trong Scene hiện tại.", statusStyle);
+                GUILayout.EndVertical();
+                return;
+            }
+
+            GUILayout.Label($"<b>Điểm hiện tại:</b> {scoreManager.CurrentScore:N0}", statusStyle);
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("+10", btnGreen)) scoreManager.AddBonusScore(10);
+            if (GUILayout.Button("+50", btnGreen)) scoreManager.AddBonusScore(50);
+            if (GUILayout.Button("+100", btnGreen)) scoreManager.AddBonusScore(100);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Đặt điểm:", GUILayout.Width(75));
+            scoreInput = GUILayout.TextField(scoreInput);
+            if (GUILayout.Button("Áp dụng", btnOrange, GUILayout.Width(90)) &&
+                int.TryParse(scoreInput, out int targetScore))
+            {
+                scoreManager.SetScore(targetScore);
+            }
+            GUILayout.EndHorizontal();
+
+            if (GUILayout.Button("Reset Score (0)", btnRed))
+            {
+                scoreManager.ResetScore();
+                scoreInput = "0";
+            }
+
+            GUILayout.EndVertical();
+        }
+
+        // ====================================================================
+        // TAB 6: THẺ BÀI (CARD CHEAT)
         // ====================================================================
         private void DrawCardsTab()
         {
