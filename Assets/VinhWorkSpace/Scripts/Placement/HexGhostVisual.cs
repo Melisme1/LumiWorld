@@ -42,6 +42,7 @@ public class HexGhostVisual : MonoBehaviour
     private GameObject itemGhostInstance;
     private CardData activeCardData;
     private readonly List<Renderer> cachedGhostRenderers = new List<Renderer>();
+    private readonly List<(MeshRenderer renderer, bool valid)> triangleSlotRenderers = new List<(MeshRenderer, bool)>();
     private MaterialPropertyBlock propBlock;
     private static readonly int ColorProperty = Shader.PropertyToID("_BaseColor");
     private Coroutine snapPunchCoroutine;
@@ -151,6 +152,7 @@ public class HexGhostVisual : MonoBehaviour
     /// </summary>
     public void OnHexSelectionChanged(GameObject newTileObj, bool isValid = true)
     {
+        triangleSlotRenderers.Clear();
         if (newTileObj != null)
         {
             // Đồng bộ vỏ bọc theo đúng hình dáng của ô lục giác mới
@@ -186,14 +188,60 @@ public class HexGhostVisual : MonoBehaviour
             Destroy(hologramShellObj);
             hologramShellObj = null;
         }
+        triangleSlotRenderers.Clear();
 
-        hologramShellObj = new GameObject("HologramEncasementShell");
+        hologramShellObj = CreateShellForTile(targetTileObj, ghostRoot.transform, useWorldPos: false, null);
+        RefreshCachedRenderers();
+    }
+
+    public void SyncTriangleHologramShells(List<(HexCoordinates hex, GameObject tileObj, bool valid)> slots, bool canAfford)
+    {
+        if (ghostRoot == null) return;
+
+        if (hologramShellObj != null)
+        {
+            Destroy(hologramShellObj);
+            hologramShellObj = null;
+        }
+        triangleSlotRenderers.Clear();
+
+        hologramShellObj = new GameObject("HologramTriangleShells");
         hologramShellObj.transform.SetParent(ghostRoot.transform, false);
-        hologramShellObj.transform.localPosition = new Vector3(0f, previewHeightOffset, 0f);
-        hologramShellObj.transform.localRotation = targetTileObj.transform.localRotation;
-        hologramShellObj.transform.localScale = previewScale;
+        hologramShellObj.transform.localPosition = Vector3.zero;
+        hologramShellObj.transform.localRotation = Quaternion.identity;
+        hologramShellObj.transform.localScale = Vector3.one;
 
-        // Nếu là thẻ biến đổi địa hình (Rain) và ô này hợp lệ, hiển thị mesh của ô Lush sau khi tưới!
+        if (slots != null)
+        {
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var slot = slots[i];
+                if (slot.tileObj == null) continue;
+                bool slotValid = slot.valid && canAfford;
+                CreateShellForTile(slot.tileObj, hologramShellObj.transform, useWorldPos: true, mr => triangleSlotRenderers.Add((mr, slotValid)));
+            }
+        }
+
+        RefreshCachedRenderers();
+        AnimatePulseVisuals(canAfford);
+    }
+
+    private GameObject CreateShellForTile(GameObject targetTileObj, Transform parent, bool useWorldPos, System.Action<MeshRenderer> onRendererCreated)
+    {
+        GameObject shell = new GameObject("HologramEncasementShell");
+        shell.transform.SetParent(parent, false);
+        if (useWorldPos)
+        {
+            shell.transform.position = targetTileObj.transform.position + new Vector3(0f, previewHeightOffset, 0f);
+            shell.transform.rotation = targetTileObj.transform.rotation;
+        }
+        else
+        {
+            shell.transform.localPosition = new Vector3(0f, previewHeightOffset, 0f);
+            shell.transform.localRotation = targetTileObj.transform.localRotation;
+        }
+        shell.transform.localScale = previewScale;
+
         GameObject meshSource = targetTileObj;
         bool isTransformedPrefab = false;
 
@@ -202,7 +250,6 @@ public class HexGhostVisual : MonoBehaviour
             var disasterSt = targetTileObj.GetComponent<LumiWorld.Acs.TileDisasterState>();
             bool hasDisaster = disasterSt != null && (disasterSt.HasAnyDisaster || disasterSt.isBurned);
 
-            // Chỉ preview mesh Lush khi ô là đất khô bình thường (không có thiên tai/cháy)
             if (!hasDisaster)
             {
                 GameObject transformed = activeCardData.GetTransformedPrefab(targetTileObj);
@@ -221,7 +268,7 @@ public class HexGhostVisual : MonoBehaviour
             if (!isTransformedPrefab && IsPartOfPlacedProp(srcMf.transform, targetTileObj.transform)) continue;
 
             GameObject part = new GameObject(srcMf.name);
-            part.transform.SetParent(hologramShellObj.transform, false);
+            part.transform.SetParent(shell.transform, false);
 
             if (isTransformedPrefab)
             {
@@ -244,9 +291,10 @@ public class HexGhostVisual : MonoBehaviour
             {
                 mr.sharedMaterial = ghostMaterial;
             }
+            onRendererCreated?.Invoke(mr);
         }
 
-        RefreshCachedRenderers();
+        return shell;
     }
 
     /// <summary>
@@ -256,11 +304,26 @@ public class HexGhostVisual : MonoBehaviour
     {
         if (ghostRoot == null) return;
 
+        float pulse = 0.78f + 0.12f * Mathf.Sin(Time.time * 4.0f);
+        Color pulseValidColor = new Color(validColor.r, validColor.g, validColor.b, pulse);
+
+        if (triangleSlotRenderers.Count > 0)
+        {
+            if (propBlock == null) propBlock = new MaterialPropertyBlock();
+            for (int i = 0; i < triangleSlotRenderers.Count; i++)
+            {
+                var entry = triangleSlotRenderers[i];
+                if (entry.renderer == null) continue;
+                entry.renderer.GetPropertyBlock(propBlock);
+                propBlock.SetColor(ColorProperty, entry.valid ? pulseValidColor : invalidColor);
+                entry.renderer.SetPropertyBlock(propBlock);
+            }
+            return;
+        }
+
         if (isValid)
         {
-            float pulse = 0.78f + 0.12f * Mathf.Sin(Time.time * 4.0f);
-            Color targetColor = new Color(validColor.r, validColor.g, validColor.b, pulse);
-            ApplyColorToAllRenderers(targetColor);
+            ApplyColorToAllRenderers(pulseValidColor);
         }
         else
         {
@@ -274,6 +337,7 @@ public class HexGhostVisual : MonoBehaviour
     public void ClearVisuals()
     {
         cachedGhostRenderers.Clear();
+        triangleSlotRenderers.Clear();
 
         if (snapPunchCoroutine != null)
         {

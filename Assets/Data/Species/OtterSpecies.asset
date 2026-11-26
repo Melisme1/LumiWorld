@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: OtterSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: otter
-  speciesName: "Rái Cá"
-  description: "Chú rái cá linh hoạt tinh nghịch, thích đùa vui bên những dòng suối hoa và nhặt nhạnh vỏ sò ngọc quý."
+  speciesName: Rivlet
+  description: A playful aqua otter spirit that bounds cheerfully along rushing streamstones
+    and lily pools.
   locomotionType: 0
   baseWalkSpeed: 0.52
   baseRunSpeed: 1.05
@@ -28,10 +29,4 @@ MonoBehaviour:
   weight3Star: 14
   weight4Star: 6
   weight5Star: 2
-  traitPool:
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
+  traitPool: 000000000100000002000000030000000400000005000000

@@ -13,6 +13,8 @@ using System.Collections.Generic;
 [Serializable]
 public class EconomySaveData
 {
+    // Access and its purchase live alongside coins so they are saved together.
+    public List<LumiWorld.Acs.Islands.IslandAccessRecord> islandAccess = new List<LumiWorld.Acs.Islands.IslandAccessRecord>();
     // 2: thêm Harmony, cột mốc và thành tựu đã nhận. 3: thêm bài trên tay. 4: thêm hàng chờ chế biến.
     // Bản lưu cũ hơn vẫn đọc được (các trường mới để mặc định).
     public int version = 4;
@@ -40,6 +42,7 @@ public class EconomySaveData
     // Id cột mốc (M1_...) và thành tựu đã nhận thưởng; đã có trong danh sách thì không bao giờ nhận lại.
     public List<string> claimedMilestoneIds = new List<string>();
     public List<string> claimedAchievementIds = new List<string>();
+    public List<AchievementProgressRecord> achievementProgress = new List<AchievementProgressRecord>();
 
     // Bài trên tay (CardDeskController), gộp theo cardID. starterHandGranted = false: chưa từng chia bài khởi đầu
     // (tài khoản mới, New Game hoặc bản lưu cũ), khi đó dùng bộ bài khởi đầu rồi ghi lại.
@@ -61,6 +64,13 @@ public class EconomySaveData
 public class HandCardStack
 {
     public string cardId;
+    public int count;
+}
+
+[Serializable]
+public class AchievementProgressRecord
+{
+    public string id;
     public int count;
 }
 

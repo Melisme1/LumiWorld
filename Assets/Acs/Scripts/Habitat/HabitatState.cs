@@ -13,6 +13,7 @@ namespace LumiWorld.Acs
         public BiomeAffinity affinity;
         public HabitatIsland island;
         public int connectionClusterId;
+        public int elevationLevel = -1;
     }
 
     [Serializable]
@@ -38,6 +39,7 @@ namespace LumiWorld.Acs
     [Serializable]
     public sealed class HabitatState
     {
+        public bool confirmedFormation;
         public string habitatId;
         public string islandId;
         public string natureCardId;

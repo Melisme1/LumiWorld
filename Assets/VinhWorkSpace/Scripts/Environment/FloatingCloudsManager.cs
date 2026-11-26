@@ -30,6 +30,18 @@ public class FloatingCloudsManager : MonoBehaviour
     [SerializeField] private float maxSpeed = 1.2f;
 
     private readonly List<CloudInstance> activeClouds = new List<CloudInstance>();
+    private Material generatedMaterial;
+
+    public void ConfigureLowCover(Vector2 size, int count)
+    {
+        areaSize = size;
+        cloudCount = count;
+        minHeight = 1.5f;
+        maxHeight = 2.5f;
+        scaleRange = new Vector2(1.5f, 2.8f);
+        minSpeed = .08f;
+        maxSpeed = .18f;
+    }
 
     private class CloudInstance
     {
@@ -56,7 +68,7 @@ public class FloatingCloudsManager : MonoBehaviour
         Vector3 moveStep = new Vector3(windDirection.x, 0, windDirection.y).normalized;
         float halfWidth = areaSize.x * 0.5f;
         float halfLength = areaSize.y * 0.5f;
-        Vector3 center = transform.position;
+        Vector3 center = Vector3.zero;
 
         for (int i = 0; i < activeClouds.Count; i++)
         {
@@ -64,9 +76,9 @@ public class FloatingCloudsManager : MonoBehaviour
             if (cloud.GameObject == null) continue;
 
             // Di chuyển mây theo hướng gió
-            cloud.Transform.position += moveStep * (cloud.Speed * Time.deltaTime);
+            cloud.Transform.localPosition += moveStep * (cloud.Speed * Time.deltaTime);
 
-            Vector3 pos = cloud.Transform.position;
+            Vector3 pos = cloud.Transform.localPosition;
 
             // Kiểm tra nếu mây bay vượt quá vùng giới hạn XZ
             if (pos.x > center.x + halfWidth || pos.x < center.x - halfWidth ||
@@ -111,6 +123,7 @@ public class FloatingCloudsManager : MonoBehaviour
         Material cloudMat = cloudShader != null 
             ? new Material(cloudShader) 
             : new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+        generatedMaterial = cloudMat;
 
         for (int i = 0; i < cloudCount; i++)
         {
@@ -158,7 +171,7 @@ public class FloatingCloudsManager : MonoBehaviour
 
     private void ResetCloudPosition(CloudInstance cloud, bool fromWindSource)
     {
-        Vector3 center = transform.position;
+        Vector3 center = Vector3.zero;
         float halfWidth = areaSize.x * 0.5f;
         float halfLength = areaSize.y * 0.5f;
 
@@ -172,7 +185,7 @@ public class FloatingCloudsManager : MonoBehaviour
             // Phân bố đều khắp bầu trời
             float posX = Random.Range(center.x - halfWidth, center.x + halfWidth);
             float posZ = Random.Range(center.z - halfLength, center.z + halfLength);
-            cloud.Transform.position = new Vector3(posX, center.y + randomHeight, posZ);
+            cloud.Transform.localPosition = new Vector3(posX, center.y + randomHeight, posZ);
         }
         else
         {
@@ -185,15 +198,20 @@ public class FloatingCloudsManager : MonoBehaviour
 
             Vector2 spawn2D = -windNorm * spawnDistance + perp * spread;
 
-            cloud.Transform.position = new Vector3(center.x + spawn2D.x, center.y + randomHeight, center.z + spawn2D.y);
+            cloud.Transform.localPosition = new Vector3(center.x + spawn2D.x, center.y + randomHeight, center.z + spawn2D.y);
         }
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.3f);
-        Vector3 center = transform.position + Vector3.up * ((minHeight + maxHeight) * 0.5f);
+        Matrix4x4 previous = Gizmos.matrix;
+        Gizmos.matrix = transform.localToWorldMatrix;
+        Vector3 center = Vector3.up * ((minHeight + maxHeight) * 0.5f);
         Vector3 size = new Vector3(areaSize.x, maxHeight - minHeight, areaSize.y);
         Gizmos.DrawWireCube(center, size);
+        Gizmos.matrix = previous;
     }
+
+    private void OnDestroy() { if (generatedMaterial != null) Destroy(generatedMaterial); }
 }

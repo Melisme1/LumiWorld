@@ -32,7 +32,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WaterMask:
-        m_Texture: {fileID: 2800000, guid: 850a4e1e0ca12884fa38a3c36dfda7a9, type: 3}
+        m_Texture: {fileID: 2800000, guid: 815f2d6343986824eb3d7a73607b59c8, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []

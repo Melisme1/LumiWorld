@@ -1,0 +1,760 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f31790e2e0ed856418ca2b0557e820c4, type: 3}
+  m_Name: Profile_Rainleaf
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.BiomeLayoutProfile
+  biomeId: Rainleaf
+  designNotes: One rear-central canopy tree, tilted palms and bananas at the sides,
+    broadleaf understory and a low central grass carpet.
+  waterMask3Hex: {fileID: 0}
+  waterMask6Hex: {fileID: 0}
+  waterMask10Hex: {fileID: 0}
+  surfaceSettings:
+    tileHeight: 1.055
+    outerBevelWidth: 0.082
+    outerBevelDrop: 0.052
+    dryInteriorSeamDepth: 0.036
+    dryInteriorSeamWidth: 0.072
+    shoreStartMask: 0.04
+    waterThresholdMask: 0.34
+    maxBasinDepth: 0
+    waterSurfaceDrop: 0.065
+    streamSlopeDrop: 0
+    streamSlopeDir: {x: 0.78, y: -0.62}
+    radialSubdivisions: 22
+  minSwimWaterDepthMeters: 0.1
+  walkableSampleSpacing: 0.68
+  swimmableSampleSpacing: 0.6
+  creatureAgentRadius: 0.34
+  layers:
+  - roleId: CanopyTree
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 0
+    guides:
+    - u: 0.5
+      v: 0.62
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.65
+    spread: 0.04
+    spacing: 0.22
+    obstacleRadius: 0.43
+    yOffset: 0
+    scaleMin: 0.91
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.14
+    preserveAuthoredPivot: 1
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 8351238994033163496, guid: a0b90aa7efb18804591d6874f0cc996a, type: 3}
+    - {fileID: 7736582587842561867, guid: f8929762559839347a46a5067d0a7d67, type: 3}
+    - {fileID: 262187447278353815, guid: 30fe4e46be4614142a353474d6fa3541, type: 3}
+    - {fileID: 9030742814202191986, guid: b6517842fc84a6b4cb558bcfa78b3362, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 262187447278353815, guid: 30fe4e46be4614142a353474d6fa3541, type: 3}
+      - {fileID: 3196169228541506373, guid: a50786be0303fa84ab3b0bc6d926e8e4, type: 3}
+      - {fileID: 8197041090947804537, guid: 363c89c2fb0b06e4cb088aedc95d9600, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 2.016
+        targetMax: 2.352
+        minHeight: 1.9319999
+        maxHeight: 2.436
+        minFootprint: 1.512
+        maxFootprint: 2.478
+    hex6:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 262187447278353815, guid: 30fe4e46be4614142a353474d6fa3541, type: 3}
+      - {fileID: 3196169228541506373, guid: a50786be0303fa84ab3b0bc6d926e8e4, type: 3}
+      - {fileID: 8197041090947804537, guid: 363c89c2fb0b06e4cb088aedc95d9600, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 2.4
+        targetMax: 2.8
+        minHeight: 2.3
+        maxHeight: 2.9
+        minFootprint: 1.8
+        maxFootprint: 2.95
+    hex10:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 262187447278353815, guid: 30fe4e46be4614142a353474d6fa3541, type: 3}
+      - {fileID: 3196169228541506373, guid: a50786be0303fa84ab3b0bc6d926e8e4, type: 3}
+      - {fileID: 8197041090947804537, guid: 363c89c2fb0b06e4cb088aedc95d9600, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 2.6880002
+        targetMax: 3.136
+        minHeight: 2.576
+        maxHeight: 3.2480001
+        minFootprint: 2.016
+        maxFootprint: 3.3040001
+  - roleId: CanopyVines
+    count3: 2
+    count6: 3
+    count10: 4
+    ground: 0
+    guides: []
+    clusterAroundParentRole:
+    - CanopyTree
+    radiusMin: 0.36
+    radiusMax: 0.68
+    spread: 0.1
+    spacing: 0.22
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.91
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0.8
+    hangFromParent: 1
+    pool:
+    - {fileID: 3113655409522139476, guid: d8845a2541c36e64a89e93edd243a83b, type: 3}
+    - {fileID: 5766782005121532916, guid: 7fa72bf69770d9b4fb913f977e8c94b6, type: 3}
+    - {fileID: 5543744845991662374, guid: cdc42c90762dab94f8c3599e716fac7d, type: 3}
+    - {fileID: 5369940994561580101, guid: 9b89e3a84ceab7c48a4f8c2b1d1aab3b, type: 3}
+    - {fileID: 4798869779335494360, guid: efe3e7110b4b28d4480735a37a251973, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 3113655409522139476, guid: d8845a2541c36e64a89e93edd243a83b, type: 3}
+      - {fileID: 5543744845991662374, guid: cdc42c90762dab94f8c3599e716fac7d, type: 3}
+      - {fileID: 494750007464505599, guid: c8430f58458bc3f4bb6d76e334a98ae4, type: 3}
+      - {fileID: 7948327074667091550, guid: 91d128b22468bd84d92236e62ae0d4f7, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 0.43
+        targetMax: 0.731
+        minHeight: 0.387
+        maxHeight: 0.774
+        minFootprint: 0.103199996
+        maxFootprint: 0.731
+    hex6:
+      enabled: 1
+      count: 3
+      assets:
+      - {fileID: 3113655409522139476, guid: d8845a2541c36e64a89e93edd243a83b, type: 3}
+      - {fileID: 5543744845991662374, guid: cdc42c90762dab94f8c3599e716fac7d, type: 3}
+      - {fileID: 494750007464505599, guid: c8430f58458bc3f4bb6d76e334a98ae4, type: 3}
+      - {fileID: 7948327074667091550, guid: 91d128b22468bd84d92236e62ae0d4f7, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 0.5
+        targetMax: 0.85
+        minHeight: 0.45
+        maxHeight: 0.9
+        minFootprint: 0.12
+        maxFootprint: 0.85
+    hex10:
+      enabled: 1
+      count: 4
+      assets:
+      - {fileID: 3113655409522139476, guid: d8845a2541c36e64a89e93edd243a83b, type: 3}
+      - {fileID: 5543744845991662374, guid: cdc42c90762dab94f8c3599e716fac7d, type: 3}
+      - {fileID: 494750007464505599, guid: c8430f58458bc3f4bb6d76e334a98ae4, type: 3}
+      - {fileID: 7948327074667091550, guid: 91d128b22468bd84d92236e62ae0d4f7, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 0.57
+        targetMax: 0.96900004
+        minHeight: 0.51299995
+        maxHeight: 1.0259999
+        minFootprint: 0.13679999
+        maxFootprint: 0.96900004
+  - roleId: RootStones
+    count3: 2
+    count6: 3
+    count10: 4
+    ground: 0
+    guides: []
+    clusterAroundParentRole:
+    - CanopyTree
+    radiusMin: 0.28
+    radiusMax: 0.67
+    spread: 0.1
+    spacing: 0.22
+    obstacleRadius: 0.14
+    yOffset: -0.08
+    scaleMin: 0.91
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.75
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+    - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+    - {fileID: 6529625598502548107, guid: 6d3b6a5c2f102e04097c6344eeb3305b, type: 3}
+    - {fileID: 4224964535514129757, guid: 83fd9451becc24f45959bea1191e680d, type: 3}
+    - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+    - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+      - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+      - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+      - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.41279998
+        targetMax: 0.5848
+        minHeight: 0.15480001
+        maxHeight: 0.41279998
+        minFootprint: 0.3784
+        maxFootprint: 0.61920005
+    hex6:
+      enabled: 1
+      count: 3
+      assets:
+      - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+      - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+      - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+      - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.48
+        targetMax: 0.68
+        minHeight: 0.18
+        maxHeight: 0.48
+        minFootprint: 0.44
+        maxFootprint: 0.72
+    hex10:
+      enabled: 1
+      count: 4
+      assets:
+      - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+      - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+      - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+      - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.54719996
+        targetMax: 0.7752
+        minHeight: 0.2052
+        maxHeight: 0.54719996
+        minFootprint: 0.50159997
+        maxFootprint: 0.8208
+  - roleId: TrunkOrchids
+    count3: 1
+    count6: 2
+    count10: 3
+    ground: 0
+    guides: []
+    clusterAroundParentRole:
+    - CanopyTree
+    radiusMin: 0.18
+    radiusMax: 0.45
+    spread: 0.1
+    spacing: 0.22
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.91
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0.25
+    hangFromParent: 0
+    pool:
+    - {fileID: 563560150514714899, guid: 543c562fc0c91e440b51c71b1940ce48, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 563560150514714899, guid: 543c562fc0c91e440b51c71b1940ce48, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.2752
+        targetMax: 0.41279998
+        minHeight: 0.120400004
+        maxHeight: 0.2838
+        minFootprint: 0.24080001
+        maxFootprint: 0.4472
+    hex6:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 563560150514714899, guid: 543c562fc0c91e440b51c71b1940ce48, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.32
+        targetMax: 0.48
+        minHeight: 0.14
+        maxHeight: 0.33
+        minFootprint: 0.28
+        maxFootprint: 0.52
+    hex10:
+      enabled: 1
+      count: 3
+      assets:
+      - {fileID: 563560150514714899, guid: 543c562fc0c91e440b51c71b1940ce48, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.36479998
+        targetMax: 0.54719996
+        minHeight: 0.1596
+        maxHeight: 0.37620002
+        minFootprint: 0.3192
+        maxFootprint: 0.59279996
+  - roleId: CurvedPalms
+    count3: 1
+    count6: 2
+    count10: 4
+    ground: 0
+    guides:
+    - u: 0.23
+      v: 0.5
+    - u: 0.63
+      v: 0.71
+    - u: 0.77
+      v: 0.45
+    - u: 0.32
+      v: 0.66
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.65
+    spread: 0.1
+    spacing: 0.22
+    obstacleRadius: 0.16
+    yOffset: 0
+    scaleMin: 0.91
+    scaleMax: 1.05
+    tiltMin: 8
+    tiltMax: 15
+    yaw: 0
+    waterHeight: 0
+    facing: 2
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.12
+    preserveAuthoredPivot: 1
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 7845601842960154373, guid: 59742868538139f46a9e317380625afb, type: 3}
+    - {fileID: 6594956307832282392, guid: 28f7f51bb9fcb454c8f728698717441b, type: 3}
+    - {fileID: 1893671176723844791, guid: a58a50c77fb62b74ba0c01cb146c9a1e, type: 3}
+    - {fileID: 8330023124713532483, guid: 1c1d078ed33ed134d8f695b9219f9bc6, type: 3}
+    - {fileID: 1636968016996112763, guid: 9cc97d1b36ed2084da75474ffb85521c, type: 3}
+    - {fileID: 968006517475321693, guid: d5b974f648d621a49830a98f7b53dabd, type: 3}
+    - {fileID: 6697478294458312884, guid: 98b9213b02685054f9437fd1bf18d877, type: 3}
+    - {fileID: 8894204774829540522, guid: 746289909567c654290c7c4bdac2edba, type: 3}
+    - {fileID: 4055844440058722414, guid: 32bec4b86a207c54bba00cfb2ffe1128, type: 3}
+    - {fileID: 2196709527216768085, guid: 5bd7f0fcc72ddbf49b3bf93ec67f8781, type: 3}
+    - {fileID: 861088603142498344, guid: bb3b22f8cbecf12468307a934c5f81e1, type: 3}
+    - {fileID: 7960467293247156696, guid: c8ff77c8fbc3d9f42b47d29e26e0a965, type: 3}
+    - {fileID: 5809703839312043765, guid: 3c09806e4e752ad4cbf9e24367e9f566, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 6697478294458312884, guid: 98b9213b02685054f9437fd1bf18d877, type: 3}
+      - {fileID: 8894204774829540522, guid: 746289909567c654290c7c4bdac2edba, type: 3}
+      - {fileID: 7845601842960154373, guid: 59742868538139f46a9e317380625afb, type: 3}
+      - {fileID: 1893671176723844791, guid: a58a50c77fb62b74ba0c01cb146c9a1e, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 1.419
+        targetMax: 1.8490001
+        minHeight: 1.333
+        maxHeight: 1.9350001
+        minFootprint: 0.602
+        maxFootprint: 1.505
+    hex6:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 6697478294458312884, guid: 98b9213b02685054f9437fd1bf18d877, type: 3}
+      - {fileID: 8894204774829540522, guid: 746289909567c654290c7c4bdac2edba, type: 3}
+      - {fileID: 7845601842960154373, guid: 59742868538139f46a9e317380625afb, type: 3}
+      - {fileID: 1893671176723844791, guid: a58a50c77fb62b74ba0c01cb146c9a1e, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 1.65
+        targetMax: 2.15
+        minHeight: 1.55
+        maxHeight: 2.25
+        minFootprint: 0.7
+        maxFootprint: 1.75
+    hex10:
+      enabled: 1
+      count: 4
+      assets:
+      - {fileID: 6697478294458312884, guid: 98b9213b02685054f9437fd1bf18d877, type: 3}
+      - {fileID: 8894204774829540522, guid: 746289909567c654290c7c4bdac2edba, type: 3}
+      - {fileID: 7845601842960154373, guid: 59742868538139f46a9e317380625afb, type: 3}
+      - {fileID: 1893671176723844791, guid: a58a50c77fb62b74ba0c01cb146c9a1e, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 1.8809999
+        targetMax: 2.451
+        minHeight: 1.767
+        maxHeight: 2.565
+        minFootprint: 0.798
+        maxFootprint: 1.995
+  - roleId: BananaBackdrop
+    count3: 1
+    count6: 2
+    count10: 3
+    ground: 0
+    guides:
+    - u: 0.72
+      v: 0.5
+    - u: 0.39
+      v: 0.78
+    - u: 0.18
+      v: 0.33
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.65
+    spread: 0.1
+    spacing: 0.22
+    obstacleRadius: 0.16
+    yOffset: 0
+    scaleMin: 0.91
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.15
+    preserveAuthoredPivot: 1
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 3233550464268409454, guid: fb8ccbfbd291d014786a4085f7e43dc5, type: 3}
+    - {fileID: 2283747778199975526, guid: e25b587d74a77814391e92139ced21e0, type: 3}
+    - {fileID: 4298377892094224601, guid: c37e32a7f368a914387ddce000fb6511, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 3233550464268409454, guid: fb8ccbfbd291d014786a4085f7e43dc5, type: 3}
+      - {fileID: 2283747778199975526, guid: e25b587d74a77814391e92139ced21e0, type: 3}
+      - {fileID: 4298377892094224601, guid: c37e32a7f368a914387ddce000fb6511, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 1.161
+        targetMax: 1.548
+        minHeight: 1.075
+        maxHeight: 1.6340001
+        minFootprint: 0.731
+        maxFootprint: 1.548
+    hex6:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 3233550464268409454, guid: fb8ccbfbd291d014786a4085f7e43dc5, type: 3}
+      - {fileID: 2283747778199975526, guid: e25b587d74a77814391e92139ced21e0, type: 3}
+      - {fileID: 4298377892094224601, guid: c37e32a7f368a914387ddce000fb6511, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 1.35
+        targetMax: 1.8
+        minHeight: 1.25
+        maxHeight: 1.9
+        minFootprint: 0.85
+        maxFootprint: 1.8
+    hex10:
+      enabled: 1
+      count: 3
+      assets:
+      - {fileID: 3233550464268409454, guid: fb8ccbfbd291d014786a4085f7e43dc5, type: 3}
+      - {fileID: 2283747778199975526, guid: e25b587d74a77814391e92139ced21e0, type: 3}
+      - {fileID: 4298377892094224601, guid: c37e32a7f368a914387ddce000fb6511, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 1.539
+        targetMax: 2.0519998
+        minHeight: 1.425
+        maxHeight: 2.166
+        minFootprint: 0.96900004
+        maxFootprint: 2.0519998
+  - roleId: BroadleafUnderstory
+    count3: 5
+    count6: 10
+    count10: 16
+    ground: 0
+    guides: []
+    clusterAroundParentRole:
+    - CurvedPalms
+    - BananaBackdrop
+    radiusMin: 0.32
+    radiusMax: 0.8
+    spread: 0.1
+    spacing: 0.27
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.91
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 2104089536490556713, guid: 23eb6ec8bd4e4d446a6095113a78d0d9, type: 3}
+    - {fileID: 6761532694862880578, guid: 1ab82afd8e60aeb4cac32bb05f8382e7, type: 3}
+    - {fileID: 1402626686447595588, guid: 0712891d26b0ddd468ef152bb472e1e0, type: 3}
+    - {fileID: 5384587175351357555, guid: 435b66698d3074949a86e2007bbeacc3, type: 3}
+    - {fileID: 7026529046643951624, guid: a0bc1402e4d0b8044b4c20b0ca84d4b9, type: 3}
+    - {fileID: 2142519691357842624, guid: b5b2947bd5ff8784993ce3393917f1db, type: 3}
+    - {fileID: 2034946973503931204, guid: 70598159e1320a944a65c7eef38d4288, type: 3}
+    - {fileID: 2619666596073837699, guid: 6f1b8a72b163d6b40a968bf1da4b04cd, type: 3}
+    - {fileID: 1734099776888968893, guid: bf0b666d127e343448c817147eb0e500, type: 3}
+    - {fileID: 3873265267537306352, guid: 9f9aba593c4da424f8d925ee0438d4f7, type: 3}
+    - {fileID: 7950275843906485218, guid: c20d8b9fbaa24ca439e54221ec4ffff4, type: 3}
+    - {fileID: 6296336240576462447, guid: ebd73436104b1be41b0c731a3e50d28d, type: 3}
+    - {fileID: 5866667879043754862, guid: 30c9acf9b9e3e6240a9a5eb7ada1f94c, type: 3}
+    - {fileID: 8209753644912034201, guid: c0ec19241ad96f5459cd9aa81f02cb9a, type: 3}
+    - {fileID: 4143788485696635328, guid: ac27a76a5408e4846a1138498a401cf6, type: 3}
+    - {fileID: 8388764705524281443, guid: 75a859f491716424e962ee9d390e9b96, type: 3}
+    - {fileID: 2544404992597959514, guid: ee98aca071763bf40a87491adf8bef0b, type: 3}
+    - {fileID: 5585893244726091128, guid: a029c488379cc3b4dae7791ce4db62d7, type: 3}
+    - {fileID: 188156504686685481, guid: c426c042a9652bf4eb84dfa8d7692bcd, type: 3}
+    - {fileID: 4610254034002757131, guid: 17bae1c4b98863d49820d86f4f3b8720, type: 3}
+    - {fileID: 4320059941114484436, guid: d16c700c703aa404489c611f071132a3, type: 3}
+    - {fileID: 8189095612850970172, guid: c245a98b61cab2a4ca6883f94b68b787, type: 3}
+    - {fileID: 1210008397296558947, guid: 8efb7bbc0bd564b49ba8d4ae03c32a40, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 5
+      assets:
+      - {fileID: 2034946973503931204, guid: 70598159e1320a944a65c7eef38d4288, type: 3}
+      - {fileID: 2619666596073837699, guid: 6f1b8a72b163d6b40a968bf1da4b04cd, type: 3}
+      - {fileID: 3873265267537306352, guid: 9f9aba593c4da424f8d925ee0438d4f7, type: 3}
+      - {fileID: 5585893244726091128, guid: a029c488379cc3b4dae7791ce4db62d7, type: 3}
+      - {fileID: 1210008397296558947, guid: 8efb7bbc0bd564b49ba8d4ae03c32a40, type: 3}
+      - {fileID: 5384587175351357555, guid: 435b66698d3074949a86e2007bbeacc3, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.559
+        targetMax: 0.81700003
+        minHeight: 0.215
+        maxHeight: 0.602
+        minFootprint: 0.51600003
+        maxFootprint: 0.86
+    hex6:
+      enabled: 1
+      count: 10
+      assets:
+      - {fileID: 2034946973503931204, guid: 70598159e1320a944a65c7eef38d4288, type: 3}
+      - {fileID: 2619666596073837699, guid: 6f1b8a72b163d6b40a968bf1da4b04cd, type: 3}
+      - {fileID: 3873265267537306352, guid: 9f9aba593c4da424f8d925ee0438d4f7, type: 3}
+      - {fileID: 5585893244726091128, guid: a029c488379cc3b4dae7791ce4db62d7, type: 3}
+      - {fileID: 1210008397296558947, guid: 8efb7bbc0bd564b49ba8d4ae03c32a40, type: 3}
+      - {fileID: 5384587175351357555, guid: 435b66698d3074949a86e2007bbeacc3, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.65
+        targetMax: 0.95
+        minHeight: 0.25
+        maxHeight: 0.7
+        minFootprint: 0.6
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 16
+      assets:
+      - {fileID: 2034946973503931204, guid: 70598159e1320a944a65c7eef38d4288, type: 3}
+      - {fileID: 2619666596073837699, guid: 6f1b8a72b163d6b40a968bf1da4b04cd, type: 3}
+      - {fileID: 3873265267537306352, guid: 9f9aba593c4da424f8d925ee0438d4f7, type: 3}
+      - {fileID: 5585893244726091128, guid: a029c488379cc3b4dae7791ce4db62d7, type: 3}
+      - {fileID: 1210008397296558947, guid: 8efb7bbc0bd564b49ba8d4ae03c32a40, type: 3}
+      - {fileID: 5384587175351357555, guid: 435b66698d3074949a86e2007bbeacc3, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.74099994
+        targetMax: 1.083
+        minHeight: 0.285
+        maxHeight: 0.798
+        minFootprint: 0.684
+        maxFootprint: 1.14
+  - roleId: CentralGrassCarpet
+    count3: 10
+    count6: 20
+    count10: 33
+    ground: 0
+    guides:
+    - u: 0.31
+      v: 0.26
+    - u: 0.44
+      v: 0.42
+    - u: 0.54
+      v: 0.55
+    - u: 0.66
+      v: 0.26
+    - u: 0.51
+      v: 0.16
+    - u: 0.68
+      v: 0.41
+    - u: 0.24
+      v: 0.36
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.65
+    spread: 0.26
+    spacing: 0.21
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.76
+    scaleMax: 0.96
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 5176149391528678447, guid: a38bd6a351634a34f95f85e85231943d, type: 3}
+    - {fileID: 2870178288405309213, guid: ef4575b3c8ce35c459b61b2775c3a91f, type: 3}
+    - {fileID: 6858460387295604363, guid: d88d58046a147cb4592e0fb1728c8a6e, type: 3}
+    - {fileID: 7794995268202331828, guid: c32185c300a48a246bcf0fc25fb987d4, type: 3}
+    - {fileID: 761836375325542706, guid: 22851c728bc543343900e2b074a06f3c, type: 3}
+    - {fileID: 466886060251323226, guid: e0043fe954795b64599714d6d23b004a, type: 3}
+    - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+    - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+    - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+    - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+    - {fileID: 3270826431698565211, guid: a6a5cf59efde3ad478747bef6c0b1654, type: 3}
+    - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+    - {fileID: 5060161707927732146, guid: 18ba0d86fdb6b384d8bd69adf00441aa, type: 3}
+    - {fileID: 4012553963079734733, guid: f2bba6e1069609b4fbad5f7bf8809840, type: 3}
+    - {fileID: 772140888904698814, guid: 5ac582bb37d155d47a1cb2f54d61374f, type: 3}
+    - {fileID: 6538713382482991198, guid: e10f7a45255400f43a5d1c66102f18c6, type: 3}
+    - {fileID: 6887874025321483073, guid: fa7ced3179129514eae739fc3d28cab9, type: 3}
+    useTierPresets: 1
+    hex3:
+      enabled: 1
+      count: 10
+      assets:
+      - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+      - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+      - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+      - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+      - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+      - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.387
+        targetMax: 0.5848
+        minHeight: 0.07740001
+        maxHeight: 0.2924
+        minFootprint: 0.344
+        maxFootprint: 0.63640004
+    hex6:
+      enabled: 1
+      count: 20
+      assets:
+      - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+      - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+      - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+      - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+      - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+      - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.45
+        targetMax: 0.68
+        minHeight: 0.09
+        maxHeight: 0.34
+        minFootprint: 0.4
+        maxFootprint: 0.74
+    hex10:
+      enabled: 1
+      count: 33
+      assets:
+      - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+      - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+      - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+      - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+      - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+      - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.51299995
+        targetMax: 0.7752
+        minHeight: 0.1026
+        maxHeight: 0.3876
+        minFootprint: 0.456
+        maxFootprint: 0.8436
+  dryCorridorWidth: 0
+  sizingVersion: 1

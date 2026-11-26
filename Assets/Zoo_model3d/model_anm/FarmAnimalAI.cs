@@ -210,11 +210,15 @@ public class FarmAnimalAI : MonoBehaviour
         }
 
         // 1. Vùng Núi Cao (Mountain Biome)
-        if (objName.Contains("chimvet") || objName.Contains("vet"))
+        if (objName.Contains("chimvet") || objName.Contains("vet") || objName.Contains("heliko"))
         {
             animalID = "chimvet7mau_anm";
             biome = BiomeType.Mountain;
             isAquatic = false;
+            isFlying = true;
+            if (flightAltitude <= 0.1f) flightAltitude = 1.4f;
+            moveAnimName = "Glide";
+            idleAnimName = "Flap";
         }
         else if (objName.Contains("chimcong") || objName.Contains("cong"))
         {
@@ -312,17 +316,23 @@ public class FarmAnimalAI : MonoBehaviour
             biome = BiomeType.Water;
             isAquatic = true;
         }
-        else if (objName.Contains("echduoica") || objName.Contains("ech_nuoc"))
+        else if (objName.Contains("echduoica") || objName.Contains("ech_nuoc") || objName.Contains("mudskipper") || objName.Contains("reedle"))
         {
             animalID = "echduoica_anm";
             biome = BiomeType.Water;
-            isAquatic = true;
+            isAquatic = false;
         }
-        else if (objName.Contains("thiennga"))
+        else if (objName.Contains("thiennga") || objName.Contains("lotusswan") || objName.Contains("lotelle"))
         {
             animalID = "thiennga_anm";
             biome = BiomeType.Water;
             isAquatic = true;
+        }
+        else if (objName.Contains("mossycrab") || objName.Contains("craggle"))
+        {
+            animalID = "mossycrab_anm";
+            biome = BiomeType.Water;
+            isAquatic = false;
         }
         else if (objName.Contains("braluff"))
         {
@@ -374,10 +384,10 @@ public class FarmAnimalAI : MonoBehaviour
         }
         else
         {
-            if (animalID == "chuongchuong_anm")
+            if (animalID == "chuongchuong_anm" || animalID == "chimvet7mau_anm")
             {
-                if (HasAnim("Flap")) moveAnimName = "Flap";
-                else if (HasAnim("Glide")) moveAnimName = "Glide";
+                if (HasAnim("Glide")) moveAnimName = "Glide";
+                else if (HasAnim("Flap")) moveAnimName = "Flap";
                 if (HasAnim("Flap")) idleAnimName = "Flap";
             }
             else if (animalID == "chauchau_anm")
@@ -385,7 +395,7 @@ public class FarmAnimalAI : MonoBehaviour
                 if (HasAnim("Flap")) moveAnimName = "Flap";
                 else if (HasAnim("Glide")) moveAnimName = "Glide";
             }
-            else if (animalID == "chimvet7mau_anm" || animalID == "chimcong_anm")
+            else if (animalID == "chimcong_anm")
             {
                 if (HasAnim("Walk")) moveAnimName = "Walk";
                 else if (HasAnim("Glide")) moveAnimName = "Glide";
@@ -948,6 +958,8 @@ public class FarmAnimalAI : MonoBehaviour
     // =========================================================================
     IEnumerator DoClockwiseCircleDance20sRoutine()
     {
+        if (groupPartners.Count > 1 && groupPartners[0] == this)
+            AchievementManager.Instance?.ReportConnection(GetComponentInParent<PlacedCard>());
         // Chọn animation di chuyển/chạy đuổi thích hợp nhất
         string danceAnim = GetChasingDanceAnim();
         PlayAnimIfExist(danceAnim);
@@ -1140,7 +1152,7 @@ public class FarmAnimalAI : MonoBehaviour
                 if (animalID == "capybara_anm")
                 {
                     // Capybara nằm thong dong giữa thảm hoa
-                    PlayAnimIfExist(HasAnim("Rest_Pose") ? "Rest_Pose" : "Idle");
+                    PlayAnimIfExist(HasAnim("Sit_Rest") ? "Sit_Rest" : (HasAnim("Rest_Pose") ? "Rest_Pose" : "Idle"));
                 }
                 else if (animalID == "echhoa_anm")
                 {
@@ -1176,8 +1188,8 @@ public class FarmAnimalAI : MonoBehaviour
                 }
                 else if (animalID == "echduoica_anm")
                 {
-                    // Ếch dưới nước bơi xung quanh
-                    PlayAnimIfExist(HasAnim("Swim_Horizontal") ? "Swim_Horizontal" : "Swim_Vertical");
+                    // Reedle (Mudskipper) nhún nhảy / lạch bạch trên cạn
+                    PlayAnimIfExist(HasAnim("Happy") ? "Happy" : (HasAnim("Walk") ? "Walk" : "Idle"));
                 }
                 break;
 

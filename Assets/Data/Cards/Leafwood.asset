@@ -16,6 +16,12 @@ MonoBehaviour:
   cardName: Leafwood
   cardImage: {fileID: 21300000, guid: 4e791c3ff38b4bedac4d9e58b8448ce4, type: 3}
   cardType: 1
+  rarity: 0
+  islandId: starter
+  reusable: 0
+  elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 1
   alwaysBaseScore: 0
   shopPrice: 35

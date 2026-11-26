@@ -185,19 +185,21 @@ public static class AnimalAnimationClassifier
             c.Equals("Idle", StringComparison.OrdinalIgnoreCase) ||
             c.IndexOf("Idle", StringComparison.OrdinalIgnoreCase) >= 0);
 
-        string eatOrSit = idleClips.Find(c =>
+        string secondaryIdle = idleClips.Find(c =>
             c.IndexOf("Eat", StringComparison.OrdinalIgnoreCase) >= 0 ||
             c.IndexOf("Graze", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            c.IndexOf("Sit", StringComparison.OrdinalIgnoreCase) >= 0);
+            c.IndexOf("Sit", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Rest", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            c.IndexOf("Happy", StringComparison.OrdinalIgnoreCase) >= 0);
 
         float roll = Random.value;
-        if (roll < 0.88f && !string.IsNullOrEmpty(baseIdle))
+        if (roll < 0.75f && !string.IsNullOrEmpty(baseIdle))
         {
             return baseIdle;
         }
-        if (roll < 0.96f && !string.IsNullOrEmpty(eatOrSit))
+        if (roll < 0.96f && !string.IsNullOrEmpty(secondaryIdle))
         {
-            return eatOrSit;
+            return secondaryIdle;
         }
 
         return idleClips[Random.Range(0, idleClips.Count)];

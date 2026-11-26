@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_DioramaGround_Lilywater3
+  m_Shader: {fileID: 4800000, guid: 3f337247983ffaf44bf9a117353e4ba7, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _CausticsTex:
+        m_Texture: {fileID: 2800000, guid: 4a1b6613391d39147bc5e6163feefa21, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TopTex:
+        m_Texture: {fileID: 2800000, guid: 45e8fcf98dc29a5428d4f79f4fbbdeb2, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WaterMask:
+        m_Texture: {fileID: 2800000, guid: d4e5530491866fd8ca3c4746e9624442, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BedCausticScale: 0.65
+    - _BedCausticSpeed: 0.08
+    - _BedCausticStrength: 0.32
+    - _BevelEdge1: 0.45
+    - _BevelEdge2: 0.86
+    - _BevelRimHighlight: 0.08
+    - _DiffuseWrap: 0.28
+    - _SeamCreaseTint: 0.22
+    - _ShadowStrength: 0.42
+    - _ShoreGrainStrength: 0.065
+    - _ShoreStart: 0.03
+    - _TopTiling: 0.55
+    - _WaterThreshold: 0.21
+    - _WetGloss: 0.22
+    - _WetnessDarken: 0.12
+    m_Colors:
+    - _BedCausticColor: {r: 1, g: 0.96, b: 0.84, a: 1}
+    - _BedColor: {r: 0.88, g: 0.73, b: 0.41, a: 1}
+    - _BedDeepColor: {r: 0.24, g: 0.38, b: 0.35, a: 1}
+    - _BedMidColor: {r: 0.58, g: 0.56, b: 0.36, a: 1}
+    - _ShoreColor: {r: 0.93, g: 0.78, b: 0.44, a: 1}
+    - _SideBottomColor: {r: 0.38, g: 0.26, b: 0.15, a: 1}
+    - _SideColor: {r: 0.62, g: 0.44, b: 0.27, a: 1}
+    - _TopTint: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

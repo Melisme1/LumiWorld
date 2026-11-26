@@ -209,6 +209,8 @@ public static class AnimalLocomotionRunner
         HexCoordinates hex = HexMetrics.WorldToHex(worldPos);
         if (ai.worldGen != null && ai.worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) && tileObj != null)
         {
+            var surface = tileObj.GetComponent<HexTileInfo>()?.biomeSurface;
+            if (surface != null && surface.TryGetHeight(worldPos, out float height)) return height;
             var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
             return topY;
         }
@@ -248,16 +250,28 @@ public static class AnimalLocomotionRunner
 
         if (ai.LocomotionType == AnimalLocomotionType.Flying && ai.IsAirborne)
         {
-            Vector2 randomOffset = Random.insideUnitCircle * ai.MaxWanderRadius;
-            Vector3 airCandidate = new Vector3(hexCenter.x + randomOffset.x, hexCenter.y, hexCenter.z + randomOffset.y);
-            HexCoordinates candHex = HexMetrics.WorldToHex(airCandidate);
-            if (ai.CanMoveToHex(candHex))
+            // Sample up to 6 valid airborne points and pick the furthest one so flying creatures cruise in graceful arcs instead of twitching short hops.
+            Vector3 bestCandidate = hexCenter;
+            float bestDistSqr = -1f;
+            Vector3 myFlat = new Vector3(ai.transform.position.x, hexCenter.y, ai.transform.position.z);
+            for (int attempt = 0; attempt < 6; attempt++)
             {
-                ai.lastTargetDestination = airCandidate;
-                return airCandidate;
+                Vector2 randomOffset = Random.insideUnitCircle * ai.MaxWanderRadius;
+                Vector3 airCandidate = new Vector3(hexCenter.x + randomOffset.x, hexCenter.y, hexCenter.z + randomOffset.y);
+                HexCoordinates candHex = HexMetrics.WorldToHex(airCandidate);
+                if (ai.CanMoveToHex(candHex))
+                {
+                    float dSqr = (airCandidate - myFlat).sqrMagnitude;
+                    if (dSqr > bestDistSqr)
+                    {
+                        bestDistSqr = dSqr;
+                        bestCandidate = airCandidate;
+                    }
+                    if (dSqr >= 0.36f) break; // >= 0.60m graceful flight leg found
+                }
             }
-            ai.lastTargetDestination = hexCenter;
-            return hexCenter;
+            ai.lastTargetDestination = bestCandidate;
+            return bestCandidate;
         }
 
         ai.lastTargetDestination = AnimalSectorNavigator.PickGroundDestination(
@@ -602,8 +616,12 @@ public static class AnimalLocomotionRunner
             else if (rand < 0.85f && ai.moveClips.Count > 0)
             {
                 Vector3 targetWorldPos = PickDestination(ai);
-                string flyClip = AnimalAnimationClassifier.GetFlightClip(ai.moveClips, preferHover: false);
-                float speed = ai.FlySpeed;
+                Vector3 flatDelta = targetWorldPos - ai.transform.position;
+                flatDelta.y = 0f;
+                // Short airborne repositions (< 0.70m) use Flap so Glide's swoop-soar cycle isn't cut off after 0.3s; longer flights use Glide!
+                bool useShortFlap = flatDelta.magnitude < 0.70f;
+                string flyClip = AnimalAnimationClassifier.GetFlightClip(ai.moveClips, preferHover: useShortFlap);
+                float speed = useShortFlap ? ai.FlySpeed * 0.82f : ai.FlySpeed;
                 yield return ai.StartCoroutine(MoveToTargetRoutine(ai, targetWorldPos, speed, flyClip));
             }
             else

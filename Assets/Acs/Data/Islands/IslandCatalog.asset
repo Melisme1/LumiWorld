@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d450cb013bb65541b3c420857a2ac92, type: 3}
+  m_Name: IslandCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.Islands.IslandCatalog
+  islands:
+  - id: starter
+    displayName: Starter
+    habitatIsland: 1
+    center:
+      q: 0
+      r: 0
+    expansionRadius: 3
+    clusterRadius: 2
+    unlockCoins: 200
+    prerequisiteIsland: starter
+    discoveryBiomes: 
+    discoveryCreatures: 3
+    startingNature: []
+    rainCard: {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    startingRain: 6
+    dryTiles:
+    - {fileID: 6631663884789134560, guid: c10000018a144b6289b7996f34397101, type: 3}
+    - {fileID: 3253958818025765182, guid: c10000038a144b6289b7996f34397103, type: 3}
+    - {fileID: 5258101239339502816, guid: c10000058a144b6289b7996f34397105, type: 3}
+    lushTiles: []
+  - id: wet
+    displayName: Wet Island
+    habitatIsland: 2
+    center:
+      q: 45
+      r: 0
+    expansionRadius: 4
+    clusterRadius: 2
+    unlockCoins: 200
+    prerequisiteIsland: starter
+    discoveryBiomes: 010000000200000003000000
+    discoveryCreatures: 3
+    startingNature:
+    - {fileID: 11400000, guid: 30968363e4ee01e44969f52482d6a2ad, type: 2}
+    - {fileID: 11400000, guid: 019f359a5517d6642800e7072f4b8e45, type: 2}
+    - {fileID: 11400000, guid: 9d6d45f221056a342a2fe04a89bc2832, type: 2}
+    - {fileID: 11400000, guid: 7f44c078bfa786045a711741b9a6d7ec, type: 2}
+    rainCard: {fileID: 11400000, guid: 5459d5c122b1a294ab5b6f41c0a8e062, type: 2}
+    startingRain: 6
+    dryTiles:
+    - {fileID: 7183748375909557867, guid: 4498ae68cf0bd214d9525b8be59e5228, type: 3}
+    - {fileID: 2021555092579219777, guid: 80a964f62ce5647418bc6d53ec6e9f11, type: 3}
+    - {fileID: 1109778477419674152, guid: a98b4ec07255c1d4e953fc9e73f2d2ed, type: 3}
+    lushTiles:
+    - {fileID: 2860111143883177298, guid: 0c645b36627eebf40a1e29e8b9fd8c2a, type: 3}
+    - {fileID: 1177094368271423758, guid: 583306ba6f722da4bbf9fddf263c4563, type: 3}
+    - {fileID: 2134725155444299587, guid: dadf788d8480a074a9ac76ad3d9aa7e6, type: 3}
+  biomeVisuals:
+  - nature: {fileID: 11400000, guid: 30968363e4ee01e44969f52482d6a2ad, type: 2}
+    single: {fileID: 4959696007203282830, guid: 43cf873c13c2a0d4fa9335d63f05ecb5, type: 3}
+    three: {fileID: 7458925899277519988, guid: 65b4a56f918fbc74fad1ec6bd3b36047, type: 3}
+    six: {fileID: 5886783522910189966, guid: beb064663b85a584bb1787ec924f3917, type: 3}
+    ten: {fileID: 63570671906432098, guid: f776d8d900c7429499dc211569811d7d, type: 3}
+  - nature: {fileID: 11400000, guid: 019f359a5517d6642800e7072f4b8e45, type: 2}
+    single: {fileID: 2710154102505596004, guid: d6c1ebbdbe1a24a48b1d38ee6c115129, type: 3}
+    three: {fileID: 6527279075082102612, guid: 4959231c352f17542a63a945003c1a60, type: 3}
+    six: {fileID: 5546145081610548920, guid: 0db544aad90af3843bf0f93fc1737d76, type: 3}
+    ten: {fileID: 637709062103970364, guid: 65d08f601ae4fac43a8accdb94f495ab, type: 3}
+  - nature: {fileID: 11400000, guid: 9d6d45f221056a342a2fe04a89bc2832, type: 2}
+    single: {fileID: 5445843771037266396, guid: d04837e857d078749997300dc3953736, type: 3}
+    three: {fileID: 4659026281445783451, guid: 50f31e51c5597e543a61f3f5fa79c7b8, type: 3}
+    six: {fileID: 5886375314355270478, guid: 4098dd73b66bf204e97b735cc5e785be, type: 3}
+    ten: {fileID: 1228789588703016867, guid: d5a67ff268046444b9b0452efbe91af9, type: 3}
+  - nature: {fileID: 11400000, guid: 7f44c078bfa786045a711741b9a6d7ec, type: 2}
+    single: {fileID: 6004674300354293382, guid: 5b7f4407738977541b93cdb322893df1, type: 3}
+    three: {fileID: 7312094236689240900, guid: 9a110342c706e544fa55aa4fee1901e5, type: 3}
+    six: {fileID: 7409728638637452594, guid: d04de247357d98048972937a2d86e415, type: 3}
+    ten: {fileID: 2641284273088855178, guid: 9111875f55e6236488ae6e0a4766a487, type: 3}

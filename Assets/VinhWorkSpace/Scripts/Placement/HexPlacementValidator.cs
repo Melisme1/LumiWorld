@@ -50,13 +50,15 @@ public class HexPlacementValidator : MonoBehaviour
         }
 
         bool useHabitatRules = LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager);
+        if (!LumiWorld.Acs.Islands.IslandPlacementRules.CanUse(cardData, coords, tileObj, out lastValidationError)) return false;
+        if (cardData != null && cardData.elevationChange != 0) return true;
 
         // 0. Kiểm tra thẻ Mưa (Rain Card) và trạng thái thiên tai / cháy rụi (isBurned)
         var disasterState = tileObj != null ? tileObj.GetComponent<LumiWorld.Acs.TileDisasterState>() : null;
         bool hasDisasterOrBurned = disasterState != null && (disasterState.HasAnyDisaster || disasterState.isBurned);
         bool hasPendingFire = LumiWorld.Acs.DisasterRuntimeManager.TryGetActive(out var disasterManager) &&
                               disasterManager.IsTilePendingFire(tileObj);
-        bool isRainCard = cardData != null && (cardData.cardID == "Rain" || string.Equals(cardData.cardName, "Rain", System.StringComparison.OrdinalIgnoreCase));
+        bool isRainCard = cardData != null && cardData.IsRainCard();
 
         if (isRainCard)
         {
@@ -321,7 +323,7 @@ public class HexPlacementValidator : MonoBehaviour
         }
 
         // Mapped creature residency follows GDD affinities; physical prefab lists remain for other cards.
-        if (cardData != null && !(useHabitatRules && cardData.cardType == CardType.Creature) && !cardData.IsTileAllowed(tileObj, worldGen))
+        if (cardData != null && !LumiWorld.Acs.Islands.IslandPlacementRules.IsWetNature(cardData) && !(useHabitatRules && cardData.cardType == CardType.Creature) && !cardData.IsTileAllowed(tileObj, worldGen))
         {
             lastValidationError = "Terrain is not suitable for this creature/card.";
             return false;
@@ -812,5 +814,64 @@ public class HexPlacementValidator : MonoBehaviour
         }
 
         return (visited.Count, creatureCount);
+    }
+
+    public static void GetTriangleHexes(HexCoordinates anchor, int rotationStep, List<HexCoordinates> results)
+    {
+        results.Clear();
+        results.Add(anchor);
+        results.Add(anchor + new HexCoordinates(1, 0).Rotate60Clockwise(rotationStep));
+        results.Add(anchor + new HexCoordinates(0, 1).Rotate60Clockwise(rotationStep));
+    }
+
+    public bool ValidateTriangleRain(
+        HexCoordinates anchorHex,
+        int rotationStep,
+        HexWorldGenerator worldGen,
+        CardData cardData,
+        List<HexCoordinates> validTargets,
+        List<(HexCoordinates hex, GameObject tileObj, bool valid)> allSlots)
+    {
+        validTargets.Clear();
+        allSlots.Clear();
+        lastValidationError = string.Empty;
+
+        if (worldGen == null || worldGen.MapTiles == null || cardData == null)
+        {
+            lastValidationError = "Missing map or card data.";
+            return false;
+        }
+
+        List<HexCoordinates> footprint = new List<HexCoordinates>(3);
+        GetTriangleHexes(anchorHex, rotationStep, footprint);
+        string firstReason = string.Empty;
+
+        for (int i = 0; i < footprint.Count; i++)
+        {
+            HexCoordinates hex = footprint[i];
+            GameObject tileObj = null;
+            bool inMap = worldGen.MapTiles.TryGetValue(hex, out tileObj) && tileObj != null;
+            bool slotValid = inMap && ValidatePlacement(hex, worldGen, cardData, out _);
+            if (!slotValid && string.IsNullOrEmpty(firstReason))
+            {
+                firstReason = !inMap ? "Need valid tiles in triangle." : lastValidationError;
+            }
+            if (slotValid)
+            {
+                validTargets.Add(hex);
+            }
+            allSlots.Add((hex, tileObj, slotValid));
+        }
+
+        if (validTargets.Count == 0)
+        {
+            lastValidationError = string.IsNullOrEmpty(firstReason)
+                ? "No dry or disaster tiles in this 3-hex triangle."
+                : firstReason;
+            return false;
+        }
+
+        lastValidationError = string.Empty;
+        return true;
     }
 }

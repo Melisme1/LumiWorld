@@ -232,26 +232,12 @@ namespace LumiWorld.EditorTools
         {
             ApplyInMemoryURPOptimizations(true);
 
-            Shader lightWater = Shader.Find("LumiWorld/WetIslandWater");
+            Shader lightWater = HexBiomeSurfaceBuilder.FindLightweightWaterShader();
             if (lightWater != null)
             {
-                string[] matPaths = new[]
-                {
-                    "Assets/Acs/Art/Ground/Materials/WetIsland/M_WetWater_Lilywater.mat",
-                    "Assets/Acs/Art/Ground/Materials/WetIsland/M_WetWater_Streamstone.mat",
-                    "Assets/Acs/Art/Ground/Materials/WetIsland/M_WetWater_Reedmarsh.mat",
-                    "Assets/Acs/Art/Ground/Materials/WetIsland/M_WetWater_Reedmarsh_3Hex.mat"
-                };
-                foreach (var mp in matPaths)
-                {
-                    Material m = AssetDatabase.LoadAssetAtPath<Material>(mp);
-                    if (m != null)
-                    {
-                        m.shader = lightWater;
-                        m.shaderKeywords = new string[0];
-                        EditorUtility.SetDirty(m);
-                    }
-                }
+                HexBiomeSurfaceBuilder.SwitchWaterMaterialsToShader(
+                    WetIslandBiomeSurfaceSetup.GetWaterMaterialPaths(),
+                    lightWater);
             }
 
             AssetDatabase.SaveAssets();

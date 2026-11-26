@@ -1,0 +1,487 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f31790e2e0ed856418ca2b0557e820c4, type: 3}
+  m_Name: Profile_Streamstone_1Hex
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.BiomeLayoutProfile
+  biomeId: Streamstone
+  designNotes: '3B Single Hex: Flat mossy-gravel ground (no water until formed),
+    focal mossy boulder, stepped river cobbles, ferns & wildflowers.'
+  waterMask1Hex: {fileID: 0}
+  waterMask3Hex: {fileID: 0}
+  waterMask6Hex: {fileID: 0}
+  waterMask10Hex: {fileID: 0}
+  surfaceSettings:
+    tileHeight: 1.055
+    outerBevelWidth: 0.082
+    outerBevelDrop: 0.052
+    dryInteriorSeamDepth: 0.036
+    dryInteriorSeamWidth: 0.072
+    shoreStartMask: 0.9
+    waterThresholdMask: 0.95
+    maxBasinDepth: 0
+    waterSurfaceDrop: 0
+    streamSlopeDrop: 0
+    streamSlopeDir: {x: 0.78, y: -0.62}
+    radialSubdivisions: 22
+  minSwimWaterDepthMeters: 0.06
+  walkableSampleSpacing: 0.55
+  swimmableSampleSpacing: 0.45
+  creatureAgentRadius: 0.28
+  layers:
+  - roleId: FocalBoulder
+    count1: 1
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 0
+    guides:
+    - u: 0.46
+      v: 0.56
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.05
+    spacing: 0.24
+    obstacleRadius: 0.18
+    yOffset: -0.07
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.75
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+    - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+    - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+    - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+      - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+      - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+      - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.62
+        targetMax: 0.76
+        minHeight: 0.26
+        maxHeight: 0.54
+        minFootprint: 0.58
+        maxFootprint: 0.8
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: RiverCobbles
+    count1: 2
+    count3: 2
+    count6: 2
+    count10: 2
+    ground: 0
+    guides:
+    - u: 0.3
+      v: 0.36
+    - u: 0.64
+      v: 0.44
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.06
+    spacing: 0.28
+    obstacleRadius: 0.1
+    yOffset: -0.05
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.65
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 5825226333305260575, guid: 6f739801b700e49458ee52e655566bb1, type: 3}
+    - {fileID: 4161058758619270942, guid: e66c6fb0b61271e4681e7cb6675db41e, type: 3}
+    - {fileID: 8347596121158787046, guid: 0ea3bdfddb471d946ba9d07cf186f631, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 5825226333305260575, guid: 6f739801b700e49458ee52e655566bb1, type: 3}
+      - {fileID: 4161058758619270942, guid: e66c6fb0b61271e4681e7cb6675db41e, type: 3}
+      - {fileID: 8347596121158787046, guid: 0ea3bdfddb471d946ba9d07cf186f631, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.3
+        targetMax: 0.4
+        minHeight: 0.08
+        maxHeight: 0.24
+        minFootprint: 0.26
+        maxFootprint: 0.44
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: RockFerns
+    count1: 2
+    count3: 2
+    count6: 2
+    count10: 2
+    ground: 0
+    guides:
+    - u: 0.26
+      v: 0.68
+    - u: 0.7
+      v: 0.64
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.07
+    spacing: 0.32
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 7813126867624921268, guid: 2178fe1e06b22bd47bb8ac1dbe105333, type: 3}
+    - {fileID: 4626479284079265212, guid: 53eee626781e31944bbe421c5acfa94c, type: 3}
+    - {fileID: 4519265748902401272, guid: a5bcc613ede51d84ca145cf98502796e, type: 3}
+    - {fileID: 3488353133107378398, guid: 6da0be86a932e034e93d56f8232372d9, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 7813126867624921268, guid: 2178fe1e06b22bd47bb8ac1dbe105333, type: 3}
+      - {fileID: 4626479284079265212, guid: 53eee626781e31944bbe421c5acfa94c, type: 3}
+      - {fileID: 4519265748902401272, guid: a5bcc613ede51d84ca145cf98502796e, type: 3}
+      - {fileID: 3488353133107378398, guid: 6da0be86a932e034e93d56f8232372d9, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.52
+        targetMax: 0.7
+        minHeight: 0.2
+        maxHeight: 0.5
+        minFootprint: 0.48
+        maxFootprint: 0.75
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: Wildflowers
+    count1: 1
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 0
+    guides:
+    - u: 0.64
+      v: 0.26
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.07
+    spacing: 0.22
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 3407653259304558846, guid: 9669f72f660e43a4f9012c62713798d4, type: 3}
+    - {fileID: 6521022569285911339, guid: d78d9a6017df7be478168a491037d203, type: 3}
+    - {fileID: 4340718556242320594, guid: 699f81ccced62ae4b96df4a78b54c69a, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 3407653259304558846, guid: 9669f72f660e43a4f9012c62713798d4, type: 3}
+      - {fileID: 6521022569285911339, guid: d78d9a6017df7be478168a491037d203, type: 3}
+      - {fileID: 4340718556242320594, guid: 699f81ccced62ae4b96df4a78b54c69a, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.28
+        targetMax: 0.4
+        minHeight: 0.09
+        maxHeight: 0.3
+        minFootprint: 0.24
+        maxFootprint: 0.44
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: SoftMeadow
+    count1: 2
+    count3: 2
+    count6: 2
+    count10: 2
+    ground: 0
+    guides:
+    - u: 0.46
+      v: 0.22
+    - u: 0.5
+      v: 0.8
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.07
+    spacing: 0.28
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+    - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+    - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+    - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+    - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+    - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+      - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+      - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+      - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+      - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+      - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.34
+        targetMax: 0.48
+        minHeight: 0.06
+        maxHeight: 0.25
+        minFootprint: 0.3
+        maxFootprint: 0.52
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  dryCorridorWidth: 0
+  sizingVersion: 1

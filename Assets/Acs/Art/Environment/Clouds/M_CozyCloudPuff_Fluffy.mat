@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_CozyCloudPuff_Fluffy
+  m_Shader: {fileID: 4800000, guid: ebbd09b59911aa5499ed6e9c24eb99da, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BottomFadeMax: 0.2
+    - _BottomFadeMin: -0.25
+    - _Dissolve: 0
+    - _NoiseScale: 0.7
+    - _Opacity: 0.94
+    - _RimPower: 2.3
+    - _RimStrength: 0.26
+    - _SoftEdgePower: 1.35
+    - _SubsurfaceWrap: 0.28
+    - _WobbleAmp: 0.05
+    - _WobbleSpeed: 0.5
+    m_Colors:
+    - _RimColor: {r: 1, g: 0.95, b: 0.84, a: 1}
+    - _ShadowColor: {r: 0.54, g: 0.75, b: 0.92, a: 1}
+    - _TopColor: {r: 0.992, g: 0.984, b: 0.955, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
