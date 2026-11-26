@@ -10,32 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
-  m_Name: Grasshopper
+  m_Name: Reedle
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardID: creature_grasshopper
-  cardName: "Ch\xE2u Ch\u1EA5u"
-  cardImage: {fileID: 21300000, guid: 589632740b9656942bec075a99e94bf3, type: 3}
+  cardID: creature_mudskipper
+  cardName: Reedle
+  cardImage: {fileID: 21300000, guid: c6fb00001e809ed4c8c47a7ee9fabd4d, type: 3}
   cardType: 0
   rarity: 0
-  islandId: starter
+  islandId: wet
   reusable: 0
   elevationChange: 0
   isTriangleRain: 0
   isTerraformTool: 0
-  baseScore: 1
+  baseScore: 3
   alwaysBaseScore: 0
-  shopPrice: 95
+  shopPrice: 75
   placementFee: 15
-  prefabToPlace: {fileID: 8899861015182237886, guid: 4d344b037106022489a4cc8ead259d25, type: 3}
+  prefabToPlace: {fileID: 665323757822974834, guid: 10e21e0abb026c640a6de79ef471afe3, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}
   useEffectScale: 1
   placementOffset: {x: 0, y: 0, z: 0}
   replacesTile: 0
-  clearPropsOnTransform: 0
+  clearPropsOnTransform: 1
   occupiesTile: 1
   isRiverCard: 0
-  animalSpeciesData: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000004, type: 2}
+  animalSpeciesData: {fileID: 11400000, guid: 45d8845ecfc18774ab8e68bbe2f08000, type: 2}
   producedResource: {fileID: 0}
   landResourceBonus: 0
   biomeCycleDuration: 30
@@ -47,4 +47,4 @@ MonoBehaviour:
   groundCoverCountRange: {x: 80, y: 120}
   groundCoverScaleRange: {x: 0.9, y: 1.3}
   allowedTilePrefabs:
-  - {fileID: 1548687027083203766, guid: c10000068a144b6289b7996f34397106, type: 3}
+  - {fileID: 8492549821474773207, guid: c10000028a144b6289b7996f34397102, type: 3}
