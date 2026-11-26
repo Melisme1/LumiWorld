@@ -1155,7 +1155,7 @@ public class MarketUI : MonoBehaviour
                 OwnedCount = owned,
                 MaxPerListing = owned,
                 BaseValue = Mathf.Max(1, res.baseValue),
-                Icon = res.icon != null ? res.icon : BiomeHarvestIndicator.GetResourceSprite(res)
+                Icon = res.icon != null ? res.icon : ResourceIconUtility.GetResourceSprite(res)
             });
         }
     }
@@ -1767,7 +1767,7 @@ public class MarketUI : MonoBehaviour
         ResourceData res = ResourceCatalog.Find(marketId);
         if (res == null)
             return null;
-        return res.icon != null ? res.icon : BiomeHarvestIndicator.GetResourceSprite(res);
+        return res.icon != null ? res.icon : ResourceIconUtility.GetResourceSprite(res);
     }
 
     private static string FormatExpiry(string expiresAtIso)

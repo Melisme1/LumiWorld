@@ -140,6 +140,7 @@ public static class CardShop
         if (key.Contains("ếch hoa") || key.Contains("echhoa") || key.Contains("blossomfrog")) return "Blossom Frog";
         if (key.Contains("cáo cỏ") || key.Contains("caoco") || key.Contains("grassfox")) return "Grass Fox";
         if (key.Contains("cáo đỏ") || key.Contains("cao") || key.Contains("fox")) return "Red Fox";
+        if (key.Contains("cá nóc") || key.Contains("canoc") || key.Contains("puffer")) return "Pufferfish";
         if (key.Contains("vẹt 7 màu") || key.Contains("chimvet") || key.Contains("parrot")) return "Rainbow Parrot";
         if (key.Contains("thiên nga") || key.Contains("thiennga") || key.Contains("lotusswan") || key.Contains("lotelle") || key.Contains("swan")) return "Lotelle";
         if (key.Contains("echduoica") || key.Contains("mudskipper") || key.Contains("reedle")) return "Reedle";
@@ -158,7 +159,7 @@ public static class CardShop
         if (key.Contains("reedmarsh")) return "Reedmarsh";
         if (key.Contains("lilywater")) return "Lilywater";
         if (key.Contains("streamstone")) return "Streamstone";
-        if (key.Contains("rainleaf")) return "Rainleaf";
+        if (key.Contains("làng trung cổ") || key.Contains("lang trung co") || key.Contains("medieval")) return "Medieval Village";
         if (key.Contains("đồng cỏ") || key.Contains("dong co")) return "Meadows";
 
         return name;

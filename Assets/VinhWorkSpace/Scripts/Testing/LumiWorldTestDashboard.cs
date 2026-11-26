@@ -28,17 +28,20 @@ namespace LumiWorld.Testing
         [Header("Trạng thái giao diện")]
         [SerializeField] private bool isOpen = false;
 
-        private Rect windowRect = new Rect(20, 40, 520, 520);
+        private Rect windowRect = new Rect(20, 40, 560, 580);
         private int selectedTab = 0;
         private readonly string[] tabNames = new string[]
         {
             "📦 Tài Nguyên",
             "🐺 Thú Hoang",
             "🌪️ Thiên Tai",
-            "💰 Tiền & Giờ"
+            "💰 Tiền & Giờ",
+            "🃏 Thẻ Bài"
         };
 
         private Vector2 resourceScrollPos;
+        private Vector2 cardScrollPos;
+        private string cardSearchText = "";
         private GUIStyle windowStyle;
         private GUIStyle headerStyle;
         private GUIStyle sectionStyle;
@@ -93,6 +96,12 @@ namespace LumiWorld.Testing
             if (togglePressed)
             {
                 isOpen = !isOpen;
+            }
+
+            // Phím tắt nhanh khi đang chơi game: F5 để thêm ngay +1 Thẻ Làng (Medieval_Village)
+            if (kb.f5Key.wasPressedThisFrame)
+            {
+                GiveCardById("Medieval_Village", 1);
             }
         }
 
@@ -182,6 +191,9 @@ namespace LumiWorld.Testing
                     break;
                 case 3:
                     DrawTimeAndMoneyTab();
+                    break;
+                case 4:
+                    DrawCardsTab();
                     break;
             }
 
@@ -401,6 +413,236 @@ namespace LumiWorld.Testing
             GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
+        }
+
+        // ====================================================================
+        // TAB 5: THẺ BÀI (CARD CHEAT)
+        // ====================================================================
+        private void DrawCardsTab()
+        {
+            // Phần 1: Phím tắt & Thao tác nhanh
+            GUILayout.BeginVertical(sectionStyle);
+            GUILayout.Label("<b>⚡ THAO TÁC NHANH THẺ BÀI (Phím F5: +1 Thẻ Làng)</b>", headerStyle);
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("🏰 +1 Thẻ Làng (Village)", btnGreen))
+            {
+                GiveCardById("Medieval_Village", 1);
+            }
+            if (GUILayout.Button("🏰 +5 Thẻ Làng (Test Cụm)", btnGreen))
+            {
+                GiveCardById("Medieval_Village", 5);
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("🌧️ +1 Thẻ Mưa (Rain)", btnNormal))
+            {
+                GiveCardById("Rain", 1);
+            }
+            if (GUILayout.Button("🌊 +1 Thẻ Sông (River)", btnNormal))
+            {
+                GiveCardById("River", 1);
+            }
+            if (GUILayout.Button("🌲 +1 Thẻ Rừng (Leafwood)", btnNormal))
+            {
+                GiveCardById("Leafwood", 1);
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
+
+            GUILayout.Space(6);
+
+            // Phần 2: Toàn bộ danh mục thẻ bài trong game
+            GUILayout.BeginVertical(sectionStyle);
+            GUILayout.Label("<b>📚 DANH MỤC TẤT CẢ THẺ BÀI TRONG GAME</b>", headerStyle);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("🔍 Tìm thẻ:", GUILayout.Width(75));
+            cardSearchText = GUILayout.TextField(cardSearchText);
+            if (!string.IsNullOrEmpty(cardSearchText) && GUILayout.Button("✕", GUILayout.Width(25)))
+            {
+                cardSearchText = "";
+            }
+            GUILayout.EndHorizontal();
+
+            List<CardData> allCards = GetAllAvailableCards();
+
+            cardScrollPos = GUILayout.BeginScrollView(cardScrollPos, GUILayout.Height(240));
+
+            int count = 0;
+            foreach (var card in allCards)
+            {
+                if (card == null) continue;
+
+                if (!string.IsNullOrEmpty(cardSearchText))
+                {
+                    bool matchName = card.cardName != null && card.cardName.IndexOf(cardSearchText, System.StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool matchId = card.cardID != null && card.cardID.IndexOf(cardSearchText, System.StringComparison.OrdinalIgnoreCase) >= 0;
+                    if (!matchName && !matchId) continue;
+                }
+
+                count++;
+                GUILayout.BeginHorizontal(GUI.skin.box);
+
+                string typeIcon = card.cardType switch
+                {
+                    CardType.Building => "🏰",
+                    CardType.Terrain => "🌲",
+                    CardType.Creature => "🦊",
+                    CardType.Special => "✨",
+                    _ => "🃏"
+                };
+
+                GUILayout.Label($"<b>{typeIcon} {card.cardName}</b> <color=#94A3B8>({card.cardID})</color>", GUILayout.Width(260));
+
+                if (GUILayout.Button("+1 Vào Tay", btnGreen, GUILayout.Width(95), GUILayout.Height(24)))
+                {
+                    GiveCard(card, 1);
+                }
+                if (GUILayout.Button("+3", btnOrange, GUILayout.Width(45), GUILayout.Height(24)))
+                {
+                    GiveCard(card, 3);
+                }
+
+                GUILayout.EndHorizontal();
+            }
+
+            if (count == 0)
+            {
+                GUILayout.Label("<i>Không tìm thấy thẻ bài nào khớp với từ khóa tìm kiếm.</i>");
+            }
+
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+        }
+
+        public static void GiveCard(CardData card, int count = 1)
+        {
+            if (card == null || count <= 0) return;
+
+            if (CardDeskController.Instance != null && CardDeskController.Instance.HandReady)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    CardDeskController.Instance.AddRewardCard(card);
+                }
+                Debug.Log($"<color=#10B981>[Card Cheat] Đã thêm {count} lá '{card.cardName}' ({card.cardID}) vào bộ bài trên tay!</color>");
+                if (HexPlacementPreviewHUD.Instance != null)
+                {
+                    HexPlacementPreviewHUD.ShowFeedbackToast($"[Cheat] +{count} {card.cardName}");
+                }
+            }
+            else
+            {
+                HandCards.AddWithoutSaving(card, count);
+                Debug.Log($"<color=#10B981>[Card Cheat] Đã thêm {count} lá '{card.cardName}' vào kho bài lưu!</color>");
+            }
+        }
+
+        public static void GiveCardById(string cardId, int count = 1)
+        {
+            CardData card = FindCardById(cardId);
+            if (card != null)
+            {
+                GiveCard(card, count);
+            }
+            else
+            {
+                Debug.LogWarning($"<color=#F59E0B>[Card Cheat] Không tìm thấy CardData nào có ID '{cardId}'!</color>");
+            }
+        }
+
+        public static CardData FindCardById(string cardId)
+        {
+            if (string.IsNullOrEmpty(cardId)) return null;
+
+            if (WorldSaveSystem.Instance != null && WorldSaveSystem.Instance.Cards != null)
+            {
+                CardData found = WorldSaveSystem.Instance.Cards.Find(cardId);
+                if (found != null) return found;
+            }
+
+            CardData[] loadedCards = Resources.FindObjectsOfTypeAll<CardData>();
+            if (loadedCards != null)
+            {
+                foreach (var c in loadedCards)
+                {
+                    if (c != null && (c.cardID == cardId || c.name == cardId)) return c;
+                }
+            }
+
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:CardData");
+            if (guids != null)
+            {
+                foreach (var g in guids)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                    CardData c = UnityEditor.AssetDatabase.LoadAssetAtPath<CardData>(path);
+                    if (c != null && (c.cardID == cardId || c.name == cardId)) return c;
+                }
+            }
+#endif
+            return null;
+        }
+
+        private static List<CardData> GetAllAvailableCards()
+        {
+            List<CardData> result = new List<CardData>();
+            HashSet<string> seenIds = new HashSet<string>();
+
+            if (WorldSaveSystem.Instance != null && WorldSaveSystem.Instance.Cards != null)
+            {
+                foreach (var c in WorldSaveSystem.Instance.Cards.All)
+                {
+                    if (c != null && !seenIds.Contains(c.cardID))
+                    {
+                        seenIds.Add(c.cardID);
+                        result.Add(c);
+                    }
+                }
+            }
+
+            CardData[] loadedCards = Resources.FindObjectsOfTypeAll<CardData>();
+            if (loadedCards != null)
+            {
+                foreach (var c in loadedCards)
+                {
+                    if (c != null && !string.IsNullOrEmpty(c.cardID) && !seenIds.Contains(c.cardID))
+                    {
+                        seenIds.Add(c.cardID);
+                        result.Add(c);
+                    }
+                }
+            }
+
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:CardData");
+            if (guids != null)
+            {
+                foreach (var g in guids)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                    CardData c = UnityEditor.AssetDatabase.LoadAssetAtPath<CardData>(path);
+                    if (c != null && !string.IsNullOrEmpty(c.cardID) && !seenIds.Contains(c.cardID))
+                    {
+                        seenIds.Add(c.cardID);
+                        result.Add(c);
+                    }
+                }
+            }
+#endif
+
+            result.Sort((a, b) =>
+            {
+                int typeCmp = a.cardType.CompareTo(b.cardType);
+                if (typeCmp != 0) return typeCmp;
+                return string.Compare(a.cardName, b.cardName, System.StringComparison.Ordinal);
+            });
+
+            return result;
         }
     }
 }

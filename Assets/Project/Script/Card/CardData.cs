@@ -84,6 +84,10 @@ public class CardData : ScriptableObject
     [Tooltip("Nếu tích chọn: đây là lá bài Sông Suối (tạo rãnh suối uốn lượn nối các ô và bến nước cho thú)")]
     public bool isRiverCard = false;
 
+    [Header("Settlement / Village Integration")]
+    [Tooltip("Nếu tích chọn: đây là lá bài Khu Dân Cư / Làng Mạc (tự sinh làng ngẫu nhiên và tiến hóa thành đô thị khép kín)")]
+    public bool isSettlementCard = false;
+
     [Header("Animal Integration (For Creature Cards)")]
     [Tooltip("Dữ liệu thông số loài động vật nếu lá bài này là Creature (để sinh ra cá thể 1★-5★ với Trait riêng)")]
     public AnimalSpeciesData animalSpeciesData;
@@ -146,6 +150,15 @@ public class CardData : ScriptableObject
             || string.Equals(cardID, "Rain.Wet.Pouring", System.StringComparison.OrdinalIgnoreCase)
             || string.Equals(cardName, "Rain", System.StringComparison.OrdinalIgnoreCase)
             || string.Equals(cardName, "Pouring Rain", System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Kiểm tra lá bài này có phải thẻ Khu Dân Cư / Làng Mạc (Settlement Card) hay không
+    /// </summary>
+    public bool IsSettlementCard()
+    {
+        return isSettlementCard || cardID == "Medieval_Village" || 
+               (cardType == CardType.Building && (prefabToPlace == null || string.Equals(cardName, "Village", System.StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>

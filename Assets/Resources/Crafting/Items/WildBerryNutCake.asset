@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -18,5 +18,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 1207a72d0d55473dbb6c198873a9e60d, type: 3}
   resourceColor: {r: 0.9, g: 0.65, b: 0.3, a: 1}
   hexColor: '#E6A64D'
-  baseValue: 160
+  baseValue: 290
   maxStackSize: 999

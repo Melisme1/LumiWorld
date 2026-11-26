@@ -132,9 +132,11 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             return;
         }
 
+        Sprite resolvedSprite = ResolveCardSprite(cardData);
+
         if (artworkImage != null)
         {
-            artworkImage.sprite = cardData.cardImage;
+            artworkImage.sprite = resolvedSprite;
             CardRarityFrameUtility.ApplyCardOverlays(
                 (RectTransform)transform,
                 artworkMaskRect != null ? artworkMaskRect : (artworkImage.rectTransform.parent as RectTransform),
@@ -145,7 +147,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
         else if (cardImage != null)
         {
-            cardImage.sprite = cardData.cardImage;
+            cardImage.sprite = resolvedSprite;
         }
 
         UpdateCountBadge();
@@ -154,6 +156,27 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         UpdateFrameHighlight();
         ApplyRarityBackdropChrome();
         EnsureOverlaySiblingOrder();
+    }
+
+    private static Sprite ResolveCardSprite(CardData data)
+    {
+        if (data == null) return null;
+        if (data.cardImage != null) return data.cardImage;
+
+        string id = (data.cardID ?? "").ToLowerInvariant();
+        string cname = (data.cardName ?? "").ToLowerInvariant();
+        string combined = id + " " + cname + " " + (data.name ?? "").ToLowerInvariant();
+
+        if (combined.Contains("cow") || combined.Contains("bo"))
+            return Resources.Load<Sprite>("CreatureAvatars/18_Cow") ?? Resources.Load<Sprite>("CreatureAvatars/Cow");
+        if (combined.Contains("fox") || combined.Contains("cao"))
+            return Resources.Load<Sprite>("CreatureAvatars/19_Fox") ?? Resources.Load<Sprite>("CreatureAvatars/Fox");
+        if (combined.Contains("canoc") || combined.Contains("puffer") || combined.Contains("cá nóc") || combined.Contains("ca noc"))
+            return Resources.Load<Sprite>("CreatureAvatars/20_Pufferfish") ?? Resources.Load<Sprite>("CreatureAvatars/Pufferfish");
+        if (combined.Contains("braluff"))
+            return Resources.Load<Sprite>("CreatureAvatars/17_Braluff") ?? Resources.Load<Sprite>("CreatureAvatars/Braluff");
+
+        return null;
     }
 
     private void EnsureCardChrome()

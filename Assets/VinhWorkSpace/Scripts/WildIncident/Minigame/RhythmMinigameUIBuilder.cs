@@ -123,7 +123,7 @@ public static class RhythmMinigameUIBuilder
         tRect.anchoredPosition = new Vector2(0f, 228f);
         var titleText = titleObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) titleText.font = fontAsset;
-        titleText.text = "VŨ ĐIỆU HÒA NHỊP";
+        titleText.text = "RHYTHM TAME";
         titleText.fontSize = 28f;
         titleText.fontStyle = FontStyles.Bold;
         titleText.alignment = TextAlignmentOptions.Center;
@@ -323,7 +323,7 @@ public static class RhythmMinigameUIBuilder
         tlRect.sizeDelta = Vector2.zero;
         bindings.HarmonyText = tObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) bindings.HarmonyText.font = fontAsset;
-        bindings.HarmonyText.text = "TIẾN TRÌNH THU PHỤC: <b>0%</b>";
+        bindings.HarmonyText.text = "TAMING: <b>0%</b>";
         bindings.HarmonyText.fontSize = 15.5f;
         bindings.HarmonyText.fontStyle = FontStyles.Bold;
         bindings.HarmonyText.alignment = TextAlignmentOptions.Center;
@@ -453,7 +453,7 @@ public static class RhythmMinigameUIBuilder
         timerText.fontStyle = FontStyles.Bold;
         timerText.alignment = TextAlignmentOptions.Center;
         timerText.color = Color.white;
-        timerText.text = "13,9s";
+        timerText.text = "15.0s";
 
         return timerText;
     }
@@ -524,7 +524,7 @@ public static class RhythmMinigameUIBuilder
         tr.sizeDelta = Vector2.zero;
         bindings.BeatButtonText = tObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) bindings.BeatButtonText.font = fontAsset;
-        bindings.BeatButtonText.text = "CHẠM NHỊP (SPACE)";
+        bindings.BeatButtonText.text = "HIT BEAT (SPACE)";
         bindings.BeatButtonText.fontSize = 17f;
         bindings.BeatButtonText.fontStyle = FontStyles.Bold;
         bindings.BeatButtonText.alignment = TextAlignmentOptions.Center;
@@ -542,7 +542,7 @@ public static class RhythmMinigameUIBuilder
         legRect.anchoredPosition = new Vector2(0f, -222f);
         var legTmp = legendObj.AddComponent<TextMeshProUGUI>();
         if (fontAsset != null) legTmp.font = fontAsset;
-        legTmp.text = "<color=#6E523D>[A, W, S, D] or [Arrow Keys] • [SPACE] Tap rhythm</color>";
+        legTmp.text = "<color=#6E523D>[WASD / Arrows]  •  [SPACE] Beat</color>";
         legTmp.fontSize = 12.5f;
         legTmp.alignment = TextAlignmentOptions.Center;
         legTmp.raycastTarget = false;

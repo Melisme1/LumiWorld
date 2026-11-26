@@ -120,6 +120,11 @@ public class ScoreUI : MonoBehaviour
             HexPlacementController.Instance.OnExpansionChargesChanged += HandleExpansionChargesChanged;
             HexPlacementController.Instance.OnPlacementModeChanged += HandlePlacementModeChanged;
         }
+
+        if (CurrencyWallet.Instance != null)
+        {
+            CurrencyWallet.Instance.OnBalanceChanged += HandleWalletBalanceChanged;
+        }
     }
 
     private void UnsubscribeEvents()
@@ -134,6 +139,19 @@ public class ScoreUI : MonoBehaviour
         {
             HexPlacementController.Instance.OnExpansionChargesChanged -= HandleExpansionChargesChanged;
             HexPlacementController.Instance.OnPlacementModeChanged -= HandlePlacementModeChanged;
+        }
+
+        if (CurrencyWallet.HasInstance)
+        {
+            CurrencyWallet.Instance.OnBalanceChanged -= HandleWalletBalanceChanged;
+        }
+    }
+
+    private void HandleWalletBalanceChanged(int balance, int delta, CoinReason reason)
+    {
+        if (availableCharges > 0)
+        {
+            UpdateVisuals();
         }
     }
 
@@ -315,6 +333,9 @@ public class ScoreUI : MonoBehaviour
         float stepAngle = visibleCount <= 1 ? 0f : Mathf.Min(42f, 204f / (visibleCount - 1));
         float startAngle = -0.5f * stepAngle * (visibleCount - 1);
 
+        bool canAffordExpansion = HexPlacementController.Instance == null || HexPlacementController.Instance.CanAffordNextExpansion();
+        Color crystalTint = canAffordExpansion ? Color.white : new Color(1f, 0.72f, 0.72f, 0.82f);
+
         for (int i = 0; i < chargeSlots.Count; i++)
         {
             ChargeSlotView slot = chargeSlots[i];
@@ -337,7 +358,7 @@ public class ScoreUI : MonoBehaviour
             slot.GlowFx.activeCharge = true;
             slot.GlowFx.placementMode = isInPlacement;
             slot.CrystalImage.texture = activeChargeTex;
-            slot.CrystalImage.color = Color.white;
+            slot.CrystalImage.color = crystalTint;
             slot.CrystalImage.rectTransform.sizeDelta = new Vector2(28f, 45f);
         }
 
@@ -354,7 +375,17 @@ public class ScoreUI : MonoBehaviour
     {
         if (plaqueScoreLabel == null) return;
         int shown = Mathf.RoundToInt(displayedScore);
-        plaqueScoreLabel.text = $"{shown}<size=13><color=#857B70> / {activeThreshold}</color></size>";
+        string text = $"{shown}<size=13><color=#857B70> / {activeThreshold}</color></size>";
+        if (availableCharges > 0 && HexPlacementController.Instance != null)
+        {
+            int cost = HexPlacementController.Instance.GetNextExpansionCoinCost();
+            if (cost > 0)
+            {
+                string costColor = HexPlacementController.Instance.CanAffordNextExpansion() ? "#B45309" : "#B91C1C";
+                text += $"<size=12><color={costColor}>  ·  {cost}c</color></size>";
+            }
+        }
+        plaqueScoreLabel.text = text;
         if (plaqueRect != null)
             LayoutRebuilder.ForceRebuildLayoutImmediate(plaqueRect);
     }

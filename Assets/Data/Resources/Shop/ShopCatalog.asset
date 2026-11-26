@@ -16,9 +16,16 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-  - {fileID: 11400000, guid: 1787b00caf6b1de4db40a75e370b396d, type: 2}
+  - {fileID: 11400000, guid: 47dd17781634437418e2e7ddba6a2317, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000005, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000010, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000006, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000002, type: 2}
   - {fileID: 11400000, guid: 30968363e4ee01e44969f52482d6a2ad, type: 2}
   - {fileID: 11400000, guid: 019f359a5517d6642800e7072f4b8e45, type: 2}
   - {fileID: 11400000, guid: 9d6d45f221056a342a2fe04a89bc2832, type: 2}
@@ -35,7 +42,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 50825e7c01474c84585ac400c3b9a797, type: 2}
   - {fileID: 11400000, guid: 5459d5c122b1a294ab5b6f41c0a8e062, type: 2}
   - {fileID: 11400000, guid: 93ed2826386172c4bbd8b04867122b47, type: 2}
-  useTestCardList: 1
+  useTestCardList: 0
   testCards:
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
@@ -68,14 +75,14 @@ MonoBehaviour:
   unpricedTestCardPrice: 50
   defaultPrices:
   - cardType: 1
-    shopPrice: 20
+    shopPrice: 35
     placementFee: 10
   - cardType: 0
-    shopPrice: 50
-    placementFee: 10
+    shopPrice: 130
+    placementFee: 20
   - cardType: 2
-    shopPrice: 80
-    placementFee: 10
+    shopPrice: 75
+    placementFee: 15
   - cardType: 3
-    shopPrice: 30
-    placementFee: 10
+    shopPrice: 25
+    placementFee: 5

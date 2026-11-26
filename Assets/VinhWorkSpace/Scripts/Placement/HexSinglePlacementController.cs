@@ -216,6 +216,10 @@ public class HexSinglePlacementController : MonoBehaviour
         SetupModularComponents();
         SyncSettingsToSubComponents();
 
+        if (cardData != null && (string.Equals(cardData.cardID, "creature_braluff", System.StringComparison.OrdinalIgnoreCase) || string.Equals(cardData.cardName, "Braluff", System.StringComparison.OrdinalIgnoreCase)))
+        {
+            BreedingManager.EnsureBraluffCardConfigured(cardData);
+        }
         currentCardData = cardData;
         isPreviewing = true;
         isHoveringValidTile = false;
@@ -346,10 +350,21 @@ public class HexSinglePlacementController : MonoBehaviour
                     ghostVisual.AnimatePulseVisuals(isValid);
                 }
             }
+
+            if (BiomeBuffVisualManager.Instance != null)
+            {
+                BiomeBuffVisualManager.Instance.UpdateHoverPreview(currentCardData, targetHex, isValid, worldGenerator);
+            }
+
+            if (hexChanged && isValid && currentCardData != null && currentCardData.IsSettlementCard())
+            {
+                NudgeCreaturesFromHoverHex(targetHex, tileObj);
+            }
         }
         else
         {
             if (HexPlacementPreviewHUD.Instance != null) HexPlacementPreviewHUD.Instance.HidePreview();
+            if (BiomeBuffVisualManager.Instance != null) BiomeBuffVisualManager.Instance.HideHoverPreview();
             isHoveringValidTile = false;
             currentActiveTileObj = null;
             if (ghostVisual != null) ghostVisual.SetActive(false);
@@ -376,6 +391,11 @@ public class HexSinglePlacementController : MonoBehaviour
             return false;
         }
 
+        if (cardData != null && (string.Equals(cardData.cardID, "creature_braluff", System.StringComparison.OrdinalIgnoreCase) || string.Equals(cardData.cardName, "Braluff", System.StringComparison.OrdinalIgnoreCase)))
+        {
+            BreedingManager.EnsureBraluffCardConfigured(cardData);
+        }
+
         bool isTriangle = cardData != null && cardData.isTriangleRain;
         GameObject targetTileObj = null;
         if (isTriangle)
@@ -385,7 +405,7 @@ public class HexSinglePlacementController : MonoBehaviour
                 if (!string.IsNullOrEmpty(validator.LastValidationError))
                 {
                     Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
-                    HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Placement failed: {validator.LastValidationError}");
+                    HexPlacementPreviewHUD.ShowFeedbackToast(validator.LastValidationError);
                 }
                 CancelPreview();
                 return false;
@@ -396,7 +416,7 @@ public class HexSinglePlacementController : MonoBehaviour
             if (!string.IsNullOrEmpty(validator.LastValidationError))
             {
                 Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] {validator.LastValidationError}</color>");
-                HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Placement failed: {validator.LastValidationError}");
+                HexPlacementPreviewHUD.ShowFeedbackToast(validator.LastValidationError);
             }
             CancelPreview();
             return false;
@@ -407,7 +427,7 @@ public class HexSinglePlacementController : MonoBehaviour
         if (placementFee > 0 && !CurrencyWallet.Instance.CanAfford(placementFee))
         {
             Debug.LogWarning($"<color=#F59E0B>⚠️ [LumiWorld Placement] Not enough Coins to place {cardData.cardName}: need {placementFee}, currently have {CurrencyWallet.Instance.Balance}.</color>");
-            HexPlacementPreviewHUD.ShowFeedbackToast($"[!] Not enough Coins: Need {placementFee} Coins to place card.");
+            HexPlacementPreviewHUD.ShowFeedbackToast($"Not enough Coins! You need {placementFee} Coins to place this card.");
             CancelPreview();
             return false;
         }
@@ -509,6 +529,16 @@ public class HexSinglePlacementController : MonoBehaviour
                 }
                 PlayCardUseEffect(cardData, spawnWorldPos);
             }
+            // TRƯỜNG HỢP 0.5: THẺ KHU DÂN CƯ / LÀNG MẠC (SETTLEMENT CARD)
+            else if (cardData.IsSettlementCard())
+            {
+                RelocateCreaturesFromSettlementHex(currentHoverHex, targetTileObj);
+                if (SettlementClusterManager.Instance != null)
+                {
+                    placedCardInstance = SettlementClusterManager.Instance.PlaceSettlement(currentHoverHex, targetTileObj, cardData, spawnWorldPos);
+                }
+                PlayCardUseEffect(cardData, spawnWorldPos);
+            }
             // TRƯỜNG HỢP 1: THẺ BIẾN ĐỔI ĐỊA HÌNH (SPECIAL CARD NHƯ RAIN TRÊN ĐẤT KHÔ ARID)
             else if (cardData.IsTileTransformCard())
             {
@@ -558,6 +588,33 @@ public class HexSinglePlacementController : MonoBehaviour
                 // Khởi tạo thông số cá thể cho động vật (Rank 1★-5★, Trait, Tốc độ, Tài nguyên)
                 if (cardData.cardType == CardType.Creature || cardData.animalSpeciesData != null)
                 {
+                    if (placedObject.GetComponent<AnimalMovementAI>() == null)
+                    {
+                        var rends = placedObject.GetComponentsInChildren<Renderer>(true);
+                        if (rends != null && rends.Length > 0)
+                        {
+                            Bounds b = rends[0].bounds;
+                            for (int ri = 1; ri < rends.Length; ri++) b.Encapsulate(rends[ri].bounds);
+                            float maxD = Mathf.Max(b.size.x, b.size.y, b.size.z);
+                            if (maxD > 0.85f) placedObject.transform.localScale *= (0.65f / maxD);
+                        }
+                        var moveAI = placedObject.AddComponent<AnimalMovementAI>(); moveAI.SetYOffset(0f, true); if (placedObject.GetComponent<FarmAnimalAI>() == null) placedObject.AddComponent<FarmAnimalAI>();
+                        moveAI.SetYOffset(0f, true);
+                        
+                        
+                        
+                        if (placedObject.GetComponent<AnimalVisualEnhancer>() == null) placedObject.AddComponent<AnimalVisualEnhancer>();
+                        var anim = placedObject.GetComponentInChildren<Animation>(true);
+                        if (anim != null)
+                        {
+                            anim.cullingType = AnimationCullingType.AlwaysAnimate;
+                            anim.wrapMode = WrapMode.Loop;
+                            if (anim.clip != null) anim.Play(anim.clip.name);
+                        }
+                    }
+                }
+                if (cardData.cardType == CardType.Creature || cardData.animalSpeciesData != null)
+                {
                     AnimalIndividual individual = placedObject.GetComponent<AnimalIndividual>();
                     if (individual == null && cardData.animalSpeciesData != null)
                     {
@@ -592,7 +649,7 @@ public class HexSinglePlacementController : MonoBehaviour
             // 1. Phân bổ Cụm Biome & Kết nối các khối trong cụm (Preserve-style seamless cluster connection)
             if (HexBiomeClusterConnector.Instance != null && placedCardInstance != null)
             {
-                if (!cardData.IsRiverCard())
+                if (!cardData.IsRiverCard() && !cardData.IsSettlementCard())
                 {
                     HexBiomeClusterConnector.Instance.ConnectCluster(placedCardInstance);
                 }
@@ -607,6 +664,12 @@ public class HexSinglePlacementController : MonoBehaviour
             if (RiverNetworkManager.Instance != null && !cardData.IsRiverCard())
             {
                 RiverNetworkManager.Instance.OnNeighborCardPlaced(currentHoverHex, cardData);
+            }
+
+            if (BiomeBuffVisualManager.Instance != null)
+            {
+                BiomeBuffVisualManager.Instance.HideHoverPreview();
+                BiomeBuffVisualManager.Instance.RefreshAllBuffs(worldGenerator);
             }
 
             // 2. Tính toán lại điểm số
@@ -961,6 +1024,11 @@ public class HexSinglePlacementController : MonoBehaviour
             HexPlacementPreviewHUD.Instance.HidePreview();
         }
 
+        if (BiomeBuffVisualManager.Instance != null)
+        {
+            BiomeBuffVisualManager.Instance.HideHoverPreview();
+        }
+
         if (ghostVisual != null)
         {
             ghostVisual.ClearVisuals();
@@ -969,6 +1037,59 @@ public class HexSinglePlacementController : MonoBehaviour
         if (HexCreatureTileGuide.HasInstance)
         {
             HexCreatureTileGuide.Instance?.HideGuide();
+        }
+    }
+
+    private void NudgeCreaturesFromHoverHex(HexCoordinates dangerHex, GameObject dangerTileObj)
+    {
+        if (validator == null || worldGenerator == null || dangerTileObj == null) return;
+        CardData terrainCard = validator.GetPlacedTerrainCard(dangerTileObj);
+        if (terrainCard == null) return;
+        if (!validator.FindSafeBiomeRelocationTile(dangerHex, terrainCard, worldGenerator, out HexCoordinates safeHex, out GameObject safeTileObj))
+            return;
+
+        AnimalMovementAI[] animals = FindObjectsByType<AnimalMovementAI>(FindObjectsInactive.Exclude);
+        for (int i = 0; i < animals.Length; i++)
+        {
+            if (animals[i] != null && animals[i].IsOnHex(dangerHex))
+            {
+                animals[i].FleeToSafeHex(safeHex, safeTileObj, isUrgent: false);
+            }
+        }
+    }
+
+    private void RelocateCreaturesFromSettlementHex(HexCoordinates buildingHex, GameObject buildingTileObj)
+    {
+        if (validator == null || worldGenerator == null || buildingTileObj == null) return;
+        CardData terrainCard = validator.GetPlacedTerrainCard(buildingTileObj);
+        if (terrainCard == null) return;
+        if (!validator.FindSafeBiomeRelocationTile(buildingHex, terrainCard, worldGenerator, out HexCoordinates safeHex, out GameObject safeTileObj))
+            return;
+
+        // 1. Dời thẻ PlacedCard của thú sang ô Biome an toàn (giữ nguyên Habitat/Identity)
+        PlacedCard[] cards = buildingTileObj.GetComponentsInChildren<PlacedCard>(true);
+        for (int i = 0; i < cards.Length; i++)
+        {
+            PlacedCard pc = cards[i];
+            if (pc == null || pc.CardType != CardType.Creature) continue;
+            pc.placedHex = safeHex;
+            pc.transform.SetParent(safeTileObj.transform, true);
+
+            if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out _))
+            {
+                LumiWorld.Acs.HabitatPlacementIdentity.BindPlacedCard(pc);
+            }
+        }
+
+        // 2. Cho mọi con thú đang đứng trong ô vừa xây chạy nhanh ra ngoài để không bị kẹt trong tường rào
+        AnimalMovementAI[] animals = FindObjectsByType<AnimalMovementAI>(FindObjectsInactive.Exclude);
+        for (int i = 0; i < animals.Length; i++)
+        {
+            if (animals[i] != null && animals[i].IsOnHex(buildingHex))
+            {
+                animals[i].transform.SetParent(safeTileObj.transform, true);
+                animals[i].FleeToSafeHex(safeHex, safeTileObj, isUrgent: true);
+            }
         }
     }
 

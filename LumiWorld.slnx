@@ -1,4 +1,7 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="ShaderGraphVariables.csproj" />
+  <Project Path="UberWaterPlannerReflection.csproj" />
+  <Project Path="UberStylizedWater.Editor.csproj" />
 </Solution>

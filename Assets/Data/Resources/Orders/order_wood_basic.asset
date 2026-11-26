@@ -17,8 +17,9 @@ MonoBehaviour:
   portrait: {fileID: 0}
   portraitColor: {r: 0.78, g: 0.5, b: 0.16, a: 1}
   requirements:
-  - resource: {fileID: 11400000, guid: 35c07cfa06e949298f3f4ee44ccf0a79, type: 2}
-    minAmount: 8
-    maxAmount: 12
+  - resource: {fileID: 11400000, guid: 2fdc25031f4d2f54eaced46ba7d85239, type: 2}
+    minAmount: 10
+    maxAmount: 14
   rewardMultiplier: 1.5
   isBaseline: 1
+  minScoreRequired: 0

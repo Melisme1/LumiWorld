@@ -20,7 +20,7 @@ MonoBehaviour:
   outputResource: {fileID: 11400000, guid: f0010001000100010001000100010009, type: 2}
   outputAmount: 1
   inputs:
-  - resourceId: resource.plain.wheat
+  - resourceId: resource.bloomfield.wheat
     amount: 3
   isEdible: 0
   craftDurationSeconds: 6

@@ -80,6 +80,11 @@ public class WildPackIncidentManager : MonoBehaviour
 
     private readonly HashSet<string> disruptedHabitatIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+    public bool IsHabitatDisrupted(string habitatId)
+    {
+        return !string.IsNullOrEmpty(habitatId) && disruptedHabitatIds.Contains(habitatId);
+    }
+
     public event Action<WildPackIncident> OnIncidentSpawned;
     public event Action<WildPackIncident, bool> OnIncidentResolved;
 
@@ -107,10 +112,93 @@ public class WildPackIncidentManager : MonoBehaviour
         }
     }
 
+    // WorldSaveSystem (Start order -300) đã dựng lại đồng hồ chờ từ bản lưu: Start không đặt chu kỳ mới đè lên
+    private bool cooldownRestored;
+
     private void Start()
     {
         // Khởi động chu kỳ ngẫu nhiên đầu tiên khi bắt đầu màn chơi
-        StartNextSpawnCooldown();
+        if (!cooldownRestored) StartNextSpawnCooldown();
+    }
+
+    // =========================================================================
+    // LƯU / NẠP (WorldSaveSystem gọi)
+    // =========================================================================
+
+    /// <summary>Ghi các đàn đang chiếm cụm và thời gian còn lại tới đàn kế tiếp vào bản lưu world.</summary>
+    public void CaptureForSave(WildIncidentSaveData data)
+    {
+        if (data == null) return;
+        data.incidents.Clear();
+        foreach (var incident in activeIncidents)
+        {
+            if (incident == null || !incident.IsActive || incident.HostCluster == null || incident.AlphaCreatureCard == null) continue;
+            var record = new WildIncidentRecord
+            {
+                incidentId = incident.IncidentID,
+                hostClusterId = incident.HostCluster.ClusterId,
+                alphaCardId = incident.AlphaCreatureCard.cardID,
+                alphaRank = (int)incident.AlphaRank
+            };
+            foreach (var sat in incident.SatelliteClusters)
+                if (sat != null) record.satelliteClusterIds.Add(sat.ClusterId);
+            data.incidents.Add(record);
+        }
+        data.intervalSeconds = currentIntervalDuration;
+        data.remainingSeconds = RemainingCooldown;
+        data.saved = true;
+    }
+
+    /// <summary>
+    /// Dựng lại các đàn đã lưu trên đúng cụm cũ (không chọn ngẫu nhiên, không quay camera) và đồng hồ chờ còn lại.
+    /// Gọi sau khi thẻ và habitat đã dựng xong. Cụm đã mất (bị phá, đổi id) thì bỏ đàn đó.
+    /// </summary>
+    public void RestoreFromSave(WildIncidentSaveData data, CardCatalog cards)
+    {
+        if (data == null || !data.saved) return;
+
+        if (data.remainingSeconds >= 0f)
+        {
+            SetCooldownTimer(data.remainingSeconds);
+            // Giữ độ dài chu kỳ cũ để thanh tiến trình hiện đúng; đồng hồ dự phòng đếm tiếp phần đã trôi
+            if (data.intervalSeconds > data.remainingSeconds)
+            {
+                currentIntervalDuration = data.intervalSeconds;
+                internalTimer = data.intervalSeconds - data.remainingSeconds;
+            }
+            cooldownRestored = true;
+        }
+
+        if (data.incidents == null || data.incidents.Count == 0) return;
+        if (config == null) config = Resources.Load<WildIncidentConfig>("WildIncidentConfig");
+
+        var clusters = GetAllActiveClusters();
+        IncidentClusterTarget FindCluster(string id) =>
+            string.IsNullOrEmpty(id) ? null : clusters.Find(c => string.Equals(c.ClusterId, id, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var record in data.incidents)
+        {
+            if (record == null) continue;
+            IncidentClusterTarget host = FindCluster(record.hostClusterId);
+            CardData creature = cards != null ? cards.Find(record.alphaCardId) : null;
+            if (host == null || creature == null)
+            {
+                Debug.LogWarning($"[Thú Hoang] Bỏ đàn {record.incidentId} trong bản lưu: không còn cụm '{record.hostClusterId}' hoặc thẻ '{record.alphaCardId}'.");
+                continue;
+            }
+
+            var satellites = new List<IncidentClusterTarget>();
+            if (record.satelliteClusterIds != null)
+                foreach (string id in record.satelliteClusterIds)
+                {
+                    IncidentClusterTarget sat = FindCluster(id);
+                    if (sat != null && sat != host && !satellites.Contains(sat)) satellites.Add(sat);
+                }
+
+            AnimalRank rank = Enum.IsDefined(typeof(AnimalRank), record.alphaRank) ? (AnimalRank)record.alphaRank : AnimalRank.Common;
+            SpawnIncident(host, creature, rank, satellites, record.incidentId, focusCamera: false,
+                "<color=#94a3b8><b>[Bản lưu - Thú Hoang]</b></color>");
+        }
     }
 
     /// <summary>
@@ -218,6 +306,7 @@ public class WildPackIncidentManager : MonoBehaviour
         var result = new List<IncidentClusterTarget>();
 
         HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        var islandRuntime = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
 
         // 1. Kiểm tra HabitatRuntimeManager (Hệ thống GDD Acs chính quy trong scene)
         if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager))
@@ -227,28 +316,35 @@ public class WildPackIncidentManager : MonoBehaviour
                 foreach (var habitat in habitatManager.Habitats)
                 {
                     if (habitat == null) continue;
+                    // Chỉ áp dụng Wild Pack trên Starter Island
+                    if (habitat.island != LumiWorld.Acs.HabitatIsland.Starter) continue;
+                    if (islandRuntime != null && habitat.members != null && habitat.members.Count > 0 &&
+                        !string.Equals(islandRuntime.IslandAt(habitat.members[0].hex), "starter", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
 
-                    Vector3 sumPos = Vector3.zero;
-                    int count = 0;
+                    var memberPositions = new List<Vector3>();
+                    var clusterHexes = new List<HexCoordinates>();
                     if (habitat.members != null)
                     {
                         foreach (var m in habitat.members)
                         {
                             if (m != null)
                             {
+                                clusterHexes.Add(m.hex);
                                 float tileSurfaceY = HexMetrics.TileHeight;
                                 if (worldGen != null && worldGen.MapTiles.TryGetValue(m.hex, out GameObject tileObj) && tileObj != null)
                                 {
                                     var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
                                     tileSurfaceY = topY;
                                 }
-                                sumPos += HexMetrics.HexToWorldPosition(m.hex, tileSurfaceY);
-                                count++;
+                                memberPositions.Add(HexMetrics.HexToWorldPosition(m.hex, tileSurfaceY));
                             }
                         }
                     }
 
-                    Vector3 center = count > 0 ? sumPos / count : Vector3.zero;
+                    Vector3 center = PickNearestMemberPosition(memberPositions);
                     string natureKey = habitat.affinity.ToString();
                     CardData terrain = FindMatchingTerrainCard(natureKey);
 
@@ -257,15 +353,16 @@ public class WildPackIncidentManager : MonoBehaviour
                         ClusterId = habitat.habitatId,
                         BiomeName = habitat.affinity.ToString(),
                         HexCount = habitat.HexCount,
+                        Hexes = clusterHexes,
                         CenterPosition = center,
                         TerrainCard = terrain,
                         NatureKey = natureKey,
                         IsDisrupted = disruptedHabitatIds.Contains(habitat.habitatId),
+                        IsProducing = habitat.residents != null && habitat.residents.Count > 0,
                         SetDisruptedAction = (disrupted) => {
                             if (disrupted) disruptedHabitatIds.Add(habitat.habitatId);
                             else disruptedHabitatIds.Remove(habitat.habitatId);
-                        },
-                        SetSpeedMultiplierAction = (mult) => { }
+                        }
                     };
 
                     result.Add(target);
@@ -283,6 +380,10 @@ public class WildPackIncidentManager : MonoBehaviour
             foreach (var card in allPlaced)
             {
                 if (card == null || card.cardData == null || card.CardType != CardType.Terrain) continue;
+                // Chỉ áp dụng Wild Pack trên Starter Island
+                string cardIsland = string.IsNullOrEmpty(card.cardData.islandId) ? "starter" : card.cardData.islandId;
+                if (!string.Equals(cardIsland, "starter", StringComparison.OrdinalIgnoreCase)) continue;
+                if (islandRuntime != null && !string.Equals(islandRuntime.IslandAt(card.placedHex), "starter", StringComparison.OrdinalIgnoreCase)) continue;
                 string key = string.IsNullOrEmpty(card.cardData.cardID) ? card.cardData.cardName : card.cardData.cardID;
                 if (!groups.TryGetValue(key, out var list))
                 {
@@ -295,21 +396,28 @@ public class WildPackIncidentManager : MonoBehaviour
             foreach (var kvp in groups)
             {
                 var list = kvp.Value;
-                Vector3 sumPos = Vector3.zero;
+                var memberPositions = new List<Vector3>();
+                var fallbackHexes = new List<HexCoordinates>();
+                bool hasAnimal = false;
                 foreach (var p in list)
                 {
                     if (p != null)
                     {
+                        fallbackHexes.Add(p.placedHex);
                         float tileSurfaceY = p.transform.position.y;
                         if (worldGen != null && worldGen.MapTiles.TryGetValue(p.placedHex, out GameObject tileObj) && tileObj != null)
                         {
                             var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
                             tileSurfaceY = topY;
+                            if (!hasAnimal && tileObj.GetComponentInChildren<AnimalIndividual>() != null)
+                            {
+                                hasAnimal = true;
+                            }
                         }
-                        sumPos += new Vector3(p.transform.position.x, tileSurfaceY, p.transform.position.z);
+                        memberPositions.Add(new Vector3(p.transform.position.x, tileSurfaceY, p.transform.position.z));
                     }
                 }
-                Vector3 center = list.Count > 0 ? sumPos / list.Count : Vector3.zero;
+                Vector3 center = PickNearestMemberPosition(memberPositions);
 
                 var firstCard = list[0].cardData;
                 var target = new IncidentClusterTarget
@@ -317,17 +425,44 @@ public class WildPackIncidentManager : MonoBehaviour
                     ClusterId = kvp.Key,
                     BiomeName = firstCard.cardName,
                     HexCount = list.Count,
+                    Hexes = fallbackHexes,
                     CenterPosition = center,
                     TerrainCard = firstCard,
                     NatureKey = firstCard.cardName,
-                    SetDisruptedAction = (disrupted) => { },
-                    SetSpeedMultiplierAction = (mult) => { }
+                    IsProducing = hasAnimal,
+                    SetDisruptedAction = (disrupted) => { }
                 };
                 result.Add(target);
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Chọn tọa độ ô thực tế nằm gần tâm hình học nhất trong cụm,
+    /// tránh trường hợp cụm hình chữ U / vòng cung có trung bình cộng rơi ra ngoài (lọt sang cụm khác).
+    /// </summary>
+    private static Vector3 PickNearestMemberPosition(List<Vector3> positions)
+    {
+        if (positions == null || positions.Count == 0) return Vector3.zero;
+
+        Vector3 avg = Vector3.zero;
+        for (int i = 0; i < positions.Count; i++) avg += positions[i];
+        avg /= positions.Count;
+
+        Vector3 best = positions[0];
+        float bestDistSqr = (positions[0] - avg).sqrMagnitude;
+        for (int i = 1; i < positions.Count; i++)
+        {
+            float d = (positions[i] - avg).sqrMagnitude;
+            if (d < bestDistSqr)
+            {
+                bestDistSqr = d;
+                best = positions[i];
+            }
+        }
+        return best;
     }
 
     /// <summary>
@@ -398,9 +533,7 @@ public class WildPackIncidentManager : MonoBehaviour
         var hostCluster = WildIncidentEvaluator.PickHostCluster(clusters, config.minClusterSizeToHost);
         CardData creatureCard = config.GetCompatibleCreature(hostCluster.TerrainCard, hostCluster.NatureKey);
 
-        int scoreMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
-        int progressionTier = WildIncidentEvaluator.EvaluateProgressionTier(scoreMilestone, clusters);
-        AnimalRank alphaRank = config.RollAlphaRank(progressionTier);
+        AnimalRank alphaRank = AnimalRank.Common;
 
         incident = ExecuteSpawn(hostCluster, creatureCard, alphaRank, clusters, isDebugForce: false);
         failureReason = incident != null ? null : "Lỗi khi sinh mô hình sinh vật vào scene.";
@@ -444,9 +577,7 @@ public class WildPackIncidentManager : MonoBehaviour
             creature = config.GetCompatibleCreature(host.TerrainCard, host.NatureKey);
         }
 
-        int scoreMilestone = ScoreManager.Instance != null ? ScoreManager.Instance.GrantedMilestoneCount : 0;
-        int progressionTier = WildIncidentEvaluator.EvaluateProgressionTier(scoreMilestone, clusters);
-        AnimalRank rank = forceRank ?? (config != null ? config.RollAlphaRank(progressionTier) : AnimalRank.Rare);
+        AnimalRank rank = forceRank ?? AnimalRank.Common;
 
         incident = ExecuteSpawn(host, creature, rank, clusters, isDebugForce: true);
         failureReason = incident != null ? null : "Lỗi khi sinh mô hình sinh vật.";
@@ -491,9 +622,23 @@ public class WildPackIncidentManager : MonoBehaviour
         int minionCount = config != null ? config.CalculateMinionCount(hostCluster.HexCount) : 1;
         var satelliteClusters = WildIncidentEvaluator.FindNearbySatelliteClusters(hostCluster, allClusters, minionCount);
 
+        string sourceTag = isDebugForce
+            ? "<color=#38bdf8><b>[Test Tool - Thú Hoang]</b></color>"
+            : "<color=#FFA500><b>[Gameplay - Thú Hoang]</b></color>";
+        string incidentId = Guid.NewGuid().ToString().Substring(0, 6).ToUpper();
+        return SpawnIncident(hostCluster, creatureCard, alphaRank, satelliteClusters, incidentId, focusCamera: true, sourceTag);
+    }
+
+    /// <summary>
+    /// Sinh mô hình Alpha + Minions trên các cụm đã chọn, gắn tương tác và áp dụng phong tỏa.
+    /// Dùng chung cho đàn mới (ExecuteSpawn) và đàn dựng lại từ bản lưu (RestoreFromSave).
+    /// </summary>
+    private WildPackIncident SpawnIncident(IncidentClusterTarget hostCluster, CardData creatureCard, AnimalRank alphaRank,
+        List<IncidentClusterTarget> satelliteClusters, string incidentId, bool focusCamera, string sourceTag)
+    {
         // 1. Sinh mô hình Thú Đầu Đàn (Alpha)
         GameObject alphaInstance = SpawnCreatureModel(creatureCard, hostCluster.CenterPosition, isAlpha: true, alphaRank);
-        if (alphaInstance != null)
+        if (alphaInstance != null && focusCamera)
         {
             FocusCameraOnAlpha(alphaInstance.transform.position);
         }
@@ -513,8 +658,6 @@ public class WildPackIncidentManager : MonoBehaviour
         }
 
         // 3. Khởi tạo đối tượng sự cố và phong tỏa
-        string incidentId = Guid.NewGuid().ToString().Substring(0, 6).ToUpper();
-        float debuff = config != null ? config.satelliteSpeedDebuff : 0.7f;
         var incident = new WildPackIncident(
             incidentId,
             hostCluster,
@@ -522,8 +665,7 @@ public class WildPackIncidentManager : MonoBehaviour
             alphaRank,
             alphaInstance,
             satelliteClusters,
-            minionInstances,
-            debuff
+            minionInstances
         );
 
         if (alphaInstance != null)
@@ -534,10 +676,9 @@ public class WildPackIncidentManager : MonoBehaviour
 
         activeIncidents.Add(incident);
         OnIncidentSpawned?.Invoke(incident);
-
-        string sourceTag = isDebugForce
-            ? "<color=#38bdf8><b>[Test Tool - Thú Hoang]</b></color>"
-            : "<color=#FFA500><b>[Gameplay - Thú Hoang]</b></color>";
+        if (BiomeBuffVisualManager.Instance != null) BiomeBuffVisualManager.Instance.RefreshAllBuffs();
+        // Đàn mới (hoặc dựng lại) phải vào bản lưu world, để thoát game không thoát được đàn thú
+        WorldSaveSystem.MarkDirty();
 
         Debug.Log($"{sourceTag} Đàn thú hoang [Alpha {alphaRank} - {creatureCard?.cardName ?? "Linh Thú"}] đã chiếm cứ cụm <b>{hostCluster.BiomeName}</b> ({hostCluster.HexCount} ô)! {satelliteClusters.Count} cụm vệ tinh bị quấy phá.");
         return incident;
@@ -576,7 +717,7 @@ public class WildPackIncidentManager : MonoBehaviour
         if (incident.HostCluster != null) incident.HostCluster.SetDisrupted(false);
         foreach (var sat in incident.SatelliteClusters)
         {
-            if (sat != null) sat.SetSpeedMultiplier(1.0f);
+            if (sat != null) sat.SetDisrupted(false);
         }
 
         // 2. Thu thập danh sách mô hình thú đang có mặt
@@ -626,7 +767,9 @@ public class WildPackIncidentManager : MonoBehaviour
 
         incident.Resolve();
         activeIncidents.Remove(incident);
+        if (BiomeBuffVisualManager.Instance != null) BiomeBuffVisualManager.Instance.RefreshAllBuffs();
         StartNextSpawnCooldown(); // Khởi tạo chu kỳ đếm giờ ngẫu nhiên mới qua Time System (180s - 300s)
+        WorldSaveSystem.MarkDirty(); // bỏ đàn đã giải quyết khỏi bản lưu world
 
         OnIncidentResolved?.Invoke(incident, rewarded);
         Debug.Log($"<color=#50C878><b>[Hệ sinh thái an toàn!]</b></color> Đàn thú hoang đã được thuần hóa / rút lui trong hòa bình.");

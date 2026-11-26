@@ -18,13 +18,13 @@ RenderSettings:
   m_FogColor: {r: 0.7607843, g: 0.8862745, b: 0.9607843, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.01
-  m_LinearFogStart: 40
-  m_LinearFogEnd: 120
-  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
-  m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
-  m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
-  m_AmbientIntensity: 1
-  m_AmbientMode: 0
+  m_LinearFogStart: 80
+  m_LinearFogEnd: 250
+  m_AmbientSkyColor: {r: 0.45, g: 0.65, b: 0.85, a: 1}
+  m_AmbientEquatorColor: {r: 0.45, g: 0.6, b: 0.5, a: 1}
+  m_AmbientGroundColor: {r: 0.2, g: 0.28, b: 0.22, a: 1}
+  m_AmbientIntensity: 0.75
+  m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: 7ea14bfe7b9a16148970250afcdc011a, type: 2}
   m_HaloStrength: 0.5
@@ -289,26 +289,26 @@ MonoBehaviour:
   habitatManager: {fileID: 88682140}
   settings:
     productionEnabled: 1
-    tier1UnitsPerInterval: 20
-    tier1IntervalSeconds: 10
-    tier2UnitsPerInterval: 5
-    tier2IntervalSeconds: 30
+    tier1UnitsPerInterval: 2
+    tier1IntervalSeconds: 15
+    tier2UnitsPerInterval: 1
+    tier2IntervalSeconds: 20
     rankIContribution: 1
     rankIIContribution: 1.5
     rankIIIContribution: 2
     sharingPolicy: 1
     comboPolicy: 1
-    tier1BufferCap: 100
-    tier2BufferCap: 50
+    tier1BufferCap: 40
+    tier2BufferCap: 20
   creatureCare:
-    rankIHungerSeconds: 60
-    rankIIHungerSeconds: 90
-    rankIIIHungerSeconds: 120
+    rankIHungerSeconds: 180
+    rankIIHungerSeconds: 270
+    rankIIIHungerSeconds: 360
     autoFeedAtSatiety: 50
     foodUnitsPerSecond: 10
     food: {fileID: 0}
     fallbackFoodResourceId: resource.leafwood.raspberries
-    seedFoodUnitsToFull: 50
+    seedFoodUnitsToFull: 2
     additionalFoods: []
     speciesDiets: []
   displayRefreshSeconds: 0.5
@@ -814,8 +814,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 1
+  m_Color: {r: 1, g: 0.9490196, b: 0.8392157, a: 1}
+  m_Intensity: 1.5
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -825,8 +825,8 @@ Light:
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
-    m_Bias: 0.05
-    m_NormalBias: 0.4
+    m_Bias: 0.015
+    m_NormalBias: 0.1
     m_NearPlane: 0.2
     m_CullingMatrixOverride:
       e00: 1
@@ -913,6 +913,55 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &677008807
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 677008809}
+  - component: {fileID: 677008808}
+  m_Layer: 0
+  m_Name: Global Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &677008808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 677008807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: ab09877e2e707104187f6f83e2f62510, type: 2}
+--- !u!4 &677008809
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 677008807}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.5, y: 10.700001, z: -7.8}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &770000011
 GameObject:
   m_ObjectHideFlags: 0
@@ -1293,13 +1342,12 @@ MonoBehaviour:
   createLandButtonText: {fileID: 74655635}
   readyTextFormat: Create ({0})
   lockedText: Create (Locked)
+  requireCoinsForExpansion: 1
+  expansionCoinCosts: 5000000082000000dc000000680100004e020000d4030000
   landPlacementRewardCards:
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-  - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
 --- !u!4 &1038811525
 Transform:
   m_ObjectHideFlags: 0
@@ -1432,8 +1480,8 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
-  m_Antialiasing: 0
+  m_RenderPostProcessing: 1
+  m_Antialiasing: 2
   m_AntialiasingQuality: 2
   m_StopNaN: 0
   m_Dithering: 0
@@ -2005,8 +2053,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-  - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+  - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
   - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
@@ -2014,14 +2061,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
   - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000012, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000003, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000004, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000007, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
-  - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
   maxSpacing: 220
   minSpacing: 60
   handWidth: 800
@@ -2138,132 +2179,116 @@ MonoBehaviour:
   rewardMilestones:
   - scoreThreshold: 3
     rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
     - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     grantLandExpansion: 0
-  - scoreThreshold: 6
+  - scoreThreshold: 8
     rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     grantLandExpansion: 1
-  - scoreThreshold: 10
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    grantLandExpansion: 0
   - scoreThreshold: 15
     rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 21
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 28
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    grantLandExpansion: 1
-  - scoreThreshold: 36
-    rewardCards:
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
     grantLandExpansion: 0
-  - scoreThreshold: 45
+  - scoreThreshold: 24
     rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 55
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 66
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    grantLandExpansion: 1
-  - scoreThreshold: 78
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 91
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 105
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 120
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
-    grantLandExpansion: 1
-  - scoreThreshold: 136
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 153
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
-    grantLandExpansion: 0
-  - scoreThreshold: 171
-    rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
     - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
     - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     grantLandExpansion: 0
-  - scoreThreshold: 190
+  - scoreThreshold: 35
     rewardCards:
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 48
+    rewardCards:
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     grantLandExpansion: 1
+  - scoreThreshold: 64
+    rewardCards:
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 82
+    rewardCards:
+    - {fileID: 11400000, guid: 47dd17781634437418e2e7ddba6a2317, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 102
+    rewardCards:
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 125
+    rewardCards:
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 150
+    rewardCards:
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 178
+    rewardCards:
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
   - scoreThreshold: 210
     rewardCards:
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
-    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     grantLandExpansion: 0
-  - scoreThreshold: 235
+  - scoreThreshold: 245
     rewardCards:
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 285
+    rewardCards:
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 330
+    rewardCards:
+    - {fileID: 11400000, guid: 47dd17781634437418e2e7ddba6a2317, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 380
+    rewardCards:
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 435
+    rewardCards:
+    - {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000099, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 1
+  - scoreThreshold: 495
+    rewardCards:
+    - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
+    - {fileID: 11400000, guid: e28c7ceb5819acd45a7a93262797f75d, type: 2}
+    - {fileID: 11400000, guid: 87faf1d7c23602e47bd19b55edc61d75, type: 2}
+    - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
+    grantLandExpansion: 0
+  - scoreThreshold: 560
+    rewardCards:
+    - {fileID: 11400000, guid: 47dd17781634437418e2e7ddba6a2317, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     - {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     grantLandExpansion: 1
-  endlessInterval: 30
+  endlessInterval: 65
   endlessRainCard: {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
   endlessRewardPool:
   - {fileID: 11400000, guid: 92520ce0377b5f9439d278fd0632194f, type: 2}
@@ -2377,3 +2402,4 @@ SceneRoots:
   - {fileID: 305089949}
   - {fileID: 1505129047}
   - {fileID: 913744502}
+  - {fileID: 677008809}

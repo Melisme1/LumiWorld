@@ -6,13 +6,15 @@ using UnityEngine;
 /// - RhythmResonance: Vũ điệu hòa nhịp (Minigame 2 - Gõ mũi tên & căn vạch rơi)
 /// - RockPaperScissors: Kéo - Búa - Bao (Minigame 1 - Đấu trí theo hệ nguyên tố)
 /// - FeedingPity: Cho ăn theo xác suất bảo hiểm (Minigame 3 - Nạp thức ăn & Pity)
+/// - ObstacleRunner: Chạy / Bay vượt chướng ngại vật (Endless Runner theo môi trường)
 /// </summary>
 public enum MinigameType
 {
     None = 0,
     RhythmResonance = 1,
     RockPaperScissors = 2,
-    FeedingPity = 3
+    FeedingPity = 3,
+    ObstacleRunner = 4
 }
 
 /// <summary>

@@ -24,8 +24,8 @@ MonoBehaviour:
   isTerraformTool: 0
   baseScore: 3
   alwaysBaseScore: 0
-  shopPrice: 80
-  placementFee: 15
+  shopPrice: 100
+  placementFee: 20
   prefabToPlace: {fileID: 6124297071968976769, guid: 07fe16ff967c3fd46a6ac837d2aa6234, type: 3}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

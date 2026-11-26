@@ -184,7 +184,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
     public int AssignCluster(PlacedCard placedCard)
     {
         if (placedCard == null || placedCard.cardData == null) return -1;
-        if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain) return -1;
+        if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain && !placedCard.cardData.IsSettlementCard()) return -1;
 
         if (placedCard.clusterId > 0)
         {
@@ -317,11 +317,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
             worldGen.MapTiles.TryGetValue(placedCard.placedHex, out GameObject placedTile) && IsBurnedTile(placedTile))
             return;
 
-        if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain) return;
+        if (!placedCard.cardData.HasHabitatProps() && placedCard.cardData.cardType != CardType.Terrain && !placedCard.cardData.IsSettlementCard()) return;
 
         AssignCluster(placedCard);
 
-        if (!placedCard.cardData.HasHabitatProps()) return;
+        if (!placedCard.cardData.HasHabitatProps() && !placedCard.cardData.IsSettlementCard()) return;
 
         ConnectAllNearby(placedCard.placedHex, placedCard.cardData);
     }
@@ -337,9 +337,9 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
         bool centerHasRiver = (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(centerHex));
-        if (centerHabitatData == null || !centerHabitatData.HasHabitatProps())
+        if (centerHabitatData == null || (!centerHabitatData.HasHabitatProps() && !centerHabitatData.IsSettlementCard()))
         {
-            if (centerCard != null && centerCard.cardData != null && centerCard.cardData.HasHabitatProps())
+            if (centerCard != null && centerCard.cardData != null && (centerCard.cardData.HasHabitatProps() || centerCard.cardData.IsSettlementCard()))
             {
                 centerHabitatData = centerCard.cardData;
             }
@@ -438,7 +438,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
                         CardData bridgeHabitatData = centerHabitatData != null ? centerHabitatData : (neighborCard != null ? neighborCard.cardData : null);
                         CreateEdgeSeamBridge(centerHex, centerTile, neighborHex, neighborTile, edgeKey, bridgeHabitatData, worldGen);
 
-                        if (!riverCrossesEdge && spawnConnectorProps && !clusterEdgeKeys.Contains(edgeKey))
+                        bool isSettlement = bridgeHabitatData != null && bridgeHabitatData.IsSettlementCard();
+                        if (!riverCrossesEdge && spawnConnectorProps && !clusterEdgeKeys.Contains(edgeKey) && !isSettlement)
                         {
                             HexClusterVegetationSpawner.SpawnEdgeConnectorProps(this, ConnectionsContainer, centerTile, neighborTile, bridgeHabitatData, GetVegetationConfig());
                         }
@@ -453,13 +454,17 @@ public class HexBiomeClusterConnector : MonoBehaviour
             _createdCornerFillers.Add(corner.cornerKey);
             CreateCornerFiller(centerTile, corner.tileB, corner.tileC, corner.cornerKey, centerHabitatData);
 
-            if (spawnCornerProps)
+            bool isSettlement = centerHabitatData != null && centerHabitatData.IsSettlementCard();
+            if (spawnCornerProps && !isSettlement)
             {
                 HexClusterVegetationSpawner.SpawnClusterCornerProps(this, ConnectionsContainer, centerTile, corner.tileB, corner.tileC, centerHabitatData, GetVegetationConfig());
             }
         }
 
-        CheckAndCelebrateCluster(centerHex, centerHabitatData, worldGen);
+        if (centerHabitatData != null && !centerHabitatData.IsSettlementCard())
+        {
+            CheckAndCelebrateCluster(centerHex, centerHabitatData, worldGen);
+        }
     }
 
     public static PlacedCard GetHabitatCardOnTile(GameObject tileObj)
@@ -469,6 +474,20 @@ public class HexBiomeClusterConnector : MonoBehaviour
         PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>(true);
         if (cards != null)
         {
+            // Building (Settlement) luôn tách riêng khỏi Biome nền bên dưới.
+            foreach (var c in cards)
+            {
+                if (c != null && c.cardData != null && c.cardData.IsSettlementCard())
+                {
+                    return c;
+                }
+            }
+
+            if (tileObj.GetComponent<SettlementTile>() != null)
+            {
+                return null;
+            }
+
             foreach (var c in cards)
                 if (c != null && c.CardType == CardType.Terrain) return c;
             foreach (var c in cards)
@@ -490,13 +509,16 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
     public static bool AreNatureCardsMatching(CardData a, CardData b)
     {
-        return a != null && b != null && a.cardType == CardType.Terrain && b.cardType == CardType.Terrain &&
+        if (a == null || b == null) return false;
+        if (a.IsSettlementCard() && b.IsSettlementCard()) return true;
+        return a.cardType == CardType.Terrain && b.cardType == CardType.Terrain &&
             !string.IsNullOrEmpty(a.cardID) && string.Equals(a.cardID, b.cardID, StringComparison.Ordinal);
     }
 
     public static bool AreHabitatsMatching(CardData a, CardData b)
     {
         if (a == null || b == null) return false;
+        if (a.IsSettlementCard() && b.IsSettlementCard()) return true;
         if (!a.HasHabitatProps() || !b.HasHabitatProps()) return false;
 
         if (a.cardID == b.cardID) return true;
@@ -595,7 +617,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         StartCoroutine(AnimateBridgePopIn(bridgeGo.transform));
 
-        if (spawnSeamMicroGrass && !IsPositionNearRiver(midPoint, 0.40f))
+        bool isSettlement = habitatData != null && habitatData.IsSettlementCard();
+        if (spawnSeamMicroGrass && !isSettlement && !IsPositionNearRiver(midPoint, 0.40f))
         {
             HexClusterVegetationSpawner.SpawnBorderMicroGrass(this, ConnectionsContainer, midPoint, u, v, halfEdge, elevatedTopY, habitatData, GetVegetationConfig());
         }
@@ -647,7 +670,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         StartCoroutine(AnimateBridgePopIn(cornerGo.transform));
 
-        if (spawnSeamMicroGrass)
+        bool isSettlement = habitatData != null && habitatData.IsSettlementCard();
+        if (spawnSeamMicroGrass && !isSettlement)
         {
             HexClusterVegetationSpawner.SpawnCornerMicroGrass(this, ConnectionsContainer, center, surfaceY, habitatData, GetVegetationConfig());
         }
@@ -784,6 +808,8 @@ public class HexBiomeClusterConnector : MonoBehaviour
             if (curr.GetComponent<PlacedCard>() != null ||
                 n.StartsWith("Habitat_") ||
                 n.StartsWith("PlacedCard_") ||
+                n.StartsWith("PlacedSettlement_") ||
+                n.StartsWith("Settlement_") ||
                 n.StartsWith("ConnectorProp_") ||
                 n.StartsWith("CornerProp_") ||
                 n.StartsWith("SeamBridge_") ||
@@ -1056,6 +1082,51 @@ public class HexBiomeClusterConnector : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Tách một ô (ví dụ vừa xây Building/Settlement) khỏi cụm Biome trước đó:
+    /// xóa các cầu nối/prop cạnh cũ và chia lại clusterId cho phần Biome còn lại nếu bị tách.
+    /// </summary>
+    public void DetachTerrainClusterFromHex(HexCoordinates hex)
+    {
+        RemoveConnectionsForHex(hex);
+
+        HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen == null || worldGen.MapTiles == null) return;
+        if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null) return;
+
+        int oldBiomeClusterId = 0;
+        PlacedCard[] cards = tileObj.GetComponentsInChildren<PlacedCard>(true);
+        foreach (var c in cards)
+        {
+            if (c != null && c.CardType == CardType.Terrain)
+            {
+                if (c.clusterId > 0) oldBiomeClusterId = c.clusterId;
+                c.clusterId = 0;
+            }
+        }
+
+        if (oldBiomeClusterId <= 0) return;
+
+        List<PlacedCard> affectedCards = new List<PlacedCard>();
+        foreach (var pair in worldGen.MapTiles)
+        {
+            if (pair.Value == null || pair.Value == tileObj) continue;
+            if (pair.Value.GetComponent<SettlementTile>() != null) continue;
+
+            PlacedCard pc = GetHabitatCardOnTile(pair.Value);
+            if (pc != null && pc.CardType == CardType.Terrain && pc.clusterId == oldBiomeClusterId)
+            {
+                pc.clusterId = 0;
+                affectedCards.Add(pc);
+            }
+        }
+
+        foreach (var pc in affectedCards)
+        {
+            AssignCluster(pc);
+        }
+    }
+
     public void RemoveConnectionsForHex(HexCoordinates hex)
     {
         if (_connectionsContainer == null) return;
@@ -1163,7 +1234,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
         {
             PlacedCard card = GetHabitatCardOnTile(pair.Value);
             bool hasRiver = RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(pair.Key);
-            if ((card != null && card.cardData != null && card.cardData.HasHabitatProps()) || hasRiver)
+            if ((card != null && card.cardData != null && (card.cardData.HasHabitatProps() || card.cardData.IsSettlementCard())) || hasRiver)
             {
                 ConnectAllNearby(pair.Key, card != null ? card.cardData : null);
             }

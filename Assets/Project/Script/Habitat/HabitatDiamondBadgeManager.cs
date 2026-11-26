@@ -66,8 +66,14 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
         HandleMapTileClick();
     }
 
+    [Header("Click Settings")]
+    [SerializeField] private float doubleClickMaxInterval = 0.35f;
+
+    private string _lastClickedHabitatId;
+    private float _lastHabitatClickTime = -10f;
+
     /// <summary>
-    /// Phát hiện khi người chơi nhấp chuột vào ô đất trên bản đồ để bật/tắt huy hiệu Habitat
+    /// Phát hiện khi người chơi double-click vào ô đất trên bản đồ để bật bảng thông tin Habitat
     /// </summary>
     private void HandleMapTileClick()
     {
@@ -113,7 +119,23 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
 
                     if (match)
                     {
-                        SelectHabitat(habitat.habitatId);
+                        float now = Time.unscaledTime;
+                        bool isDoubleClick =
+                            string.Equals(_lastClickedHabitatId, habitat.habitatId, StringComparison.Ordinal) &&
+                            (now - _lastHabitatClickTime) <= doubleClickMaxInterval;
+
+                        if (isDoubleClick)
+                        {
+                            _lastClickedHabitatId = null;
+                            _lastHabitatClickTime = -10f;
+                            SelectHabitat(habitat.habitatId);
+                        }
+                        else
+                        {
+                            _lastClickedHabitatId = habitat.habitatId;
+                            _lastHabitatClickTime = now;
+                        }
+
                         clickedHabitatTile = true;
                         return;
                     }
@@ -128,9 +150,13 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
         }
 
         // Bấm ra ngoài khoảng trống / mặt nước -> Ẩn huy hiệu đang chọn
-        if (!clickedHabitatTile && !string.IsNullOrEmpty(selectedHabitatId))
+        if (!clickedHabitatTile)
         {
-            DeselectHabitat();
+            _lastClickedHabitatId = null;
+            if (!string.IsNullOrEmpty(selectedHabitatId))
+            {
+                DeselectHabitat();
+            }
         }
     }
 

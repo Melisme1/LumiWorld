@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using LumiWorld.Acs;
 
@@ -39,26 +40,23 @@ public class HexPlacementPreviewHUD : MonoBehaviour
 
     private void BuildHUD()
     {
-        hudCanvas = gameObject.GetComponent<Canvas>();
+        hudCanvas = gameObject.GetComponentInParent<Canvas>();
         if (hudCanvas == null)
         {
             hudCanvas = gameObject.AddComponent<Canvas>();
             hudCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             hudCanvas.sortingOrder = 999;
-        }
 
-        var scaler = gameObject.GetComponent<CanvasScaler>();
-        if (scaler == null)
-        {
-            scaler = gameObject.AddComponent<CanvasScaler>();
+            var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
-        }
 
-        if (gameObject.GetComponent<GraphicRaycaster>() == null)
-        {
             gameObject.AddComponent<GraphicRaycaster>();
+        }
+        else
+        {
+            hudCanvas = hudCanvas.rootCanvas;
         }
 
         // =====================================================================
@@ -219,22 +217,40 @@ public class HexPlacementPreviewHUD : MonoBehaviour
 
         tooltipPill.sizeDelta = new Vector2(pillW, 42f);
 
-        // Position tooltip above the hovered hex in screen space
-        Camera cam = Camera.main;
-        if (cam != null && hudCanvas != null)
+        // Position tooltip right above the dragged card / pointer in screen space
+        RectTransform parentRect = tooltipPill.parent as RectTransform;
+        if (hudCanvas != null && parentRect != null)
         {
-            Vector3 worldPos = HexMetrics.HexToWorldPosition(targetHex, HexMetrics.TileHeight + 0.65f);
-            Vector3 screenPos = cam.WorldToScreenPoint(worldPos);
-            if (screenPos.z > 0f)
+            Vector2 screenPos = Vector2.zero;
+            bool hasScreenPos = false;
+
+            if (Pointer.current != null)
             {
-                RectTransform canvasRect = (RectTransform)hudCanvas.transform;
-                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                        canvasRect,
-                        new Vector2(screenPos.x, screenPos.y),
-                        hudCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : hudCanvas.worldCamera,
-                        out Vector2 localPt))
+                screenPos = Pointer.current.position.ReadValue();
+                hasScreenPos = true;
+            }
+            else if (Camera.main != null)
+            {
+                Vector3 worldPos = HexMetrics.HexToWorldPosition(targetHex, HexMetrics.TileHeight + 0.65f);
+                Vector3 sp = Camera.main.WorldToScreenPoint(worldPos);
+                if (sp.z > 0f)
                 {
-                    tooltipPill.anchoredPosition = localPt + new Vector2(0f, 24f);
+                    screenPos = new Vector2(sp.x, sp.y);
+                    hasScreenPos = true;
+                }
+            }
+
+            if (hasScreenPos)
+            {
+                float scale = hudCanvas.scaleFactor > 0f ? hudCanvas.scaleFactor : 1f;
+                float halfPillPx = (pillW * 0.5f + 12f) * scale;
+                screenPos.x = Mathf.Clamp(screenPos.x, halfPillPx, Mathf.Max(halfPillPx, Screen.width - halfPillPx));
+                screenPos.y = Mathf.Clamp(screenPos.y + 64f * scale, 80f * scale, Mathf.Max(80f * scale, Screen.height - 90f * scale));
+
+                Camera uiCam = hudCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : hudCanvas.worldCamera;
+                if (RectTransformUtility.ScreenPointToWorldPointInRectangle(parentRect, screenPos, uiCam, out Vector3 worldPt))
+                {
+                    tooltipPill.position = worldPt;
                 }
             }
         }
@@ -243,6 +259,23 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         {
             tooltipPill.gameObject.SetActive(true);
         }
+
+        if (toastPanel != null && toastText != null)
+        {
+            if (isValid && canAffordFee)
+            {
+                if (toastPanel.gameObject.activeSelf) toastPanel.gameObject.SetActive(false);
+            }
+            else
+            {
+                string reason = !canAffordFee
+                    ? $"Not enough Coins ({placementFee} required)."
+                    : (!string.IsNullOrEmpty(validationError) ? validationError : "Cannot place here.");
+                toastText.text = reason;
+                toastText.color = LumiWorldUITheme.Error;
+                if (!toastPanel.gameObject.activeSelf) toastPanel.gameObject.SetActive(true);
+            }
+        }
     }
 
     public void HidePreview()
@@ -250,6 +283,10 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         if (tooltipPill != null && tooltipPill.gameObject.activeSelf)
         {
             tooltipPill.gameObject.SetActive(false);
+        }
+        if (toastPanel != null && toastPanel.gameObject.activeSelf)
+        {
+            toastPanel.gameObject.SetActive(false);
         }
     }
 

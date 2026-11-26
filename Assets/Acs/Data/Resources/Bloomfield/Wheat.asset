@@ -18,5 +18,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: c379b17158904f23a9a243185c4eadc2, type: 3}
   resourceColor: {r: 1, g: 1, b: 1, a: 1}
   hexColor: '#FFFFFF'
-  baseValue: 0
+  baseValue: 10
   maxStackSize: 999

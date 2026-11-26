@@ -164,6 +164,7 @@ public class FarmAnimalAI : MonoBehaviour
 
     void Start()
     {
+        if (movementAI == null) movementAI = GetComponent<AnimalMovementAI>();
         CacheAndClassifyAnimations();
         SnapToTileSurface();
         StartCoroutine(MainAILoop());
@@ -331,6 +332,12 @@ public class FarmAnimalAI : MonoBehaviour
         {
             animalID = "mossycrab_anm";
             biome = BiomeType.Water;
+            isAquatic = false;
+        }
+        else if (objName.Contains("braluff"))
+        {
+            animalID = "braluff";
+            biome = BiomeType.Forest;
             isAquatic = false;
         }
     }
@@ -664,6 +671,12 @@ public class FarmAnimalAI : MonoBehaviour
     {
         if (cardData == null) return false;
         string cName = (cardData.cardName + " " + cardData.name + " " + cardData.cardID).ToLower();
+        if (animalID == "braluff")
+        {
+            return cName.Contains("leafwood") || cName.Contains("forest") ||
+                   cName.Contains("bloomfield") || cName.Contains("flower") ||
+                   cName.Contains("windheath") || cName.Contains("mountain") || cName.Contains("highland");
+        }
         return MatchesBiomeKeywords(cName);
     }
 

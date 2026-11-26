@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: order_herb_basic
   m_EditorClassIdentifier: Assembly-CSharp::OrderTemplate
   templateId: order_herb_basic
-  customerName: Village Healer
+  customerName: Windheath Weaver
   portrait: {fileID: 0}
   portraitColor: {r: 0.16, g: 0.55, b: 0.47, a: 1}
   requirements:
-  - resource: {fileID: 11400000, guid: e0fca13f9eec4df2880f62a38ab11d27, type: 2}
-    minAmount: 6
-    maxAmount: 10
+  - resource: {fileID: 11400000, guid: 44cd3852b312539408415a9df8147dc2, type: 2}
+    minAmount: 10
+    maxAmount: 14
   rewardMultiplier: 1.5
   isBaseline: 1
+  minScoreRequired: 0

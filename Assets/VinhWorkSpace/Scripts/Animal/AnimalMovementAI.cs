@@ -222,6 +222,64 @@ public class AnimalMovementAI : MonoBehaviour
         isMoving = false;
     }
 
+    public HexCoordinates CurrentHex => currentHex;
+
+    public bool IsOnHex(HexCoordinates hex)
+    {
+        return currentHex == hex || HexMetrics.WorldToHex(transform.position) == hex;
+    }
+
+    private Coroutine _fleeCoroutine;
+
+    /// <summary>
+    /// Cho thú chạy nhanh/lánh sang ô Biome an toàn (dùng khi người chơi ướm hoặc đặt Building lên ô thú đang đứng).
+    /// </summary>
+    public void FleeToSafeHex(HexCoordinates safeHex, GameObject safeTileObj, bool isUrgent)
+    {
+        if (safeTileObj == null) return;
+        InterruptWandering();
+        currentHex = safeHex;
+
+        if (_fleeCoroutine != null)
+        {
+            StopCoroutine(_fleeCoroutine);
+        }
+        _fleeCoroutine = StartCoroutine(FleeToSafeHexCoroutine(safeTileObj, isUrgent));
+    }
+
+    private System.Collections.IEnumerator FleeToSafeHexCoroutine(GameObject safeTileObj, bool isUrgent)
+    {
+        Vector3 targetPos = safeTileObj.transform.position;
+        float speed = Mathf.Max(0.4f, runSpeed) * (isUrgent ? 1.85f : 1.15f);
+        float timeout = 1.6f;
+        float elapsed = 0f;
+
+        while (elapsed < timeout && safeTileObj != null)
+        {
+            elapsed += Time.deltaTime;
+            Vector3 currentPos = transform.position;
+            Vector3 flatDelta = new Vector3(targetPos.x - currentPos.x, 0f, targetPos.z - currentPos.z);
+            float dist = flatDelta.magnitude;
+            if (dist <= 0.18f) break;
+
+            Vector3 dir = flatDelta / dist;
+            Vector3 nextPos = currentPos + dir * (speed * Time.deltaTime);
+            nextPos.y = currentPos.y;
+            transform.position = nextPos;
+
+            if (dir.sqrMagnitude > 0.0001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotationSpeed * 2.5f * Time.deltaTime);
+            }
+
+            UpdateElevationAndBanking(nextPos, dir);
+            yield return null;
+        }
+
+        _fleeCoroutine = null;
+    }
+
     /// <summary>
     /// Cập nhật tốc độ di chuyển từ AnimalIndividual (hệ thống phẩm cấp / tính cách)
     /// </summary>

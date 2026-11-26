@@ -184,7 +184,22 @@ namespace LumiWorld.Acs
 
         private List<ProductionSlotRate> ApplyDisasterProductivity(HabitatState habitat, List<ProductionSlotRate> rates)
         {
-            if (rates == null || habitat == null || habitat.members == null || worldGenerator == null ||
+            if (rates == null || habitat == null) return rates;
+
+            // 1. Khóa hoàn toàn sản xuất nếu habitat đang bị đàn thú hoang chiếm giữ
+            var wildMgr = FindAnyObjectByType<WildPackIncidentManager>();
+            if (wildMgr != null && wildMgr.IsHabitatDisrupted(habitat.habitatId))
+            {
+                foreach (ProductionSlotRate rate in rates)
+                {
+                    if (rate == null) continue;
+                    rate.unitsPerMinute = 0;
+                    rate.reason = "Occupied by a wild pack!";
+                }
+                return rates;
+            }
+
+            if (habitat.members == null || worldGenerator == null ||
                 !DisasterRuntimeManager.TryGetActive(out var disasterManager)) return rates;
 
             float multiplier = 1f;
@@ -210,20 +225,31 @@ namespace LumiWorld.Acs
 
         private string BuildDisasterFingerprint()
         {
-            if (habitatManager == null || worldGenerator == null ||
-                !DisasterRuntimeManager.TryGetActive(out var disasterManager)) return string.Empty;
+            if (habitatManager == null) return string.Empty;
+
+            var wildMgr = FindAnyObjectByType<WildPackIncidentManager>();
+            DisasterRuntimeManager disasterManager = null;
+            bool hasDisasterMgr = worldGenerator != null && DisasterRuntimeManager.TryGetActive(out disasterManager);
+            if (wildMgr == null && !hasDisasterMgr) return string.Empty;
 
             var fingerprint = new StringBuilder();
             foreach (HabitatState habitat in habitatManager.Habitats)
             {
                 if (habitat == null || habitat.members == null) continue;
                 fingerprint.Append(habitat.habitatId).Append(':');
-                foreach (HabitatHexMember member in habitat.members)
+                if (wildMgr != null && wildMgr.IsHabitatDisrupted(habitat.habitatId))
                 {
-                    if (member == null || !worldGenerator.MapTiles.TryGetValue(member.hex, out GameObject tile) || tile == null)
-                        continue;
-                    fingerprint.Append(member.hex.Q).Append(',').Append(member.hex.R).Append('=')
-                        .Append(Mathf.RoundToInt(disasterManager.GetHarvestMultiplier(tile) * 1000f)).Append(';');
+                    fingerprint.Append("W=1;");
+                }
+                if (hasDisasterMgr)
+                {
+                    foreach (HabitatHexMember member in habitat.members)
+                    {
+                        if (member == null || !worldGenerator.MapTiles.TryGetValue(member.hex, out GameObject tile) || tile == null)
+                            continue;
+                        fingerprint.Append(member.hex.Q).Append(',').Append(member.hex.R).Append('=')
+                            .Append(Mathf.RoundToInt(disasterManager.GetHarvestMultiplier(tile) * 1000f)).Append(';');
+                    }
                 }
             }
             return fingerprint.ToString();

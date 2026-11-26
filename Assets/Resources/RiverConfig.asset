@@ -17,10 +17,11 @@ MonoBehaviour:
   pondBasinPrefab: {fileID: 5025072383023463357, guid: edf820c5a3e5f44479c3c3eda2f00c82, type: 3}
   waterfallPrefab: {fileID: 6544724034833951127, guid: c8b2a2b6c76975e4287064e70b36f722, type: 3}
   modelScale: {x: 1, y: 1, z: 1}
-  straightScale: {x: 0.32, y: 0.3, z: 0.25}
-  springHeadScale: {x: 0.68, y: 0.68, z: 0.68}
-  pondBasinScale: {x: 1, y: 1, z: 1}
-  waterfallScale: {x: 0.68, y: 0.68, z: 1}
+  straightScale: {x: 0.27, y: 0.2, z: 0.18}
+  curve60Scale: {x: 0.25, y: 0.18, z: 0.16}
+  springHeadScale: {x: 0.52, y: 0.52, z: 0.52}
+  pondBasinScale: {x: 0.8, y: 0.78, z: 0.8}
+  waterfallScale: {x: 0.48, y: 0.52, z: 0.9}
   yElevationOffset: 0.038
   straightRotationOffset: 0
   springHeadRotationOffset: 180
@@ -32,12 +33,12 @@ MonoBehaviour:
   upperWaterfallScale: {x: 1, y: 1, z: 1}
   doubleWaterfallHeightThreshold: 1.2
   waterfallInwardOffset: 0.04
-  waterfallBottomOffset: 0.38
+  waterfallBottomOffset: 0.32
   doubleWaterfallInwardOffset: 0.04
   springHeadOffset: {x: 0, y: 0.1, z: 0}
   pondOffset: {x: 0, y: 0.07, z: 0.17}
   pondTextureOffset: {x: 0, y: 0}
-  straightYOffset: 0.056
+  straightYOffset: 0.04
   springHeadMouthDistance: 0.2
   pondInletDistance: 0.48
   globalRotationOffset: 0
