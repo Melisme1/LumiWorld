@@ -195,7 +195,7 @@ namespace LumiWorld.Acs
 
         private void Select(HabitatState habitat)
         {
-            if (habitat == null) return;
+            if (habitat == null || !habitat.IsFormedBiome) return;
             selectedHabitatId = habitat.habitatId;
             selectedAnchor = habitat.members.Count > 0 ? habitat.members[0].placementId : null;
             dirty = true;
@@ -209,7 +209,7 @@ namespace LumiWorld.Acs
             if (manager == null) return false;
             foreach (var habitat in manager.Habitats)
             {
-                if (habitat != null && habitat.affinity == affinity)
+                if (habitat != null && habitat.IsFormedBiome && habitat.affinity == affinity)
                 {
                     Select(habitat);
                     return true;
@@ -220,7 +220,9 @@ namespace LumiWorld.Acs
 
         private void Cycle(int direction)
         {
-            var list = new List<HabitatState>(manager.Habitats);
+            var list = new List<HabitatState>();
+            foreach (var h in manager.Habitats)
+                if (h != null && h.IsFormedBiome) list.Add(h);
             if (list.Count == 0) return;
             list.Sort((a, b) => string.CompareOrdinal(a.habitatId, b.habitatId));
             int index = list.FindIndex(h => h.habitatId == selectedHabitatId);
@@ -237,11 +239,14 @@ namespace LumiWorld.Acs
                 HabitatDiamondBadgeManager.Instance?.DeselectHabitat();
                 return;
             }
-            if (selectedHabitatId == null && manager.Habitats.Count > 0) Select(manager.Habitats[0]);
+            var hab = FindHabitat(selectedHabitatId);
+            if (hab != null && hab.IsFormedBiome) Select(hab);
             else
             {
-                var hab = FindHabitat(selectedHabitatId);
-                if (hab != null) Select(hab);
+                foreach (var h in manager.Habitats)
+                {
+                    if (h != null && h.IsFormedBiome) { Select(h); break; }
+                }
             }
             dirty = true;
         }
@@ -270,21 +275,13 @@ namespace LumiWorld.Acs
             Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (var hit in hits)
             {
-                var identity = hit.collider.GetComponentInParent<HabitatPlacementIdentity>();
-                var tile = hit.collider.GetComponentInParent<HexTileInfo>();
+                if (BiomeSurface.TryResolveClickedHabitat(hit, manager, out var habitat, out bool hitBlockingSurface))
+                {
+                    Select(habitat);
+                    return;
+                }
 
-                if (identity == null && tile != null && !HexMetrics.IsTopSurfaceHit(hit))
-                    break;
-
-                foreach (var habitat in manager.Habitats)
-                    if (identity != null && (habitat.members.Exists(m => m.placementId == identity.PlacementId) || habitat.residents.Exists(r => r.individualId == identity.PlacementId)) ||
-                        tile != null && habitat.ContainsHex(tile.coordinates))
-                    {
-                        Select(habitat);
-                        return;
-                    }
-
-                if (tile != null) break;
+                if (hitBlockingSurface) break;
             }
         }
 

@@ -33,9 +33,10 @@ public static class AnimalSectorNavigator
         List<AnimalMovementAI> activeAnimals,
         List<AnimalMovementAI.TileObstacle> tempNearbyObstacles,
         HexWorldGenerator worldGen,
-        Func<HexCoordinates, bool> canMoveToHex)
+        Func<HexCoordinates, bool> canMoveToHex,
+        Func<Vector3, bool> isPointTraversable = null)
     {
-        float maxSearchRange = (targetHex != currentHex) ? 1.75f : maxWanderRadius;
+        float maxSearchRange = (targetHex != currentHex) ? 2.60f : Mathf.Max(maxWanderRadius, 0.85f);
 
         // Lấy danh sách vật cản trong bán kính lân cận
         AnimalObstacleScanner.GetNearbyObstacles(worldGen, currentPos, 1.8f, tempNearbyObstacles);
@@ -94,13 +95,19 @@ public static class AnimalSectorNavigator
                 }
             }
 
-            // 2. Kiểm tra biên giới Habitat hợp lệ và mép an toàn ô
-            float stepSize = 0.12f;
+            // 2. Kiểm tra biên giới Habitat hợp lệ, địa hình đi được (né lòng hồ sâu cho thú đi cạn) và mép an toàn ô
+            float stepSize = 0.14f;
             for (float d = stepSize; d <= clearDist; d += stepSize)
             {
                 Vector3 samplePos = currentPos + dir * d;
                 HexCoordinates sampleHex = HexMetrics.WorldToHex(samplePos);
                 if (!canMoveToHex(sampleHex))
+                {
+                    clearDist = Mathf.Max(0f, d - stepSize);
+                    break;
+                }
+
+                if (isPointTraversable != null && !isPointTraversable(samplePos))
                 {
                     clearDist = Mathf.Max(0f, d - stepSize);
                     break;
@@ -226,7 +233,8 @@ public static class AnimalSectorNavigator
         HexCoordinates currentHex,
         float safeHexRadius,
         Func<HexCoordinates, bool> canMoveToHex,
-        out bool isBlockedDirectly)
+        out bool isBlockedDirectly,
+        Func<Vector3, bool> isPointTraversable = null)
     {
         isBlockedDirectly = false;
         Vector3 avoidance = Vector3.zero;
@@ -340,6 +348,24 @@ public static class AnimalSectorNavigator
                 Vector3 toCenterDir = -fromCenter.normalized;
                 float boundaryFactor = Mathf.Clamp01((distFromCenter - boundaryThreshold) / (safeHexRadius - boundaryThreshold));
                 avoidance += toCenterDir * (boundaryFactor * 2.0f);
+            }
+        }
+
+        // 4. NÉ BỜ HỒ SÂU (Shoreline Steering cho thú đi cạn / né bờ cạn cho thú thuần bơi)
+        if (isPointTraversable != null && (locomotionType != AnimalLocomotionType.Flying || !isAirborne))
+        {
+            Vector3 probeAhead = currentPos + forwardDir * 0.34f;
+            if (!isPointTraversable(probeAhead))
+            {
+                Vector3 rightDir = Vector3.Cross(Vector3.up, forwardDir).normalized;
+                bool rightOpen = isPointTraversable(currentPos + (forwardDir * 0.5f + rightDir * 0.86f).normalized * 0.38f);
+                bool leftOpen = isPointTraversable(currentPos + (forwardDir * 0.5f - rightDir * 0.86f).normalized * 0.38f);
+                if (rightOpen && !leftOpen) avoidance += rightDir * 2.2f;
+                else if (leftOpen && !rightOpen) avoidance += -rightDir * 2.2f;
+                else if (rightOpen && leftOpen)
+                    avoidance += ((currentAnimal != null && currentAnimal.GetHashCode() % 2 == 0) ? rightDir : -rightDir) * 1.8f;
+                else
+                    avoidance += -forwardDir * 1.8f;
             }
         }
 

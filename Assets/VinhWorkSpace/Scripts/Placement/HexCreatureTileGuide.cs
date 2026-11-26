@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LumiWorld.Acs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -201,31 +202,58 @@ public class HexCreatureTileGuide : MonoBehaviour
         isGuideActive = true;
         guideCanvasObj.SetActive(true);
 
-        // Gom tất cả các ô Biome (loại trừ ô Building/Settlement) thành từng cụm
+        // Gom tất cả các cụm Biome ĐÃ FORM (3/6/10 hex) thành từng cụm riêng biệt (đồng bộ cả Starter & Wet Island)
         Dictionary<string, List<(HexCoordinates coords, GameObject tileObj)>> clusters =
             new Dictionary<string, List<(HexCoordinates, GameObject)>>();
         List<string> clusterOrder = new List<string>();
 
-        foreach (var pair in worldGen.MapTiles)
+        if (HabitatRuntimeManager.TryGetActive(out var habitatMgr) && habitatMgr.Habitats != null)
         {
-            HexCoordinates coords = pair.Key;
-            GameObject tileObj = pair.Value;
-            if (tileObj == null || tileObj.GetComponent<SettlementTile>() != null) continue;
-
-            CardData terrainCard = validator != null ? validator.GetPlacedTerrainCard(tileObj) : null;
-            if (terrainCard == null) continue;
-
-            PlacedCard habitatCard = HexBiomeClusterConnector.GetHabitatCardOnTile(tileObj);
-            int cId = habitatCard != null ? habitatCard.clusterId : 0;
-            string key = cId > 0 ? $"{terrainCard.cardID}:{cId}" : $"{terrainCard.cardID}:0";
-
-            if (!clusters.TryGetValue(key, out var list))
+            habitatMgr.RefreshNow();
+            foreach (var habitat in habitatMgr.Habitats)
             {
-                list = new List<(HexCoordinates, GameObject)>();
-                clusters[key] = list;
-                clusterOrder.Add(key);
+                if (habitat == null || !habitat.IsFormedBiome || habitat.members == null || habitat.members.Count == 0)
+                    continue;
+
+                var list = new List<(HexCoordinates, GameObject)>();
+                foreach (var member in habitat.members)
+                {
+                    if (member == null) continue;
+                    if (!worldGen.MapTiles.TryGetValue(member.hex, out GameObject tileObj) || tileObj == null) continue;
+                    if (tileObj.GetComponent<SettlementTile>() != null) continue;
+                    list.Add((member.hex, tileObj));
+                }
+
+                if (list.Count > 0)
+                {
+                    clusters[habitat.habitatId] = list;
+                    clusterOrder.Add(habitat.habitatId);
+                }
             }
-            list.Add((coords, tileObj));
+        }
+        else
+        {
+            foreach (var pair in worldGen.MapTiles)
+            {
+                HexCoordinates coords = pair.Key;
+                GameObject tileObj = pair.Value;
+                if (tileObj == null || tileObj.GetComponent<SettlementTile>() != null) continue;
+
+                CardData terrainCard = validator != null ? validator.GetPlacedTerrainCard(tileObj) : null;
+                if (terrainCard == null) continue;
+
+                PlacedCard habitatCard = HexBiomeClusterConnector.GetHabitatCardOnTile(tileObj);
+                int cId = habitatCard != null ? habitatCard.clusterId : 0;
+                string key = cId > 0 ? $"{terrainCard.cardID}:{cId}" : $"{terrainCard.cardID}:0";
+
+                if (!clusters.TryGetValue(key, out var list))
+                {
+                    list = new List<(HexCoordinates, GameObject)>();
+                    clusters[key] = list;
+                    clusterOrder.Add(key);
+                }
+                list.Add((coords, tileObj));
+            }
         }
 
         for (int c = 0; c < clusterOrder.Count; c++)
@@ -318,8 +346,9 @@ public class HexCreatureTileGuide : MonoBehaviour
             HexCoordinates hex = clusterTiles[i].coords;
             GameObject tileObj = clusterTiles[i].tileObj;
             Vector3 center = tileObj.transform.position;
+            var surface = tileObj.GetComponent<HexTileInfo>()?.biomeSurface;
             var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
-            float y = topY + 0.046f;
+            float baseY = topY + 0.055f;
 
             for (int dir = 0; dir < 6; dir++)
             {
@@ -332,11 +361,28 @@ public class HexCreatureTileGuide : MonoBehaviour
                 Vector3 d0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0));
                 Vector3 d1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1));
 
+                Vector3 pInner0 = new Vector3(center.x + d0.x * rInner, baseY, center.z + d0.z * rInner);
+                Vector3 pOuter0 = new Vector3(center.x + d0.x * rOuter, baseY, center.z + d0.z * rOuter);
+                Vector3 pOuter1 = new Vector3(center.x + d1.x * rOuter, baseY, center.z + d1.z * rOuter);
+                Vector3 pInner1 = new Vector3(center.x + d1.x * rInner, baseY, center.z + d1.z * rInner);
+
+                if (surface != null)
+                {
+                    float y0 = baseY;
+                    float y1 = baseY;
+                    if (surface.TryGetHeight(pOuter0, out float hOut0)) y0 = Mathf.Max(y0, hOut0 + 0.055f);
+                    if (surface.TryGetHeight(pInner0, out float hIn0)) y0 = Mathf.Max(y0, hIn0 + 0.055f);
+                    if (surface.TryGetHeight(pOuter1, out float hOut1)) y1 = Mathf.Max(y1, hOut1 + 0.055f);
+                    if (surface.TryGetHeight(pInner1, out float hIn1)) y1 = Mathf.Max(y1, hIn1 + 0.055f);
+                    pInner0.y = pOuter0.y = y0;
+                    pInner1.y = pOuter1.y = y1;
+                }
+
                 int baseIdx = vertices.Count;
-                vertices.Add(new Vector3(center.x + d0.x * rInner, y, center.z + d0.z * rInner));
-                vertices.Add(new Vector3(center.x + d0.x * rOuter, y, center.z + d0.z * rOuter));
-                vertices.Add(new Vector3(center.x + d1.x * rOuter, y, center.z + d1.z * rOuter));
-                vertices.Add(new Vector3(center.x + d1.x * rInner, y, center.z + d1.z * rInner));
+                vertices.Add(pInner0);
+                vertices.Add(pOuter0);
+                vertices.Add(pOuter1);
+                vertices.Add(pInner1);
 
                 colors.Add(borderColor);
                 colors.Add(borderColor);
@@ -453,12 +499,25 @@ public class HexCreatureTileGuide : MonoBehaviour
     /// </summary>
     private void CreateTileGuideVisual(HexCoordinates coords, GameObject tileObj, bool isOccupied, string label, AnimalVisualEnhancer animal, bool showOverheadPin = true)
     {
-        // 1. Xác định bề mặt thực tế chuẩn xác của ô cỏ (không bị dôi bởi props)
+        // 1. Xác định bề mặt thực tế chuẩn xác của ô cỏ (bao gồm bờ viền Wet BiomeSurface để không bị chìm dưới lòng hồ)
         float surfaceY = HexMetrics.TileHeight;
         if (tileObj != null)
         {
             var (topY, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(tileObj);
             surfaceY = topY;
+            var surface = tileObj.GetComponent<HexTileInfo>()?.biomeSurface;
+            if (surface != null)
+            {
+                Vector3 cPos = tileObj.transform.position;
+                float sampleR = HexMetrics.OuterRadius * 0.80f;
+                for (int d = 0; d < 6; d++)
+                {
+                    float rad = Mathf.Deg2Rad * (60f * d + 30f);
+                    Vector3 samplePt = new Vector3(cPos.x + Mathf.Cos(rad) * sampleR, cPos.y, cPos.z + Mathf.Sin(rad) * sampleR);
+                    if (surface.TryGetHeight(samplePt, out float rimY))
+                        surfaceY = Mathf.Max(surfaceY, rimY);
+                }
+            }
         }
 
         Vector3 centerWorldPos = tileObj != null

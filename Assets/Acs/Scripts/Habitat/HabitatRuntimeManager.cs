@@ -251,7 +251,7 @@ namespace LumiWorld.Acs
             { reason = $"This creature cannot live in {habitat.affinity} biomes."; return false; }
             var homeHabitat = FindHabitatByHex(homeHex);
             if (homeHabitat == null) { RefreshFromWorld(false); homeHabitat = FindHabitatByHex(homeHex); }
-            if (homeHabitat != null)
+            if (homeHabitat != null && homeHabitat.IsFormedBiome)
             {
                 int maxAllowed = homeHabitat.CreatureCapacity;
                 if (homeHabitat.residents.Count >= maxAllowed)
@@ -263,7 +263,9 @@ namespace LumiWorld.Acs
             }
             else
             {
-                reason = "Connect at least 3 matching biome tiles to house a creature.";
+                reason = habitat.island == HabitatIsland.Wet
+                    ? "Form a 3, 6, or 10-hex biome triangle first to house a creature."
+                    : "Connect at least 3 matching biome tiles to house a creature.";
                 return false;
             }
             reason = string.Empty;

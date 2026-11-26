@@ -208,13 +208,13 @@ MonoBehaviour:
   fadedCanopyAlpha: 0.35
   fadeSpeed: 5
   canopyCheckRadius: 1.8
-  enableOverheadCrest: 1
+  enableOverheadCrest: 0
   crestHeightOffset: 0.35
   crestScale: 0.1
   crestColor: {r: 1.6, g: 1.3, b: 0.5, a: 0.9}
   crestBobSpeed: 2.8
   crestBobAmplitude: 0.04
-  enableRimGlow: 1
+  enableRimGlow: 0
   rimColor: {r: 1, g: 0.92, b: 0.7, a: 1}
   rimPower: 2.2
   rimIntensity: 0.5

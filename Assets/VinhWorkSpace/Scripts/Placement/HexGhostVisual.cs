@@ -238,9 +238,9 @@ public class HexGhostVisual : MonoBehaviour
         else
         {
             shell.transform.localPosition = new Vector3(0f, previewHeightOffset, 0f);
-            shell.transform.localRotation = targetTileObj.transform.localRotation;
+            shell.transform.rotation = targetTileObj.transform.rotation;
         }
-        shell.transform.localScale = previewScale;
+        shell.transform.localScale = Vector3.Scale(previewScale, targetTileObj.transform.lossyScale);
 
         GameObject meshSource = targetTileObj;
         bool isTransformedPrefab = false;
@@ -261,38 +261,12 @@ public class HexGhostVisual : MonoBehaviour
             }
         }
 
-        MeshFilter[] sourceFilters = meshSource.GetComponentsInChildren<MeshFilter>();
-        foreach (var srcMf in sourceFilters)
-        {
-            if (srcMf == null || srcMf.sharedMesh == null) continue;
-            if (!isTransformedPrefab && IsPartOfPlacedProp(srcMf.transform, targetTileObj.transform)) continue;
-
-            GameObject part = new GameObject(srcMf.name);
-            part.transform.SetParent(shell.transform, false);
-
-            if (isTransformedPrefab)
-            {
-                part.transform.localPosition = srcMf.transform.localPosition;
-                part.transform.localRotation = srcMf.transform.localRotation;
-                part.transform.localScale = srcMf.transform.localScale;
-            }
-            else
-            {
-                part.transform.localPosition = targetTileObj.transform.InverseTransformPoint(srcMf.transform.position);
-                part.transform.localRotation = Quaternion.Inverse(targetTileObj.transform.rotation) * srcMf.transform.rotation;
-                part.transform.localScale = (srcMf.gameObject == targetTileObj) ? Vector3.one : srcMf.transform.localScale;
-            }
-
-            MeshFilter mf = part.AddComponent<MeshFilter>();
-            mf.sharedMesh = srcMf.sharedMesh;
-
-            MeshRenderer mr = part.AddComponent<MeshRenderer>();
-            if (ghostMaterial != null)
-            {
-                mr.sharedMaterial = ghostMaterial;
-            }
-            onRendererCreated?.Invoke(mr);
-        }
+        HexHighlightShellUtility.PopulateMeshHierarchy(
+            meshSource.transform,
+            shell.transform,
+            ghostMaterial,
+            skipPlacedProps: !isTransformedPrefab,
+            onRendererCreated);
 
         return shell;
     }
@@ -490,20 +464,6 @@ public class HexGhostVisual : MonoBehaviour
         {
             r.sharedMaterial = ghostMaterial;
         }
-    }
-
-    private bool IsPartOfPlacedProp(Transform t, Transform tileTransform)
-    {
-        Transform curr = t;
-        while (curr != null && curr != tileTransform)
-        {
-            if (curr.GetComponent<PlacedCard>() != null || curr.name.StartsWith("Habitat_"))
-            {
-                return true;
-            }
-            curr = curr.parent;
-        }
-        return false;
     }
 
     private IEnumerator AnimateSnapPunch()

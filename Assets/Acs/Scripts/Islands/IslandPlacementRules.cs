@@ -7,6 +7,19 @@ namespace LumiWorld.Acs.Islands
         private static bool terraforming;
         public static bool IsWetNature(CardData card) => card != null && card.cardType == CardType.Terrain && card.islandId == "wet";
 
+        public static bool CanCardBelongToIsland(CardData card, string islandId)
+        {
+            if (card == null) return false;
+            string target = string.IsNullOrEmpty(islandId) ? "starter" : islandId;
+            if (card.IsSharedRainCard())
+            {
+                var catalog = IslandRuntimeManager.Instance != null ? IslandRuntimeManager.Instance.Catalog : null;
+                return catalog == null || catalog.AllowsRain(target);
+            }
+            string owner = string.IsNullOrEmpty(card.islandId) ? "starter" : card.islandId;
+            return string.Equals(owner, target, System.StringComparison.OrdinalIgnoreCase);
+        }
+
         public static bool IsEmptyWetTerraformableTile(CardData card, HexCoordinates hex, GameObject tile, out int elevationLevel, out string reason)
         {
             elevationLevel = -1;
@@ -86,8 +99,13 @@ namespace LumiWorld.Acs.Islands
             var islands = IslandRuntimeManager.Instance;
             if (card == null || islands == null) return true;
             string region = islands.IslandAt(hex);
-            if (region == null || !islands.IsUnlocked(region) || region != (string.IsNullOrEmpty(card.islandId) ? "starter" : card.islandId))
-            { reason = "Use this card on its own unlocked island."; return false; }
+            if (region == null || !islands.IsUnlocked(region))
+            { reason = "Use this card on an unlocked island."; return false; }
+            if (!CanCardBelongToIsland(card, region))
+            {
+                reason = card.IsSharedRainCard() ? "Rain cannot be used on this island." : "Use this card on its own unlocked island.";
+                return false;
+            }
             var info = tile.GetComponent<HexTileInfo>();
             if (card.IsTerraformTool() && card.elevationChange != 0)
             {

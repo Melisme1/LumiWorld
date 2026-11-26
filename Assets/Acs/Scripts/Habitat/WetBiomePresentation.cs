@@ -36,9 +36,24 @@ namespace LumiWorld.Acs
         {
             if (changed) { changed = false; RefreshVisuals(); candidates = habitats.GetFormationCandidates(); }
             if (habitats == null || WorldLaunch.IsVisit || IslandRuntimeManager.Instance?.ActiveIslandId != "wet" ||
-                GameDialogUI.IsAnyOpen || EconomyHUD.IsWindowOpen || HexCameraController.Instance?.IsCardDragging == true ||
+                HexCameraController.Instance?.IsCardDragging == true ||
                 (HexSinglePlacementController.Instance != null && HexSinglePlacementController.Instance.IsPreviewing)) return;
-            var candidate = candidates.FirstOrDefault(c => !dismissed.Contains(c.Key));
+
+            // Auto-form / auto-upgrade 10-hex and 6-hex equilateral triangles immediately (priority 10 > 6 > 3).
+            var autoCandidate = candidates.FirstOrDefault(c => c.MemberIds.Count >= 6 && !dismissed.Contains(c.Key));
+            if (autoCandidate != null)
+            {
+                if (!habitats.ConfirmFormation(autoCandidate.Key))
+                {
+                    dismissed.Add(autoCandidate.Key);
+                }
+                return;
+            }
+
+            if (GameDialogUI.IsAnyOpen || EconomyHUD.IsWindowOpen) return;
+
+            // Show confirm popup only for 3-hex triangle formation.
+            var candidate = candidates.FirstOrDefault(c => c.MemberIds.Count == 3 && !dismissed.Contains(c.Key));
             if (candidate != null) ShowCandidate(candidate);
         }
 
@@ -76,10 +91,12 @@ namespace LumiWorld.Acs
                     visual.name = $"Biome_{habitat.affinity}_{habitat.HexCount}_{habitat.habitatId}";
                     var home = world.MapTiles[habitat.members[0].hex];
                     var (top, _, _) = HexBiomeClusterConnector.GetTileHeightLevels(home);
-                    visual.AddComponent<BiomeSurface>().Configure(top - home.transform.position.y - 1f);
+                    visual.AddComponent<BiomeSurface>().Configure(top - home.transform.position.y - 1f, habitat.habitatId);
                     visuals.Add(key, visual);
                     StartCoroutine(Reveal(visual.transform));
                 }
+                var surfaceComp = visuals[key].GetComponent<BiomeSurface>();
+                if (surfaceComp != null) surfaceComp.SetHabitatId(habitat.habitatId);
                 foreach (var member in habitat.members)
                     if (world.MapTiles.TryGetValue(member.hex, out var tile) && tile != null)
                     {

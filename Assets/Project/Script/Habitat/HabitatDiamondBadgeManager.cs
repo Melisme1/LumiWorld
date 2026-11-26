@@ -94,56 +94,35 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
 
         bool clickedHabitatTile = false;
 
+        if (habitatManager == null) HabitatRuntimeManager.TryGetActive(out habitatManager);
+
         foreach (var hit in hits)
         {
-            var identity = hit.collider.GetComponentInParent<HabitatPlacementIdentity>();
-            var tile = hit.collider.GetComponentInParent<HexTileInfo>();
-
-            // Chỉ chấp nhận khi chuột trỏ trên bề mặt trên cùng của ô lục giác (không nhận khi bấm vào sườn vách/cạnh bên)
-            if (identity == null && tile != null && !HexMetrics.IsTopSurfaceHit(hit))
+            if (BiomeSurface.TryResolveClickedHabitat(hit, habitatManager, out var habitat, out bool hitBlockingSurface))
             {
-                // Chạm vào cạnh bên / vách đứng của ô -> không tính là chọn bề mặt và dừng kiểm tra để không xuyên thấu
-                break;
-            }
+                float now = Time.unscaledTime;
+                bool isDoubleClick =
+                    string.Equals(_lastClickedHabitatId, habitat.habitatId, StringComparison.Ordinal) &&
+                    (now - _lastHabitatClickTime) <= doubleClickMaxInterval;
 
-            if (habitatManager == null) HabitatRuntimeManager.TryGetActive(out habitatManager);
-            if (habitatManager != null && habitatManager.Habitats != null)
-            {
-                foreach (var habitat in habitatManager.Habitats)
+                if (isDoubleClick)
                 {
-                    if (habitat == null) continue;
-
-                    bool match = (identity != null && (habitat.members.Exists(m => m.placementId == identity.PlacementId) ||
-                                                       habitat.residents.Exists(r => r.individualId == identity.PlacementId))) ||
-                                 (tile != null && habitat.ContainsHex(tile.coordinates));
-
-                    if (match)
-                    {
-                        float now = Time.unscaledTime;
-                        bool isDoubleClick =
-                            string.Equals(_lastClickedHabitatId, habitat.habitatId, StringComparison.Ordinal) &&
-                            (now - _lastHabitatClickTime) <= doubleClickMaxInterval;
-
-                        if (isDoubleClick)
-                        {
-                            _lastClickedHabitatId = null;
-                            _lastHabitatClickTime = -10f;
-                            SelectHabitat(habitat.habitatId);
-                        }
-                        else
-                        {
-                            _lastClickedHabitatId = habitat.habitatId;
-                            _lastHabitatClickTime = now;
-                        }
-
-                        clickedHabitatTile = true;
-                        return;
-                    }
+                    _lastClickedHabitatId = null;
+                    _lastHabitatClickTime = -10f;
+                    SelectHabitat(habitat.habitatId);
                 }
+                else
+                {
+                    _lastClickedHabitatId = habitat.habitatId;
+                    _lastHabitatClickTime = now;
+                }
+
+                clickedHabitatTile = true;
+                return;
             }
 
-            // Đã chạm bề mặt của một ô lục giác (nhưng không thuộc Habitat nào) -> dừng kiểm tra không xuyên qua ô phía sau
-            if (tile != null)
+            // Đã chạm bề mặt của một ô lục giác hoặc sườn vách -> dừng kiểm tra không xuyên qua ô phía sau
+            if (hitBlockingSurface)
             {
                 break;
             }
@@ -193,10 +172,12 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
     /// </summary>
     public void SelectHabitat(string habitatId)
     {
-        selectedHabitatId = habitatId;
         if (habitatManager == null) HabitatRuntimeManager.TryGetActive(out habitatManager);
         var habitat = habitatManager != null ? habitatManager.FindHabitat(habitatId) : null;
-        if (habitat != null && HabitatCreaturePanelUI.Instance != null)
+        if (habitat == null || !habitat.IsFormedBiome) return;
+
+        selectedHabitatId = habitatId;
+        if (HabitatCreaturePanelUI.Instance != null)
         {
             HabitatCreaturePanelUI.Instance.OpenForHabitat(habitat);
         }
@@ -275,7 +256,7 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
         {
             foreach (var habitat in currentHabitats)
             {
-                if (habitat == null || string.IsNullOrEmpty(habitat.habitatId)) continue;
+                if (habitat == null || !habitat.IsFormedBiome || string.IsNullOrEmpty(habitat.habitatId)) continue;
                 currentIds.Add(habitat.habitatId);
 
                 if (activeBadges.TryGetValue(habitat.habitatId, out var existingBadge))

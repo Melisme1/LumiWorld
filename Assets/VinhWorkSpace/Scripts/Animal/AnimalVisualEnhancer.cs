@@ -33,7 +33,7 @@ public class AnimalVisualEnhancer : MonoBehaviour
 
     [Header("2. Chấm ngọc bồng bềnh trên đầu (Overhead Crest)")]
     [Tooltip("Bật chấm ngọc phát quang lơ lửng trên đỉnh đầu con thú để dễ dàng định vị từ trên cao")]
-    [SerializeField] private bool enableOverheadCrest = true;
+    [SerializeField] private bool enableOverheadCrest = false;
 
     [Tooltip("Độ cao nâng thêm phía trên đỉnh đầu/sừng con thú (mét). Tự động cộng dồn với chiều cao thực tế của model.")]
     [SerializeField] private float crestHeightOffset = 0.35f;
@@ -54,7 +54,7 @@ public class AnimalVisualEnhancer : MonoBehaviour
 
     [Header("3. Viền sáng tôn dáng (Glow Rim Silhouette)")]
     [Tooltip("Bật viền sáng quanh lưng, sừng và bờ vai giúp thú nổi bật rõ rệt qua tán lá")]
-    [SerializeField] private bool enableRimGlow = true;
+    [SerializeField] private bool enableRimGlow = false;
 
     [Tooltip("Màu viền sáng (Nên chọn màu vàng nắng ấm hoặc trắng ngà)")]
     [ColorUsage(true, true)]
@@ -211,31 +211,36 @@ public class AnimalVisualEnhancer : MonoBehaviour
 
         // Tạo Material phát sáng Unlit HDR (sáng rực rỡ với Bloom của game)
         Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (unlitShader == null) unlitShader = Shader.Find("Unlit/Color");
+        if (unlitShader == null) unlitShader = Shader.Find("Sprites/Default");
+        if (unlitShader == null) unlitShader = Shader.Find("Universal Render Pipeline/Lit");
+
         if (unlitShader == null)
         {
-            unlitShader = Shader.Find("Unlit/Color");
+            Destroy(crestObj);
+            crestObj = null;
+            return;
         }
 
-        if (unlitShader != null)
+        crestMaterialInstance = new Material(unlitShader);
+        crestMaterialInstance.name = "Runtime_Crest_Material";
+        if (crestMaterialInstance.HasProperty("_BaseColor"))
         {
-            crestMaterialInstance = new Material(unlitShader);
-            crestMaterialInstance.name = "Runtime_Crest_Material";
-            if (crestMaterialInstance.HasProperty("_BaseColor"))
-            {
-                crestMaterialInstance.SetColor("_BaseColor", crestColor);
-            }
-            if (crestMaterialInstance.HasProperty("_Color"))
-            {
-                crestMaterialInstance.SetColor("_Color", crestColor);
-            }
+            crestMaterialInstance.SetColor("_BaseColor", crestColor);
+        }
+        if (crestMaterialInstance.HasProperty("_Color"))
+        {
+            crestMaterialInstance.SetColor("_Color", crestColor);
+        }
 
-            Renderer crestRend = crestObj.GetComponent<Renderer>();
-            if (crestRend != null)
-            {
-                crestRend.material = crestMaterialInstance;
-                crestRend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                crestRend.receiveShadows = false;
-            }
+        Renderer crestRend = crestObj.GetComponent<Renderer>();
+        if (crestRend != null)
+        {
+            crestRend.sharedMaterial = crestMaterialInstance;
+            crestRend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            crestRend.receiveShadows = false;
+            crestRend.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            crestRend.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         }
     }
 

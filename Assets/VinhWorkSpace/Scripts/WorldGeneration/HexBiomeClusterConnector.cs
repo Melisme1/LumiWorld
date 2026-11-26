@@ -908,7 +908,15 @@ public class HexBiomeClusterConnector : MonoBehaviour
     /// </summary>
     public static bool IsPlanarUVTile(GameObject tileObj, Material mat)
     {
-        if (mat != null && mat.mainTexture != null && mat.mainTexture.width > 256) return true;
+        if (mat != null)
+        {
+            Texture tex = null;
+            if (mat.HasProperty("_MainTex")) tex = mat.GetTexture("_MainTex");
+            else if (mat.HasProperty("_BaseMap")) tex = mat.GetTexture("_BaseMap");
+            else if (mat.HasProperty("_TopTex")) tex = mat.GetTexture("_TopTex");
+            else if (mat.HasProperty("_TopAlbedo")) tex = mat.GetTexture("_TopAlbedo");
+            if (tex != null && tex.width > 256) return true;
+        }
         if (tileObj != null)
         {
             string n = tileObj.name;
