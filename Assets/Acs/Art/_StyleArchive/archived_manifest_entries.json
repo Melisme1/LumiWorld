@@ -1,0 +1,1472 @@
+[
+  {
+    "category": "Fern",
+    "modelName": "Amazon_GroundFern_08",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/Amazon_GroundFern_08.obj",
+    "materialName": "M_Amazon_GrassAtlas",
+    "albedoTex": "T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Fern",
+    "modelName": "SetTropic_CompoundFern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/SetTropic_CompoundFern_01.obj",
+    "materialName": "M_SetTropic_CompoundFern",
+    "albedoTex": "T_SetTropic_CompoundFern_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_CompoundFern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Fern",
+    "modelName": "SetTropic_PinnateFern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/SetTropic_PinnateFern_01.obj",
+    "materialName": "M_SetTropic_PinnateFern",
+    "albedoTex": "T_SetTropic_PinnateFern_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_PinnateFern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Fern",
+    "modelName": "SetTropic_SwordFern_01",
+    "modelRelPath": "Assets/Acs/Art/Fern/Models/SetTropic_SwordFern_01.obj",
+    "materialName": "M_SetTropic_SwordFern",
+    "albedoTex": "T_SetTropic_SwordFern_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_SwordFern_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Stone",
+    "modelName": "CliffRock_Mossy_03",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/CliffRock_Mossy_03.obj",
+    "materialName": "M_GameArt_CliffRock",
+    "albedoTex": "T_GameArt_ModulsRocks_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "CliffRock_Mossy_04",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/CliffRock_Mossy_04.obj",
+    "materialName": "M_GameArt_CliffRock",
+    "albedoTex": "T_GameArt_ModulsRocks_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "CliffRock_NoMoss_01",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/CliffRock_NoMoss_01.obj",
+    "materialName": "M_GameArt_CliffRock",
+    "albedoTex": "T_GameArt_ModulsRocks_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "CliffRock_NoMoss_02",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/CliffRock_NoMoss_02.obj",
+    "materialName": "M_GameArt_CliffRock",
+    "albedoTex": "T_GameArt_ModulsRocks_Albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Game art environment props - pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_001",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_001.obj",
+    "materialName": "M_RiverRock_001",
+    "albedoTex": "rock001_LOD1_albedo.png",
+    "normalTex": "rock001_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_002",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_002.obj",
+    "materialName": "M_RiverRock_002",
+    "albedoTex": "rock002_LOD1_albedo.png",
+    "normalTex": "rock002_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_003",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_003.obj",
+    "materialName": "M_RiverRock_003",
+    "albedoTex": "rock003_LOD1_albedo.png",
+    "normalTex": "rock003_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_004",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_004.obj",
+    "materialName": "M_RiverRock_004",
+    "albedoTex": "rock004_LOD1_albedo.png",
+    "normalTex": "rock004_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_005",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_005.obj",
+    "materialName": "M_RiverRock_005",
+    "albedoTex": "rock005_LOD1_albedo.png",
+    "normalTex": "rock005_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_006",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_006.obj",
+    "materialName": "M_RiverRock_006",
+    "albedoTex": "rock006_LOD1_albedo.png",
+    "normalTex": "rock006_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_007",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_007.obj",
+    "materialName": "M_RiverRock_007",
+    "albedoTex": "rock007_LOD1_albedo.png",
+    "normalTex": "rock007_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_008",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_008.obj",
+    "materialName": "M_RiverRock_008",
+    "albedoTex": "rock008_LOD1_albedo.png",
+    "normalTex": "rock008_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_009",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_009.obj",
+    "materialName": "M_RiverRock_009",
+    "albedoTex": "rock009_LOD1_albedo.png",
+    "normalTex": "rock009_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_010",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_010.obj",
+    "materialName": "M_RiverRock_010",
+    "albedoTex": "rock010_LOD1_albedo.png",
+    "normalTex": "rock010_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_011",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_011.obj",
+    "materialName": "M_RiverRock_011",
+    "albedoTex": "rock011_LOD1_albedo.png",
+    "normalTex": "rock011_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_012",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_012.obj",
+    "materialName": "M_RiverRock_012",
+    "albedoTex": "rock012_LOD1_albedo.png",
+    "normalTex": "rock012_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_013",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_013.obj",
+    "materialName": "M_RiverRock_013",
+    "albedoTex": "rock013_LOD1_albedo.png",
+    "normalTex": "rock013_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_014",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_014.obj",
+    "materialName": "M_RiverRock_014",
+    "albedoTex": "rock014_LOD1_albedo.png",
+    "normalTex": "rock014_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_015",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_015.obj",
+    "materialName": "M_RiverRock_015",
+    "albedoTex": "rock015_LOD1_albedo.png",
+    "normalTex": "rock015_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_016",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_016.obj",
+    "materialName": "M_RiverRock_016",
+    "albedoTex": "rock016_LOD1_albedo.png",
+    "normalTex": "rock016_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_017",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_017.obj",
+    "materialName": "M_RiverRock_017",
+    "albedoTex": "rock017_LOD1_albedo.png",
+    "normalTex": "rock017_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_018",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_018.obj",
+    "materialName": "M_RiverRock_018",
+    "albedoTex": "rock018_LOD1_albedo.png",
+    "normalTex": "rock018_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_019",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_019.obj",
+    "materialName": "M_RiverRock_019",
+    "albedoTex": "rock019_LOD1_albedo.png",
+    "normalTex": "rock019_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_020",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_020.obj",
+    "materialName": "M_RiverRock_020",
+    "albedoTex": "rock020_LOD1_albedo.png",
+    "normalTex": "rock020_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P1_021",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P1_021.obj",
+    "materialName": "M_RiverRock_021",
+    "albedoTex": "rock021_LOD1_albedo.png",
+    "normalTex": "rock021_LOD1_normal.png",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 1"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_022",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_022.obj",
+    "materialName": "M_RiverRock_022",
+    "albedoTex": "rock022_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_025",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_025.obj",
+    "materialName": "M_RiverRock_025",
+    "albedoTex": "rock025_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_026",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_026.obj",
+    "materialName": "M_RiverRock_026",
+    "albedoTex": "rock026_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_034",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_034.obj",
+    "materialName": "M_RiverRock_034",
+    "albedoTex": "rock034_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_035",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_035.obj",
+    "materialName": "M_RiverRock_035",
+    "albedoTex": "rock035_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_038",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_038.obj",
+    "materialName": "M_RiverRock_038",
+    "albedoTex": "rock038_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_039",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_039.obj",
+    "materialName": "M_RiverRock_039",
+    "albedoTex": "rock039_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P2_042",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P2_042.obj",
+    "materialName": "M_RiverRock_042",
+    "albedoTex": "rock042_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 2"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_044",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_044.obj",
+    "materialName": "M_RiverRock_044",
+    "albedoTex": "rock044_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_045",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_045.obj",
+    "materialName": "M_RiverRock_045",
+    "albedoTex": "rock045_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_046",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_046.obj",
+    "materialName": "M_RiverRock_046",
+    "albedoTex": "rock046_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_047",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_047.obj",
+    "materialName": "M_RiverRock_047",
+    "albedoTex": "rock047_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_051",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_051.obj",
+    "materialName": "M_RiverRock_051",
+    "albedoTex": "rock051_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_052",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_052.obj",
+    "materialName": "M_RiverRock_052",
+    "albedoTex": "rock052_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_053",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_053.obj",
+    "materialName": "M_RiverRock_053",
+    "albedoTex": "rock053_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_055",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_055.obj",
+    "materialName": "M_RiverRock_055",
+    "albedoTex": "rock055_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_057",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_057.obj",
+    "materialName": "M_RiverRock_057",
+    "albedoTex": "rock057_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_058",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_058.obj",
+    "materialName": "M_RiverRock_058",
+    "albedoTex": "rock058_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_059",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_059.obj",
+    "materialName": "M_RiverRock_059",
+    "albedoTex": "rock059_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_060",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_060.obj",
+    "materialName": "M_RiverRock_060",
+    "albedoTex": "rock060_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_061",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_061.obj",
+    "materialName": "M_RiverRock_061",
+    "albedoTex": "rock061_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_063",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_063.obj",
+    "materialName": "M_RiverRock_063",
+    "albedoTex": "rock063_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_064",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_064.obj",
+    "materialName": "M_RiverRock_064",
+    "albedoTex": "rock064_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P3_067",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P3_067.obj",
+    "materialName": "M_RiverRock_067",
+    "albedoTex": "rock067_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 3"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P4_070",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P4_070.obj",
+    "materialName": "M_RiverRock_070",
+    "albedoTex": "rock070_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 4"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P4_072",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P4_072.obj",
+    "materialName": "M_RiverRock_072",
+    "albedoTex": "rock072_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 4"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P4_080",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P4_080.obj",
+    "materialName": "M_RiverRock_080",
+    "albedoTex": "rock080_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 4"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P4_086",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P4_086.obj",
+    "materialName": "M_RiverRock_086",
+    "albedoTex": "rock086_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 4"
+  },
+  {
+    "category": "Stone",
+    "modelName": "RiverRock_P4_090",
+    "modelRelPath": "Assets/Acs/Art/Stone/Models/RiverRock_P4_090.obj",
+    "materialName": "M_RiverRock_090",
+    "albedoTex": "rock090_LOD1_albedo.png",
+    "normalTex": "",
+    "alphaClip": false,
+    "sourcePack": "Rocks - Pack 4"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_CeibaHeroTree_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_CeibaHeroTree_01.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_CeibaHeroTree_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_CeibaHeroTree_02.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_CeibaHeroTree_03",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_CeibaHeroTree_03.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_CeibaHeroTree_04",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_CeibaHeroTree_04.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_CeibaHeroTree_05",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_CeibaHeroTree_05.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_GroundFern_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_GroundFern_01.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_GroundFern_04",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_GroundFern_04.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_MangroveStiltTree_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_MangroveStiltTree_01.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_MangroveStiltTree_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_MangroveStiltTree_02.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_MangroveStiltTree_03",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_MangroveStiltTree_03.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_MangroveStiltTree_04",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_MangroveStiltTree_04.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_MangroveStiltTree_05",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_MangroveStiltTree_05.obj",
+    "materialName": "M_Amazon_CeibaBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_CeibaBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_CeibaBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_RainforestPalm_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_RainforestPalm_01.obj",
+    "materialName": "M_Amazon_PalmBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_PalmBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_PalmBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_RainforestPalm_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_RainforestPalm_02.obj",
+    "materialName": "M_Amazon_PalmBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_PalmBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_PalmBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_RainforestPalm_03",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_RainforestPalm_03.obj",
+    "materialName": "M_Amazon_PalmBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_PalmBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_PalmBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_RainforestPalm_04",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_RainforestPalm_04.obj",
+    "materialName": "M_Amazon_PalmBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_PalmBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_PalmBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_RainforestPalm_05",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_RainforestPalm_05.obj",
+    "materialName": "M_Amazon_PalmBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_PalmBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_PalmBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "Amazon_RainforestPalm_06",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/Amazon_RainforestPalm_06.obj",
+    "materialName": "M_Amazon_PalmBark|Tropical/Materials/M_Amazon_IslandPlants",
+    "albedoTex": "T_Amazon_PalmBark_Albedo.png|Tropical/Textures/T_Amazon_IslandPlants_AlbedoAlpha.png",
+    "normalTex": "T_Amazon_PalmBark_Normal.png|Tropical/Textures/T_Amazon_IslandPlants_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "SetTropic_FanPalm_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/SetTropic_FanPalm_01.obj",
+    "materialName": "Tropical/Materials/M_SetTropic_StemBark|M_SetTropic_FanPalm",
+    "albedoTex": "Tropical/Textures/T_SetTropic_StemBark_Albedo.png|T_SetTropic_FanPalm_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_SetTropic_StemBark_Normal.png|Tropical/Textures/T_SetTropic_FanPalm_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropVeg01_ScheffleraTree_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropVeg01_ScheffleraTree_01.obj",
+    "materialName": "M_TropVeg01_TreeBark|M_TropVeg01_Schefflera",
+    "albedoTex": "T_TropVeg01_TreeBark_Albedo.png|T_TropVeg01_Schefflera_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropVeg01_TreeBark_Normal.png|Tropical/Textures/T_TropVeg01_Schefflera_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropVeg01_ScheffleraTree_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropVeg01_ScheffleraTree_02.obj",
+    "materialName": "M_TropVeg01_TreeBark|M_TropVeg01_Schefflera",
+    "albedoTex": "T_TropVeg01_TreeBark_Albedo.png|T_TropVeg01_Schefflera_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropVeg01_TreeBark_Normal.png|Tropical/Textures/T_TropVeg01_Schefflera_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_FanPalm_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_FanPalm_01.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack01",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack01_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_FanPalm_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_FanPalm_02.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack01",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack01_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_FanPalm_03",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_FanPalm_03.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack01",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack01_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_FanPalm_04",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_FanPalm_04.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack01",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack01_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_PinnatePalm_01",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_PinnatePalm_01.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack02",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_PinnatePalm_02",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_PinnatePalm_02.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack02",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_PinnatePalm_03",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_PinnatePalm_03.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack02",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tree",
+    "modelName": "TropicalPack_PinnatePalm_04",
+    "modelRelPath": "Assets/Acs/Art/Tree/Models/TropicalPack_PinnatePalm_04.obj",
+    "materialName": "Tropical/Materials/M_TropicalPack01_Bark|Tropical/Materials/M_TropicalPack02",
+    "albedoTex": "Tropical/Textures/T_TropicalPack01_AlbedoAlpha.png|Tropical/Textures/T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "Tropical/Textures/T_TropicalPack01_Normal.png|Tropical/Textures/T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Amazon_GroundFern_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Amazon_GroundFern_02.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Amazon_GroundFern_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Amazon_GroundFern_03.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Amazon_GroundFern_05",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Amazon_GroundFern_05.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Amazon_GroundFern_06",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Amazon_GroundFern_06.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Amazon_GroundFern_07",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Amazon_GroundFern_07.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Amazon_GroundFern_09",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Amazon_GroundFern_09.obj",
+    "materialName": "Fern/Materials/M_Amazon_GrassAtlas",
+    "albedoTex": "Fern/Textures/T_Amazon_GrassAtlas_AlbedoAlpha.png",
+    "normalTex": "Fern/Textures/T_Amazon_GrassAtlas_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Amazon Tropical Rainforest Jungle foliage pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_CrotonBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_CrotonBush_01.obj",
+    "materialName": "M_SetTropic_CrotonBush",
+    "albedoTex": "T_SetTropic_CrotonBush_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_CrotonBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_MintSprout_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_MintSprout_01.obj",
+    "materialName": "M_SetTropic_MintSprout",
+    "albedoTex": "T_SetTropic_MintSprout_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_MintSprout_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_Monstera_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_Monstera_01.obj",
+    "materialName": "M_SetTropic_StemBark|M_SetTropic_Monstera",
+    "albedoTex": "T_SetTropic_StemBark_Albedo.png|T_SetTropic_Monstera_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_StemBark_Normal.png|T_SetTropic_Monstera_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_OakLeafBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_OakLeafBush_01.obj",
+    "materialName": "M_SetTropic_OakLeafBush",
+    "albedoTex": "T_SetTropic_OakLeafBush_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_OakLeafBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_PurpleBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_PurpleBush_01.obj",
+    "materialName": "M_SetTropic_StemBark|M_SetTropic_PurpleBush",
+    "albedoTex": "T_SetTropic_StemBark_Albedo.png|T_SetTropic_PurpleBush_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_StemBark_Normal.png|T_SetTropic_PurpleBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_TaroBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_TaroBush_01.obj",
+    "materialName": "M_SetTropic_TaroBush",
+    "albedoTex": "T_SetTropic_TaroBush_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_TaroBush_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_VariegatedBranch_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_VariegatedBranch_01.obj",
+    "materialName": "M_SetTropic_StemBark|M_SetTropic_Variegated",
+    "albedoTex": "T_SetTropic_StemBark_Albedo.png|T_SetTropic_Variegated_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_StemBark_Normal.png|T_SetTropic_Variegated_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "SetTropic_VariegatedSprout_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/SetTropic_VariegatedSprout_01.obj",
+    "materialName": "M_SetTropic_Variegated",
+    "albedoTex": "T_SetTropic_Variegated_AlbedoAlpha.png",
+    "normalTex": "T_SetTropic_Variegated_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Set of plant tropic"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_AnthuriumBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_AnthuriumBush_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Anthurium",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Anthurium_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Anthurium_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_AnthuriumBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_AnthuriumBush_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Anthurium",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Anthurium_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Anthurium_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_AnthuriumBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_AnthuriumBush_03.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Anthurium",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Anthurium_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Anthurium_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_BroadHeartBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_BroadHeartBush_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_BroadHeart",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_BroadHeart_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_BroadHeart_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_BroadHeartBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_BroadHeartBush_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_BroadHeart",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_BroadHeart_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_BroadHeart_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_BroadHeartBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_BroadHeartBush_03.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_BroadHeart",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_BroadHeart_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_BroadHeart_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_CalatheaBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_CalatheaBush_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Calathea",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Calathea_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Calathea_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_CalatheaBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_CalatheaBush_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Calathea",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Calathea_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Calathea_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_CalatheaBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_CalatheaBush_03.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Calathea",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Calathea_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Calathea_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_CrotonBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_CrotonBush_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Croton",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Croton_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Croton_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_CrotonBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_CrotonBush_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Croton",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Croton_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Croton_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_CrotonBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_CrotonBush_03.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Croton",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Croton_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Croton_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_GreenShrub_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_GreenShrub_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_OvalGreen",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_OvalGreen_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_OvalGreen_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_GreenShrub_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_GreenShrub_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_OvalGreen",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_OvalGreen_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_OvalGreen_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_GreenShrub_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_GreenShrub_03.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_OvalGreen",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_OvalGreen_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_OvalGreen_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_HeartLeafBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_HeartLeafBush_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_HeartLeaf",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_HeartLeaf_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_HeartLeaf_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_HeartLeafBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_HeartLeafBush_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_HeartLeaf",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_HeartLeaf_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_HeartLeaf_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_HeartLeafBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_HeartLeafBush_03.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_HeartLeaf",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_HeartLeaf_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_HeartLeaf_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_OvalGreenLarge_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_OvalGreenLarge_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_OvalGreen",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_OvalGreen_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_OvalGreen_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_OvalGreenLarge_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_OvalGreenLarge_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_OvalGreen",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_OvalGreen_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_OvalGreen_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_RedColeusBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_RedColeusBush_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_RedColeus",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_RedColeus_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_RedColeus_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_RedColeusBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_RedColeusBush_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_RedColeus",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_RedColeus_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_RedColeus_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_RibbedBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_RibbedBush_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Ribbed",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Ribbed_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Ribbed_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_RibbedBush_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_RibbedBush_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Ribbed",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Ribbed_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Ribbed_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_RibbedBush_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_RibbedBush_03.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Ribbed",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Ribbed_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Ribbed_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_SpeckledSprout_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_SpeckledSprout_01.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Speckled",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Speckled_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Speckled_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_SpeckledSprout_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_SpeckledSprout_02.obj",
+    "materialName": "M_TropVeg01_StemBark01|M_TropVeg01_Speckled",
+    "albedoTex": "T_TropVeg01_StemBark01_Albedo.png|T_TropVeg01_Speckled_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark01_Normal.png|T_TropVeg01_Speckled_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_SplitPhilodendron_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_SplitPhilodendron_01.obj",
+    "materialName": "M_TropVeg01_StemBark02|M_TropVeg01_Philo01|M_TropVeg01_Philo04",
+    "albedoTex": "T_TropVeg01_StemBark02_Albedo.png|T_TropVeg01_Philo01_AlbedoAlpha.png|T_TropVeg01_Philo04_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark02_Normal.png|T_TropVeg01_Philo01_Normal.png|T_TropVeg01_Philo04_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_SplitPhilodendron_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_SplitPhilodendron_02.obj",
+    "materialName": "M_TropVeg01_StemBark02|M_TropVeg01_Philo01|M_TropVeg01_Philo04",
+    "albedoTex": "T_TropVeg01_StemBark02_Albedo.png|T_TropVeg01_Philo01_AlbedoAlpha.png|T_TropVeg01_Philo04_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark02_Normal.png|T_TropVeg01_Philo01_Normal.png|T_TropVeg01_Philo04_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropVeg01_SplitPhilodendron_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropVeg01_SplitPhilodendron_03.obj",
+    "materialName": "M_TropVeg01_StemBark02|M_TropVeg01_Philo01|M_TropVeg01_Philo04",
+    "albedoTex": "T_TropVeg01_StemBark02_Albedo.png|T_TropVeg01_Philo01_AlbedoAlpha.png|T_TropVeg01_Philo04_AlbedoAlpha.png",
+    "normalTex": "T_TropVeg01_StemBark02_Normal.png|T_TropVeg01_Philo01_Normal.png|T_TropVeg01_Philo04_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Vegetation Pack 01"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Alocasia_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Alocasia_01.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Alocasia_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Alocasia_02.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Alocasia_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Alocasia_03.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Alocasia_04",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Alocasia_04.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Anthurium_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Anthurium_01.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Anthurium_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Anthurium_02.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Anthurium_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Anthurium_03.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Anthurium_04",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Anthurium_04.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Monstera_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Monstera_01.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Monstera_02",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Monstera_02.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Monstera_03",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Monstera_03.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "TropicalPack_Monstera_04",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/TropicalPack_Monstera_04.obj",
+    "materialName": "M_TropicalPack01_Bark|M_TropicalPack02",
+    "albedoTex": "T_TropicalPack01_AlbedoAlpha.png|T_TropicalPack02_AlbedoAlpha.png",
+    "normalTex": "T_TropicalPack01_Normal.png|T_TropicalPack02_Normal.png",
+    "alphaClip": true,
+    "sourcePack": "Tropical Plants Pack"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Wetland_SedgeArch_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Wetland_SedgeArch_01.obj",
+    "materialName": "M_Wetland_SedgeArch_01",
+    "albedoTex": "T_Wetland_SedgeArch_01_Albedo.png",
+    "normalTex": "T_Wetland_SedgeArch_01_Normal.png",
+    "alphaClip": false,
+    "sourcePack": "Wetisland-newpack (Meshy)"
+  },
+  {
+    "category": "Grass",
+    "modelName": "Wetland_ShoreGrassWeep_01",
+    "modelRelPath": "Assets/Acs/Art/Grass/Models/Wetland_ShoreGrassWeep_01.obj",
+    "materialName": "M_Wetland_ShoreGrassWeep_01",
+    "albedoTex": "T_Wetland_ShoreGrassWeep_01_Albedo.png",
+    "normalTex": "T_Wetland_ShoreGrassWeep_01_Normal.png",
+    "alphaClip": false,
+    "sourcePack": "Wetisland-newpack (Meshy)"
+  },
+  {
+    "category": "Tropical",
+    "modelName": "Wetland_RoundLeafBush_01",
+    "modelRelPath": "Assets/Acs/Art/Tropical/Models/Wetland_RoundLeafBush_01.obj",
+    "materialName": "M_Wetland_RoundLeafBush_01",
+    "albedoTex": "T_Wetland_RoundLeafBush_01_Albedo.png",
+    "normalTex": "T_Wetland_RoundLeafBush_01_Normal.png",
+    "alphaClip": false,
+    "sourcePack": "Wetisland-newpack (Meshy)"
+  },
+  {
+    "category": "Flower",
+    "modelName": "Wetland_WaterIris_01",
+    "modelRelPath": "Assets/Acs/Art/Flower/Models/Wetland_WaterIris_01.obj",
+    "materialName": "M_Wetland_WaterIris_01",
+    "albedoTex": "T_Wetland_WaterIris_01_Albedo.png",
+    "normalTex": "T_Wetland_WaterIris_01_Normal.png",
+    "alphaClip": false,
+    "sourcePack": "Wetisland-newpack (Meshy)"
+  }
+]

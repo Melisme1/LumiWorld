@@ -510,6 +510,26 @@ public class AnimalMovementAI : MonoBehaviour
     {
         if (anim == null) return;
 
+        // Smoothly CrossFade into hover/idle clip instead of hard-zeroing move weights (avoids 1-frame snap pop, especially for flying birds transitioning Glide -> Flap).
+        if (locomotionType == AnimalLocomotionType.Flying && isAirborne)
+        {
+            string hoverClip = AnimalAnimationClassifier.GetFlightClip(moveClips, preferHover: true);
+            if (!string.IsNullOrEmpty(hoverClip) && anim.GetClip(hoverClip) != null)
+            {
+                anim.CrossFade(hoverClip, 0.30f);
+                return;
+            }
+        }
+        else
+        {
+            string idleClip = AnimalAnimationClassifier.GetGroundIdleClip(idleClips, moveClips);
+            if (!string.IsNullOrEmpty(idleClip) && anim.GetClip(idleClip) != null)
+            {
+                anim.CrossFade(idleClip, 0.28f);
+                return;
+            }
+        }
+
         if (!string.IsNullOrEmpty(activeMoveClip) && anim[activeMoveClip] != null)
         {
             anim[activeMoveClip].weight = 0f;

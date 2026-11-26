@@ -66,7 +66,6 @@ public class MarketUI : MonoBehaviour
     private RectTransform _modalRoot;
     private GameObject _backdropGo;
     private RectTransform _windowRect;
-    private TextMeshProUGUI _coinValueText;
 
     // Top nav tabs
     private readonly Image[] _topTabBg = new Image[3];
@@ -230,17 +229,9 @@ public class MarketUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EconomyHUD.UnregisterWindow(_backdropGo);
         if (Instance == this)
             Instance = null;
-    }
-
-    private void Update()
-    {
-        if (!IsOpen)
-            return;
-
-        if (Input.GetKeyDown(KeyCode.Escape))
-            Close();
     }
 
     private void HideLegacyMarketButton()
@@ -261,16 +252,20 @@ public class MarketUI : MonoBehaviour
     {
         BuildModalIfNeeded();
         if (_backdropGo != null)
+        {
             _backdropGo.SetActive(true);
+            EconomyHUD.RegisterWindow(_backdropGo, Close);
+            EconomyHUD.BringWindowToFront(_backdropGo);
+        }
 
         IsOpen = true;
         ApplyScale();
-        RefreshCoinChip();
         SwitchTab(_activeTab);
     }
 
     public void Close()
     {
+        if (IsOpen) EconomyHUD.MarkWindowClosed();
         IsOpen = false;
         if (_backdropGo != null)
             _backdropGo.SetActive(false);
@@ -287,7 +282,6 @@ public class MarketUI : MonoBehaviour
         if (!IsOpen)
             return;
 
-        RefreshCoinChip();
         if (_activeTab == MarketTab.Buy)
             RefreshBuyDetail();
     }
@@ -309,13 +303,6 @@ public class MarketUI : MonoBehaviour
         RectTransform canvasRt = _canvas.GetComponent<RectTransform>();
         float fit = LumiWorldUITheme.ComputeFitScale(canvasRt, out _);
         _windowRect.localScale = new Vector3(fit, fit, 1f);
-    }
-
-    private void RefreshCoinChip()
-    {
-        int coins = CurrencyWallet.HasInstance ? CurrencyWallet.Instance.Balance : 0;
-        if (_coinValueText != null)
-            _coinValueText.text = coins.ToString("N0", CultureInfo.InvariantCulture);
     }
 
     private void BuildModalIfNeeded()
@@ -386,9 +373,6 @@ public class MarketUI : MonoBehaviour
             LumiWorldUITheme.PlaceTopLeft(btn.GetComponent<RectTransform>(), tabX, tabY, tabWidths[i], 42f);
             tabX += tabWidths[i] + 10f;
         }
-
-        Sprite coinSprite = EconomyHUD.CoinSprite;
-        LumiWorldUITheme.CreateCoinChip(_windowRect, 70f, 20f, out _coinValueText, coinSprite, 132f, 34f);
 
         Button closeBtn = LumiWorldUITheme.CreateCloseButton(_windowRect, 22f, 20f, Close, 34f);
         closeBtn.transform.SetAsLastSibling();
@@ -1042,7 +1026,6 @@ public class MarketUI : MonoBehaviour
             _buyFeedback = string.IsNullOrEmpty(msg)
                 ? (ok ? "Purchased listing!" : "Purchase failed.")
                 : msg;
-            RefreshCoinChip();
             if (ok)
                 FetchBrowseListings();
             else
@@ -1404,7 +1387,6 @@ public class MarketUI : MonoBehaviour
                 ? (ok ? "Listing created!" : "Could not create listing.")
                 : msg;
 
-            RefreshCoinChip();
             RefreshSellCatalog(false);
             if (ok)
                 FetchMyListings(false);

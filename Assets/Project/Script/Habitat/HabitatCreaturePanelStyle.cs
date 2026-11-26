@@ -71,9 +71,15 @@ public static class HabitatCreaturePanelStyle
         { "fox", ("Fernkin", "Fernkin", "cao_anm") },
         { "cao", ("Fernkin", "Fernkin", "cao_anm") },
 
-        { "reedle", ("Reedle", "Reedle", "thiennga_anm") },
-        { "craggle", ("Craggle", "Craggle", "canoc_anm") },
-        { "lotelle", ("Lotelle", "Lotelle", "echduoica_anm") }
+        { "reedle", ("Reedle", "Reedle", "echduoica_anm") },
+        { "mudskipper", ("Reedle", "Reedle", "echduoica_anm") },
+        { "echduoica", ("Reedle", "Reedle", "echduoica_anm") },
+        { "mossycrab", ("Craggle", "Craggle", "mossycrab_anm") },
+        { "cuareu", ("Craggle", "Craggle", "mossycrab_anm") },
+        { "craggle", ("Craggle", "Craggle", "mossycrab_anm") },
+        { "lotelle", ("Lotelle", "Lotelle", "thiennga_anm") },
+        { "lotusswan", ("Lotelle", "Lotelle", "thiennga_anm") },
+        { "thiennga", ("Lotelle", "Lotelle", "thiennga_anm") }
     };
 
     public static void ClearCache()

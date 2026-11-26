@@ -38,6 +38,10 @@ public class OrderTemplate : ScriptableObject
     [Tooltip("Đơn cơ bản: dùng cho ô đơn luôn có sẵn (ô đầu tiên, không bỏ được). Nên là đơn một loại, số lượng vừa phải.")]
     public bool isBaseline;
 
+    [Tooltip("Điểm Harmony tối thiểu để mẫu đơn này bắt đầu xuất hiện (0 = mở ngay từ đầu).")]
+    [Min(0)]
+    public int minScoreRequired = 0;
+
     private void OnValidate()
     {
         if (requirements == null) return;

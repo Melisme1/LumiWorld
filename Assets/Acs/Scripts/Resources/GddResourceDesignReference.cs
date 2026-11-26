@@ -37,7 +37,16 @@ namespace LumiWorld.Acs
             new SpeciesSpec("petaluff", "caterpillar", BiomeAffinity.Bloomfield, BiomeAffinity.Leafwood),
             new SpeciesSpec("dandrift", "flowerdog", BiomeAffinity.Bloomfield, BiomeAffinity.Windheath),
             new SpeciesSpec("galume", "peacock", BiomeAffinity.Windheath, BiomeAffinity.Bloomfield),
-            new SpeciesSpec("heathorn", "highlandcow", BiomeAffinity.Windheath, BiomeAffinity.Bloomfield)
+            new SpeciesSpec("heathorn", "highlandcow", BiomeAffinity.Windheath, BiomeAffinity.Bloomfield),
+            new SpeciesSpec("reedle", "mudskipper", BiomeAffinity.Reedmarsh, BiomeAffinity.Streamstone),
+            new SpeciesSpec("craggle", "mossycrab", BiomeAffinity.Reedmarsh, BiomeAffinity.Streamstone),
+            new SpeciesSpec("lotelle", "lotusswan", BiomeAffinity.Lilywater, BiomeAffinity.Reedmarsh),
+            new SpeciesSpec("iriwing", "dragonfly", BiomeAffinity.Lilywater, BiomeAffinity.Streamstone),
+            new SpeciesSpec("rivlet", "otter", BiomeAffinity.Streamstone, BiomeAffinity.Lilywater),
+            new SpeciesSpec("pebbara", "capybara", BiomeAffinity.Streamstone, BiomeAffinity.Reedmarsh),
+            new SpeciesSpec("fernkin", "grassfox", BiomeAffinity.Rainleaf, BiomeAffinity.Streamstone),
+            new SpeciesSpec("puddleaf", "blossomfrog", BiomeAffinity.Rainleaf, BiomeAffinity.Reedmarsh),
+            new SpeciesSpec("heliko", "parrot", BiomeAffinity.Rainleaf, BiomeAffinity.Streamstone)
         };
 
         internal static readonly ResourceSpec[] Resources =
@@ -57,7 +66,29 @@ namespace LumiWorld.Acs
             new ResourceSpec("windheath", "rosemary", BiomeAffinity.Windheath, ResourceTier.Tier2, "galume", "dandrift"),
             new ResourceSpec("windheath", "juniper_berries", BiomeAffinity.Windheath, ResourceTier.Tier2, "heathorn", "spriglide,bramblet"),
             new ResourceSpec("windheath", "flax_stalks", BiomeAffinity.Windheath, ResourceTier.Tier2, "galume,heathorn", "dandrift"),
-            new ResourceSpec("windheath", "mountain_blueberries", BiomeAffinity.Windheath, ResourceTier.Tier2, "heathorn", "dandrift,spriglide")
+            new ResourceSpec("windheath", "mountain_blueberries", BiomeAffinity.Windheath, ResourceTier.Tier2, "heathorn", "dandrift,spriglide"),
+            new ResourceSpec("reedmarsh", "reed_stalks", BiomeAffinity.Reedmarsh, ResourceTier.Tier1, "reedle", ""),
+            new ResourceSpec("reedmarsh", "wet_clay", BiomeAffinity.Reedmarsh, ResourceTier.Tier1, "craggle", ""),
+            new ResourceSpec("lilywater", "lotus_leaves", BiomeAffinity.Lilywater, ResourceTier.Tier1, "lotelle", ""),
+            new ResourceSpec("lilywater", "water_mint", BiomeAffinity.Lilywater, ResourceTier.Tier1, "iriwing", ""),
+            new ResourceSpec("streamstone", "stream_waterweed", BiomeAffinity.Streamstone, ResourceTier.Tier1, "rivlet", ""),
+            new ResourceSpec("streamstone", "river_stones", BiomeAffinity.Streamstone, ResourceTier.Tier1, "pebbara", ""),
+            new ResourceSpec("rainleaf", "fern_fronds", BiomeAffinity.Rainleaf, ResourceTier.Tier1, "fernkin", ""),
+            new ResourceSpec("rainleaf", "pitcher_dew", BiomeAffinity.Rainleaf, ResourceTier.Tier1, "puddleaf", ""),
+            new ResourceSpec("rainleaf", "hibiscus_blooms", BiomeAffinity.Rainleaf, ResourceTier.Tier1, "heliko", ""),
+            new ResourceSpec("rainleaf", "tropical_fruit", BiomeAffinity.Rainleaf, ResourceTier.Tier2, "fernkin,heliko", ""),
+            new ResourceSpec("rainleaf", "resin", BiomeAffinity.Rainleaf, ResourceTier.Tier2, "fernkin,puddleaf", ""),
+            new ResourceSpec("rainleaf", "cacao_pods", BiomeAffinity.Rainleaf, ResourceTier.Tier2, "fernkin,puddleaf,heliko", ""),
+            new ResourceSpec("lilywater", "water_lettuce", BiomeAffinity.Lilywater, ResourceTier.Tier2, "lotelle", "rivlet"),
+            new ResourceSpec("lilywater", "water_caltrops", BiomeAffinity.Lilywater, ResourceTier.Tier2, "lotelle,iriwing", "rivlet"),
+            new ResourceSpec("lilywater", "cattail", BiomeAffinity.Lilywater, ResourceTier.Tier2, "iriwing", "rivlet"),
+            new ResourceSpec("streamstone", "sugarcane_stalks", BiomeAffinity.Streamstone, ResourceTier.Tier2, "rivlet", "iriwing,heliko"),
+            new ResourceSpec("streamstone", "rattan_canes", BiomeAffinity.Streamstone, ResourceTier.Tier2, "rivlet", "fernkin,heliko"),
+            new ResourceSpec("streamstone", "limestone", BiomeAffinity.Streamstone, ResourceTier.Tier2, "pebbara", "craggle"),
+            new ResourceSpec("streamstone", "driftwood", BiomeAffinity.Streamstone, ResourceTier.Tier2, "pebbara", "reedle,fernkin"),
+            new ResourceSpec("reedmarsh", "reed_plumes", BiomeAffinity.Reedmarsh, ResourceTier.Tier2, "reedle", "pebbara"),
+            new ResourceSpec("reedmarsh", "water_chestnuts", BiomeAffinity.Reedmarsh, ResourceTier.Tier2, "craggle", "lotelle,puddleaf"),
+            new ResourceSpec("streamstone", "spring_water", BiomeAffinity.Streamstone, ResourceTier.Tier2, "rivlet,pebbara", "")
         };
     }
 }

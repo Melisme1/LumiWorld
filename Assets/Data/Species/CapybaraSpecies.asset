@@ -13,11 +13,12 @@ MonoBehaviour:
   m_Name: CapybaraSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: capybara
-  speciesName: "Capybara"
-  description: "Bộ trưởng ngoại giao giới động vật với vẻ mặt vô cùng thư thái, đội đóa hoa sen trên đầu và luôn lan tỏa sự bình yên."
+  speciesName: Pebbara
+  description: A tranquil lily-crowned capybara that strolls calmly beside wet streams
+    and curls into a cozy loaf to rest.
   locomotionType: 0
-  baseWalkSpeed: 0.42
-  baseRunSpeed: 0.85
+  baseWalkSpeed: 0.4
+  baseRunSpeed: 0.8
   flightAltitude: 1.2
   personalRadius: 0.4
   yOffset: 0
@@ -28,10 +29,4 @@ MonoBehaviour:
   weight3Star: 16
   weight4Star: 7
   weight5Star: 2
-  traitPool:
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
+  traitPool: 000000000100000002000000030000000400000005000000

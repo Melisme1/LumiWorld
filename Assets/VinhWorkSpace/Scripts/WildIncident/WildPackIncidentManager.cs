@@ -306,6 +306,7 @@ public class WildPackIncidentManager : MonoBehaviour
         var result = new List<IncidentClusterTarget>();
 
         HexWorldGenerator worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        var islandRuntime = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
 
         // 1. Kiểm tra HabitatRuntimeManager (Hệ thống GDD Acs chính quy trong scene)
         if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitatManager))
@@ -315,6 +316,13 @@ public class WildPackIncidentManager : MonoBehaviour
                 foreach (var habitat in habitatManager.Habitats)
                 {
                     if (habitat == null) continue;
+                    // Chỉ áp dụng Wild Pack trên Starter Island
+                    if (habitat.island != LumiWorld.Acs.HabitatIsland.Starter) continue;
+                    if (islandRuntime != null && habitat.members != null && habitat.members.Count > 0 &&
+                        !string.Equals(islandRuntime.IslandAt(habitat.members[0].hex), "starter", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
 
                     var memberPositions = new List<Vector3>();
                     var clusterHexes = new List<HexCoordinates>();
@@ -372,6 +380,10 @@ public class WildPackIncidentManager : MonoBehaviour
             foreach (var card in allPlaced)
             {
                 if (card == null || card.cardData == null || card.CardType != CardType.Terrain) continue;
+                // Chỉ áp dụng Wild Pack trên Starter Island
+                string cardIsland = string.IsNullOrEmpty(card.cardData.islandId) ? "starter" : card.cardData.islandId;
+                if (!string.Equals(cardIsland, "starter", StringComparison.OrdinalIgnoreCase)) continue;
+                if (islandRuntime != null && !string.Equals(islandRuntime.IslandAt(card.placedHex), "starter", StringComparison.OrdinalIgnoreCase)) continue;
                 string key = string.IsNullOrEmpty(card.cardData.cardID) ? card.cardData.cardName : card.cardData.cardID;
                 if (!groups.TryGetValue(key, out var list))
                 {

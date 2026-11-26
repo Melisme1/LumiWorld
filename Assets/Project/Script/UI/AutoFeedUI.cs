@@ -6,7 +6,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using LumiWorld.Acs;
-using LumiWorld.Economy.Crafting;
 
 /// <summary>
 /// P-08 Automatic Feeding UI — LumiWorld UI Production Pack:
@@ -77,12 +76,14 @@ public class AutoFeedUI : MonoBehaviour
     }
 
     private readonly Dictionary<BiomeAffinity, BiomeFeedSlots> slotsByBiome = new Dictionary<BiomeAffinity, BiomeFeedSlots>();
+    private readonly Dictionary<BiomeAffinity, BiomeFeedSlots> draftsByBiome = new Dictionary<BiomeAffinity, BiomeFeedSlots>();
     private BiomeAffinity activeBiome = BiomeAffinity.Leafwood;
     private string loadedWorldScopeKey = string.Empty;
 
     // Available foods in Inventory (left column)
     private readonly List<ResourceUIItem> currentFoodList = new List<ResourceUIItem>();
     private readonly Dictionary<string, Image> foodRowBorders = new Dictionary<string, Image>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TextMeshProUGUI> foodStockLabels = new Dictionary<string, TextMeshProUGUI>(StringComparer.OrdinalIgnoreCase);
     private string selectedFoodId = string.Empty;
 
     // Quantity Modal
@@ -94,7 +95,6 @@ public class AutoFeedUI : MonoBehaviour
     private Slider modalSlider;
     private int modalEditingSlot = -1;
     private int modalCurrentAmount = 1;
-    private int modalMaxStock = 1;
 
     private float nextAutoTickTime;
     private static Sprite s_SelectionBorderSprite;
@@ -126,8 +126,18 @@ public class AutoFeedUI : MonoBehaviour
     {
         if (window != null)
         {
-            EconomyHUD.RegisterWindow(window, Close);
+            EconomyHUD.RegisterWindow(window, () =>
+            {
+                if (quantityModalObj != null && quantityModalObj.activeSelf) CloseQuantityModal();
+                else Close();
+            });
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this) instance = null;
+        EconomyHUD.UnregisterWindow(window);
     }
 
     private void Update()
@@ -190,6 +200,8 @@ public class AutoFeedUI : MonoBehaviour
 
     public void Close()
     {
+        draftsByBiome.Clear();
+        modalEditingSlot = -1;
         if (quantityModalObj != null && quantityModalObj.activeSelf)
         {
             quantityModalObj.SetActive(false);
@@ -223,6 +235,9 @@ public class AutoFeedUI : MonoBehaviour
 
         loadedWorldScopeKey = currentKey;
         slotsByBiome.Clear();
+        draftsByBiome.Clear();
+        modalEditingSlot = -1;
+        if (quantityModalObj != null) quantityModalObj.SetActive(false);
 
         foreach (BiomeAffinity biome in SupportedBiomes)
         {
@@ -261,6 +276,25 @@ public class AutoFeedUI : MonoBehaviour
             slotsByBiome[biome] = data;
         }
         return data;
+    }
+
+    private BiomeFeedSlots GetDisplayedSlots()
+    {
+        var saved = GetSlotsFor(activeBiome);
+        return draftsByBiome.TryGetValue(activeBiome, out var draft) ? draft : saved;
+    }
+
+    private BiomeFeedSlots EditActiveSlots()
+    {
+        var saved = GetSlotsFor(activeBiome);
+        if (!draftsByBiome.TryGetValue(activeBiome, out var draft))
+        {
+            draft = new BiomeFeedSlots();
+            Array.Copy(saved.foodIds, draft.foodIds, saved.foodIds.Length);
+            Array.Copy(saved.budgets, draft.budgets, saved.budgets.Length);
+            draftsByBiome.Add(activeBiome, draft);
+        }
+        return draft;
     }
 
     private void SaveBiomeSlots(BiomeAffinity biome)
@@ -395,7 +429,7 @@ public class AutoFeedUI : MonoBehaviour
         {
             foreach (var h in habManager.Habitats)
             {
-                if (h != null && h.affinity != BiomeAffinity.None && !biomesToShow.Contains(h.affinity))
+                if (h != null && Array.IndexOf(SupportedBiomes, h.affinity) >= 0 && !biomesToShow.Contains(h.affinity))
                 {
                     biomesToShow.Add(h.affinity);
                 }
@@ -436,11 +470,12 @@ public class AutoFeedUI : MonoBehaviour
         float curX = 0f;
         const float tabH = 42f;
         const float gapX = 10f;
+        float tabLimit = (biomeTabsRow.sizeDelta.x - (biomesToShow.Count - 1) * gapX) / biomesToShow.Count;
 
         foreach (BiomeAffinity affinity in biomesToShow)
         {
             string bName = HabitatCreaturePanelStyle.GetAffinityDisplayName(affinity);
-            float tabW = Mathf.Clamp(bName.Length * 9.5f + 62f, 136f, 168f);
+            float tabW = Mathf.Min(tabLimit, Mathf.Clamp(bName.Length * 9.5f + 62f, 136f, 168f));
 
             GameObject tabObj = new GameObject("BiomeTab_" + bName, typeof(RectTransform), typeof(Image), typeof(Button));
             tabObj.transform.SetParent(biomeTabsRow, false);
@@ -470,6 +505,9 @@ public class AutoFeedUI : MonoBehaviour
             lbl.rectTransform.anchorMax = Vector2.one;
             lbl.rectTransform.offsetMin = new Vector2(46f, 0f);
             lbl.rectTransform.offsetMax = new Vector2(-12f, 0f);
+            lbl.enableAutoSizing = true;
+            lbl.fontSizeMin = 11f;
+            lbl.fontSizeMax = 15f;
 
             GameObject borderObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
             borderObj.transform.SetParent(tRect, false);
@@ -506,7 +544,6 @@ public class AutoFeedUI : MonoBehaviour
     {
         if (activeBiome == biome) return;
         activeBiome = biome;
-        SaveBiomeSlots(activeBiome);
         UpdateBiomeTabVisuals();
         UpdateFoodRowBorders();
         RefreshSlotsAndBudgetUI();
@@ -575,7 +612,7 @@ public class AutoFeedUI : MonoBehaviour
         emptyFoodNoticeText = CreateTMP(
             scrollObj.transform,
             "EmptyNotice",
-            "No food in Inventory.\nHarvest berries or craft meals in Crafting!",
+            "No configured creature food in Inventory.",
             15f,
             LumiWorldUITheme.Muted,
             true,
@@ -838,82 +875,53 @@ public class AutoFeedUI : MonoBehaviour
 
     public void RefreshFoodInventory()
     {
-        currentFoodList.Clear();
-        foodRowBorders.Clear();
-
         if (foodListContent == null) return;
-        for (int i = foodListContent.childCount - 1; i >= 0; i--)
-        {
-            Destroy(foodListContent.GetChild(i).gameObject);
-        }
-
         var production = ResourceProductionRuntime.Instance;
         var inventory = production != null ? production.Inventory : null;
+        var available = new List<ResourceUIItem>();
 
-        ResourceProductionCatalog catalog = null;
-        if (production != null && production.HabitatManager != null)
-            catalog = production.HabitatManager.Catalog;
-        else if (HabitatRuntimeManager.TryGetActive(out var hrm))
-            catalog = hrm.Catalog;
-
-        HashSet<string> validFoodIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (production != null && production.FoodTypes != null)
+        if (inventory != null)
         {
-            foreach (var ft in production.FoodTypes)
+            foreach (var food in production.FoodTypes)
             {
-                if (!string.IsNullOrEmpty(ft.ResourceId)) validFoodIds.Add(ft.ResourceId);
-            }
-        }
-        if (production != null && production.CareSettings != null && !string.IsNullOrEmpty(production.CareSettings.FoodResourceId))
-        {
-            validFoodIds.Add(production.CareSettings.FoodResourceId);
-        }
-
-        if (inventory != null && catalog != null)
-        {
-            var all = ResourceInventoryUIPresentation.Warehouse(catalog, inventory.GetAmount, onlyCollected: false);
-            if (all != null)
-            {
-                foreach (var item in all)
+                string id = food.ResourceId;
+                int stock = inventory.GetAmount(id);
+                if (stock <= 0) continue;
+                var resource = ResourceCatalog.Find(id);
+                available.Add(new ResourceUIItem
                 {
-                    if (item == null || item.stock <= 0) continue;
-                    bool isFood = string.Equals(item.category, "Food", StringComparison.OrdinalIgnoreCase) ||
-                                  validFoodIds.Contains(item.id);
-                    if (isFood && !currentFoodList.Exists(x => string.Equals(x.id, item.id, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        currentFoodList.Add(item);
-                    }
-                }
+                    id = id,
+                    name = ResourceInventoryUIPresentation.LocalizeResourceName(id, resource != null ? resource.resourceName : id),
+                    icon = resource != null ? resource.icon : null,
+                    category = "Food",
+                    stock = stock
+                });
             }
         }
 
-        if (inventory != null && CraftingCatalog.All != null)
+        bool sameRows = available.Count == currentFoodList.Count;
+        for (int i = 0; sameRows && i < available.Count; i++)
         {
-            foreach (var recipe in CraftingCatalog.All)
-            {
-                if (recipe != null && recipe.category == CraftingCategory.Food && recipe.outputResource != null)
-                {
-                    string id = recipe.outputResource.resourceID;
-                    int stock = inventory.GetAmount(id);
-                    if (stock > 0 && !currentFoodList.Exists(x => string.Equals(x.id, id, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        currentFoodList.Add(new ResourceUIItem
-                        {
-                            id = id,
-                            name = ResourceInventoryUIPresentation.LocalizeResourceName(id, recipe.recipeName),
-                            icon = recipe.GetIcon(),
-                            category = "Food",
-                            stock = stock
-                        });
-                    }
-                }
-            }
+            sameRows = available[i].id == currentFoodList[i].id && available[i].name == currentFoodList[i].name &&
+                available[i].icon == currentFoodList[i].icon;
         }
+        currentFoodList.Clear();
+        currentFoodList.AddRange(available);
 
         if (emptyFoodNoticeText != null)
         {
             emptyFoodNoticeText.gameObject.SetActive(currentFoodList.Count == 0);
         }
+
+        if (sameRows)
+        {
+            foreach (var food in currentFoodList) foodStockLabels[food.id].text = $"{food.stock} available";
+            return;
+        }
+
+        ResourceUIGraphics.Clear(foodListContent);
+        foodRowBorders.Clear();
+        foodStockLabels.Clear();
 
         if (currentFoodList.Count == 0)
         {
@@ -966,6 +974,7 @@ public class AutoFeedUI : MonoBehaviour
 
             var stockTxt = CreateTMP(rowRect, "Stock", $"{item.stock} available", 14f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineRight);
             SetTopLeft(stockTxt.rectTransform, new Vector2(rowW - 144f, -12f), new Vector2(128f, 44f));
+            foodStockLabels[item.id] = stockTxt;
 
             var borderObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
             borderObj.transform.SetParent(rowRect, false);
@@ -995,20 +1004,6 @@ public class AutoFeedUI : MonoBehaviour
         GameAudioManager.Instance?.PlayClick();
         selectedFoodId = foodId;
         UpdateFoodRowBorders();
-
-        // Also assign to the first empty slot of activeBiome if not already assigned
-        if (!IsFoodAssignedInActiveBiome(foodId))
-        {
-            var slots = GetSlotsFor(activeBiome);
-            for (int i = 0; i < 3; i++)
-            {
-                if (string.IsNullOrEmpty(slots.foodIds[i]))
-                {
-                    AssignFoodToSlot(i, foodId);
-                    break;
-                }
-            }
-        }
     }
 
     private void OnAddFoodToSlotClicked(int slotIndex)
@@ -1016,15 +1011,14 @@ public class AutoFeedUI : MonoBehaviour
         GameAudioManager.Instance?.PlayClick();
 
         string candidateId = selectedFoodId;
-        if (string.IsNullOrEmpty(candidateId) || IsFoodAssignedInActiveBiome(candidateId))
-        {
-            var unassigned = currentFoodList.Find(f => !IsFoodAssignedInActiveBiome(f.id));
-            candidateId = unassigned != null ? unassigned.id : string.Empty;
-        }
-
         if (string.IsNullOrEmpty(candidateId))
         {
             ShowFeedback("Select an unassigned food from Inventory on the left.", LumiWorldUITheme.Warning);
+            return;
+        }
+        if (IsFoodAssignedInActiveBiome(candidateId))
+        {
+            ShowFeedback("This food already has a slot. Select another food.", LumiWorldUITheme.Warning);
             return;
         }
 
@@ -1034,7 +1028,7 @@ public class AutoFeedUI : MonoBehaviour
     private bool IsFoodAssignedInActiveBiome(string foodId)
     {
         if (string.IsNullOrEmpty(foodId)) return false;
-        var slots = GetSlotsFor(activeBiome);
+        var slots = GetDisplayedSlots();
         for (int i = 0; i < 3; i++)
         {
             if (string.Equals(slots.foodIds[i], foodId, StringComparison.OrdinalIgnoreCase)) return true;
@@ -1045,7 +1039,7 @@ public class AutoFeedUI : MonoBehaviour
     private void AssignFoodToSlot(int slotIndex, string foodId)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
-        var slots = GetSlotsFor(activeBiome);
+        var slots = GetDisplayedSlots();
 
         for (int i = 0; i < 3; i++)
         {
@@ -1057,18 +1051,18 @@ public class AutoFeedUI : MonoBehaviour
         }
 
         var food = currentFoodList.Find(f => string.Equals(f.id, foodId, StringComparison.OrdinalIgnoreCase));
-        int stock = food != null ? food.stock : GetInventoryStock(foodId);
+        int stock = GetInventoryStock(foodId);
         if (stock <= 0)
         {
             ShowFeedback("Out of stock in Inventory.", LumiWorldUITheme.Error);
             return;
         }
 
-        int defaultBudget = Mathf.Clamp(stock, 1, Mathf.Min(stock, 20));
+        int defaultBudget = Mathf.Min(stock, 20);
+        slots = EditActiveSlots();
         slots.foodIds[slotIndex] = foodId;
         slots.budgets[slotIndex] = defaultBudget;
 
-        SaveBiomeSlots(activeBiome);
         UpdateFoodRowBorders();
         RefreshSlotsAndBudgetUI();
 
@@ -1082,11 +1076,10 @@ public class AutoFeedUI : MonoBehaviour
         if (slotIndex < 0 || slotIndex >= 3) return;
         GameAudioManager.Instance?.PlayClick();
 
-        var slots = GetSlotsFor(activeBiome);
+        var slots = EditActiveSlots();
         slots.foodIds[slotIndex] = string.Empty;
         slots.budgets[slotIndex] = 0;
 
-        SaveBiomeSlots(activeBiome);
         UpdateFoodRowBorders();
         RefreshSlotsAndBudgetUI();
     }
@@ -1094,16 +1087,16 @@ public class AutoFeedUI : MonoBehaviour
     private void ChangeSlotAmount(int slotIndex, int delta)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
-        var slots = GetSlotsFor(activeBiome);
+        var slots = GetDisplayedSlots();
         string foodId = slots.foodIds[slotIndex];
         if (string.IsNullOrEmpty(foodId)) return;
 
-        int maxStock = Mathf.Max(1, GetInventoryStock(foodId));
-        int next = Mathf.Clamp(slots.budgets[slotIndex] + delta, 1, maxStock);
+        int maxBudget = Mathf.Max(slots.budgets[slotIndex], GetInventoryStock(foodId));
+        int next = Mathf.Clamp(slots.budgets[slotIndex] + delta, 1, maxBudget);
         if (next != slots.budgets[slotIndex])
         {
+            slots = EditActiveSlots();
             slots.budgets[slotIndex] = next;
-            SaveBiomeSlots(activeBiome);
             RefreshSlotsAndBudgetUI();
             GameAudioManager.Instance?.PlayClick();
         }
@@ -1128,8 +1121,8 @@ public class AutoFeedUI : MonoBehaviour
 
     private void RefreshSlotsAndBudgetUI()
     {
-        var slots = GetSlotsFor(activeBiome);
-        int totalRemainingBudget = 0;
+        var slots = GetDisplayedSlots();
+        long totalRemainingBudget = 0;
 
         for (int i = 0; i < 3; i++)
         {
@@ -1139,18 +1132,6 @@ public class AutoFeedUI : MonoBehaviour
             string foodId = slots.foodIds[i];
             int budget = slots.budgets[i];
             int currentStock = GetInventoryStock(foodId);
-
-            if (!string.IsNullOrEmpty(foodId) && currentStock <= 0)
-            {
-                // Inventory ran out of this food
-                budget = 0;
-                slots.budgets[i] = 0;
-            }
-            else if (!string.IsNullOrEmpty(foodId) && budget > currentStock && currentStock > 0)
-            {
-                budget = currentStock;
-                slots.budgets[i] = budget;
-            }
 
             if (string.IsNullOrEmpty(foodId) || budget <= 0)
             {
@@ -1174,6 +1155,9 @@ public class AutoFeedUI : MonoBehaviour
                 view.nameText.text = dispName;
                 view.subText.text = $"Shared budget · {currentStock} in stock";
                 view.amountText.text = budget.ToString();
+                view.decButton.interactable = budget > 1;
+                view.incButton.interactable = budget < currentStock;
+                view.amountButton.interactable = Mathf.Max(budget, currentStock) > 1;
 
                 totalRemainingBudget += budget;
             }
@@ -1181,7 +1165,8 @@ public class AutoFeedUI : MonoBehaviour
 
         if (remainingBudgetText != null)
         {
-            remainingBudgetText.text = $"Remaining budget: {totalRemainingBudget}";
+            string label = draftsByBiome.ContainsKey(activeBiome) ? "Pending budget" : "Remaining budget";
+            remainingBudgetText.text = $"{label}: {totalRemainingBudget}";
         }
     }
 
@@ -1192,9 +1177,15 @@ public class AutoFeedUI : MonoBehaviour
     private void OnApplyFeedingSetupClicked()
     {
         GameAudioManager.Instance?.PlayClick();
+        var slots = GetSlotsFor(activeBiome);
+        if (draftsByBiome.TryGetValue(activeBiome, out var draft))
+        {
+            Array.Copy(draft.foodIds, slots.foodIds, slots.foodIds.Length);
+            Array.Copy(draft.budgets, slots.budgets, slots.budgets.Length);
+            draftsByBiome.Remove(activeBiome);
+        }
         SaveBiomeSlots(activeBiome);
 
-        var slots = GetSlotsFor(activeBiome);
         int configuredCount = 0;
         for (int i = 0; i < 3; i++)
         {
@@ -1238,9 +1229,10 @@ public class AutoFeedUI : MonoBehaviour
         var production = ResourceProductionRuntime.Instance;
         if (production == null || production.Inventory == null) return;
 
-        bool anyDeposited = false;
         foreach (BiomeAffinity biome in SupportedBiomes)
         {
+            // Preserve the edited budget until the player applies or closes the window.
+            if (draftsByBiome.ContainsKey(biome) || (biome == activeBiome && modalEditingSlot >= 0)) continue;
             var slots = GetSlotsFor(biome);
             bool hasBudget = false;
             for (int i = 0; i < 3; i++)
@@ -1253,11 +1245,10 @@ public class AutoFeedUI : MonoBehaviour
             }
             if (!hasBudget) continue;
 
-            int dep = ExecuteBiomeFeeding(biome, out _, out _);
-            if (dep > 0) anyDeposited = true;
+            ExecuteBiomeFeeding(biome, out _, out _);
         }
 
-        if (anyDeposited && IsOpen)
+        if (IsOpen)
         {
             RefreshFoodInventory();
             RefreshSlotsAndBudgetUI();
@@ -1303,7 +1294,6 @@ public class AutoFeedUI : MonoBehaviour
                     int stock = production.Inventory.GetAmount(foodId);
                     if (stock <= 0)
                     {
-                        slots.budgets[s] = 0;
                         lastFailureReason = "Out of food in Inventory.";
                         continue;
                     }
@@ -1313,10 +1303,9 @@ public class AutoFeedUI : MonoBehaviour
                         ? Mathf.Max(1, production.CareSettings.seedFoodUnitsToFull)
                         : 5;
                     long currentPantry = production.GetCreatureFoodAmount(resident.individualId, foodId);
-                    int needed = Mathf.Max(0, maxPerResident - (int)currentPantry);
-                    int attemptAmount = Mathf.Min(remainingBudget, Mathf.Min(stock, Mathf.Max(1, needed)));
-
-                    if (needed <= 0) continue;
+                    if (currentPantry >= maxPerResident) continue;
+                    int needed = maxPerResident - (int)currentPantry;
+                    int attemptAmount = Mathf.Min(remainingBudget, Mathf.Min(stock, needed));
 
                     if (production.DepositCreatureFood(h.habitatId, resident.individualId, foodId, attemptAmount, out string reason))
                     {
@@ -1353,16 +1342,16 @@ public class AutoFeedUI : MonoBehaviour
     private void OpenQuantityModal(int slotIndex)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
-        var slots = GetSlotsFor(activeBiome);
+        var slots = GetDisplayedSlots();
         string foodId = slots.foodIds[slotIndex];
         if (string.IsNullOrEmpty(foodId)) return;
 
         var food = currentFoodList.Find(f => string.Equals(f.id, foodId, StringComparison.OrdinalIgnoreCase));
-        int maxStock = Mathf.Max(1, food != null ? food.stock : GetInventoryStock(foodId));
+        int stock = GetInventoryStock(foodId);
+        int maxBudget = Mathf.Max(slots.budgets[slotIndex], stock);
 
         modalEditingSlot = slotIndex;
-        modalMaxStock = maxStock;
-        modalCurrentAmount = Mathf.Clamp(slots.budgets[slotIndex], 1, maxStock);
+        modalCurrentAmount = slots.budgets[slotIndex];
 
         if (quantityModalObj == null)
         {
@@ -1380,12 +1369,12 @@ public class AutoFeedUI : MonoBehaviour
         }
         if (modalStorageText != null)
         {
-            modalStorageText.text = $"Available in Inventory: {maxStock:N0}";
+            modalStorageText.text = $"Available in Inventory: {stock:N0}";
         }
         if (modalSlider != null)
         {
             modalSlider.minValue = 1;
-            modalSlider.maxValue = maxStock;
+            modalSlider.maxValue = maxBudget;
             modalSlider.SetValueWithoutNotify(modalCurrentAmount);
         }
 
@@ -1541,6 +1530,7 @@ public class AutoFeedUI : MonoBehaviour
 
     private void CloseQuantityModal()
     {
+        modalEditingSlot = -1;
         if (quantityModalObj != null)
         {
             quantityModalObj.SetActive(false);
@@ -1552,10 +1542,14 @@ public class AutoFeedUI : MonoBehaviour
     {
         if (modalEditingSlot >= 0 && modalEditingSlot < 3)
         {
-            var slots = GetSlotsFor(activeBiome);
-            slots.budgets[modalEditingSlot] = modalCurrentAmount;
-            SaveBiomeSlots(activeBiome);
-            RefreshSlotsAndBudgetUI();
+            var slots = GetDisplayedSlots();
+            if (!string.IsNullOrEmpty(slots.foodIds[modalEditingSlot]) &&
+                slots.budgets[modalEditingSlot] != modalCurrentAmount)
+            {
+                slots = EditActiveSlots();
+                slots.budgets[modalEditingSlot] = modalCurrentAmount;
+                RefreshSlotsAndBudgetUI();
+            }
         }
         CloseQuantityModal();
     }

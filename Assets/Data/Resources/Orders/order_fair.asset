@@ -17,14 +17,15 @@ MonoBehaviour:
   portrait: {fileID: 0}
   portraitColor: {r: 0.47, g: 0.36, b: 0.73, a: 1}
   requirements:
-  - resource: {fileID: 11400000, guid: 35c07cfa06e949298f3f4ee44ccf0a79, type: 2}
+  - resource: {fileID: 11400000, guid: 2fdc25031f4d2f54eaced46ba7d85239, type: 2}
     minAmount: 7
     maxAmount: 9
-  - resource: {fileID: 11400000, guid: e0fca13f9eec4df2880f62a38ab11d27, type: 2}
-    minAmount: 5
-    maxAmount: 7
-  - resource: {fileID: 11400000, guid: c051e312543046fb9e751531a812af52, type: 2}
-    minAmount: 5
-    maxAmount: 7
-  rewardMultiplier: 1.6
+  - resource: {fileID: 11400000, guid: b3547d0663e28914b8865754b7dda715, type: 2}
+    minAmount: 7
+    maxAmount: 9
+  - resource: {fileID: 11400000, guid: 8ca04479eceae7d43be99f27056a6b48, type: 2}
+    minAmount: 6
+    maxAmount: 8
+  rewardMultiplier: 1.65
   isBaseline: 0
+  minScoreRequired: 15

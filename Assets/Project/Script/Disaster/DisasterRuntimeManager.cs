@@ -812,6 +812,11 @@ namespace LumiWorld.Acs
             var state = TileDisasterState.Ensure(tileObj);
             if (state == null) return;
 
+            // Cyclone rain acts like one light Rain card when it first covers a tile.
+            // Apply before marking Cyclone so this rain cannot increment/cure the cyclone itself.
+            if (instance.kind == DisasterKind.Cyclone)
+                ApplyRain(tileObj, DisasterRainStrength.Light);
+
             if (instance.kind == DisasterKind.Obstacle) state.hasObstacle = true;
             else state.Mark(instance.kind, instance.instanceId);
 

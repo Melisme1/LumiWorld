@@ -37,6 +37,8 @@ namespace LumiWorld.Acs
 
         private static TMP_FontAsset body;
         private static TMP_FontAsset heading;
+        private static TMP_FontAsset display;
+        private static TMP_FontAsset displayRegular;
         private static Sprite surfaceSprite;
         private static Sprite borderSprite;
         private static readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>(StringComparer.Ordinal);
@@ -63,6 +65,36 @@ namespace LumiWorld.Acs
                 if (heading == null) heading = CreateRuntimeFontAsset("UI/Production/Fonts/Nunito-ExtraBold", "Nunito-ExtraBold Runtime SDF");
                 if (heading == null) heading = Body;
                 return heading;
+            }
+        }
+
+        /// <summary>
+        /// Sculpted display font (Philosopher Bold) for hero HUD numerals and Harmony titles.
+        /// </summary>
+        public static TMP_FontAsset Display
+        {
+            get
+            {
+                if (display != null) return display;
+                display = Resources.Load<TMP_FontAsset>("UI/Production/Philosopher-Bold SDF");
+                if (display == null) display = CreateRuntimeFontAsset("UI/Production/Fonts/Philosopher-Bold", "Philosopher-Bold Runtime SDF");
+                if (display == null) display = Heading;
+                return display;
+            }
+        }
+
+        /// <summary>
+        /// Sculpted display font regular weight (Philosopher Regular) for understated HUD captions.
+        /// </summary>
+        public static TMP_FontAsset DisplayRegular
+        {
+            get
+            {
+                if (displayRegular != null) return displayRegular;
+                displayRegular = Resources.Load<TMP_FontAsset>("UI/Production/Philosopher-Regular SDF");
+                if (displayRegular == null) displayRegular = CreateRuntimeFontAsset("UI/Production/Fonts/Philosopher-Regular", "Philosopher-Regular Runtime SDF");
+                if (displayRegular == null) displayRegular = Body;
+                return displayRegular;
             }
         }
 
@@ -137,7 +169,11 @@ namespace LumiWorld.Acs
         public static Sprite AchievementBadge(string achievementOrMilestoneId)
         {
             if (string.IsNullOrEmpty(achievementOrMilestoneId)) return Art("A-01");
-            switch (achievementOrMilestoneId.Trim().ToUpperInvariant())
+            string key = achievementOrMilestoneId.Trim().ToUpperInvariant();
+            if (key.StartsWith("A-", StringComparison.Ordinal))
+                return Art(key) ?? Art("A-01");
+
+            switch (key)
             {
                 case "M1_FIRST_HABITAT": return Art("A-01");
                 case "M2_NEW_SPECIES": return Art("A-02");

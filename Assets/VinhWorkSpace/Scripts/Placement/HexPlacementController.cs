@@ -36,6 +36,8 @@ public class HexPlacementController : MonoBehaviour
 
     // Quản lý các tâm vùng lục giác đã đặt trên bản đồ
     private HashSet<HexCoordinates> placedClusterCenters = new HashSet<HexCoordinates>();
+    // Tâm khởi đầu miễn phí của từng đảo (không tính vào bậc giá Coins của các lần mở rộng đất)
+    private HashSet<HexCoordinates> islandOriginCenters = new HashSet<HexCoordinates> { new HexCoordinates(0, 0) };
 
     // Trạng thái vận hành
     private HexClusterData currentCluster;
@@ -62,12 +64,80 @@ public class HexPlacementController : MonoBehaviour
     [SerializeField] private string readyTextFormat = "Create ({0})";
     [SerializeField] private string lockedText = "Create (Locked)";
 
+    [Header("Phí Coins khi mở rộng đất (Option A: Milestone + Coins)")]
+    [Tooltip("Bật để thu thêm phí Coins mỗi lần đặt mảng đất mới (19 hex), song song với lượt từ Milestone.")]
+    [SerializeField] private bool requireCoinsForExpansion = true;
+    [Tooltip("Giá Coins cho lần mở rộng thứ 1, 2, 3...; vượt quá danh sách sẽ tự nhân 1.4x và làm tròn 50.")]
+    [SerializeField] private List<int> expansionCoinCosts = new List<int> { 80, 130, 220, 360, 590, 980 };
+
     [Header("Gói Khai Hoang Khi Đặt Đất Mới (Land Expansion Kit)")]
     [Tooltip("Danh sách thẻ bài được tặng ngay vào tay mỗi khi đặt thành công một mảng đất mới để có bài phủ xanh ngay")]
     [SerializeField] private List<CardData> landPlacementRewardCards = new();
 
     public int AvailableExpansionCharges => availableExpansionCharges;
+    public void RegisterClusterCenter(HexCoordinates center)
+    {
+        placedClusterCenters.Add(center);
+        islandOriginCenters.Add(center);
+        UpdateCreateButtonState();
+    }
     public UnityEngine.UI.Button CreateLandButton => createLandButton;
+
+    /// <summary>Đếm số mảng đất 19-hex do người chơi thực sự mở rộng (loại trừ tâm khởi đầu của các đảo).</summary>
+    private int CountPaidExpansionClusters()
+    {
+        int paid = 0;
+        var catalog = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance?.Catalog;
+        foreach (HexCoordinates center in placedClusterCenters)
+        {
+            if (islandOriginCenters.Contains(center)) continue;
+            bool isCatalogOrigin = false;
+            if (catalog != null && catalog.islands != null)
+            {
+                for (int i = 0; i < catalog.islands.Count; i++)
+                {
+                    var def = catalog.islands[i];
+                    if (def != null && def.center == center)
+                    {
+                        isCatalogOrigin = true;
+                        break;
+                    }
+                }
+            }
+            if (!isCatalogOrigin) paid++;
+        }
+        return paid;
+    }
+
+    /// <summary>Số thứ tự của lần mở rộng đất kế tiếp (1 cho lần mở đầu tiên, không bị nhảy bậc khi mở khóa đảo mới).</summary>
+    public int NextExpansionNumber => CountPaidExpansionClusters() + 1;
+
+    /// <summary>Giá Coins cần trả cho lần mở rộng đất kế tiếp (0 nếu tắt thu phí Coins).</summary>
+    public int GetNextExpansionCoinCost()
+    {
+        if (!requireCoinsForExpansion) return 0;
+        if (expansionCoinCosts == null || expansionCoinCosts.Count == 0) return 0;
+
+        int index = NextExpansionNumber - 1;
+        if (index < expansionCoinCosts.Count)
+        {
+            return Mathf.Max(0, expansionCoinCosts[index]);
+        }
+
+        double cost = Mathf.Max(50, expansionCoinCosts[expansionCoinCosts.Count - 1]);
+        int extraSteps = index - (expansionCoinCosts.Count - 1);
+        for (int i = 0; i < extraSteps; i++)
+        {
+            cost *= 1.4;
+        }
+        return Mathf.Max(50, Mathf.RoundToInt((float)(cost / 50.0)) * 50);
+    }
+
+    public bool CanAffordNextExpansion()
+    {
+        int cost = GetNextExpansionCoinCost();
+        return cost <= 0 || CurrencyWallet.Instance == null || CurrencyWallet.Instance.CanAfford(cost);
+    }
 
     private void Awake()
     {
@@ -105,6 +175,25 @@ public class HexPlacementController : MonoBehaviour
             createLandButtonText = createLandButton.GetComponentInChildren<TMPro.TextMeshProUGUI>();
         }
 
+        if (CurrencyWallet.Instance != null)
+        {
+            CurrencyWallet.Instance.OnBalanceChanged -= HandleWalletBalanceChanged;
+            CurrencyWallet.Instance.OnBalanceChanged += HandleWalletBalanceChanged;
+        }
+
+        UpdateCreateButtonState();
+    }
+
+    private void OnDestroy()
+    {
+        if (CurrencyWallet.HasInstance)
+        {
+            CurrencyWallet.Instance.OnBalanceChanged -= HandleWalletBalanceChanged;
+        }
+    }
+
+    private void HandleWalletBalanceChanged(int _, int __, CoinReason ___)
+    {
         UpdateCreateButtonState();
     }
 
@@ -184,16 +273,28 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     public void UpdateCreateButtonState()
     {
+        int cost = GetNextExpansionCoinCost();
+        bool canExpand = availableExpansionCharges > 0 && CanAffordNextExpansion();
+
         if (createLandButton != null)
         {
-            createLandButton.interactable = (availableExpansionCharges > 0);
+            createLandButton.interactable = canExpand;
         }
 
         if (createLandButtonText != null)
         {
-            createLandButtonText.text = availableExpansionCharges > 0
-                ? string.Format(readyTextFormat, availableExpansionCharges)
-                : lockedText;
+            if (availableExpansionCharges <= 0)
+            {
+                createLandButtonText.text = lockedText;
+            }
+            else if (cost > 0)
+            {
+                createLandButtonText.text = $"{string.Format(readyTextFormat, availableExpansionCharges)} · {cost}c";
+            }
+            else
+            {
+                createLandButtonText.text = string.Format(readyTextFormat, availableExpansionCharges);
+            }
         }
     }
 
@@ -235,6 +336,16 @@ public class HexPlacementController : MonoBehaviour
             return;
         }
 
+        // Bắt buộc đủ Coins cho lần mở đất kế tiếp (Option A: Milestone + Coins)
+        int expansionCost = GetNextExpansionCoinCost();
+        if (expansionCost > 0 && CurrencyWallet.Instance != null && !CurrencyWallet.Instance.CanAfford(expansionCost))
+        {
+            string msg = $"Need {expansionCost} Coins to expand land (have {CurrencyWallet.Instance.Balance}).";
+            Debug.LogWarning($"HexPlacementController: {msg}");
+            HexPlacementPreviewHUD.ShowFeedbackToast(msg);
+            return;
+        }
+
         // Tự động lấy prefabs và stepHeight từ WorldGenerator nếu chưa gán
         if ((terrainPrefabs == null || terrainPrefabs.Length == 0) && worldGenerator != null)
         {
@@ -243,6 +354,12 @@ public class HexPlacementController : MonoBehaviour
         }
 
         // Đảm bảo đảo khởi đầu đã có tâm (0, 0)
+        var islandRuntime = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
+        if (islandRuntime != null)
+        {
+            if (!islandRuntime.IsUnlocked(islandRuntime.ActiveIslandId)) return;
+            terrainPrefabs = islandRuntime.ActiveTerrain;
+        }
         if (placedClusterCenters.Count == 0)
         {
             placedClusterCenters.Add(new HexCoordinates(0, 0));
@@ -449,6 +566,8 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     private bool IsRegionPlacementValid(HexCoordinates candidateCenter)
     {
+        var islands = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
+        if (islands != null && !islands.AllowsExpansion(candidateCenter)) return false;
         if (worldGenerator == null || worldGenerator.MapTiles == null || currentCluster == null) return false;
         var existingTiles = worldGenerator.MapTiles;
 
@@ -488,7 +607,16 @@ public class HexPlacementController : MonoBehaviour
     /// </summary>
     private void ConfirmPlacement()
     {
-        if (worldGenerator == null) return;
+        if (worldGenerator == null || availableExpansionCharges <= 0 || !IsRegionPlacementValid(currentHoverHex)) return;
+
+        int expansionCost = GetNextExpansionCoinCost();
+        if (expansionCost > 0 && CurrencyWallet.Instance != null &&
+            !CurrencyWallet.Instance.TrySpend(expansionCost, CoinReason.IslandUnlock))
+        {
+            HexPlacementPreviewHUD.ShowFeedbackToast($"Need {expansionCost} Coins to expand land!");
+            CancelPlacement();
+            return;
+        }
 
         foreach (var tile in currentCluster.tiles)
         {
@@ -545,6 +673,15 @@ public class HexPlacementController : MonoBehaviour
         // Tặng ngay gói thẻ bài khai hoang vào tay để có bài phủ xanh mảng đất mới
         if (landPlacementRewardCards != null && landPlacementRewardCards.Count > 0 && CardDeskController.Instance != null)
         {
+            var island = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance;
+            if (island != null && island.ActiveIslandId != "starter")
+            {
+                var definition = island.Catalog.Find(island.ActiveIslandId);
+                var nature = definition.startingNature[Random.Range(0, definition.startingNature.Length)];
+                for (int i = 0; i < 3; i++) CardDeskController.Instance.AddRewardCard(nature);
+                for (int i = 0; i < 6; i++) CardDeskController.Instance.AddRewardCard(definition.rainCard);
+            }
+            else
             foreach (var card in landPlacementRewardCards)
             {
                 if (card != null)

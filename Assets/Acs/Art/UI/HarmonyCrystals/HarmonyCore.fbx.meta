@@ -1,0 +1,32 @@
+fileFormatVersion: 2
+guid: 7b9518d6b4005ab692e0b9ea91fafaad
+ModelImporter:
+  serializedVersion: 19301
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Core
+    second: {fileID: 2100000, guid: ef1117dfdd3955b3aaa03db89ea78332, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Rim
+    second: {fileID: 2100000, guid: ad4875df9274577a9194b87cce0b32ed, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  meshes:
+    globalScale: 1
+    useFileScale: 1
+    useFileUnits: 1
+    fileIdsGeneration: 2
+    weldVertices: 1
+  tangentSpace:
+    normalImportMode: 0
+    tangentImportMode: 3
+  animationType: 0
+  importAnimation: 0

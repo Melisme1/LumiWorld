@@ -1,0 +1,478 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f31790e2e0ed856418ca2b0557e820c4, type: 3}
+  m_Name: Profile_Lilywater_1Hex
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.BiomeLayoutProfile
+  biomeId: Lilywater
+  designNotes: '1A Single Hex: Sunken pocket pond, focal pink lotus cluster, pebble
+    bank, water iris & grass collar.'
+  waterMask1Hex: {fileID: 2800000, guid: e8a1b4c2d9f34071a6e2c5b8019d3f1a, type: 3}
+  waterMask3Hex: {fileID: 0}
+  waterMask6Hex: {fileID: 0}
+  waterMask10Hex: {fileID: 0}
+  surfaceSettings:
+    tileHeight: 1.055
+    outerBevelWidth: 0.082
+    outerBevelDrop: 0.052
+    dryInteriorSeamDepth: 0.036
+    dryInteriorSeamWidth: 0.072
+    shoreStartMask: 0.03
+    waterThresholdMask: 0.21
+    maxBasinDepth: 0.42
+    waterSurfaceDrop: 0.055
+    streamSlopeDrop: 0
+    streamSlopeDir: {x: 0.78, y: -0.62}
+    radialSubdivisions: 22
+  minSwimWaterDepthMeters: 0.06
+  walkableSampleSpacing: 0.55
+  swimmableSampleSpacing: 0.45
+  creatureAgentRadius: 0.28
+  layers:
+  - roleId: LotusFocal
+    count1: 1
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 2
+    guides:
+    - u: 0.49
+      v: 0.49
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.05
+    spacing: 0.22
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 1
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 1455021533811314827, guid: 26ca3f63be8aaa14c9f013add974419c, type: 3}
+    - {fileID: 4429604474801529656, guid: d16e3b6ff90624747bea1734983b46b6, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 1455021533811314827, guid: 26ca3f63be8aaa14c9f013add974419c, type: 3}
+      - {fileID: 4429604474801529656, guid: d16e3b6ff90624747bea1734983b46b6, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.44
+        targetMax: 0.54
+        minHeight: 0.09
+        maxHeight: 0.24
+        minFootprint: 0.4
+        maxFootprint: 0.58
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: FloatingLeaves
+    count1: 1
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 2
+    guides: []
+    clusterAroundParentRole:
+    - LotusFocal
+    radiusMin: 0.22
+    radiusMax: 0.4
+    spread: 0.05
+    spacing: 0.14
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 1
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 2161125614564777905, guid: f589f0e354e9318499a298f8b2622632, type: 3}
+    - {fileID: 8676766415527762711, guid: c2812e3c4e90ebd4ca12945bfa84b36b, type: 3}
+    - {fileID: 5115217525116933667, guid: 0c4f8b35e50e71242841f2af7f7110f1, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 2161125614564777905, guid: f589f0e354e9318499a298f8b2622632, type: 3}
+      - {fileID: 8676766415527762711, guid: c2812e3c4e90ebd4ca12945bfa84b36b, type: 3}
+      - {fileID: 5115217525116933667, guid: 0c4f8b35e50e71242841f2af7f7110f1, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.22
+        targetMax: 0.3
+        minHeight: 0.03
+        maxHeight: 0.16
+        minFootprint: 0.18
+        maxFootprint: 0.34
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: PebbleBank
+    count1: 3
+    count3: 3
+    count6: 3
+    count10: 3
+    ground: 1
+    guides:
+    - u: 0.76
+      v: 0.44
+    - u: 0.64
+      v: 0.76
+    - u: 0.26
+      v: 0.34
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.06
+    spacing: 0.22
+    obstacleRadius: 0
+    yOffset: -0.04
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.75
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 6468902711099105959, guid: 40c86e44b3f001e419a5f316ee7d7435, type: 3}
+    - {fileID: 5825226333305260575, guid: 6f739801b700e49458ee52e655566bb1, type: 3}
+    - {fileID: 4161058758619270942, guid: e66c6fb0b61271e4681e7cb6675db41e, type: 3}
+    - {fileID: 8347596121158787046, guid: 0ea3bdfddb471d946ba9d07cf186f631, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 3
+      assets:
+      - {fileID: 6468902711099105959, guid: 40c86e44b3f001e419a5f316ee7d7435, type: 3}
+      - {fileID: 5825226333305260575, guid: 6f739801b700e49458ee52e655566bb1, type: 3}
+      - {fileID: 4161058758619270942, guid: e66c6fb0b61271e4681e7cb6675db41e, type: 3}
+      - {fileID: 8347596121158787046, guid: 0ea3bdfddb471d946ba9d07cf186f631, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.24
+        targetMax: 0.34
+        minHeight: 0.07
+        maxHeight: 0.22
+        minFootprint: 0.2
+        maxFootprint: 0.38
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: Iris
+    count1: 1
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 1
+    guides:
+    - u: 0.24
+      v: 0.64
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.07
+    spacing: 0.2
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 7455621607679330130, guid: 2ceed700cd5ef9c4e942f6ed66fafd8d, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 7455621607679330130, guid: 2ceed700cd5ef9c4e942f6ed66fafd8d, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 0.36
+        targetMax: 0.44
+        minHeight: 0.32
+        maxHeight: 0.48
+        minFootprint: 0.26
+        maxFootprint: 0.45
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: GrassCollar
+    count1: 2
+    count3: 2
+    count6: 2
+    count10: 2
+    ground: 0
+    guides:
+    - u: 0.36
+      v: 0.8
+    - u: 0.7
+      v: 0.24
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.08
+    spacing: 0.28
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+    - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+    - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+    - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+    - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+    - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 2
+      assets:
+      - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+      - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+      - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+      - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+      - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+      - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.32
+        targetMax: 0.46
+        minHeight: 0.06
+        maxHeight: 0.24
+        minFootprint: 0.28
+        maxFootprint: 0.5
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  dryCorridorWidth: 0
+  sizingVersion: 1

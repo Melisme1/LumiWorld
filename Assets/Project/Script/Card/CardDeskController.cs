@@ -73,21 +73,24 @@ public class CardDeskController : MonoBehaviour
     private readonly List<CardData> earlyRewards = new();
     private bool suppressRewardFeedback;
 
-    // P-03 Card Tray UI
+    // P-03 Card Tray UI (Monolithic Warm Stone silhouette with concave shoulders & integrated chevron dome)
     private const float TrayBottomMargin = 8f;
-    private const float TrayShelfHeight = 128f;
-    private const float TrayShelfMinWidth = 464f;
-    private const float TrayShelfMaxWidth = 640f;
-    private const float TabDockWidth = 432f;
-    private const float TabDockHeight = 54f;
-    private const float TabDockOverlap = 20f;
+    private const float TrayShelfHeight = 132f;
+    private const float TrayShelfMinWidth = 592f;
+    private const float TrayShelfMaxWidth = 728f;
+    private const float TabDockWidth = 436f;
+    private const float TabDockHeight = 42f;
+    private const float ChevronDomeHalfWidth = 24f;
+    private const float ChevronDomeHeight = 19f;
+    private const float TrayExpandedTotalHeight = TrayShelfHeight + TabDockHeight + ChevronDomeHeight;
 
     private TrayCategory activeCategory = TrayCategory.Nature;
     private bool isTrayExpanded = true;
+    private float currentShelfWidth = TrayShelfMinWidth;
+    private int lastVisibleCardCount;
     private RectTransform deskRectTransform;
-    private RectTransform trayFrameRect;
-    private RectTransform tabDockRect;
-    private RectTransform dockHeaderOverlayRect;
+    private RectTransform trayMonolithRect;
+    private CardTrayShapeGraphic trayShapeGraphic;
     private RectTransform trayTabsRowRect;
     private RectTransform chevronBtnRect;
     private Image chevronGlyphImg;
@@ -96,7 +99,6 @@ public class CardDeskController : MonoBehaviour
     private int lastFittedScreenH;
     private float lastFittedCanvasScale;
 
-    private static Sprite s_TrayPanelSprite;
     private static Sprite s_ActiveTabPillSprite;
     private static Sprite s_InactiveTabPillSprite;
 
@@ -150,7 +152,7 @@ public class CardDeskController : MonoBehaviour
 
     private void BuildCardTrayUI()
     {
-        if (WorldLaunch.IsVisit || cardContainer == null || trayFrameRect != null) return;
+        if (WorldLaunch.IsVisit || cardContainer == null || trayMonolithRect != null) return;
 
         RectTransform containerRect = cardContainer as RectTransform;
         Transform parentTransform = cardContainer.parent != null ? cardContainer.parent : transform;
@@ -163,7 +165,7 @@ public class CardDeskController : MonoBehaviour
             deskRectTransform.anchorMax = new Vector2(0.5f, 0f);
             deskRectTransform.pivot = new Vector2(0.5f, 0f);
             deskRectTransform.anchoredPosition = Vector2.zero;
-            deskRectTransform.sizeDelta = new Vector2(TrayShelfMaxWidth + 40f, 220f);
+            deskRectTransform.sizeDelta = new Vector2(TrayShelfMaxWidth + 40f, TrayExpandedTotalHeight + 24f);
 
             Image deskImg = deskRectTransform.GetComponent<Image>();
             if (deskImg != null)
@@ -188,51 +190,46 @@ public class CardDeskController : MonoBehaviour
 
         int insertIndex = cardContainer.GetSiblingIndex();
 
-        // 1. Raised Top Tab Dock (connects seamlessly to top-center of Shelf)
-        float dockBottomY = TrayBottomMargin + TrayShelfHeight - TabDockOverlap;
-        GameObject dockObj = new GameObject("P03_TabDock", typeof(RectTransform), typeof(Image));
-        tabDockRect = (RectTransform)dockObj.transform;
-        tabDockRect.SetParent(parentTransform, false);
-        tabDockRect.anchorMin = new Vector2(0.5f, 0f);
-        tabDockRect.anchorMax = new Vector2(0.5f, 0f);
-        tabDockRect.pivot = new Vector2(0.5f, 0f);
-        tabDockRect.anchoredPosition = new Vector2(0f, dockBottomY);
-        tabDockRect.sizeDelta = new Vector2(TabDockWidth, TabDockHeight);
-        tabDockRect.SetSiblingIndex(insertIndex++);
+        // 1. Single Monolithic Warm Stone Tray (Shelf + Concave Shoulders + Raised Tab Dock + Integrated Chevron Dome)
+        GameObject monolithObj = new GameObject("P03_CardTrayMonolith", typeof(RectTransform), typeof(CardTrayShapeGraphic));
+        trayMonolithRect = (RectTransform)monolithObj.transform;
+        trayMonolithRect.SetParent(parentTransform, false);
+        trayMonolithRect.anchorMin = new Vector2(0.5f, 0f);
+        trayMonolithRect.anchorMax = new Vector2(0.5f, 0f);
+        trayMonolithRect.pivot = new Vector2(0.5f, 0f);
+        trayMonolithRect.anchoredPosition = new Vector2(0f, TrayBottomMargin);
+        trayMonolithRect.sizeDelta = new Vector2(currentShelfWidth, TrayExpandedTotalHeight);
+        trayMonolithRect.SetSiblingIndex(insertIndex++);
 
-        Image dockBg = dockObj.GetComponent<Image>();
-        dockBg.sprite = GetTrayPanelSprite();
-        dockBg.type = Image.Type.Sliced;
-        dockBg.color = Color.white;
-        dockBg.raycastTarget = true;
-        LumiWorldUITheme.AddSoftElevation(dockObj, 4f, 0.20f);
-
-        // 2. Monolithic Warm-Ivory Card Shelf
-        GameObject trayObj = new GameObject("P03_CardTrayFrame", typeof(RectTransform), typeof(Image));
-        trayFrameRect = (RectTransform)trayObj.transform;
-        trayFrameRect.SetParent(parentTransform, false);
-        trayFrameRect.anchorMin = new Vector2(0.5f, 0f);
-        trayFrameRect.anchorMax = new Vector2(0.5f, 0f);
-        trayFrameRect.pivot = new Vector2(0.5f, 0f);
-        trayFrameRect.anchoredPosition = new Vector2(0f, TrayBottomMargin);
-        trayFrameRect.sizeDelta = new Vector2(TrayShelfMinWidth, TrayShelfHeight);
-        trayFrameRect.SetSiblingIndex(insertIndex++);
-
-        Image trayBg = trayObj.GetComponent<Image>();
-        trayBg.sprite = GetTrayPanelSprite();
-        trayBg.type = Image.Type.Sliced;
-        trayBg.color = Color.white;
-        trayBg.raycastTarget = true;
-        LumiWorldUITheme.AddSoftElevation(trayObj, 5f, 0.22f);
+        trayShapeGraphic = monolithObj.GetComponent<CardTrayShapeGraphic>();
+        trayShapeGraphic.ConfigureGeometry(
+            newShelfWidth: currentShelfWidth,
+            newShelfHeight: TrayShelfHeight,
+            newDockWidth: TabDockWidth,
+            newDockHeight: TabDockHeight,
+            newShelfCornerRadius: 26f,
+            newShoulderFilletRadius: 19f,
+            newDockCornerRadius: 23f,
+            includeChevronDome: true,
+            newDomeHalfWidth: ChevronDomeHalfWidth,
+            newDomeHeight: ChevronDomeHeight,
+            newDomeBaseFillet: 9f,
+            newDomeTopRadius: 10f);
+        trayShapeGraphic.ConfigureStyle(
+            fill: new Color(0.937f, 0.918f, 0.886f, 1f),          // Warm Stone #EFEAE2
+            border: new Color(0.835f, 0.808f, 0.765f, 1f),        // Crisp hairline #D5CEC3
+            shadow: new Color(0.145f, 0.106f, 0.071f, 0.17f));    // Soft warm drop shadow
+        trayShapeGraphic.raycastTarget = true;
 
         // Empty category hint inside tray shelf
         GameObject emptyObj = new GameObject("EmptyCategoryNotice", typeof(RectTransform), typeof(TextMeshProUGUI));
         RectTransform emptyRect = (RectTransform)emptyObj.transform;
-        emptyRect.SetParent(trayFrameRect, false);
-        emptyRect.anchorMin = new Vector2(0.5f, 0.5f);
-        emptyRect.anchorMax = new Vector2(0.5f, 0.5f);
-        emptyRect.sizeDelta = new Vector2(400f, 36f);
-        emptyRect.anchoredPosition = Vector2.zero;
+        emptyRect.SetParent(trayMonolithRect, false);
+        emptyRect.anchorMin = new Vector2(0.5f, 0f);
+        emptyRect.anchorMax = new Vector2(0.5f, 0f);
+        emptyRect.pivot = new Vector2(0.5f, 0.5f);
+        emptyRect.sizeDelta = new Vector2(420f, 36f);
+        emptyRect.anchoredPosition = new Vector2(0f, TrayShelfHeight * 0.5f);
 
         emptyCategoryLabel = emptyObj.GetComponent<TextMeshProUGUI>();
         emptyCategoryLabel.font = LumiWorldUITheme.Body;
@@ -244,37 +241,16 @@ public class CardDeskController : MonoBehaviour
         emptyCategoryLabel.text = "No cards in this category";
         emptyObj.SetActive(false);
 
-        // 3. Dock Header Overlay: seamless ivory join patch + centered 4 category tabs
-        GameObject overlayObj = new GameObject("P03_DockHeaderOverlay", typeof(RectTransform));
-        dockHeaderOverlayRect = (RectTransform)overlayObj.transform;
-        dockHeaderOverlayRect.SetParent(parentTransform, false);
-        dockHeaderOverlayRect.anchorMin = new Vector2(0.5f, 0f);
-        dockHeaderOverlayRect.anchorMax = new Vector2(0.5f, 0f);
-        dockHeaderOverlayRect.pivot = new Vector2(0.5f, 0f);
-        dockHeaderOverlayRect.anchoredPosition = new Vector2(0f, dockBottomY);
-        dockHeaderOverlayRect.sizeDelta = new Vector2(TabDockWidth, TabDockHeight);
-        dockHeaderOverlayRect.SetSiblingIndex(insertIndex++);
-
-        GameObject seamObj = new GameObject("SeamBridgeFill", typeof(RectTransform), typeof(Image));
-        RectTransform seamRect = (RectTransform)seamObj.transform;
-        seamRect.SetParent(dockHeaderOverlayRect, false);
-        seamRect.anchorMin = new Vector2(0.5f, 0f);
-        seamRect.anchorMax = new Vector2(0.5f, 0f);
-        seamRect.pivot = new Vector2(0.5f, 0f);
-        seamRect.anchoredPosition = new Vector2(0f, -2f);
-        seamRect.sizeDelta = new Vector2(TabDockWidth - 4f, TabDockOverlap + 4f);
-        Image seamImg = seamObj.GetComponent<Image>();
-        seamImg.color = LumiWorldUITheme.Surface;
-        seamImg.raycastTarget = false;
-
+        // 2. Centered Category Tabs nestled concentrically inside the raised Tab Dock
         GameObject tabsRowObj = new GameObject("CategoryTabsRow", typeof(RectTransform));
         trayTabsRowRect = (RectTransform)tabsRowObj.transform;
-        trayTabsRowRect.SetParent(dockHeaderOverlayRect, false);
-        trayTabsRowRect.anchorMin = new Vector2(0.5f, 1f);
-        trayTabsRowRect.anchorMax = new Vector2(0.5f, 1f);
-        trayTabsRowRect.pivot = new Vector2(0.5f, 1f);
-        trayTabsRowRect.anchoredPosition = new Vector2(0f, -6f);
-        trayTabsRowRect.sizeDelta = new Vector2(TabDockWidth - 16f, 28f);
+        trayTabsRowRect.SetParent(trayMonolithRect, false);
+        trayTabsRowRect.anchorMin = new Vector2(0.5f, 0f);
+        trayTabsRowRect.anchorMax = new Vector2(0.5f, 0f);
+        trayTabsRowRect.pivot = new Vector2(0.5f, 0.5f);
+        // Concentric with dock top corner radius (23f): tab top sits 8px below dock top
+        trayTabsRowRect.anchoredPosition = new Vector2(0f, TrayShelfHeight + TabDockHeight - 23f);
+        trayTabsRowRect.sizeDelta = new Vector2(TabDockWidth - 18f, 30f);
 
         (TrayCategory cat, string label, string glyphCode)[] tabDefs =
         {
@@ -285,8 +261,8 @@ public class CardDeskController : MonoBehaviour
         };
 
         categoryTabs.Clear();
-        const float tabW = 98f;
-        const float tabH = 28f;
+        const float tabW = 100f;
+        const float tabH = 30f;
         const float tabGap = 6f;
         float totalTabsW = tabDefs.Length * tabW + (tabDefs.Length - 1) * tabGap;
         float startX = -totalTabsW * 0.5f + tabW * 0.5f;
@@ -296,7 +272,7 @@ public class CardDeskController : MonoBehaviour
             var def = tabDefs[i];
             float x = startX + i * (tabW + tabGap);
 
-            GameObject tabObj = new GameObject("Tab_" + def.label, typeof(RectTransform), typeof(Image), typeof(Button));
+            GameObject tabObj = new GameObject("Tab_" + def.label, typeof(RectTransform), typeof(Image), typeof(Button), typeof(HorizontalLayoutGroup));
             RectTransform tabRect = (RectTransform)tabObj.transform;
             tabRect.SetParent(trayTabsRowRect, false);
             tabRect.anchorMin = tabRect.anchorMax = tabRect.pivot = new Vector2(0.5f, 0.5f);
@@ -308,36 +284,48 @@ public class CardDeskController : MonoBehaviour
             tabBg.type = Image.Type.Sliced;
             tabBg.color = Color.white;
             tabBg.raycastTarget = true;
-            LumiWorldUITheme.AddSoftElevation(tabObj, 2f, 0.16f);
+            LumiWorldUITheme.AddSoftElevation(tabObj, 2.5f, 0.15f);
             Shadow tabShadow = tabObj.GetComponent<Shadow>();
 
-            GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            HorizontalLayoutGroup hlg = tabObj.GetComponent<HorizontalLayoutGroup>();
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.spacing = 5f;
+            hlg.padding = new RectOffset(8, 8, 0, 0);
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = false;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+
+            GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
             RectTransform icRect = (RectTransform)icObj.transform;
             icRect.SetParent(tabRect, false);
-            icRect.anchorMin = icRect.anchorMax = new Vector2(0f, 0.5f);
-            icRect.pivot = new Vector2(0f, 0.5f);
-            icRect.anchoredPosition = new Vector2(8f, 0f);
             icRect.sizeDelta = new Vector2(13f, 13f);
+
+            LayoutElement icLe = icObj.GetComponent<LayoutElement>();
+            icLe.minWidth = 13f;
+            icLe.preferredWidth = 13f;
+            icLe.flexibleWidth = 0f;
 
             Image icImg = icObj.GetComponent<Image>();
             icImg.sprite = LumiWorldUITheme.Glyph(def.glyphCode);
             icImg.preserveAspect = true;
             icImg.raycastTarget = false;
 
-            GameObject lblObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            GameObject lblObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
             RectTransform lblRect = (RectTransform)lblObj.transform;
             lblRect.SetParent(tabRect, false);
-            lblRect.anchorMin = new Vector2(0f, 0f);
-            lblRect.anchorMax = new Vector2(1f, 1f);
-            lblRect.offsetMin = new Vector2(24f, 0f);
-            lblRect.offsetMax = new Vector2(-6f, 0f);
+            lblRect.sizeDelta = new Vector2(0f, 24f);
+
+            LayoutElement lblLe = lblObj.GetComponent<LayoutElement>();
+            lblLe.minWidth = 20f;
+            lblLe.flexibleWidth = 0f;
 
             TextMeshProUGUI lblTmp = lblObj.GetComponent<TextMeshProUGUI>();
             lblTmp.font = LumiWorldUITheme.Body;
             lblTmp.text = def.label;
-            lblTmp.fontSize = 10f;
+            lblTmp.fontSize = 10.5f;
             lblTmp.enableAutoSizing = true;
-            lblTmp.fontSizeMin = 8f;
+            lblTmp.fontSizeMin = 8.5f;
             lblTmp.fontSizeMax = 10.5f;
             lblTmp.fontStyle = FontStyles.Bold;
             lblTmp.alignment = TextAlignmentOptions.MidlineLeft;
@@ -361,42 +349,48 @@ public class CardDeskController : MonoBehaviour
             });
         }
 
-        // Ensure cards render above tray shelf & dock bridge
-        cardContainer.SetSiblingIndex(insertIndex);
-
-        // 4. Centered Show/Hide Chevron Pill right above the Tab Dock
+        // 3. Integrated Show/Hide Chevron hit button seated directly on the sculpted dome (or collapsed pill)
         GameObject chevObj = new GameObject("P03_TrayChevronButton", typeof(RectTransform), typeof(Image), typeof(Button));
         chevronBtnRect = (RectTransform)chevObj.transform;
         chevronBtnRect.SetParent(parentTransform, false);
         chevronBtnRect.anchorMin = new Vector2(0.5f, 0f);
         chevronBtnRect.anchorMax = new Vector2(0.5f, 0f);
         chevronBtnRect.pivot = new Vector2(0.5f, 0f);
-        chevronBtnRect.sizeDelta = new Vector2(44f, 20f);
-        chevronBtnRect.SetAsLastSibling();
+        chevronBtnRect.sizeDelta = new Vector2(66f, 26f);
+        chevronBtnRect.SetSiblingIndex(insertIndex++);
 
-        Image chevBg = chevObj.GetComponent<Image>();
-        chevBg.sprite = GetTrayPanelSprite();
-        chevBg.type = Image.Type.Sliced;
-        chevBg.color = Color.white;
-        chevBg.raycastTarget = true;
-        LumiWorldUITheme.AddSoftElevation(chevObj, 2.5f, 0.18f);
+        Image chevHit = chevObj.GetComponent<Image>();
+        chevHit.color = Color.clear;
+        chevHit.raycastTarget = true;
 
         GameObject chevIcObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
         RectTransform chevIcRect = (RectTransform)chevIcObj.transform;
         chevIcRect.SetParent(chevronBtnRect, false);
         chevIcRect.anchorMin = chevIcRect.anchorMax = chevIcRect.pivot = new Vector2(0.5f, 0.5f);
-        chevIcRect.sizeDelta = new Vector2(12f, 12f);
-        chevIcRect.anchoredPosition = Vector2.zero;
+        chevIcRect.sizeDelta = new Vector2(13f, 13f);
+        chevIcRect.anchoredPosition = new Vector2(0f, 1.5f);
 
         chevronGlyphImg = chevIcObj.GetComponent<Image>();
         chevronGlyphImg.preserveAspect = true;
-        chevronGlyphImg.color = LumiWorldUITheme.Text;
+        chevronGlyphImg.color = Color.white;
         chevronGlyphImg.raycastTarget = false;
 
         Button chevBtn = chevObj.GetComponent<Button>();
-        chevBtn.targetGraphic = chevBg;
+        chevBtn.targetGraphic = chevronGlyphImg;
+        chevBtn.transition = Selectable.Transition.ColorTint;
+        ColorBlock chevColors = chevBtn.colors;
+        chevColors.normalColor = new Color(0.35f, 0.30f, 0.25f, 1f);
+        chevColors.highlightedColor = LumiWorldUITheme.Text;
+        chevColors.pressedColor = new Color(0.15f, 0.11f, 0.08f, 1f);
+        chevColors.selectedColor = chevColors.normalColor;
+        chevColors.colorMultiplier = 1f;
+        chevColors.fadeDuration = 0.08f;
+        chevBtn.colors = chevColors;
         chevBtn.navigation = new Navigation { mode = Navigation.Mode.None };
         chevBtn.onClick.AddListener(ToggleTrayExpanded);
+
+        // Keep cardContainer as the highest sibling so hovered/dragged cards float cleanly over tabs & dome
+        cardContainer.SetSiblingIndex(insertIndex);
 
         UpdateCategoryTabVisuals();
         UpdateTrayExpandedVisuals();
@@ -427,29 +421,25 @@ public class CardDeskController : MonoBehaviour
 
     private void UpdateTrayShelfWidth(int visibleCount, float cardScale, float spacing)
     {
-        if (trayFrameRect == null) return;
         float targetW = TrayShelfMinWidth;
         if (visibleCount > 0)
         {
             float effW = Mathf.Max(120f, cardWidth) * cardScale;
-            float needed = (visibleCount - 1) * spacing + effW + 32f;
+            float needed = (visibleCount - 1) * spacing + effW + 40f;
             targetW = Mathf.Clamp(Mathf.Max(TrayShelfMinWidth, needed), TrayShelfMinWidth, TrayShelfMaxWidth);
         }
-        trayFrameRect.sizeDelta = new Vector2(targetW, TrayShelfHeight);
-    }
 
-    private static Sprite GetTrayPanelSprite()
-    {
-        if (s_TrayPanelSprite != null) return s_TrayPanelSprite;
-        s_TrayPanelSprite = CreateRoundedBorderSprite(
-            "P03TrayPanelSprite",
-            48,
-            48,
-            18,
-            LumiWorldUITheme.Surface,
-            new Color(0.86f, 0.83f, 0.78f, 1f),
-            1.5f);
-        return s_TrayPanelSprite;
+        currentShelfWidth = targetW;
+
+        if (trayShapeGraphic != null)
+        {
+            trayShapeGraphic.ShelfWidth = targetW;
+        }
+
+        if (trayMonolithRect != null && isTrayExpanded)
+        {
+            trayMonolithRect.sizeDelta = new Vector2(targetW, TrayExpandedTotalHeight);
+        }
     }
 
     private static Sprite GetTabPillSprite(bool active)
@@ -458,8 +448,22 @@ public class CardDeskController : MonoBehaviour
         if (!active && s_InactiveTabPillSprite != null) return s_InactiveTabPillSprite;
 
         Sprite sp = active
-            ? CreateRoundedBorderSprite("P03ActiveTabSprite", 40, 32, 13, LumiWorldUITheme.Slot, new Color(0.85f, 0.82f, 0.77f, 1f), 1.3f)
-            : CreateRoundedBorderSprite("P03InactiveTabSprite", 40, 32, 13, new Color(0.90f, 0.88f, 0.84f, 1f), new Color(0.86f, 0.84f, 0.79f, 1f), 1f);
+            ? CreateRoundedBorderSprite(
+                "P03ActiveTabSprite",
+                36,
+                32,
+                15,
+                LumiWorldUITheme.Slot,                              // #FCFBF8 bright elevated pill
+                new Color(0.89f, 0.86f, 0.82f, 1f),                 // Whisper-soft warm edge
+                1.2f)
+            : CreateRoundedBorderSprite(
+                "P03InactiveTabSprite",
+                36,
+                32,
+                15,
+                new Color(0.890f, 0.867f, 0.831f, 1f),              // Recessed Warm Stone #E3DDD4
+                new Color(0.855f, 0.828f, 0.788f, 1f),              // Subtle inner seam
+                1.0f);
 
         if (active) s_ActiveTabPillSprite = sp;
         else s_InactiveTabPillSprite = sp;
@@ -475,21 +479,31 @@ public class CardDeskController : MonoBehaviour
         Color[] px = new Color[w * h];
 
         float r = radius;
+        float halfW = w * 0.5f;
+        float halfH = h * 0.5f;
+        float bx = Mathf.Max(0f, halfW - r);
+        float by = Mathf.Max(0f, halfH - r);
+
         for (int y = 0; y < h; y++)
         {
+            float py = y + 0.5f;
+            float dy = Mathf.Abs(py - halfH) - by;
             for (int x = 0; x < w; x++)
             {
-                float dx = x < r ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
-                float dy = y < r ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                float alpha = Mathf.Clamp01(r - dist + 0.5f);
+                float pxCoord = x + 0.5f;
+                float dx = Mathf.Abs(pxCoord - halfW) - bx;
+                float outside = Mathf.Sqrt(Mathf.Max(dx, 0f) * Mathf.Max(dx, 0f) + Mathf.Max(dy, 0f) * Mathf.Max(dy, 0f));
+                float inside = Mathf.Min(Mathf.Max(dx, dy), 0f);
+                float sdf = outside + inside - r;
+
+                float alpha = Mathf.Clamp01(0.5f - sdf);
                 if (alpha <= 0.005f)
                 {
                     px[y * w + x] = Color.clear;
                     continue;
                 }
 
-                float edgeT = Mathf.Clamp01((dist - (r - borderThickness)) + 0.5f);
+                float edgeT = Mathf.Clamp01(sdf + borderThickness + 0.5f);
                 Color c = Color.Lerp(fill, border, edgeT);
                 c.a *= alpha;
                 px[y * w + x] = c;
@@ -565,7 +579,7 @@ public class CardDeskController : MonoBehaviour
         {
             if (card == null) continue;
             CardUI ui = card.GetComponent<CardUI>();
-            if (ui == null || ui.CardData == null) continue;
+            if (ui == null || !BelongsToActiveIsland(ui.CardData)) continue;
             TrayCategory cat = ClassifyCard(ui.CardData);
             countsByCat[cat] = countsByCat[cat] + Mathf.Max(1, ui.Count);
         }
@@ -576,7 +590,7 @@ public class CardDeskController : MonoBehaviour
             tab.bg.sprite = GetTabPillSprite(active);
             tab.bg.color = Color.white;
             if (tab.shadow != null) tab.shadow.enabled = active;
-            Color fg = active ? LumiWorldUITheme.Text : new Color(0.41f, 0.37f, 0.33f, 1f);
+            Color fg = active ? LumiWorldUITheme.Text : new Color(0.39f, 0.34f, 0.30f, 1f);
             if (tab.icon != null) tab.icon.color = fg;
             if (tab.label != null)
             {
@@ -590,19 +604,28 @@ public class CardDeskController : MonoBehaviour
 
     private void UpdateTrayExpandedVisuals()
     {
-        if (tabDockRect != null)
+        if (trayShapeGraphic != null)
         {
-            tabDockRect.gameObject.SetActive(isTrayExpanded);
+            trayShapeGraphic.CollapsedMode = !isTrayExpanded;
         }
 
-        if (trayFrameRect != null)
+        if (trayMonolithRect != null)
         {
-            trayFrameRect.gameObject.SetActive(isTrayExpanded);
+            float collapsedW = trayShapeGraphic != null ? trayShapeGraphic.CollapsedWidth : 56f;
+            float collapsedH = trayShapeGraphic != null ? trayShapeGraphic.CollapsedHeight : 26f;
+            trayMonolithRect.sizeDelta = isTrayExpanded
+                ? new Vector2(currentShelfWidth, TrayExpandedTotalHeight)
+                : new Vector2(collapsedW, collapsedH);
         }
 
-        if (dockHeaderOverlayRect != null)
+        if (trayTabsRowRect != null)
         {
-            dockHeaderOverlayRect.gameObject.SetActive(isTrayExpanded);
+            trayTabsRowRect.gameObject.SetActive(isTrayExpanded);
+        }
+
+        if (emptyCategoryLabel != null)
+        {
+            emptyCategoryLabel.gameObject.SetActive(isTrayExpanded && lastVisibleCardCount == 0);
         }
 
         if (cardContainer != null)
@@ -612,18 +635,22 @@ public class CardDeskController : MonoBehaviour
 
         if (chevronBtnRect != null)
         {
-            float expandedY = TrayBottomMargin + TrayShelfHeight - TabDockOverlap + TabDockHeight + 2f;
+            float expandedY = TrayBottomMargin + TrayShelfHeight + TabDockHeight - 3f;
+            float collapsedH = trayShapeGraphic != null ? trayShapeGraphic.CollapsedHeight : 26f;
             chevronBtnRect.anchoredPosition = isTrayExpanded
                 ? new Vector2(0f, expandedY)
-                : new Vector2(0f, 10f);
+                : new Vector2(0f, TrayBottomMargin);
             chevronBtnRect.sizeDelta = isTrayExpanded
-                ? new Vector2(44f, 20f)
-                : new Vector2(48f, 24f);
+                ? new Vector2(66f, 26f)
+                : new Vector2(60f, collapsedH);
         }
 
         if (chevronGlyphImg != null)
         {
             chevronGlyphImg.sprite = LumiWorldUITheme.Glyph(isTrayExpanded ? "ChevronDown" : "ChevronUp");
+            chevronGlyphImg.rectTransform.anchoredPosition = isTrayExpanded
+                ? new Vector2(0f, -1.5f)
+                : Vector2.zero;
         }
     }
 
@@ -728,7 +755,7 @@ public class CardDeskController : MonoBehaviour
         foreach (GameObject card in cards)
         {
             CardUI ui = card.GetComponent<CardUI>();
-            bool match = ui != null && ui.CardData != null && ClassifyCard(ui.CardData) == activeCategory;
+            bool match = ui != null && BelongsToActiveIsland(ui.CardData) && ClassifyCard(ui.CardData) == activeCategory;
             if (match)
             {
                 visibleCards.Add(card);
@@ -819,9 +846,10 @@ public class CardDeskController : MonoBehaviour
 
     private void UpdateEmptyCategoryNotice(int visibleCount)
     {
+        lastVisibleCardCount = visibleCount;
         if (emptyCategoryLabel != null)
         {
-            emptyCategoryLabel.gameObject.SetActive(visibleCount == 0);
+            emptyCategoryLabel.gameObject.SetActive(isTrayExpanded && visibleCount == 0);
             if (visibleCount == 0)
             {
                 emptyCategoryLabel.text = $"No {activeCategory.ToString().ToLowerInvariant()} cards in hand";
@@ -951,6 +979,18 @@ public class CardDeskController : MonoBehaviour
     }
 
     private bool deferHandFileWrite;
+
+    public string ActiveIslandId { get; private set; } = "starter";
+    private bool BelongsToActiveIsland(CardData data) => data != null &&
+        (string.IsNullOrEmpty(data.islandId) ? "starter" : data.islandId) == ActiveIslandId;
+
+    public void SelectIsland(string islandId)
+    {
+        if (string.IsNullOrEmpty(islandId) || islandId == ActiveIslandId) return;
+        ActiveIslandId = islandId;
+        UpdateCategoryTabVisuals();
+        LayoutVisibleCards(initialSpawn: true);
+    }
 
     public bool HandReady => handLoaded && !WorldLaunch.IsVisit;
 
@@ -1123,6 +1163,8 @@ public class CardDeskController : MonoBehaviour
 
         string key = GetCardKey(cardData);
 
+        if (cardData.reusable && GetHeldCount(key) > 0) return;
+
         handCounts[key] = (handCounts.TryGetValue(key, out int heldBefore) ? heldBefore : 0) + 1;
         SaveHand();
 
@@ -1246,11 +1288,11 @@ public class CardDeskController : MonoBehaviour
     {
         if (cardCount <= 5)
         {
-            return 0.56f;
+            return 0.57f;
         }
 
         float t = Mathf.Clamp01((cardCount - 5f) / 5f);
-        return Mathf.Lerp(0.56f, 0.45f, t);
+        return Mathf.Lerp(0.57f, 0.47f, t);
     }
 
     private float CalculateSpacing(int cardCount, float cardScale)
@@ -1262,16 +1304,16 @@ public class CardDeskController : MonoBehaviour
 
         float effectiveWidth = Mathf.Max(120f, cardWidth);
         float scaledWidth = effectiveWidth * cardScale;
-        float safeSpan = 590f;
+        float safeSpan = 684f;
         float targetSpacing = (safeSpan - scaledWidth) / (cardCount - 1);
 
         if (cardCount <= 5)
         {
-            return Mathf.Clamp(targetSpacing, 84f, 94f);
+            return Mathf.Clamp(targetSpacing, 88f, 97f);
         }
 
-        float floorSpacing = Mathf.Min(scaledWidth + 4f, 70f);
-        return Mathf.Clamp(targetSpacing, floorSpacing, 92f);
+        float floorSpacing = Mathf.Min(scaledWidth + 5f, 76f);
+        return Mathf.Clamp(targetSpacing, floorSpacing, 95f);
     }
 
     private static string GetCardKey(CardData data)

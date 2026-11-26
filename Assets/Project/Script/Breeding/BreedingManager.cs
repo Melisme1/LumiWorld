@@ -137,6 +137,7 @@ public class BreedingManager : MonoBehaviour
         card.cardID = "creature_braluff";
         card.cardName = "Braluff";
         card.cardType = CardType.Creature;
+        card.islandId = "starter";
         card.baseScore = 5;
         card.occupiesTile = true;
 
@@ -216,8 +217,12 @@ public class BreedingManager : MonoBehaviour
 
         if (!hasBraluffRecipe)
         {
-            CardData deerCard = Resources.Load<CardData>("Cards/Deer");
-            CardData caterCard = Resources.Load<CardData>("Cards/Caterpillar");
+            // Ưu tiên lấy CardData từ CardCatalog chính (Assets/Data/Save/CardCatalog.asset) để đồng bộ instance/schema/rarity/islandId
+            CardData deerCard = FindCardFromMainCatalog("creature_deer", "deer", "nai", "bramblet");
+            CardData caterCard = FindCardFromMainCatalog("creature_caterpillar", "caterpillar", "sâu", "sau", "petaluff");
+
+            if (deerCard == null) deerCard = Resources.Load<CardData>("Cards/Deer");
+            if (caterCard == null) caterCard = Resources.Load<CardData>("Cards/Caterpillar");
 
             if (deerCard == null || caterCard == null)
             {
@@ -256,6 +261,37 @@ public class BreedingManager : MonoBehaviour
             }
         }
         UpgradeExistingBraluffCardsInHand();
+    }
+
+    private static CardData FindCardFromMainCatalog(string exactId, params string[] keywords)
+    {
+        CardCatalog catalog = WorldSaveSystem.Instance != null ? WorldSaveSystem.Instance.Cards : null;
+        if (catalog == null) return null;
+
+        if (!string.IsNullOrEmpty(exactId))
+        {
+            CardData exact = catalog.Find(exactId);
+            if (exact != null) return exact;
+        }
+
+        var all = catalog.AllCards;
+        if (all == null || keywords == null || keywords.Length == 0) return null;
+
+        for (int i = 0; i < all.Count; i++)
+        {
+            CardData c = all[i];
+            if (c == null) continue;
+            string id = c.cardID?.ToLowerInvariant() ?? "";
+            string nm = c.cardName?.ToLowerInvariant() ?? "";
+            for (int k = 0; k < keywords.Length; k++)
+            {
+                string kw = keywords[k];
+                if (!string.IsNullOrEmpty(kw) && (id.Contains(kw) || nm.Contains(kw)))
+                    return c;
+            }
+        }
+
+        return null;
     }
 
     public static void UpgradeExistingBraluffCardsInHand()

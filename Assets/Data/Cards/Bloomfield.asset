@@ -16,10 +16,16 @@ MonoBehaviour:
   cardName: Bloomfield
   cardImage: {fileID: 21300000, guid: ccf0dd4b987f4c5d912114c285f1f60c, type: 3}
   cardType: 1
+  rarity: 0
+  islandId: starter
+  reusable: 0
+  elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 1
   alwaysBaseScore: 0
-  shopPrice: 20
-  placementFee: 5
+  shopPrice: 35
+  placementFee: 10
   prefabToPlace: {fileID: 0}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

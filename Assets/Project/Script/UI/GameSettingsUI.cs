@@ -1,6 +1,7 @@
 using LumiWorld.Acs;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -102,13 +103,15 @@ public class GameSettingsUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EconomyHUD.UnregisterWindow(_backdropGo);
         if (Instance == this)
             Instance = null;
     }
 
     private void Update()
     {
-        if (IsOpen && Input.GetKeyDown(KeyCode.Escape))
+        if (_isMainMenuMode && IsOpen && !EconomyHUD.IsWindowOpen &&
+            Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             Close();
     }
 
@@ -128,7 +131,12 @@ public class GameSettingsUI : MonoBehaviour
         _isMainMenuMode = _isMainMenuMode || IsCurrentlyMainMenuScene();
         BuildModalIfNeeded();
         if (_backdropGo != null)
+        {
             _backdropGo.SetActive(true);
+            EconomyHUD.BringWindowToFront(_backdropGo);
+            if (_isMainMenuMode) EconomyHUD.UnregisterWindow(_backdropGo);
+            else EconomyHUD.RegisterWindow(_backdropGo, Close);
+        }
 
         ApplyScale();
         RefreshAudioControls();
@@ -138,6 +146,7 @@ public class GameSettingsUI : MonoBehaviour
 
     public void Close()
     {
+        if (IsOpen) EconomyHUD.MarkWindowClosed();
         if (_backdropGo != null)
             _backdropGo.SetActive(false);
     }

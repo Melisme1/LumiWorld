@@ -1,0 +1,411 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f31790e2e0ed856418ca2b0557e820c4, type: 3}
+  m_Name: Profile_Rainleaf_1Hex
+  m_EditorClassIdentifier: Assembly-CSharp::LumiWorld.Acs.BiomeLayoutProfile
+  biomeId: Rainleaf
+  designNotes: '4A Single Hex: Dark rainforest floor, young tilted banana/palm sapling,
+    broadleaf understory, moss stone & low grass.'
+  waterMask1Hex: {fileID: 0}
+  waterMask3Hex: {fileID: 0}
+  waterMask6Hex: {fileID: 0}
+  waterMask10Hex: {fileID: 0}
+  surfaceSettings:
+    tileHeight: 1.055
+    outerBevelWidth: 0.082
+    outerBevelDrop: 0.052
+    dryInteriorSeamDepth: 0.036
+    dryInteriorSeamWidth: 0.072
+    shoreStartMask: 0.9
+    waterThresholdMask: 0.95
+    maxBasinDepth: 0
+    waterSurfaceDrop: 0
+    streamSlopeDrop: 0
+    streamSlopeDir: {x: 0.78, y: -0.62}
+    radialSubdivisions: 22
+  minSwimWaterDepthMeters: 0.06
+  walkableSampleSpacing: 0.55
+  swimmableSampleSpacing: 0.45
+  creatureAgentRadius: 0.28
+  layers:
+  - roleId: YoungTropicalTree
+    count1: 1
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 0
+    guides:
+    - u: 0.46
+      v: 0.58
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.05
+    spacing: 0.24
+    obstacleRadius: 0.14
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 4
+    tiltMax: 10
+    yaw: 0
+    waterHeight: 0
+    facing: 2
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.14
+    preserveAuthoredPivot: 1
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 3233550464268409454, guid: fb8ccbfbd291d014786a4085f7e43dc5, type: 3}
+    - {fileID: 2283747778199975526, guid: e25b587d74a77814391e92139ced21e0, type: 3}
+    - {fileID: 4298377892094224601, guid: c37e32a7f368a914387ddce000fb6511, type: 3}
+    - {fileID: 7845601842960154373, guid: 59742868538139f46a9e317380625afb, type: 3}
+    - {fileID: 1893671176723844791, guid: a58a50c77fb62b74ba0c01cb146c9a1e, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 3233550464268409454, guid: fb8ccbfbd291d014786a4085f7e43dc5, type: 3}
+      - {fileID: 2283747778199975526, guid: e25b587d74a77814391e92139ced21e0, type: 3}
+      - {fileID: 4298377892094224601, guid: c37e32a7f368a914387ddce000fb6511, type: 3}
+      - {fileID: 7845601842960154373, guid: 59742868538139f46a9e317380625afb, type: 3}
+      - {fileID: 1893671176723844791, guid: a58a50c77fb62b74ba0c01cb146c9a1e, type: 3}
+      size:
+        primaryAxis: 0
+        targetMin: 1.02
+        targetMax: 1.28
+        minHeight: 0.96
+        maxHeight: 1.35
+        minFootprint: 0.5
+        maxFootprint: 1.38
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: BroadleafUnderstory
+    count1: 3
+    count3: 3
+    count6: 3
+    count10: 3
+    ground: 0
+    guides:
+    - u: 0.24
+      v: 0.46
+    - u: 0.72
+      v: 0.62
+    - u: 0.56
+      v: 0.26
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.06
+    spacing: 0.3
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 2034946973503931204, guid: 70598159e1320a944a65c7eef38d4288, type: 3}
+    - {fileID: 2619666596073837699, guid: 6f1b8a72b163d6b40a968bf1da4b04cd, type: 3}
+    - {fileID: 3873265267537306352, guid: 9f9aba593c4da424f8d925ee0438d4f7, type: 3}
+    - {fileID: 5585893244726091128, guid: a029c488379cc3b4dae7791ce4db62d7, type: 3}
+    - {fileID: 1210008397296558947, guid: 8efb7bbc0bd564b49ba8d4ae03c32a40, type: 3}
+    - {fileID: 5384587175351357555, guid: 435b66698d3074949a86e2007bbeacc3, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 3
+      assets:
+      - {fileID: 2034946973503931204, guid: 70598159e1320a944a65c7eef38d4288, type: 3}
+      - {fileID: 2619666596073837699, guid: 6f1b8a72b163d6b40a968bf1da4b04cd, type: 3}
+      - {fileID: 3873265267537306352, guid: 9f9aba593c4da424f8d925ee0438d4f7, type: 3}
+      - {fileID: 5585893244726091128, guid: a029c488379cc3b4dae7791ce4db62d7, type: 3}
+      - {fileID: 1210008397296558947, guid: 8efb7bbc0bd564b49ba8d4ae03c32a40, type: 3}
+      - {fileID: 5384587175351357555, guid: 435b66698d3074949a86e2007bbeacc3, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.46
+        targetMax: 0.66
+        minHeight: 0.13
+        maxHeight: 0.54
+        minFootprint: 0.42
+        maxFootprint: 0.72
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: MossStone
+    count1: 1
+    count3: 1
+    count6: 1
+    count10: 1
+    ground: 0
+    guides:
+    - u: 0.36
+      v: 0.74
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.06
+    spacing: 0.22
+    obstacleRadius: 0.12
+    yOffset: -0.07
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0.75
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+    - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+    - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+    - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 1
+      assets:
+      - {fileID: 4943265528828891085, guid: c1554c2d46f3743488bb207211636524, type: 3}
+      - {fileID: 3410813805650590901, guid: da1468ccade5949419e3616fcb9fe2d1, type: 3}
+      - {fileID: 933746219868001714, guid: b589883e178cb8a4bbf12a71787a6362, type: 3}
+      - {fileID: 5688295396017388122, guid: 0919498279d49ed429a98fb00459c999, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.34
+        targetMax: 0.46
+        minHeight: 0.13
+        maxHeight: 0.34
+        minFootprint: 0.3
+        maxFootprint: 0.5
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  - roleId: CentralGrassCarpet
+    count1: 3
+    count3: 3
+    count6: 3
+    count10: 3
+    ground: 0
+    guides:
+    - u: 0.32
+      v: 0.26
+    - u: 0.74
+      v: 0.38
+    - u: 0.54
+      v: 0.8
+    clusterAroundParentRole: []
+    radiusMin: 0.22
+    radiusMax: 0.56
+    spread: 0.07
+    spacing: 0.24
+    obstacleRadius: 0
+    yOffset: 0
+    scaleMin: 0.92
+    scaleMax: 1.05
+    tiltMin: 0
+    tiltMax: 0
+    yaw: 0
+    waterHeight: 0
+    facing: 0
+    crossingLength: 0
+    crossingPivotToCenter: 0
+    allowedVisualOverlap: 0.35
+    solidFootprintFraction: 0
+    preserveAuthoredPivot: 0
+    parentHeightFraction: 0
+    hangFromParent: 0
+    pool:
+    - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+    - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+    - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+    - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+    - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+    - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+    useTierPresets: 1
+    hex1:
+      enabled: 1
+      count: 3
+      assets:
+      - {fileID: 3360111903913404556, guid: 1e861ba8212ae6049abaa7410d2207e0, type: 3}
+      - {fileID: 6328896939749793261, guid: ec5546aeb1681474796f8dafbd73f863, type: 3}
+      - {fileID: 4517163931445454269, guid: 8f0b52b3d1888564087f079571678433, type: 3}
+      - {fileID: 3859615967484468920, guid: d91f7b07e507125449cd359d6f60c78f, type: 3}
+      - {fileID: 289980197322557729, guid: f1758ebe50d440f4992fdfb5c28c8f41, type: 3}
+      - {fileID: 2593853205175069732, guid: c1bb665608e348341bb0ee348eef828c, type: 3}
+      size:
+        primaryAxis: 1
+        targetMin: 0.34
+        targetMax: 0.48
+        minHeight: 0.06
+        maxHeight: 0.25
+        minFootprint: 0.3
+        maxFootprint: 0.52
+    hex3:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex6:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+    hex10:
+      enabled: 1
+      count: 0
+      assets: []
+      size:
+        primaryAxis: 0
+        targetMin: 0.35
+        targetMax: 0.5
+        minHeight: 0.04
+        maxHeight: 1
+        minFootprint: 0.15
+        maxFootprint: 1
+  dryCorridorWidth: 0
+  sizingVersion: 1

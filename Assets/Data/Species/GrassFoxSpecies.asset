@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: GrassFoxSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: grassfox
-  speciesName: "Cáo Cỏ"
-  description: "Loài cáo huyền thoại được thiên nhiên ban tặng chiếc đuôi dương xỉ xanh biếc, hòa quyện tuyệt đối cùng cây cỏ đại ngàn."
+  speciesName: Fernkin
+  description: An agile fern-tailed fox that weaves quietly through misty rainleaf
+    clearings and mossy streamstones.
   locomotionType: 0
   baseWalkSpeed: 0.52
   baseRunSpeed: 1.05
@@ -28,10 +29,4 @@ MonoBehaviour:
   weight3Star: 16
   weight4Star: 7
   weight5Star: 3
-  traitPool:
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
+  traitPool: 000000000100000002000000030000000400000005000000

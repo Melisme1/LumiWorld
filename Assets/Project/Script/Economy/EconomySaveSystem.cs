@@ -461,6 +461,8 @@ public class EconomySaveSystem : MonoBehaviour
         }
 
         data = data ?? new EconomySaveData();
+        if (data.islandAccess == null) data.islandAccess = new List<LumiWorld.Acs.Islands.IslandAccessRecord>();
+        if (data.achievementProgress == null) data.achievementProgress = new List<AchievementProgressRecord>();
         if (data.resources == null) data.resources = new List<ResourceStack>();
         if (data.openOrders == null) data.openOrders = new List<ActiveOrder>();
         if (data.orderRefills == null) data.orderRefills = new List<OrderSlotRefill>();

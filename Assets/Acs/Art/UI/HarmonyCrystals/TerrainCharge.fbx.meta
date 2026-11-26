@@ -1,0 +1,27 @@
+fileFormatVersion: 2
+guid: 4db8411a2de85d7abbe9423154a74c6f
+ModelImporter:
+  serializedVersion: 19301
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Forest
+    second: {fileID: 2100000, guid: caf1ffba40755fe2ad989f9069c33ab6, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  meshes:
+    globalScale: 1
+    useFileScale: 1
+    useFileUnits: 1
+    fileIdsGeneration: 2
+    weldVertices: 1
+  tangentSpace:
+    normalImportMode: 0
+    tangentImportMode: 3
+  animationType: 0
+  importAnimation: 0

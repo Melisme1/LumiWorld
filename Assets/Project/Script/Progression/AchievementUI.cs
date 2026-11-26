@@ -81,6 +81,7 @@ public class AchievementUI : MonoBehaviour
     private TextMeshProUGUI _claimBtnLabel;
 
     private AchievementCategory _activeCategory = AchievementCategory.All;
+    private string _islandChapter = "starter";
     private readonly List<AchievementEntry> _allEntries = new List<AchievementEntry>();
     private readonly List<AchievementEntry> _filteredEntries = new List<AchievementEntry>();
     private readonly Dictionary<string, GameObject> _selectionBorders = new Dictionary<string, GameObject>();
@@ -127,14 +128,9 @@ public class AchievementUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EconomyHUD.UnregisterWindow(_backdropGo);
         if (Instance == this)
             Instance = null;
-    }
-
-    private void Update()
-    {
-        if (IsOpen && Input.GetKeyDown(KeyCode.Escape))
-            CloseWindow();
     }
 
     private void HideLegacyHudButton()
@@ -159,7 +155,11 @@ public class AchievementUI : MonoBehaviour
         BuildModalIfNeeded();
         HideLegacyHudButton();
         if (_backdropGo != null)
+        {
             _backdropGo.SetActive(true);
+            EconomyHUD.RegisterWindow(_backdropGo, CloseWindow);
+            EconomyHUD.BringWindowToFront(_backdropGo);
+        }
 
         ApplyScale();
         _feedbackMsg = string.Empty;
@@ -172,6 +172,7 @@ public class AchievementUI : MonoBehaviour
 
     public void CloseWindow()
     {
+        if (IsOpen) EconomyHUD.MarkWindowClosed();
         if (_backdropGo != null)
             _backdropGo.SetActive(false);
     }
@@ -252,6 +253,14 @@ public class AchievementUI : MonoBehaviour
 
     private void BuildHeader()
     {
+        for (int i = 0; i < 2; i++)
+        {
+            string chapter = i == 0 ? "starter" : "wet";
+            var chapterButton = LumiWorldUITheme.CreatePillButton(_windowRect, chapter + "Chapter", i == 0 ? "Starter" : "Wet",
+                null, false, 14f, () => { _islandChapter = chapter; _selectedKey = null; RebuildEntries(); ApplyCategoryFilter(true); },
+                out _, out _, out _);
+            LumiWorldUITheme.PlaceTopLeft(chapterButton.GetComponent<RectTransform>(), 230f + i * 105f, 20f, 98f, 34f);
+        }
         string headerGlyph = LumiWorldUITheme.Glyph("G-02") != null ? "G-02" : "G-03";
         Button badgeTitle = LumiWorldUITheme.CreatePillButton(
             _windowRect, "TitleBadge", "Achievements", headerGlyph, true, 16f,
@@ -512,7 +521,7 @@ public class AchievementUI : MonoBehaviour
             for (int i = 0; i < mgr.Milestones.Count; i++)
             {
                 IslandMilestone m = mgr.Milestones[i];
-                if (m == null) continue;
+                if (m == null || (string.IsNullOrEmpty(m.islandId) ? "starter" : m.islandId) != _islandChapter) continue;
                 AchievementCategory cat = ResolveCategory(m.id);
                 float frac = m.isCompleted ? 1f : Mathf.Clamp01(m.currentProgress);
                 _allEntries.Add(new AchievementEntry
@@ -543,7 +552,7 @@ public class AchievementUI : MonoBehaviour
             for (int i = 0; i < mgr.Achievements.Count; i++)
             {
                 AchievementGoal g = mgr.Achievements[i];
-                if (g == null) continue;
+                if (g == null || (string.IsNullOrEmpty(g.islandId) ? "starter" : g.islandId) != _islandChapter) continue;
                 AchievementCategory cat = ResolveCategory(g.id);
                 int target = Mathf.Max(1, g.targetCount);
                 int cur = Mathf.Clamp(g.currentCount, 0, target);
@@ -729,13 +738,32 @@ public class AchievementUI : MonoBehaviour
 
             Image statusPill = LumiWorldUITheme.CreateRoundedSurface(
                 rowImg.transform, "StatusPill", badgeFill, Color.clear,
-                radius: 10, borderThickness: 0f, shadowDepth: 0f, shadowAlpha: 0f, raycastTarget: false);
+                radius: 10, borderThickness: 0f,
+                shadowDepth: entry.CanClaim ? 2f : 0f,
+                shadowAlpha: entry.CanClaim ? 0.16f : 0f,
+                raycastTarget: entry.CanClaim);
             LumiWorldUITheme.PlaceTopRight(statusPill.rectTransform, 14f, 25f, 88f, 32f);
+            statusPill.transform.SetAsLastSibling();
 
             TextMeshProUGUI statusTxt = LumiWorldUITheme.CreateLabel(
                 statusPill.transform, "StatusTxt", badgeLabel, 13f, badgeTextCol,
                 headingFont: true, align: TextAlignmentOptions.Center);
             LumiWorldUITheme.Stretch(statusTxt.rectTransform);
+
+            if (entry.CanClaim)
+            {
+                Button rowClaimBtn = statusPill.gameObject.AddComponent<Button>();
+                rowClaimBtn.targetGraphic = statusPill;
+                rowClaimBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+                ColorBlock cb = rowClaimBtn.colors;
+                cb.normalColor = Color.white;
+                cb.highlightedColor = new Color(0.92f, 0.96f, 0.90f, 1f);
+                cb.pressedColor = new Color(0.80f, 0.88f, 0.78f, 1f);
+                cb.selectedColor = Color.white;
+                cb.fadeDuration = 0.08f;
+                rowClaimBtn.colors = cb;
+                rowClaimBtn.onClick.AddListener(() => ExecuteClaimEntry(key));
+            }
         }
     }
 
@@ -814,9 +842,23 @@ public class AchievementUI : MonoBehaviour
 
     private void ExecuteClaimSelected()
     {
-        AchievementEntry entry = FindSelectedEntry();
-        if (entry == null || !entry.CanClaim || AchievementManager.Instance == null)
+        ExecuteClaimEntry(_selectedKey);
+    }
+
+    private void ExecuteClaimEntry(string entryKey)
+    {
+        if (string.IsNullOrEmpty(entryKey) || AchievementManager.Instance == null)
             return;
+
+        _selectedKey = entryKey;
+        AchievementEntry entry = FindEntryByKey(entryKey);
+        if (entry == null || !entry.CanClaim)
+        {
+            SelectEntry(entryKey);
+            return;
+        }
+
+        GameAudioManager.Instance?.PlayClick();
 
         bool ok;
         string rewardInfo;
@@ -828,7 +870,7 @@ public class AchievementUI : MonoBehaviour
         _feedbackError = !ok;
         _feedbackMsg = ok
             ? (string.IsNullOrEmpty(rewardInfo) ? "Reward claimed!" : rewardInfo)
-            : "Cannot claim reward yet.";
+            : (string.IsNullOrEmpty(rewardInfo) ? "Cannot claim reward yet." : rewardInfo);
 
         RebuildEntries();
         ApplyCategoryFilter(resetScroll: false);
@@ -836,9 +878,17 @@ public class AchievementUI : MonoBehaviour
 
     private AchievementEntry FindSelectedEntry()
     {
+        return FindEntryByKey(_selectedKey);
+    }
+
+    private AchievementEntry FindEntryByKey(string key)
+    {
+        if (string.IsNullOrEmpty(key))
+            return null;
+
         for (int i = 0; i < _filteredEntries.Count; i++)
         {
-            if (_filteredEntries[i].Key == _selectedKey)
+            if (_filteredEntries[i].Key == key)
                 return _filteredEntries[i];
         }
         return null;
@@ -846,6 +896,7 @@ public class AchievementUI : MonoBehaviour
 
     private static AchievementCategory ResolveCategory(string id)
     {
+        if (id != null && id.Contains(":")) id = id.Substring(id.IndexOf(':') + 1);
         switch (id)
         {
             case "M1_FIRST_HABITAT":
@@ -872,6 +923,7 @@ public class AchievementUI : MonoBehaviour
 
     private static string ResolveBadgeId(string id, bool isMilestone, int fallbackIndex)
     {
+        if (id != null && id.Contains(":")) id = id.Substring(id.IndexOf(':') + 1);
         switch (id)
         {
             case "M1_FIRST_HABITAT": return "A-01";

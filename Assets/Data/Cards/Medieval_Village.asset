@@ -13,13 +13,19 @@ MonoBehaviour:
   m_Name: Medieval_Village
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardID: Medieval_Village
-  cardName: "L\xE0ng Trung C\u1ED5"
+  cardName: Medieval Village
   cardImage: {fileID: 0}
   cardType: 2
+  rarity: 0
+  islandId: starter
+  reusable: 0
+  elevationChange: 0
+  isTriangleRain: 0
+  isTerraformTool: 0
   baseScore: 5
   alwaysBaseScore: 0
-  shopPrice: 25
-  placementFee: 0
+  shopPrice: 75
+  placementFee: 15
   prefabToPlace: {fileID: 0}
   useEffectPrefab: {fileID: 0}
   useEffectOffset: {x: 0, y: 0.1, z: 0}

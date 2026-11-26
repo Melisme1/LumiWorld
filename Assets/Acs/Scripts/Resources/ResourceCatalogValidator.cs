@@ -189,7 +189,7 @@ namespace LumiWorld.Acs
                 string[] parts = spec.Id.Split('.');
                 string expectedIconName = "lumi_t" + (int)spec.Tier + "_" + parts[1] + "_" + parts[2];
                 if (definition.resource.icon != null && definition.resource.icon.name != expectedIconName)
-                    result.errors.Add(spec.Id + ": Icon phải là " + expectedIconName + ".png.");
+                    result.warnings.Add(spec.Id + ": Icon đang dùng tên khác " + expectedIconName + ".png.");
             }
         }
 

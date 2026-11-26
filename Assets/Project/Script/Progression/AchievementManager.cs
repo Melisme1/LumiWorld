@@ -6,6 +6,7 @@ using LumiWorld.Acs;
 [Serializable]
 public class IslandMilestone
 {
+    public string islandId = "starter";
     public int index;
     public string id;
     public string title;
@@ -23,6 +24,7 @@ public class IslandMilestone
 [Serializable]
 public class AchievementGoal
 {
+    public string islandId = "starter";
     public string id;
     public string title;
     public string description;
@@ -78,7 +80,7 @@ public class AchievementManager : MonoBehaviour
 
     [Header("Island Unlock 3 Conditions")]
     [Tooltip("Điều kiện 1: Đạt đủ điểm Harmony (ví dụ 50 điểm)")]
-    public bool condition1_HarmonyMet => totalHarmony >= nextIslandThreshold;
+    public bool condition1_HarmonyMet => condition2_MaxHabitatMet && condition3_CreaturesMet;
 
     [Tooltip("Điều kiện 2: Sở hữu ít nhất 1 cụm Habitat đạt 6 hex")]
     public bool condition2_MaxHabitatMet = false;
@@ -151,6 +153,7 @@ public class AchievementManager : MonoBehaviour
     /// </summary>
     private void LoadProgress()
     {
+        InitializeIslandChapters();
         // Khóa PlayerPrefs cũ chỉ theo máy và bị xóa mỗi lần mở game, không chuyển sang tài khoản
         bool removedLegacy = false;
         foreach (string key in LegacyClaimKeys)
@@ -171,6 +174,7 @@ public class AchievementManager : MonoBehaviour
             EconomySaveSystem.Instance.MarkDirty();
         }
 
+        InitializeIslandChapters();
         totalHarmony = progress.totalHarmony;
         hasRankedUpAnyCreature = progress.hasRankedUpAnyCreature;
 
@@ -180,7 +184,10 @@ public class AchievementManager : MonoBehaviour
         claimedIds.Clear();
         foreach (string id in progress.claimedAchievementIds) claimedIds.Add(id);
         foreach (AchievementGoal goal in achievements)
+        {
             goal.isClaimed = claimedIds.Contains(goal.id);
+            goal.currentCount = progress.achievementProgress.Find(r => r.id == goal.id)?.count ?? 0;
+        }
 
         OnHarmonyChanged?.Invoke(totalHarmony, nextIslandThreshold);
     }
@@ -239,15 +246,59 @@ public class AchievementManager : MonoBehaviour
     private void HandleRankUpgraded(string creatureId, CreatureQualityRank rank)
     {
         if (WorldLaunch.IsVisit) return;
-        hasRankedUpAnyCreature = true;
-
-        EconomySaveData progress = SavedProgress;
-        if (progress != null && !progress.hasRankedUpAnyCreature)
+        string chapter = null;
+        if (HabitatRuntimeManager.TryGetActive(out var manager))
+            foreach (var h in manager.Habitats)
+                if (h.residents.Exists(r => r.individualId == creatureId)) chapter = h.island == HabitatIsland.Wet ? "wet" : "starter";
+        if (chapter == null) return;
+        ReportProgress("ACH_FIRST_CARE", 1, chapter);
+        if (chapter == "starter")
         {
-            progress.hasRankedUpAnyCreature = true;
-            EconomySaveSystem.Instance.MarkDirty();
+            hasRankedUpAnyCreature = true;
+            if (SavedProgress != null) SavedProgress.hasRankedUpAnyCreature = true;
         }
         EvaluateMilestones();
+    }
+
+    private static string GoalKey(string island, string id) => island == "starter" ? id : island + ":" + id;
+
+    private void InitializeIslandChapters()
+    {
+        if (milestones.Count == 4)
+            for (int i = 0; i < 4; i++)
+            {
+                var copy = JsonUtility.FromJson<IslandMilestone>(JsonUtility.ToJson(milestones[i]));
+                copy.index = i + 4; copy.islandId = "wet"; copy.id = "wet:" + copy.id;
+                copy.isClaimed = SavedProgress != null && SavedProgress.claimedMilestoneIds.Contains(copy.id);
+                copy.isCompleted = false; copy.currentProgress = 0;
+                milestones.Add(copy);
+            }
+        if (!achievements.Exists(g => g.islandId == "wet"))
+            foreach (var goal in new List<AchievementGoal>(achievements))
+            {
+                var copy = JsonUtility.FromJson<AchievementGoal>(JsonUtility.ToJson(goal));
+                copy.islandId = "wet"; copy.id = "wet:" + copy.id; copy.currentCount = 0;
+                copy.isClaimed = SavedProgress != null && SavedProgress.claimedAchievementIds.Contains(copy.id);
+                achievements.Add(copy);
+            }
+    }
+
+    private void UpdateObservedGoal(string island, string id, int count)
+    {
+        var goal = achievements.Find(g => g.id == GoalKey(island, id));
+        if (goal == null || count <= goal.currentCount) return;
+        goal.currentCount = Mathf.Min(goal.targetCount, count);
+        PersistGoal(goal);
+    }
+
+    private void PersistGoal(AchievementGoal goal)
+    {
+        var progress = SavedProgress;
+        if (progress == null || !CanGrantRewards()) return;
+        var record = progress.achievementProgress.Find(r => r.id == goal.id);
+        if (record == null) { record = new AchievementProgressRecord { id = goal.id }; progress.achievementProgress.Add(record); }
+        record.count = goal.currentCount;
+        EconomySaveSystem.Instance.MarkDirty();
     }
 
     public void InitializeDefaultMilestones()
@@ -262,10 +313,10 @@ public class AchievementManager : MonoBehaviour
             title = "FIRST HABITAT",
             shortCondition = "Establish First Habitat",
             description = "Successfully create a compatible Habitat cluster with at least 1 resident creature settled on the island.",
-            rewardText = "Coins & Creature Food",
+            rewardText = "Coins & Harmony",
             rewardCoins = 30,
             rewardHarmony = 15,
-            rewardBonusInfo = "Creature Care Food Pack",
+            rewardBonusInfo = "",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -281,7 +332,7 @@ public class AchievementManager : MonoBehaviour
             rewardText = "Coins & Terrain Card",
             rewardCoins = 40,
             rewardHarmony = 20,
-            rewardBonusInfo = "Blueprint / Terrain Card Pack",
+            rewardBonusInfo = "Nature Card",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -294,10 +345,10 @@ public class AchievementManager : MonoBehaviour
             title = "RANK UP",
             shortCondition = "Promote Creature Quality Rank",
             description = "Care for a creature to reach 100 Care points and promote its quality rank to Rank II or Rank III.",
-            rewardText = "Coins & Supply Pack",
+            rewardText = "Coins & Harmony",
             rewardCoins = 50,
             rewardHarmony = 25,
-            rewardBonusInfo = "Care Supply Pack & Upgrade Items",
+            rewardBonusInfo = "",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -310,10 +361,10 @@ public class AchievementManager : MonoBehaviour
             title = "ISLAND STORY",
             shortCondition = "Island Ecosystem Milestone",
             description = "Expand a Habitat cluster to 6+ hexes, or nurture 3 or more creatures residing on the island.",
-            rewardText = "Title + Coins & Rare Creature Card",
+            rewardText = "Coins & Harmony",
             rewardCoins = 100,
             rewardHarmony = 35,
-            rewardBonusInfo = "Title [Lumi Ecological Champion] & Ultra-Rare Creature Card",
+            rewardBonusInfo = "",
             isCompleted = false,
             isClaimed = false,
             currentProgress = 0f
@@ -330,7 +381,7 @@ public class AchievementManager : MonoBehaviour
             title = "Pioneer",
             description = "Place your first Nature terrain card on the board",
             targetCount = 1,
-            currentCount = 1,
+            currentCount = 0,
             rewardCoins = 15,
             harmonyPoints = 10
         });
@@ -341,7 +392,7 @@ public class AchievementManager : MonoBehaviour
             title = "Budding Ecology",
             description = "Expand a Biome cluster to 3 hexes (Unlocks first T1 resource slot)",
             targetCount = 3,
-            currentCount = 2,
+            currentCount = 0,
             rewardCoins = 25,
             harmonyPoints = 15
         });
@@ -352,7 +403,7 @@ public class AchievementManager : MonoBehaviour
             title = "Sanctuary Haven",
             description = "Expand a Biome cluster to 6 hexes (Unlocks T2 resource slot)",
             targetCount = 6,
-            currentCount = 4,
+            currentCount = 0,
             rewardCoins = 50,
             harmonyPoints = 25
         });
@@ -363,7 +414,7 @@ public class AchievementManager : MonoBehaviour
             title = "Forest Companion",
             description = "Place a creature into a compatible Habitat",
             targetCount = 1,
-            currentCount = 1,
+            currentCount = 0,
             rewardCoins = 20,
             harmonyPoints = 10
         });
@@ -374,7 +425,7 @@ public class AchievementManager : MonoBehaviour
             title = "Wild Harmony",
             description = "Trigger the 20s connection ring effect between creatures",
             targetCount = 1,
-            currentCount = 1,
+            currentCount = 0,
             rewardCoins = 35,
             harmonyPoints = 20
         });
@@ -396,7 +447,7 @@ public class AchievementManager : MonoBehaviour
             title = "Bountiful Harvest",
             description = "Harvest 10 resource batches into the Warehouse",
             targetCount = 10,
-            currentCount = 6,
+            currentCount = 0,
             rewardCoins = 30,
             harmonyPoints = 15
         });
@@ -417,103 +468,45 @@ public class AchievementManager : MonoBehaviour
             if (milestones.Count < 4) return;
             if (!CanEvaluateWorld()) return;
 
-        // 1. Kiểm tra Mốc 1: Habitat có cư dân sinh vật
-        bool m1Met = false;
-        float m1Prog = 0f;
-        HabitatRuntimeManager habitatMgr = null;
-        HabitatRuntimeManager.TryGetActive(out habitatMgr);
-        if (habitatMgr != null && habitatMgr.Habitats != null)
+        InitializeIslandChapters();
+        if (!HabitatRuntimeManager.TryGetActive(out var habitatMgr)) return;
+        foreach (string chapter in new[] { "starter", "wet" })
         {
-            foreach (var h in habitatMgr.Habitats)
+            var island = chapter == "starter" ? HabitatIsland.Starter : HabitatIsland.Wet;
+            var groups = new List<HabitatState>();
+            foreach (var h in habitatMgr.Habitats) if (h.island == island) groups.Add(h);
+            int natureCount = 0, maxCluster = 0, creatures = 0, ranked = 0;
+            foreach (var h in groups)
             {
-                if (h == null) continue;
-                if (h.residents != null && h.residents.Count > 0)
-                {
-                    m1Met = true;
-                    m1Prog = 1f;
-                    break;
-                }
-                if (h.members != null && h.members.Count > 0)
-                {
-                    m1Prog = Mathf.Max(m1Prog, 0.5f);
-                }
+                natureCount += h.HexCount;
+                maxCluster = Mathf.Max(maxCluster, h.HexCount);
+                creatures += h.residents.Count;
+                foreach (var resident in h.residents) if (resident.qualityRank >= CreatureQualityRank.RankII) ranked++;
+            }
+            int offset = chapter == "starter" ? 0 : 4;
+            bool care = ranked > 0 || (chapter == "starter" && hasRankedUpAnyCreature) ||
+                achievements.Find(g => g.id == GoalKey(chapter, "ACH_FIRST_CARE")).IsCompleted;
+            bool[] complete = { creatures > 0, creatures > 0, care, maxCluster >= 6 || creatures >= 3 };
+            float[] ratios = { creatures > 0 ? 1 : natureCount > 0 ? .5f : 0, creatures > 0 ? 1 : 0,
+                care ? 1 : 0, Mathf.Max(maxCluster / 6f, creatures / 3f) };
+            for (int i = 0; i < 4; i++)
+            {
+                milestones[offset + i].isCompleted = complete[i];
+                milestones[offset + i].currentProgress = Mathf.Clamp01(ratios[i]);
+            }
+            UpdateObservedGoal(chapter, "ACH_FIRST_NATURE", natureCount);
+            UpdateObservedGoal(chapter, "ACH_HABITAT_3", maxCluster);
+            UpdateObservedGoal(chapter, "ACH_HABITAT_6", maxCluster);
+            UpdateObservedGoal(chapter, "ACH_FIRST_CREATURE", creatures);
+            UpdateObservedGoal(chapter, "ACH_FIRST_CARE", care ? 1 : 0);
+            if (chapter == "starter")
+            {
+                condition2_MaxHabitatMet = groups.Exists(h => h.affinity == BiomeAffinity.Leafwood && h.HexCount >= 3) &&
+                    groups.Exists(h => h.affinity == BiomeAffinity.Bloomfield && h.HexCount >= 3) &&
+                    groups.Exists(h => h.affinity == BiomeAffinity.Windheath && h.HexCount >= 3);
+                condition3_CreaturesMet = creatures >= 3;
             }
         }
-        var activeAnimals = FindObjectsByType<AnimalIndividual>(FindObjectsSortMode.None);
-        if (!m1Met && activeAnimals != null && activeAnimals.Length > 0)
-        {
-            m1Met = true;
-            m1Prog = 1f;
-        }
-        milestones[0].isCompleted = m1Met;
-        milestones[0].currentProgress = m1Prog;
-
-        // 2. Kiểm tra Mốc 2: Triển khai loài mới lên đảo
-        bool m2Met = (activeAnimals != null && activeAnimals.Length > 0);
-        milestones[1].isCompleted = m2Met;
-        milestones[1].currentProgress = m2Met ? 1f : 0f;
-
-        // 3. Kiểm tra Mốc 3: Nâng rank sinh vật
-        bool m3Met = hasRankedUpAnyCreature;
-        float maxCareRatio = 0f;
-        if (activeAnimals != null)
-        {
-            foreach (var animal in activeAnimals)
-            {
-                if (animal == null) continue;
-                if (animal.StarLevel >= 2 || animal.Rank > AnimalRank.Common)
-                {
-                    m3Met = true;
-                    break;
-                }
-                if (CreatureCareManager.Instance != null && !string.IsNullOrEmpty(CreatureCareManager.KeyOf(animal, null)))
-                {
-                    int care = CreatureCareManager.Instance.GetCareProgress(CreatureCareManager.KeyOf(animal, null));
-                    maxCareRatio = Mathf.Max(maxCareRatio, care / 100f);
-                }
-            }
-        }
-        if (!m3Met)
-        {
-            var identities = FindObjectsByType<HabitatPlacementIdentity>(FindObjectsSortMode.None);
-            if (identities != null)
-            {
-                foreach (var id in identities)
-                {
-                    if (id != null && id.QualityRank >= CreatureQualityRank.RankII)
-                    {
-                        m3Met = true;
-                        break;
-                    }
-                }
-            }
-        }
-        milestones[2].isCompleted = m3Met;
-        milestones[2].currentProgress = m3Met ? 1f : maxCareRatio;
-
-        // 4. Kiểm tra Mốc 4: Mở rộng cụm >= 6 hex hoặc >= 3 sinh vật
-        int maxCluster = 0;
-        if (habitatMgr != null && habitatMgr.Habitats != null)
-        {
-            foreach (var h in habitatMgr.Habitats)
-            {
-                if (h != null && h.members != null)
-                {
-                    maxCluster = Mathf.Max(maxCluster, h.members.Count);
-                }
-            }
-        }
-        int animalTotal = activeAnimals != null ? activeAnimals.Length : 0;
-        bool m4Met = (maxCluster >= 6 || animalTotal >= 3);
-        milestones[3].isCompleted = m4Met;
-        milestones[3].currentProgress = m4Met ? 1f : Mathf.Max(maxCluster / 6f, animalTotal / 3f);
-
-        // Đồng bộ lại 3 điều kiện mở đảo
-        condition2_MaxHabitatMet = maxCluster >= 6;
-        condition3_CreaturesMet = animalTotal >= 3;
-
-        // Cột mốc đã nhận giữ nguyên trạng thái đã nhận kể cả khi đảo đổi sau đó (bán thú, mất ô...),
-        // để không nhận thưởng lại được
 
         OnMilestonesChanged?.Invoke();
         OnAchievementsUpdated?.Invoke();
@@ -638,7 +631,8 @@ public class AchievementManager : MonoBehaviour
 
         SaveProgressNow();
 
-        rewardInfo = $"+{m.rewardCoins} Coin & +{m.rewardHarmony} Harmony & {m.rewardBonusInfo}!";
+        rewardInfo = $"+{m.rewardCoins} Coins & +{m.rewardHarmony} Harmony" +
+            (string.IsNullOrEmpty(m.rewardBonusInfo) ? "!" : $" & {m.rewardBonusInfo}!");
         OnMilestonesChanged?.Invoke();
         OnAchievementsUpdated?.Invoke();
         return true;
@@ -648,25 +642,14 @@ public class AchievementManager : MonoBehaviour
     {
         if (CardDeskController.Instance == null) return;
 
-        try
-        {
-            string cardName = null;
-            if (index == 1) cardName = "Cards/Leafwood";
-            else if (index == 3) cardName = "Cards/Fox";
-
-            if (!string.IsNullOrEmpty(cardName))
+        if (index % 4 != 1 || !HabitatRuntimeManager.TryGetActive(out var habitats)) return;
+        var island = milestones[index].islandId == "wet" ? HabitatIsland.Wet : HabitatIsland.Starter;
+        foreach (var habitat in habitats.Catalog.habitats)
+            if (habitat != null && habitat.island == island && habitat.natureCard != null)
             {
-                var card = Resources.Load<CardData>(cardName);
-                if (card != null)
-                {
-                    CardDeskController.Instance.AddRewardCard(card);
-                }
+                CardDeskController.Instance.AddCardsWithoutSaving(habitat.natureCard, 1);
+                return;
             }
-        }
-        catch (Exception ex)
-        {
-            Debug.LogWarning($"[AchievementManager] Could not add reward card: {ex.Message}");
-        }
     }
 
     // Ghi bản lưu kinh tế ngay sau khi trao thưởng (id đã nhận, Coins, Harmony cùng một lần ghi)
@@ -702,14 +685,38 @@ public class AchievementManager : MonoBehaviour
     /// <summary>
     /// Cập nhật tiến độ của một thành tựu
     /// </summary>
-    public void ReportProgress(string achievementId, int progressToAdd = 1)
+    public void ReportProgress(string achievementId, int progressToAdd = 1, string islandId = "starter")
     {
-        var goal = achievements.Find(a => a.id.Equals(achievementId, StringComparison.OrdinalIgnoreCase));
+        if (!CanGrantRewards() || progressToAdd <= 0) return;
+        InitializeIslandChapters();
+        var goal = achievements.Find(a => a.id.Equals(GoalKey(islandId, achievementId), StringComparison.OrdinalIgnoreCase));
         if (goal != null && !goal.isClaimed)
         {
             goal.currentCount = Mathf.Min(goal.targetCount, goal.currentCount + progressToAdd);
+            PersistGoal(goal);
             OnAchievementsUpdated?.Invoke();
         }
+    }
+
+    public void ReportHarvest(ResourceCollectionReceipt receipt)
+    {
+        if (receipt == null || !HabitatRuntimeManager.TryGetActive(out var manager)) return;
+        // Each transferred resource buffer is a batch. Empty/full/rejected transfers earn nothing.
+        foreach (var item in receipt.Items)
+        {
+            if (item.Transferred <= 0) continue;
+            var resource = manager.Catalog.FindResource(item.ResourceId);
+            if (resource == null) continue;
+            var island = HabitatDataRules.GetIsland(resource.affinity);
+            if (island == HabitatIsland.Starter || island == HabitatIsland.Wet)
+                ReportProgress("ACH_HARVEST_10", 1, island == HabitatIsland.Wet ? "wet" : "starter");
+        }
+    }
+
+    public void ReportConnection(PlacedCard creature)
+    {
+        if (creature == null || creature.cardData == null) return;
+        ReportProgress("ACH_CONNECTION_DANCE", 1, creature.cardData.islandId);
     }
 
     /// <summary>
@@ -725,6 +732,7 @@ public class AchievementManager : MonoBehaviour
             return false;
         }
 
+        EvaluateMilestones();
         var goal = achievements.Find(a => a.id.Equals(achievementId, StringComparison.OrdinalIgnoreCase));
         if (goal == null)
         {

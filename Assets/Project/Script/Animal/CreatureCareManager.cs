@@ -229,12 +229,6 @@ public class CreatureCareManager : MonoBehaviour
         OnCareProgressChanged?.Invoke(id, 0);
         OnRankUpgraded?.Invoke(id, nextRank);
 
-        // Báo cáo thành tựu
-        if (AchievementManager.Instance != null)
-        {
-            AchievementManager.Instance.ReportProgress("ACH_FIRST_CARE", 1);
-        }
-
         resultInfo = $"Congratulations! Upgraded to {nextRank} (Greatly boosts production!)";
         return true;
     }
