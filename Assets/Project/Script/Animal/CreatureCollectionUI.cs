@@ -131,11 +131,18 @@ public sealed class CreatureCollectionUI : MonoBehaviour
             .Where(c => c != null && c.cardType == CardType.Creature)
             .GroupBy(c => string.IsNullOrEmpty(c.cardID) ? c.name : c.cardID).Select(g => g.First())
             .OrderBy(c => c.cardName).ToList();
-        countLabel.text = $"{creatures.Count} creatures";
-        foreach (CardData card in creatures) BuildEntry(card);
+        CardDeskController desk = CardDeskController.Instance;
+        int discovered = 0;
+        foreach (CardData card in creatures)
+        {
+            bool isDiscovered = desk != null && desk.GetHeldCount(string.IsNullOrEmpty(card.cardID) ? card.name : card.cardID) > 0;
+            if (isDiscovered) discovered++;
+            BuildEntry(card, isDiscovered);
+        }
+        countLabel.text = $"{discovered} / {creatures.Count} discovered";
     }
 
-    private void BuildEntry(CardData card)
+    private void BuildEntry(CardData card, bool isDiscovered)
     {
         Image bg = LumiWorldUITheme.CreateRoundedSurface(content, "Creature_" + card.name, LumiWorldUITheme.Slot, LumiWorldUITheme.Edge, 16, 1, 2, .1f);
         // GridLayoutGroup exclusively controls the cell dimensions and position.
@@ -144,11 +151,24 @@ public sealed class CreatureCollectionUI : MonoBehaviour
         artRect.anchorMin = new Vector2(.5f, 1f); artRect.anchorMax = new Vector2(.5f, 1f); artRect.pivot = new Vector2(.5f, 1f);
         artRect.anchoredPosition = new Vector2(0f, -10f); artRect.sizeDelta = new Vector2(150f, 142f);
         Image art = imageObj.GetComponent<Image>(); art.sprite = card.cardImage; art.preserveAspect = true; art.raycastTarget = false;
-        TextMeshProUGUI name = LumiWorldUITheme.CreateLabel(bg.transform, "Name", card.cardName, 18, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center, wrap: true);
+        if (!isDiscovered)
+        {
+            GameObject overlay = new GameObject("UndiscoveredOverlay", typeof(RectTransform), typeof(Image));
+            overlay.transform.SetParent(imageObj.transform, false);
+            RectTransform overlayRect = overlay.GetComponent<RectTransform>();
+            overlayRect.anchorMin = Vector2.zero; overlayRect.anchorMax = Vector2.one; overlayRect.offsetMin = Vector2.zero; overlayRect.offsetMax = Vector2.zero;
+            Image overlayImage = overlay.GetComponent<Image>();
+            overlayImage.color = new Color(0.08f, 0.10f, 0.13f, 0.78f);
+            overlayImage.raycastTarget = false;
+
+            TextMeshProUGUI mystery = LumiWorldUITheme.CreateLabel(overlay.transform, "Mystery", "?", 48, Color.white, true, TextAlignmentOptions.Center);
+            LumiWorldUITheme.Stretch(mystery.rectTransform);
+        }
+        TextMeshProUGUI name = LumiWorldUITheme.CreateLabel(bg.transform, "Name", isDiscovered ? card.cardName : "?", 18, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center, wrap: true);
         RectTransform nameRect = name.rectTransform;
         nameRect.anchorMin = new Vector2(0f, 0f); nameRect.anchorMax = new Vector2(1f, 0f); nameRect.pivot = new Vector2(.5f, 0f);
         nameRect.offsetMin = new Vector2(10f, 27f); nameRect.offsetMax = new Vector2(-10f, 53f);
-        TextMeshProUGUI rarity = LumiWorldUITheme.CreateLabel(bg.transform, "Rarity", card.rarity.ToString(), 14, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
+        TextMeshProUGUI rarity = LumiWorldUITheme.CreateLabel(bg.transform, "Rarity", isDiscovered ? card.rarity.ToString() : "?", 14, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
         RectTransform rarityRect = rarity.rectTransform;
         rarityRect.anchorMin = new Vector2(0f, 0f); rarityRect.anchorMax = new Vector2(1f, 0f); rarityRect.pivot = new Vector2(.5f, 0f);
         rarityRect.offsetMin = new Vector2(10f, 8f); rarityRect.offsetMax = new Vector2(-10f, 28f);
