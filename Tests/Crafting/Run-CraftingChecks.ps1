@@ -13,6 +13,9 @@ $references = Get-ChildItem (Join-Path $referenceVersion.FullName 'ref/net8.0') 
 
 $sourceFiles = @(
     (Join-Path $PSScriptRoot 'CraftingTestTypes.cs'),
+    (Join-Path $projectRoot 'Assets/Acs/Scripts/Islands/IslandAccessService.cs'),
+    (Join-Path $projectRoot 'Assets/Project/Script/Economy/PendingMarketOp.cs'),
+    (Join-Path $projectRoot 'Assets/Project/Script/Economy/PendingTradeOp.cs'),
     (Join-Path $projectRoot 'Assets/Project/Script/Economy/EconomySaveData.cs'),
     (Join-Path $projectRoot 'Assets/Project/Script/Economy/ResourceCatalog.cs'),
     (Join-Path $projectRoot 'Assets/VinhWorkSpace/Scripts/Crafting/Data/CraftingCategory.cs'),

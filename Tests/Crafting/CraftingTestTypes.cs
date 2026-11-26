@@ -128,3 +128,11 @@ public class ResourceInventory : UnityEngine.MonoBehaviour
     }
 }
 
+namespace LumiWorld.Acs
+{
+    public static class ResourceInventoryUIPresentation
+    {
+        public static string LocalizeResourceName(string resourceId, string fallback) => fallback;
+    }
+}
+

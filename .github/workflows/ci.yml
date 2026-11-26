@@ -1,0 +1,82 @@
+name: LumiWorld CI
+
+on:
+  push:
+    branches: [ main, MapBuilding, backend ]
+  pull_request:
+    branches: [ main, MapBuilding, backend ]
+  workflow_dispatch:
+
+jobs:
+  client-pure-csharp:
+    name: Client Pure-C# Checks (World, Islands, Disasters, OnlineClient)
+    runs-on: windows-latest
+    if: hashFiles('Tests/Run-AllChecks.ps1') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run Pure-C# Gameplay & Domain Suites
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File Tests\Run-AllChecks.ps1
+      - name: Upload Test Results JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumiworld-client-check-results
+          path: Temp/*/results.json
+
+  backend-api-xunit:
+    name: Backend ASP.NET Core & PostgreSQL 18 Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('api/LumiServer.sln') != ''
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_postgres_password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGPASSWORD: ci_postgres_password
+      LUMI_OWNER_PASSWORD: ci_owner_password
+      LUMI_APP_PASSWORD: ci_app_password
+      LUMI_REPORT_PASSWORD: ci_report_password
+      LUMI_DB_DIR: ${{ github.workspace }}/database
+      LUMI_TEST_OWNER_DB: Host=localhost;Port=5432;Database=lumi_test;Username=lumi_owner;Password=ci_owner_password
+      LUMI_TEST_DB: Host=localhost;Port=5432;Database=lumi_test;Username=lumi_app;Password=ci_app_password
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Bootstrap PG 18 roles & databases
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -v "owner_pw=$LUMI_OWNER_PASSWORD" -v "app_pw=$LUMI_APP_PASSWORD" -v "report_pw=$LUMI_REPORT_PASSWORD" \
+            -f database/setup/01_roles.sql -f database/setup/02_databases.sql
+          psql -h localhost -U postgres -d lumi -v ON_ERROR_STOP=1 -f database/setup/03_grants.sql
+          psql -h localhost -U postgres -d lumi_test -v ON_ERROR_STOP=1 -f database/setup/03_grants.sql
+      - name: Run Lumi.Api.Tests (xUnit + .trx artifact)
+        run: |
+          dotnet test api/LumiServer.sln --configuration Release --logger "trx;LogFileName=lumi-api-tests.trx"
+      - name: Upload xUnit TRX Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumiworld-api-trx
+          path: api/tests/**/TestResults/*.trx
