@@ -319,7 +319,7 @@ public class HabitatDiamondBadge : MonoBehaviour
         resourceSlotText.verticalAlignment = VerticalAlignmentOptions.Middle;
         resourceSlotText.horizontalAlignment = HorizontalAlignmentOptions.Center;
         resourceSlotText.margin = Vector4.zero;
-        resourceSlotText.enableWordWrapping = false;
+        resourceSlotText.textWrappingMode = TextWrappingModes.NoWrap;
         resourceSlotText.overflowMode = TextOverflowModes.Ellipsis;
         resourceSlotText.fontSize = 9.0f;
         resourceSlotText.fontStyle = FontStyles.Bold;

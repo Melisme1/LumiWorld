@@ -14,11 +14,11 @@ public class BreedingBootstrap : MonoBehaviour
     [Tooltip("Breeding recipes available. Drag BreedingRecipe ScriptableObjects here.")]
     [SerializeField] private BreedingRecipe[] recipes;
 
-    [Tooltip("Number of chambers unlocked at game start (1 = only the first tube).")]
-    [SerializeField] private int unlockedChambers = 1;
+    [Tooltip("Number of chambers unlocked at game start (3 = all three tubes active).")]
+    [SerializeField] private int unlockedChambers = 3;
 
     [Tooltip("Coin cost to instantly finish one incubation.")]
-    [SerializeField] private int speedUpCoinCost = 50;
+    [SerializeField] private int speedUpCoinCost = 300;
 
     private void Awake()
     {

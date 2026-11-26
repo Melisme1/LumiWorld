@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
+  m_Name: Featherglide
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardID: creature_featherglide
+  cardName: Featherglide
+  cardImage: {fileID: 21300000, guid: bf910bab245539f49a211fe610a0f620, type: 3}
+  cardType: 0
+  rarity: 0
+  islandId: starter
+  baseScore: 6
+  alwaysBaseScore: 0
+  shopPrice: 65
+  placementFee: 0
+  prefabToPlace: {fileID: 919132149155446097, guid: 538c4f3b8367daf42bc28c8e46dc8fd3, type: 3}
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 0
+  clearPropsOnTransform: 0
+  occupiesTile: 1
+  animalSpeciesData: {fileID: 0}
+  producedResource: {fileID: 0}
+  landResourceBonus: 0
+  biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
+  transformRules: []
+  habitatSpawnMargin: 0.5
+  habitatProps: []
+  allowedTilePrefabs: []

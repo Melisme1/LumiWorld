@@ -62,3 +62,31 @@ MonoBehaviour:
     primaryAffinity: 3
     secondaryAffinity: 2
     integrationStatus: 0
+  - gddKey: lotelle
+    displayName: Lotelle
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000023, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000023, type: 2}
+    primaryAffinity: 5
+    secondaryAffinity: 4
+    integrationStatus: 0
+  - gddKey: craggle
+    displayName: Craggle
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000022, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000022, type: 2}
+    primaryAffinity: 4
+    secondaryAffinity: 6
+    integrationStatus: 0
+  - gddKey: reedle
+    displayName: Reedle
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000021, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000021, type: 2}
+    primaryAffinity: 4
+    secondaryAffinity: 6
+    integrationStatus: 0
+  - gddKey: braluff
+    displayName: Braluff
+    species: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000017, type: 2}
+    creatureCard: {fileID: 11400000, guid: b1c2d3e4f5a600020002000000000017, type: 2}
+    primaryAffinity: 1
+    secondaryAffinity: 0
+    integrationStatus: 0

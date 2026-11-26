@@ -53,6 +53,7 @@ public class OrderBoardUI : MonoBehaviour
         public readonly List<ReqPillView> reqRows = new List<ReqPillView>();
         public TextMeshProUGUI rewardText;
         public Button skipButton;
+        public TextMeshProUGUI skipButtonLabel;
         public GameObject emptyContent;
         public TextMeshProUGUI emptyText;
         public RectTransform floatLayer;
@@ -347,7 +348,14 @@ public class OrderBoardUI : MonoBehaviour
             row.tagText.text = baseline ? "Basic order" : (order.requirements.Count > 1 ? "Mixed order" : "Regular order");
             row.tagText.color = baseline ? LumiWorldUITheme.Warning : LumiWorldUITheme.Muted;
 
-            if (row.skipButton != null) row.skipButton.gameObject.SetActive(!baseline);
+            if (row.skipButton != null)
+            {
+                row.skipButton.gameObject.SetActive(true);
+                if (row.skipButtonLabel != null)
+                {
+                    row.skipButtonLabel.text = "Cancel";
+                }
+            }
 
             for (int i = 0; i < row.reqRows.Count; i++)
             {
@@ -380,7 +388,7 @@ public class OrderBoardUI : MonoBehaviour
         detailPortrait.transform.parent.gameObject.SetActive(hasOrder);
         detailHeroArt.transform.parent.gameObject.SetActive(hasOrder);
         deliverButton.gameObject.SetActive(hasOrder);
-        if (discardButton != null) discardButton.gameObject.SetActive(hasOrder && selectedOrderSlot != OrderBoardSystem.BaselineSlot);
+        if (discardButton != null) discardButton.gameObject.SetActive(hasOrder);
 
         if (!hasOrder) return;
 
@@ -890,12 +898,25 @@ public class OrderBoardUI : MonoBehaviour
         row.rewardText = LumiWorldUITheme.CreateLabel(activeObj.transform, "RewardVal", "60 coins", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
         LumiWorldUITheme.PlaceTopLeft(row.rewardText.rectTransform, width - 98f, 35f, 80f, 24f);
 
-        if (slot != OrderBoardSystem.BaselineSlot)
+        row.skipButton = LumiWorldUITheme.CreatePillButton(activeObj.transform, "Cancel", "Cancel", null, false, 11.5f, () => OnDiscardSlot(captured),
+            out Image skBg, out _, out TextMeshProUGUI cancelLbl, 12);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)row.skipButton.transform, width - 82f, 85f, 68f, 26f);
+        skBg.color = LumiWorldUITheme.Window;
+
+        row.skipButtonLabel = cancelLbl;
+        if (cancelLbl != null)
         {
-            row.skipButton = LumiWorldUITheme.CreatePillButton(activeObj.transform, "Skip", "Skip", null, false, 11f, () => OnDiscardSlot(captured),
-                out Image skBg, out _, out _, 10);
-            LumiWorldUITheme.PlaceTopLeft((RectTransform)row.skipButton.transform, width - 74f, 86f, 58f, 24f);
-            skBg.color = LumiWorldUITheme.Window;
+            cancelLbl.text = "Cancel";
+            cancelLbl.fontSize = 11.5f;
+            cancelLbl.color = LumiWorldUITheme.Muted;
+            cancelLbl.overflowMode = TextOverflowModes.Overflow;
+            cancelLbl.textWrappingMode = TextWrappingModes.NoWrap;
+            cancelLbl.alignment = TextAlignmentOptions.Center;
+            LumiWorldUITheme.Stretch(cancelLbl.rectTransform, 0f);
+            if (cancelLbl.transform.parent != null)
+            {
+                LumiWorldUITheme.Stretch(cancelLbl.transform.parent.GetComponent<RectTransform>(), 0f);
+            }
         }
 
         GameObject emptyObj = new GameObject("Empty", typeof(RectTransform));

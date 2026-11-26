@@ -37,7 +37,10 @@ namespace LumiWorld.Acs
             new SpeciesSpec("petaluff", "caterpillar", BiomeAffinity.Bloomfield, BiomeAffinity.Leafwood),
             new SpeciesSpec("dandrift", "flowerdog", BiomeAffinity.Bloomfield, BiomeAffinity.Windheath),
             new SpeciesSpec("galume", "peacock", BiomeAffinity.Windheath, BiomeAffinity.Bloomfield),
-            new SpeciesSpec("heathorn", "highlandcow", BiomeAffinity.Windheath, BiomeAffinity.Bloomfield)
+            new SpeciesSpec("heathorn", "highlandcow", BiomeAffinity.Windheath, BiomeAffinity.Bloomfield),
+            new SpeciesSpec("lotelle", "swan", BiomeAffinity.Lilywater, BiomeAffinity.Reedmarsh),
+            new SpeciesSpec("craggle", "crab", BiomeAffinity.Reedmarsh, BiomeAffinity.Streamstone),
+            new SpeciesSpec("reedle", "mudskipper", BiomeAffinity.Reedmarsh, BiomeAffinity.Streamstone)
         };
 
         internal static readonly ResourceSpec[] Resources =

@@ -382,7 +382,8 @@ namespace LumiWorld.Acs
 
             GameObject row = new GameObject("Content", typeof(RectTransform));
             row.transform.SetParent(obj.transform, false);
-            Stretch(row.GetComponent<RectTransform>(), 8f);
+            float pad = fontSize <= 12f ? 2f : 8f;
+            Stretch(row.GetComponent<RectTransform>(), pad);
 
             if (sp != null)
             {
@@ -405,6 +406,7 @@ namespace LumiWorld.Acs
 
                 labelTmp = CreateLabel(row.transform, "Label", label, fontSize, fg, false, TextAlignmentOptions.Center);
                 labelTmp.overflowMode = TextOverflowModes.Overflow;
+                labelTmp.textWrappingMode = TextWrappingModes.NoWrap;
                 float estW = Mathf.Max(24f, label.Length * (fontSize * 0.56f) + 6f);
                 labelTmp.rectTransform.sizeDelta = new Vector2(estW, fontSize * 1.6f);
                 ContentSizeFitter csf = labelTmp.gameObject.AddComponent<ContentSizeFitter>();
@@ -414,6 +416,8 @@ namespace LumiWorld.Acs
             else
             {
                 labelTmp = CreateLabel(row.transform, "Label", label, fontSize, fg, false, TextAlignmentOptions.Center);
+                labelTmp.overflowMode = TextOverflowModes.Overflow;
+                labelTmp.textWrappingMode = TextWrappingModes.NoWrap;
                 Stretch(labelTmp.rectTransform);
             }
 
@@ -856,6 +860,50 @@ namespace LumiWorld.Acs
         {
             ColorUtility.TryParseHtmlString("#" + hex, out var value);
             return value;
+        }
+
+        private static readonly Dictionary<int, Sprite> capsuleSprites = new Dictionary<int, Sprite>();
+
+        public static Sprite GetCapsuleSprite(int height)
+        {
+            int h = Mathf.Clamp(height, 8, 128);
+            if (capsuleSprites.TryGetValue(h, out var s) && s != null) return s;
+
+            int radius = Mathf.Max(4, h / 2);
+            int size = radius * 2 + 4;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = $"Capsule_{h}px",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            Color[] pixels = new Color[size * size];
+            float half = size * 0.5f;
+            for (int y = 0; y < size; y++)
+            {
+                float dy = (y + 0.5f) - half;
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f) - half;
+                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                    float alpha = Mathf.Clamp01(radius - dist + 0.5f);
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            s = Sprite.Create(
+                tex,
+                new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f),
+                100f,
+                0,
+                SpriteMeshType.FullRect,
+                new Vector4(radius, radius, radius, radius));
+
+            capsuleSprites[h] = s;
+            return s;
         }
     }
 }

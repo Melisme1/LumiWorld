@@ -8,7 +8,11 @@ using LumiWorld.Acs;
 public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     private const float FrameInset = 7f;
+    private const float RareArtInset = 2f;
     private const float CoverInset = 6f;
+
+    private static readonly Color EpicBackdropTint   = new Color(0.84f, 0.87f, 0.91f, 1f);
+    private static readonly Color LegendBackdropTint = new Color(0.90f, 0.80f, 0.56f, 1f);
 
     [Header("Card Data")]
     [SerializeField] private CardData cardData;
@@ -46,8 +50,16 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private Coroutine badgePunchCoroutine;
     private bool cardChromeApplied;
     private bool isPointerHovering;
+    private RectTransform artworkMaskRect;
     private Image artworkImage;
     private Image artworkCornerCoverImage;
+    private Image rarityFrameOverlay;
+    private Image terraformRaiseArrow;
+    private Image terraformLowerArrow;
+    private bool isTerraformActive;
+    private int terraformDirection = 1;
+    private bool terraformCanRaise = true;
+    private bool terraformCanLower = true;
 
     private static Sprite s_BadgeSprite;
     private static Sprite s_CardFrameSprite;
@@ -120,34 +132,51 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             return;
         }
 
+        Sprite resolvedSprite = ResolveCardSprite(cardData);
+
         if (artworkImage != null)
         {
-            artworkImage.sprite = cardData.cardImage;
+            artworkImage.sprite = resolvedSprite;
+            CardRarityFrameUtility.ApplyCardOverlays(
+                (RectTransform)transform,
+                artworkMaskRect != null ? artworkMaskRect : (artworkImage.rectTransform.parent as RectTransform),
+                cardData,
+                ref rarityFrameOverlay,
+                ref terraformRaiseArrow,
+                ref terraformLowerArrow);
         }
         else if (cardImage != null)
         {
-            Sprite spr = cardData.cardImage;
-            if (spr == null)
-            {
-                string id = (cardData.cardID ?? "").ToLowerInvariant();
-                string cname = (cardData.cardName ?? "").ToLowerInvariant();
-                string combined = id + " " + cname + " " + (cardData.name ?? "").ToLowerInvariant();
-
-                if (combined.Contains("cow") || combined.Contains("bo"))
-                    spr = Resources.Load<Sprite>("CreatureAvatars/18_Cow") ?? Resources.Load<Sprite>("CreatureAvatars/Cow");
-                else if (combined.Contains("fox") || combined.Contains("cao"))
-                    spr = Resources.Load<Sprite>("CreatureAvatars/19_Fox") ?? Resources.Load<Sprite>("CreatureAvatars/Fox");
-                else if (combined.Contains("canoc") || combined.Contains("puffer") || combined.Contains("cá nóc") || combined.Contains("ca noc"))
-                    spr = Resources.Load<Sprite>("CreatureAvatars/20_Pufferfish") ?? Resources.Load<Sprite>("CreatureAvatars/Pufferfish");
-                else if (combined.Contains("braluff"))
-                    spr = Resources.Load<Sprite>("CreatureAvatars/17_Braluff") ?? Resources.Load<Sprite>("CreatureAvatars/Braluff");
-            }
-            cardImage.sprite = spr;
+            cardImage.sprite = resolvedSprite;
         }
 
         UpdateCountBadge();
         UpdateLockBadge();
+        UpdateTerraformArrowsVisual();
         UpdateFrameHighlight();
+        ApplyRarityBackdropChrome();
+        EnsureOverlaySiblingOrder();
+    }
+
+    private static Sprite ResolveCardSprite(CardData data)
+    {
+        if (data == null) return null;
+        if (data.cardImage != null) return data.cardImage;
+
+        string id = (data.cardID ?? "").ToLowerInvariant();
+        string cname = (data.cardName ?? "").ToLowerInvariant();
+        string combined = id + " " + cname + " " + (data.name ?? "").ToLowerInvariant();
+
+        if (combined.Contains("cow") || combined.Contains("bo"))
+            return Resources.Load<Sprite>("CreatureAvatars/18_Cow") ?? Resources.Load<Sprite>("CreatureAvatars/Cow");
+        if (combined.Contains("fox") || combined.Contains("cao"))
+            return Resources.Load<Sprite>("CreatureAvatars/19_Fox") ?? Resources.Load<Sprite>("CreatureAvatars/Fox");
+        if (combined.Contains("canoc") || combined.Contains("puffer") || combined.Contains("cá nóc") || combined.Contains("ca noc"))
+            return Resources.Load<Sprite>("CreatureAvatars/20_Pufferfish") ?? Resources.Load<Sprite>("CreatureAvatars/Pufferfish");
+        if (combined.Contains("braluff"))
+            return Resources.Load<Sprite>("CreatureAvatars/17_Braluff") ?? Resources.Load<Sprite>("CreatureAvatars/Braluff");
+
+        return null;
     }
 
     private void EnsureCardChrome()
@@ -206,6 +235,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
 
         RectTransform maskRect = (RectTransform)maskObj.transform;
+        artworkMaskRect = maskRect;
         maskRect.anchorMin = Vector2.zero;
         maskRect.anchorMax = Vector2.one;
         maskRect.pivot = new Vector2(0.5f, 0.5f);
@@ -243,6 +273,19 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         artworkImage.preserveAspect = false;
         artworkImage.raycastTarget = false;
 
+        Transform legacyOverlay = maskRect.Find("RarityFrameOverlay");
+        if (legacyOverlay != null)
+        {
+            legacyOverlay.SetParent(transform, false);
+        }
+
+        CardRarityFrameUtility.EnsureOverlayChildren(
+            (RectTransform)transform,
+            maskRect,
+            ref rarityFrameOverlay,
+            ref terraformRaiseArrow,
+            ref terraformLowerArrow);
+
         // 3. Anti-aliased inner corner collar to smooth over the 1-bit stencil mask boundary
         Transform existingCover = transform.Find("ArtworkCornerCover");
         GameObject coverObj = existingCover != null
@@ -272,6 +315,18 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void EnsureOverlaySiblingOrder()
     {
+        if (artworkMaskRect != null && artworkMaskRect.parent == transform)
+        {
+            artworkMaskRect.SetSiblingIndex(0);
+        }
+        if (artworkCornerCoverImage != null && artworkCornerCoverImage.transform.parent == transform)
+        {
+            artworkCornerCoverImage.transform.SetSiblingIndex(1);
+        }
+        if (rarityFrameOverlay != null && rarityFrameOverlay.transform.parent == transform)
+        {
+            rarityFrameOverlay.transform.SetAsLastSibling();
+        }
         if (badgeRootRect != null)
         {
             badgeRootRect.SetAsLastSibling();
@@ -282,11 +337,149 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
     }
 
+    private void ApplyRarityBackdropChrome()
+    {
+        bool isRare = cardData != null && cardData.rarity != CardRarity.Common;
+        if (artworkMaskRect != null)
+        {
+            float inset = isRare ? RareArtInset : FrameInset;
+            artworkMaskRect.offsetMin = new Vector2(inset, inset);
+            artworkMaskRect.offsetMax = new Vector2(-inset, -inset);
+        }
+
+        if (artworkCornerCoverImage != null)
+        {
+            artworkCornerCoverImage.enabled = !isRare;
+        }
+
+        if (cardImage != null)
+        {
+            if (isRare)
+            {
+                Color baseTint = cardData.rarity == CardRarity.Legend ? LegendBackdropTint : EpicBackdropTint;
+                cardImage.color = IsLocked
+                    ? new Color(baseTint.r * 0.85f, baseTint.g * 0.85f, baseTint.b * 0.85f, 0.95f)
+                    : baseTint;
+            }
+            else
+            {
+                cardImage.color = IsLocked ? new Color(0.95f, 0.94f, 0.92f, 0.95f) : Color.white;
+            }
+        }
+    }
+
     private void UpdateFrameHighlight()
     {
         if (!cardChromeApplied || cardImage == null) return;
-        bool highlight = isPointerHovering && !IsLocked;
+        bool highlight = (isPointerHovering || isTerraformActive) && !IsLocked;
         cardImage.sprite = highlight ? GetCardFrameHoverSprite() : GetCardFrameSprite();
+
+        if (rarityFrameOverlay != null)
+        {
+            bool isRare = cardData != null && cardData.rarity != CardRarity.Common;
+            if (!isRare)
+            {
+                rarityFrameOverlay.color = Color.white;
+            }
+            else if (IsLocked)
+            {
+                rarityFrameOverlay.color = new Color(0.80f, 0.80f, 0.80f, 0.92f);
+            }
+            else
+            {
+                rarityFrameOverlay.color = highlight ? new Color(1.08f, 1.08f, 1.08f, 1f) : Color.white;
+            }
+        }
+    }
+
+    public void SetTerraformVisualState(bool active, int direction, bool canRaise, bool canLower)
+    {
+        isTerraformActive = active;
+        terraformDirection = direction >= 0 ? 1 : -1;
+        terraformCanRaise = canRaise;
+        terraformCanLower = canLower;
+        UpdateFrameHighlight();
+        UpdateTerraformArrowsVisual();
+    }
+
+    public int GetTerraformClickZone(PointerEventData eventData)
+    {
+        RectTransform rt = transform as RectTransform;
+        if (rt == null || eventData == null) return 0;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, eventData.position, eventData.pressEventCamera, out Vector2 local))
+        {
+            return 0;
+        }
+        float halfW = rt.rect.width * 0.5f;
+        if (halfW <= 1f) return 0;
+        float normX = local.x / halfW;
+        if (normX <= -0.22f) return 1;
+        if (normX >= 0.22f) return -1;
+        return 0;
+    }
+
+    private void UpdateTerraformArrowsVisual()
+    {
+        bool show = cardData != null && cardData.IsTerraformTool();
+        if (terraformRaiseArrow != null)
+        {
+            terraformRaiseArrow.enabled = show && terraformRaiseArrow.sprite != null;
+            if (terraformRaiseArrow.enabled)
+            {
+                if (!isTerraformActive)
+                {
+                    terraformRaiseArrow.color = !terraformCanRaise
+                        ? new Color(0.55f, 0.55f, 0.55f, 0.28f)
+                        : new Color(1f, 1f, 1f, 0.96f);
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one;
+                }
+                else if (!terraformCanRaise)
+                {
+                    terraformRaiseArrow.color = new Color(0.55f, 0.55f, 0.55f, 0.24f);
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one * 0.88f;
+                }
+                else if (terraformDirection > 0)
+                {
+                    terraformRaiseArrow.color = Color.white;
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one * 1.14f;
+                }
+                else
+                {
+                    terraformRaiseArrow.color = new Color(0.85f, 0.85f, 0.85f, 0.48f);
+                    terraformRaiseArrow.rectTransform.localScale = Vector3.one * 0.94f;
+                }
+            }
+        }
+
+        if (terraformLowerArrow != null)
+        {
+            terraformLowerArrow.enabled = show && terraformLowerArrow.sprite != null;
+            if (terraformLowerArrow.enabled)
+            {
+                if (!isTerraformActive)
+                {
+                    terraformLowerArrow.color = !terraformCanLower
+                        ? new Color(0.55f, 0.55f, 0.55f, 0.28f)
+                        : new Color(1f, 1f, 1f, 0.96f);
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one;
+                }
+                else if (!terraformCanLower)
+                {
+                    terraformLowerArrow.color = new Color(0.55f, 0.55f, 0.55f, 0.24f);
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one * 0.88f;
+                }
+                else if (terraformDirection < 0)
+                {
+                    terraformLowerArrow.color = Color.white;
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one * 1.14f;
+                }
+                else
+                {
+                    terraformLowerArrow.color = new Color(0.85f, 0.85f, 0.85f, 0.48f);
+                    terraformLowerArrow.rectTransform.localScale = Vector3.one * 0.94f;
+                }
+            }
+        }
     }
 
     private void UpdateLockBadge()
@@ -372,7 +565,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             }
         }
 
-        bool show = Count >= Mathf.Max(1, badgeShowFromCount);
+        bool show = !(cardData != null && cardData.reusable) && Count >= Mathf.Max(1, badgeShowFromCount);
         GameObject targetObj = badgeRootRect != null ? badgeRootRect.gameObject : countText.gameObject;
         if (targetObj.activeSelf != show)
         {

@@ -13,6 +13,31 @@ public static class CardShop
     private static List<CardData> cards;
     private static Dictionary<string, int> testPrices;
 
+    public static bool IsAvailable(CardData card)
+    {
+        if (card == null || WorldLaunch.IsVisit) return false;
+        string islandId = string.IsNullOrEmpty(card.islandId) ? "starter" : card.islandId;
+        if (islandId == "starter") return true;
+
+        // An toàn khi nhánh chưa gộp phân hệ Islands: kiểm tra qua reflection nếu IslandRuntimeManager tồn tại
+        var managerType = Type.GetType("LumiWorld.Acs.Islands.IslandRuntimeManager, Assembly-CSharp");
+        if (managerType != null)
+        {
+            var instanceProp = managerType.GetProperty("Instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            var instance = instanceProp?.GetValue(null);
+            if (instance != null)
+            {
+                var isUnlockedMethod = managerType.GetMethod("IsUnlocked", new[] { typeof(string) });
+                if (isUnlockedMethod != null)
+                {
+                    var result = isUnlockedMethod.Invoke(instance, new object[] { islandId });
+                    if (result is bool unlocked) return unlocked;
+                }
+            }
+        }
+        return true;
+    }
+
     /// <summary>
     /// Các thẻ đang bán (đã có giá), xếp theo loại thẻ rồi tới tên giống bài trên tay.
     /// </summary>
@@ -48,7 +73,7 @@ public static class CardShop
     /// </summary>
     public static bool CanBuy(CardData card, int quantity = 1)
     {
-        return GetPrice(card) > 0
+        return IsAvailable(card) && (!card.reusable || (quantity == 1 && CardDeskController.Instance != null && CardDeskController.Instance.GetHeldCount(card.cardID) == 0)) && GetPrice(card) > 0
             && CardDeskController.Instance != null
             && CurrencyWallet.Instance.CanAfford(GetRequiredCoins(card, quantity));
     }
@@ -59,6 +84,7 @@ public static class CardShop
     public static bool TryBuy(CardData card, int quantity = 1)
     {
         quantity = Mathf.Max(1, quantity);
+        if (!CanBuy(card, quantity)) return false;
         int price = GetPrice(card);
         if (price <= 0) return false;
 
@@ -87,13 +113,11 @@ public static class CardShop
     public static Dictionary<string, int> CountHand()
     {
         Dictionary<string, int> counts = new Dictionary<string, int>();
-        foreach (CardUI slot in UnityEngine.Object.FindObjectsByType<CardUI>())
+        var hand = CardDeskController.Instance;
+        if (hand == null) return counts;
+        foreach (var slot in hand.GetHeldCards())
         {
-            if (slot.CardData == null) continue;
-
-            string key = CardKey(slot.CardData);
-            counts.TryGetValue(key, out int count);
-            counts[key] = count + slot.Count;
+            counts[CardKey(slot.Key)] = slot.Value;
         }
         return counts;
     }
@@ -135,9 +159,12 @@ public static class CardShop
         if (key.Contains("cáo đỏ") || key.Contains("cao") || key.Contains("fox")) return "Red Fox";
         if (key.Contains("cá nóc") || key.Contains("canoc") || key.Contains("puffer")) return "Pufferfish";
         if (key.Contains("vẹt 7 màu") || key.Contains("chimvet") || key.Contains("parrot")) return "Rainbow Parrot";
-        if (key.Contains("thiên nga") || key.Contains("thiennga") || key.Contains("swan")) return "Swan";
-        if (key.Contains("capybara")) return "Capybara";
-        if (key.Contains("mưa") || key.Contains("rain")) return "Rain";
+        if (key.Contains("thiên nga") || key.Contains("thiennga") || key.Contains("lotusswan") || key.Contains("lotelle") || key.Contains("swan")) return "Lotelle";
+        if (key.Contains("echduoica") || key.Contains("mudskipper") || key.Contains("reedle")) return "Reedle";
+        if (key.Contains("cua rêu") || key.Contains("cuareu") || key.Contains("mossycrab") || key.Contains("craggle")) return "Craggle";
+        if (key.Contains("capybara")) return "Pebbara";
+        if (key.Contains("rainleaf")) return "Rainleaf";
+        if (key.Contains("mưa") || key == "rain") return "Rain";
         if (key.Contains("cháy rừng") || key.Contains("hoa hoan") || key.Contains("forest fire")) return "Forest Fire";
         if (key.Contains("lốc xoáy") || key.Contains("loc xoay") || key.Contains("cyclone")) return "Cyclone";
         if (key.Contains("hạn hán") || key.Contains("han han") || key.Contains("drought")) return "Drought";
@@ -149,7 +176,6 @@ public static class CardShop
         if (key.Contains("reedmarsh")) return "Reedmarsh";
         if (key.Contains("lilywater")) return "Lilywater";
         if (key.Contains("streamstone")) return "Streamstone";
-        if (key.Contains("rainleaf")) return "Rainleaf";
         if (key.Contains("làng trung cổ") || key.Contains("lang trung co") || key.Contains("medieval")) return "Medieval Village";
         if (key.Contains("đồng cỏ") || key.Contains("dong co")) return "Meadows";
 

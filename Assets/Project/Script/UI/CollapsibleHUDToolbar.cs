@@ -209,7 +209,20 @@ public class CollapsibleHUDToolbar : MonoBehaviour
 
         CreateToolbarButton("Btn_CreationLab", "G-07", "Creation Lab", 6, () =>
         {
-            GameDialogUI.ShowNotice("Creation Lab chambers are being prepared for this island.");
+            if (CreationLabUI.Instance != null)
+            {
+                CreationLabUI.Instance.Toggle();
+            }
+            else
+            {
+                var canvas = FindAnyObjectByType<Canvas>();
+                if (canvas != null)
+                {
+                    var uiGo = new GameObject("CreationLabUI", typeof(CreationLabUI));
+                    uiGo.transform.SetParent(canvas.transform, false);
+                    CreationLabUI.Instance?.Open();
+                }
+            }
         });
     }
 
@@ -291,7 +304,7 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         topRightContainer.anchorMin = new Vector2(1f, 1f);
         topRightContainer.anchorMax = new Vector2(1f, 1f);
         topRightContainer.pivot = new Vector2(1f, 1f);
-        topRightContainer.anchoredPosition = new Vector2(-20f, -14f);
+        topRightContainer.anchoredPosition = new Vector2(-70f, -14f);
         topRightContainer.sizeDelta = new Vector2(320f, 50f);
 
         // 1. Settings Gear (rightmost, x = 0 from right edge)
@@ -300,8 +313,8 @@ public class CollapsibleHUDToolbar : MonoBehaviour
             FindAnyObjectByType<GameSettingsUI>()?.ToggleWindow();
         });
 
-        // 2. World Map Globe (left of CoinHUD, x = -202f from right edge)
-        BuildTopRightIconButton("Btn_WorldMap", "G-10", "World Map", new Vector2(-202f, 0f), () =>
+        // 2. World Map Globe (left of CoinHUD, x = -204f from right edge)
+        BuildTopRightIconButton("Btn_WorldMap", "G-10", "World Map", new Vector2(-204f, 0f), () =>
         {
             if (Application.CanStreamedLevelBeLoaded(WorldMapController.SceneName))
                 WorldMapController.Open();
@@ -361,17 +374,19 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         tipObj.transform.SetParent(transform, false);
         hoverTooltipRect = tipObj.GetComponent<RectTransform>();
         hoverTooltipRect.pivot = new Vector2(0.5f, 1f);
-        hoverTooltipRect.sizeDelta = new Vector2(110f, 32f);
+        hoverTooltipRect.sizeDelta = new Vector2(76f, 28f);
 
         Image bg = tipObj.GetComponent<Image>();
-        bg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
+        bg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
         bg.type = Image.Type.Sliced;
         bg.color = LumiWorldUITheme.Slot;
         bg.raycastTarget = false;
         LumiWorldUITheme.AddSoftElevation(tipObj, 2.5f, 0.16f);
 
-        hoverTooltipText = EconomyHUD.CreateText("Label", hoverTooltipRect, 13.5f, LumiWorldUITheme.Text, TextAlignmentOptions.Center);
+        hoverTooltipText = EconomyHUD.CreateText("Label", hoverTooltipRect, 12f, LumiWorldUITheme.Text, TextAlignmentOptions.Midline);
         if (LumiWorldUITheme.Heading != null) hoverTooltipText.font = LumiWorldUITheme.Heading;
+        hoverTooltipText.textWrappingMode = TextWrappingModes.NoWrap;
+        hoverTooltipText.margin = new Vector4(10f, 0f, 10f, 0f);
         EconomyHUD.Stretch(hoverTooltipText.rectTransform);
         hoverTooltipText.raycastTarget = false;
 
@@ -395,10 +410,33 @@ public class CollapsibleHUDToolbar : MonoBehaviour
     {
         if (hoverTooltipRect == null || hoverTooltipText == null || target == null) return;
         hoverTooltipText.text = label;
-        float w = Mathf.Max(84f, label.Length * 8.5f + 26f);
-        hoverTooltipRect.sizeDelta = new Vector2(w, 32f);
+        float w = Mathf.Max(64f, label.Length * 8.5f + 24f);
+        hoverTooltipRect.sizeDelta = new Vector2(w, 28f);
+
+        // Position directly below target's bottom center in world coordinates
         hoverTooltipRect.position = target.position;
-        hoverTooltipRect.anchoredPosition += new Vector2(0f, -34f);
+        hoverTooltipRect.anchoredPosition += new Vector2(0f, -32f);
+
+        // Clamp tooltip within canvas so it never touches or exceeds screen boundaries
+        if (transform.root is RectTransform canvasRt)
+        {
+            Vector3[] corners = new Vector3[4];
+            hoverTooltipRect.GetWorldCorners(corners);
+            Vector3[] canvasCorners = new Vector3[4];
+            canvasRt.GetWorldCorners(canvasCorners);
+
+            float minX = canvasCorners[0].x + 10f;
+            float maxX = canvasCorners[2].x - 10f;
+
+            if (corners[0].x < minX)
+            {
+                hoverTooltipRect.position += new Vector3(minX - corners[0].x, 0f, 0f);
+            }
+            else if (corners[2].x > maxX)
+            {
+                hoverTooltipRect.position += new Vector3(maxX - corners[2].x, 0f, 0f);
+            }
+        }
         hoverTooltipRect.SetAsLastSibling();
         hoverTooltipRect.gameObject.SetActive(true);
     }
