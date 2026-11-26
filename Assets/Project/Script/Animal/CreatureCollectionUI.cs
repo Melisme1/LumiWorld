@@ -127,19 +127,71 @@ public sealed class CreatureCollectionUI : MonoBehaviour
     {
         if (content == null) return;
         for (int i = content.childCount - 1; i >= 0; i--) Destroy(content.GetChild(i).gameObject);
-        List<CardData> creatures = Resources.FindObjectsOfTypeAll<CardData>()
-            .Where(c => c != null && c.cardType == CardType.Creature)
-            .GroupBy(c => string.IsNullOrEmpty(c.cardID) ? c.name : c.cardID).Select(g => g.First())
-            .OrderBy(c => c.cardName).ToList();
+
+        List<CardData> creatures = GatherCreatureCatalog();
         CardDeskController desk = CardDeskController.Instance;
+        EconomySaveSystem economySave = EconomySaveSystem.Instance;
+
+        // Sync any currently held or placed creatures into persistent discovery storage.
+        HashSet<string> placedIds = null;
+        if (!WorldLaunch.IsVisit)
+        {
+            if (WorldSaveSystem.Instance != null)
+            {
+                placedIds = new HashSet<string>();
+                WorldSaveSystem.Instance.CollectPlacedCreatureIds(placedIds);
+                if (economySave != null && placedIds.Count > 0)
+                    economySave.MarkCreaturesDiscovered(placedIds);
+            }
+            if (economySave != null && desk != null)
+            {
+                foreach (CardData card in creatures)
+                {
+                    string id = card.EffectiveCardId;
+                    if (desk.GetHeldCount(id) > 0) economySave.MarkCreatureDiscovered(id);
+                }
+            }
+        }
+
         int discovered = 0;
         foreach (CardData card in creatures)
         {
-            bool isDiscovered = desk != null && desk.GetHeldCount(string.IsNullOrEmpty(card.cardID) ? card.name : card.cardID) > 0;
+            string id = card.EffectiveCardId;
+            bool isDiscovered = (economySave != null && economySave.IsCreatureDiscovered(id))
+                || (desk != null && desk.GetHeldCount(id) > 0)
+                || (placedIds != null && placedIds.Contains(id));
             if (isDiscovered) discovered++;
             BuildEntry(card, isDiscovered);
         }
         countLabel.text = $"{discovered} / {creatures.Count} discovered";
+    }
+
+    private static List<CardData> GatherCreatureCatalog()
+    {
+        var byId = new Dictionary<string, CardData>();
+
+        // Prefer the official CardCatalog (Assets/Data/Save/CardCatalog.asset -> Assets/Data/Cards/Creature)
+        // so stale duplicates under Resources/Cards do not shadow updated CardData assets.
+        CardCatalog catalog = WorldSaveSystem.Instance != null ? WorldSaveSystem.Instance.Cards : null;
+        if (catalog != null && catalog.All != null)
+        {
+            foreach (CardData card in catalog.All)
+            {
+                if (card == null || card.cardType != CardType.Creature) continue;
+                string id = card.EffectiveCardId;
+                if (!string.IsNullOrEmpty(id) && !byId.ContainsKey(id)) byId.Add(id, card);
+            }
+        }
+
+        // Supplement with runtime-created or uncatalogued creature cards (e.g., Braluff).
+        foreach (CardData card in Resources.FindObjectsOfTypeAll<CardData>())
+        {
+            if (card == null || card.cardType != CardType.Creature) continue;
+            string id = card.EffectiveCardId;
+            if (!string.IsNullOrEmpty(id) && !byId.ContainsKey(id)) byId.Add(id, card);
+        }
+
+        return byId.Values.OrderBy(c => c.cardName).ToList();
     }
 
     private void BuildEntry(CardData card, bool isDiscovered)

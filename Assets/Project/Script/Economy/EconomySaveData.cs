@@ -49,6 +49,9 @@ public class EconomySaveData
     public bool starterHandGranted;
     public List<HandCardStack> hand = new List<HandCardStack>();
 
+    // Danh sách cardID sinh vật đã từng xuất hiện (trên tay hoặc trên đảo) để giữ trạng thái đã mở khóa trong Collection.
+    public List<string> discoveredCreatureIds = new List<string>();
+
     // Hàng chờ chế biến (CraftingQueueSystem). Nguyên liệu đã trừ khỏi kho lúc bắt đầu mẻ,
     // nên mẻ phải nằm cùng file với kho. Mẻ đã nhận thành phẩm bị xóa khỏi danh sách.
     public List<CraftingJobRecord> craftingJobs = new List<CraftingJobRecord>();
