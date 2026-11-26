@@ -195,6 +195,13 @@ public class EconomySaveSystem : MonoBehaviour
                 break;
             }
 
+            case "GemsPurchased":
+            {
+                // Gem do server giữ (không nằm trong bản lưu): chỉ báo HUD đọc lại số dư và hiện "+X"
+                GemWallet.NotifyPurchased(JsonUtility.FromJson<GemsPurchasedPayload>(payload));
+                break;
+            }
+
             case "ItemsBought":
             case "ItemsReturned":
             case "TradeReceived":

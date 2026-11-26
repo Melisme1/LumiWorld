@@ -65,6 +65,8 @@ public class EconomyHUD : MonoBehaviour
         CreateOverlay<CardShopUI>("CardShopUI");
         CreateOverlay<LumiWorld.Economy.Crafting.CraftingUI>("CraftingUI");
         CreateOverlay<MarketUI>("MarketUI");
+        // Ô Gem (bên trái nút World Map) và bảng nạp Gem; chỉ trên đảo của mình
+        CreateOverlay<GemTopupUI>("GemTopupUI");
 
         CreateOverlay<AchievementUI>("AchievementUI");
         CreateOverlay<CreatureCareUI>("CreatureCareUI");
