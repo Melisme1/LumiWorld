@@ -40,6 +40,7 @@ public class GemTopupUI : MonoBehaviour
     private RectTransform providerRow;
     private TextMeshProUGUI statusText;
     private Button checkButton;
+    private Button stopWaitingButton;
 
     private readonly List<GemPackageDto> packages = new List<GemPackageDto>();
     private readonly List<PaymentProviderDto> providers = new List<PaymentProviderDto>();
@@ -200,7 +201,8 @@ public class GemTopupUI : MonoBehaviour
         for (int i = 0; i < providers.Count; i++)
         {
             PaymentProviderDto provider = providers[i];
-            bool usable = provider.available && chosen != null && !busy && waiting == null && AuthSession.IsLoggedIn;
+            // Đang chờ một đơn vẫn bấm được: người chơi có thể đã đóng trang VNPay, chọn gói khác để thanh toán lại
+            bool usable = provider.available && chosen != null && !busy && AuthSession.IsLoggedIn;
             RectTransform rect = EconomyHUD.CreateRect("Pay_" + provider.id, providerRow);
             SetTopLeft(rect, new Vector2(i * 228f, 0f), new Vector2(214f, 46f));
             Button button = EconomyHUD.AddButton(rect, provider.available ? AccentColor : DisabledColor);
@@ -220,6 +222,8 @@ public class GemTopupUI : MonoBehaviour
     private IEnumerator Pay(string providerId)
     {
         if (busy || chosen == null) yield break;
+        // Đang chờ đơn cũ (đóng trang VNPay giữa chừng): bỏ chờ đơn đó, đơn mới thay thế
+        if (waiting != null) StopWaiting(null);
         busy = true;
         RenderProviders();
         SetStatus("Creating your order…", false);
@@ -241,8 +245,10 @@ public class GemTopupUI : MonoBehaviour
         waiting = order;
         RenderProviders();
         Application.OpenURL(order.payUrl);
-        SetStatus($"Order {order.orderCode}: finish the payment in your browser, then come back. Waiting…", false);
+        SetStatus($"Order {order.orderCode}: finish the payment in your browser, then come back. Waiting…\n" +
+                  "Closed the payment page? Choose another package or press \"Choose another package\".", false);
         checkButton.gameObject.SetActive(true);
+        stopWaitingButton.gameObject.SetActive(true);
         if (pollRoutine != null) StopCoroutine(pollRoutine);
         pollRoutine = StartCoroutine(Poll(order));
     }
@@ -292,8 +298,20 @@ public class GemTopupUI : MonoBehaviour
         waiting = null;
         if (pollRoutine != null) { StopCoroutine(pollRoutine); pollRoutine = null; }
         checkButton.gameObject.SetActive(false);
+        stopWaitingButton.gameObject.SetActive(false);
         SetStatus(message, warning);
         RenderProviders();
+    }
+
+    /// <summary>
+    /// Thôi chờ đơn hiện tại (người chơi đã đóng trang thanh toán). Đơn không bị hủy trên server: tự hết hạn sau 15 phút,
+    /// và nếu thật ra đã trả tiền thì Gem vẫn được cộng (hộp thư GemsPurchased cập nhật ô Gem).
+    /// </summary>
+    private void StopWaiting(string message)
+    {
+        if (waiting == null) return;
+        string code = waiting.orderCode;
+        Finish(message ?? $"Stopped waiting for order {code}. If you did pay for it, the Gems will still arrive.", false);
     }
 
     // =========================================================
@@ -348,6 +366,15 @@ public class GemTopupUI : MonoBehaviour
         EconomyHUD.Stretch(checkLabel.rectTransform);
         checkLabel.text = "I've paid, check again";
         check.gameObject.SetActive(false);
+
+        RectTransform stop = EconomyHUD.CreateRect("StopWaiting", panel);
+        SetTopLeft(stop, new Vector2(300f, -532f), new Vector2(260f, 42f));
+        stopWaitingButton = EconomyHUD.AddButton(stop, DisabledColor);
+        stopWaitingButton.onClick.AddListener(() => StopWaiting(null));
+        TextMeshProUGUI stopLabel = EconomyHUD.CreateText("Label", stop, 16f, TextColor, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(stopLabel.rectTransform);
+        stopLabel.text = "Choose another package";
+        stop.gameObject.SetActive(false);
 
         EconomyHUD.RegisterWindow(window, Close);
         window.SetActive(false);
