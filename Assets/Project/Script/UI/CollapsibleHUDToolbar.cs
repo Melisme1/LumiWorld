@@ -168,7 +168,7 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         toolbarPanelImage.color = LumiWorldUITheme.Window;
         LumiWorldUITheme.AddSoftElevation(panelObj, 3.5f, 0.16f);
 
-        const int buttonCount = 7;
+        const int buttonCount = 8;
         targetPanelWidth = buttonCount * innerButtonSize + (buttonCount - 1) * itemSpacing + 2 * panelPadding;
         toolbarPanelRect.sizeDelta = new Vector2(targetPanelWidth, toolbarHeight);
     }
@@ -210,6 +210,11 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         CreateToolbarButton("Btn_CreationLab", "G-07", "Creation Lab", 6, () =>
         {
             GameDialogUI.ShowNotice("Creation Lab chambers are being prepared for this island.");
+        });
+
+        CreateToolbarButton("Btn_CreatureCollection", "G-12", "Creature Collection", 7, () =>
+        {
+            FindAnyObjectByType<CreatureCollectionUI>()?.Toggle();
         });
     }
 

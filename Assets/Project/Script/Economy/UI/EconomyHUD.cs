@@ -70,6 +70,7 @@ public class EconomyHUD : MonoBehaviour
 
         CreateOverlay<AchievementUI>("AchievementUI");
         CreateOverlay<CreatureCareUI>("CreatureCareUI");
+        CreateOverlay<CreatureCollectionUI>("CreatureCollectionUI");
         CreateOverlay<HabitatCreaturePanelUI>("HabitatCreaturePanelUI");
         CreateOverlay<HexPlacementPreviewHUD>("HexPlacementPreviewHUD");
         CreateOverlay<GameSettingsUI>("GameSettingsUI");
