@@ -29,9 +29,9 @@ public class CardShopUI : MonoBehaviour
     private const float PanelWidth = 880f;
     private const float PanelHeight = 560f;
     private const float GridAreaWidth = 556f;
-    private const float TileWidth = 174f;
+    private const float TileWidth = 168f;
     private const float TileHeight = 132f;
-    private const float TileGap = 10f;
+    private const float TileGap = 12f;
     private const int Columns = 3;
 
     [Header("Legacy / Scene References")]
@@ -234,6 +234,11 @@ public class CardShopUI : MonoBehaviour
             LumiWorldUITheme.SetSubTabActive(tv.bg, tv.icon, tv.label, tv.shadow, active);
         }
 
+        float contentW = gridContent != null && gridContent.rect.width > 100f ? gridContent.rect.width : (GridAreaWidth - 8f);
+        float totalTilesW = Columns * TileWidth + (Columns - 1) * TileGap;
+        float startX = Mathf.Max(6f, (contentW - totalTilesW) * 0.5f);
+        float startY = 10f;
+
         visibleTiles.Clear();
         int idx = 0;
         foreach (TileView tile in allTiles)
@@ -245,14 +250,14 @@ public class CardShopUI : MonoBehaviour
             int col = idx % Columns;
             int row = idx / Columns;
             tile.rect.anchoredPosition = new Vector2(
-                col * (TileWidth + TileGap) + TileWidth * 0.5f + 8f,
-                -(row * (TileHeight + TileGap) + TileHeight * 0.5f + 8f));
+                startX + col * (TileWidth + TileGap) + TileWidth * 0.5f,
+                -(startY + row * (TileHeight + TileGap) + TileHeight * 0.5f));
             visibleTiles.Add(tile);
             idx++;
         }
 
         int totalRows = Mathf.Max(1, (visibleTiles.Count + Columns - 1) / Columns);
-        float contentH = visibleTiles.Count > 0 ? totalRows * (TileHeight + TileGap) - TileGap + 16f : 200f;
+        float contentH = visibleTiles.Count > 0 ? startY * 2f + totalRows * TileHeight + (totalRows - 1) * TileGap : 200f;
         gridContent.sizeDelta = new Vector2(0f, contentH);
         gridContent.anchoredPosition = Vector2.zero;
 
@@ -699,8 +704,8 @@ public class CardShopUI : MonoBehaviour
         }
 
         // Right Column inside Tile
-        float infoX = 94f;
-        float infoW = TileWidth - infoX - 8f;
+        float infoX = 92f;
+        float infoW = TileWidth - infoX - 6f;
         bool isNature = ClassifyShopCard(card) == ShopTab.Nature;
 
         if (isNature)

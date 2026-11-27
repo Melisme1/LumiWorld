@@ -359,7 +359,7 @@ public class MarketUI : MonoBehaviour
         {
             "G-25",
             "G-26",
-            LumiWorldUITheme.Glyph("G-24") != null ? "G-24" : "G-04"
+            "G-04"
         };
         float[] tabWidths = { 126f, 126f, 186f };
 

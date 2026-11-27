@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FlowerDogSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: flowerdog
-  speciesName: "Chó Hoa"
+  speciesName: "Flower Dog"
   description: "Chú cún trung thành với những cánh hoa rực rỡ đơm bông trên lưng, luôn vui vẻ quấn quýt và lan tỏa năng lượng tích cực."
   locomotionType: 0
   baseWalkSpeed: 0.5

@@ -116,13 +116,14 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         toggleBtnRect = toggleObj.GetComponent<RectTransform>();
         toggleBtnRect.anchorMin = new Vector2(0f, 0.5f);
         toggleBtnRect.anchorMax = new Vector2(0f, 0.5f);
-        toggleBtnRect.pivot = new Vector2(0f, 0.5f);
-        toggleBtnRect.anchoredPosition = Vector2.zero;
+        toggleBtnRect.pivot = new Vector2(0.5f, 0.5f);
+        toggleBtnRect.anchoredPosition = new Vector2(buttonSize * 0.5f, 0f);
         toggleBtnRect.sizeDelta = new Vector2(buttonSize, buttonSize);
 
         Image btnImg = toggleObj.GetComponent<Image>();
-        btnImg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
-        btnImg.type = Image.Type.Sliced;
+        btnImg.sprite = EconomyHUD.CircleSprite;
+        btnImg.type = Image.Type.Simple;
+        btnImg.preserveAspect = true;
         btnImg.color = ButtonNormalColor;
         btnImg.raycastTarget = true;
         LumiWorldUITheme.AddSoftElevation(toggleObj, 3f, 0.16f);
@@ -233,8 +234,9 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         buttonRects.Add(btnRect);
 
         Image btnImg = btnObj.GetComponent<Image>();
-        btnImg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
-        btnImg.type = Image.Type.Sliced;
+        btnImg.sprite = EconomyHUD.CircleSprite;
+        btnImg.type = Image.Type.Simple;
+        btnImg.preserveAspect = true;
         btnImg.color = ButtonNormalColor;
         btnImg.raycastTarget = true;
         LumiWorldUITheme.AddSoftElevation(btnObj, 2.5f, 0.13f);
@@ -296,7 +298,7 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         topRightContainer.anchorMin = new Vector2(1f, 1f);
         topRightContainer.anchorMax = new Vector2(1f, 1f);
         topRightContainer.pivot = new Vector2(1f, 1f);
-        topRightContainer.anchoredPosition = new Vector2(-20f, -14f);
+        topRightContainer.anchoredPosition = new Vector2(-44f, -14f);
         topRightContainer.sizeDelta = new Vector2(320f, 50f);
 
         // 1. Settings Gear (rightmost, x = 0 from right edge)
@@ -320,13 +322,15 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         GameObject btnObj = new GameObject(objName, typeof(RectTransform), typeof(Image), typeof(Button));
         btnObj.transform.SetParent(topRightContainer, false);
         RectTransform btnRect = btnObj.GetComponent<RectTransform>();
-        btnRect.anchorMin = btnRect.anchorMax = btnRect.pivot = new Vector2(1f, 1f);
-        btnRect.anchoredPosition = topRightOffset;
+        btnRect.anchorMin = btnRect.anchorMax = new Vector2(1f, 1f);
+        btnRect.pivot = new Vector2(0.5f, 0.5f);
+        btnRect.anchoredPosition = topRightOffset + new Vector2(-24f, -24f);
         btnRect.sizeDelta = new Vector2(48f, 48f);
 
         Image btnImg = btnObj.GetComponent<Image>();
-        btnImg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
-        btnImg.type = Image.Type.Sliced;
+        btnImg.sprite = EconomyHUD.CircleSprite;
+        btnImg.type = Image.Type.Simple;
+        btnImg.preserveAspect = true;
         btnImg.color = LumiWorldUITheme.Surface;
         btnImg.raycastTarget = true;
         LumiWorldUITheme.AddSoftElevation(btnObj, 3f, 0.16f);
@@ -366,17 +370,19 @@ public class CollapsibleHUDToolbar : MonoBehaviour
         tipObj.transform.SetParent(transform, false);
         hoverTooltipRect = tipObj.GetComponent<RectTransform>();
         hoverTooltipRect.pivot = new Vector2(0.5f, 1f);
-        hoverTooltipRect.sizeDelta = new Vector2(110f, 32f);
+        hoverTooltipRect.sizeDelta = new Vector2(80f, 32f);
 
         Image bg = tipObj.GetComponent<Image>();
-        bg.sprite = LumiWorldUITheme.SurfaceSprite ?? EconomyHUD.RoundedSprite;
+        bg.sprite = LumiWorldUITheme.GetCapsuleSprite(32);
         bg.type = Image.Type.Sliced;
         bg.color = LumiWorldUITheme.Slot;
         bg.raycastTarget = false;
         LumiWorldUITheme.AddSoftElevation(tipObj, 2.5f, 0.16f);
 
-        hoverTooltipText = EconomyHUD.CreateText("Label", hoverTooltipRect, 13.5f, LumiWorldUITheme.Text, TextAlignmentOptions.Center);
+        hoverTooltipText = EconomyHUD.CreateText("Label", hoverTooltipRect, 13.5f, LumiWorldUITheme.Text, TextAlignmentOptions.Midline);
         if (LumiWorldUITheme.Heading != null) hoverTooltipText.font = LumiWorldUITheme.Heading;
+        hoverTooltipText.enableWordWrapping = false;
+        hoverTooltipText.margin = new Vector4(12f, 0f, 12f, 0f);
         EconomyHUD.Stretch(hoverTooltipText.rectTransform);
         hoverTooltipText.raycastTarget = false;
 
@@ -400,10 +406,34 @@ public class CollapsibleHUDToolbar : MonoBehaviour
     {
         if (hoverTooltipRect == null || hoverTooltipText == null || target == null) return;
         hoverTooltipText.text = label;
-        float w = Mathf.Max(84f, label.Length * 8.5f + 26f);
+        float w = Mathf.Max(68f, label.Length * 9.2f + 30f);
         hoverTooltipRect.sizeDelta = new Vector2(w, 32f);
+
+        // Position directly below target's bottom center in world coordinates
         hoverTooltipRect.position = target.position;
         hoverTooltipRect.anchoredPosition += new Vector2(0f, -34f);
+
+        // Clamp tooltip within canvas so it never touches or exceeds screen boundaries
+        if (transform.root is RectTransform canvasRt)
+        {
+            Vector3[] corners = new Vector3[4];
+            hoverTooltipRect.GetWorldCorners(corners);
+            Vector3[] canvasCorners = new Vector3[4];
+            canvasRt.GetWorldCorners(canvasCorners);
+
+            float minX = canvasCorners[0].x + 10f;
+            float maxX = canvasCorners[2].x - 10f;
+
+            if (corners[0].x < minX)
+            {
+                hoverTooltipRect.position += new Vector3(minX - corners[0].x, 0f, 0f);
+            }
+            else if (corners[2].x > maxX)
+            {
+                hoverTooltipRect.position += new Vector3(maxX - corners[2].x, 0f, 0f);
+            }
+        }
+
         hoverTooltipRect.SetAsLastSibling();
         hoverTooltipRect.gameObject.SetActive(true);
     }

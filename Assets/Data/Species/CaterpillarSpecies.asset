@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CaterpillarSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: caterpillar
-  speciesName: "Sâu Bướm"
+  speciesName: "Caterpillar"
   description: "Chú sâu bướm dễ thương ngọ nguậy gặm lá hoa thơm, là khởi đầu cho những vũ điệu bướm rực rỡ sắc màu."
   locomotionType: 0
   baseWalkSpeed: 0.35

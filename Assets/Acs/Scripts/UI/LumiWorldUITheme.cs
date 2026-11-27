@@ -196,7 +196,8 @@ namespace LumiWorld.Acs
             if (spriteCache.TryGetValue(fullKey, out var cached) && cached != null)
                 return cached;
 
-            int size = Mathf.Max(48, radius * 2 + 12);
+            int r = Mathf.Max(radius, 4);
+            int size = Mathf.Max(64, r * 2 + 16);
             Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
             {
                 name = fullKey,
@@ -204,26 +205,52 @@ namespace LumiWorld.Acs
                 filterMode = FilterMode.Bilinear
             };
             Color[] px = new Color[size * size];
-            float r = radius;
+
+            // 4x4 subpixel supersampling (16 geometric samples per texel) for studio-grade anti-aliased curves
+            const int ss = 4;
+            float invSsSq = 1f / (ss * ss);
 
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    float dx = x < r ? r - x : (x > size - 1 - r ? x - (size - 1 - r) : 0f);
-                    float dy = y < r ? r - y : (y > size - 1 - r ? y - (size - 1 - r) : 0f);
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                    float alpha = Mathf.Clamp01(r - dist + 0.5f);
-                    if (alpha <= 0.005f)
+                    float totalAlpha = 0f;
+                    float totalBorder = 0f;
+
+                    for (int sy = 0; sy < ss; sy++)
                     {
-                        px[y * size + x] = Color.clear;
-                        continue;
+                        float py = y + (sy + 0.5f) / ss;
+                        float dy = py < r ? r - py : (py > size - 1 - r ? py - (size - 1 - r) : 0f);
+
+                        for (int sx = 0; sx < ss; sx++)
+                        {
+                            float pxX = x + (sx + 0.5f) / ss;
+                            float dx = pxX < r ? r - pxX : (pxX > size - 1 - r ? pxX - (size - 1 - r) : 0f);
+
+                            float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                            if (dist <= r)
+                            {
+                                totalAlpha += 1f;
+                                if (borderThickness > 0f && dist >= r - borderThickness)
+                                {
+                                    totalBorder += 1f;
+                                }
+                            }
+                        }
                     }
 
-                    float edgeT = Mathf.Clamp01((dist - (r - borderThickness)) + 0.5f);
-                    Color c = Color.Lerp(fill, border, edgeT);
-                    c.a *= alpha;
-                    px[y * size + x] = c;
+                    float a = totalAlpha * invSsSq;
+                    if (a <= 0.002f)
+                    {
+                        px[y * size + x] = Color.clear;
+                    }
+                    else
+                    {
+                        float bT = totalBorder * invSsSq;
+                        Color c = Color.Lerp(fill, border, bT);
+                        c.a *= a;
+                        px[y * size + x] = c;
+                    }
                 }
             }
 
@@ -365,7 +392,7 @@ namespace LumiWorld.Acs
             obj.transform.SetParent(parent, false);
 
             bgImg = obj.GetComponent<Image>();
-            bgImg.sprite = PillSprite;
+            bgImg.sprite = radius > 0 ? GetCapsuleSprite(radius * 2) : PillSprite;
             bgImg.type = Image.Type.Sliced;
             bgImg.color = primary ? Primary : Inset;
             bgImg.raycastTarget = true;
@@ -382,9 +409,14 @@ namespace LumiWorld.Acs
 
             GameObject row = new GameObject("Content", typeof(RectTransform));
             row.transform.SetParent(obj.transform, false);
-            Stretch(row.GetComponent<RectTransform>(), 8f);
+            RectTransform rowRt = row.GetComponent<RectTransform>();
+            rowRt.anchorMin = Vector2.zero;
+            rowRt.anchorMax = Vector2.one;
+            rowRt.pivot = new Vector2(0.5f, 0.5f);
+            rowRt.offsetMin = new Vector2(6f, 0f);
+            rowRt.offsetMax = new Vector2(-6f, 0f);
 
-            if (sp != null)
+            if (sp != null && !string.IsNullOrEmpty(label))
             {
                 HorizontalLayoutGroup hlg = row.AddComponent<HorizontalLayoutGroup>();
                 hlg.childAlignment = TextAnchor.MiddleCenter;
@@ -394,9 +426,10 @@ namespace LumiWorld.Acs
                 hlg.childForceExpandWidth = false;
                 hlg.childForceExpandHeight = false;
 
+                float iconSize = Mathf.Round(fontSize * 1.25f);
                 GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
                 icObj.transform.SetParent(row.transform, false);
-                icObj.GetComponent<RectTransform>().sizeDelta = new Vector2(fontSize + 2f, fontSize + 2f);
+                icObj.GetComponent<RectTransform>().sizeDelta = new Vector2(iconSize, iconSize);
                 iconImg = icObj.GetComponent<Image>();
                 iconImg.sprite = sp;
                 iconImg.preserveAspect = true;
@@ -405,16 +438,35 @@ namespace LumiWorld.Acs
 
                 labelTmp = CreateLabel(row.transform, "Label", label, fontSize, fg, false, TextAlignmentOptions.Center);
                 labelTmp.overflowMode = TextOverflowModes.Overflow;
+                labelTmp.enableWordWrapping = false;
                 float estW = Mathf.Max(24f, label.Length * (fontSize * 0.56f) + 6f);
                 labelTmp.rectTransform.sizeDelta = new Vector2(estW, fontSize * 1.6f);
                 ContentSizeFitter csf = labelTmp.gameObject.AddComponent<ContentSizeFitter>();
                 csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
                 csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             }
+            else if (sp != null)
+            {
+                float iconSize = Mathf.Round(fontSize * 1.25f);
+                GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+                icObj.transform.SetParent(row.transform, false);
+                RectTransform icRt = icObj.GetComponent<RectTransform>();
+                icRt.anchorMin = icRt.anchorMax = icRt.pivot = new Vector2(0.5f, 0.5f);
+                icRt.anchoredPosition = Vector2.zero;
+                icRt.sizeDelta = new Vector2(iconSize, iconSize);
+                iconImg = icObj.GetComponent<Image>();
+                iconImg.sprite = sp;
+                iconImg.preserveAspect = true;
+                iconImg.color = fg;
+                iconImg.raycastTarget = false;
+                labelTmp = null;
+            }
             else
             {
                 labelTmp = CreateLabel(row.transform, "Label", label, fontSize, fg, false, TextAlignmentOptions.Center);
                 Stretch(labelTmp.rectTransform);
+                labelTmp.overflowMode = TextOverflowModes.Overflow;
+                labelTmp.enableWordWrapping = false;
             }
 
             return btn;
@@ -436,7 +488,7 @@ namespace LumiWorld.Acs
             obj.transform.SetParent(parent, false);
 
             bgImg = obj.GetComponent<Image>();
-            bgImg.sprite = PillSprite;
+            bgImg.sprite = GetCapsuleSprite(34);
             bgImg.type = Image.Type.Sliced;
             bgImg.raycastTarget = true;
             AddSoftElevation(obj, 2f, 0.14f);
@@ -449,6 +501,7 @@ namespace LumiWorld.Acs
 
             Sprite sp = !string.IsNullOrEmpty(glyphId) ? Glyph(glyphId) : null;
             iconImg = null;
+            float iconSize = Mathf.Round(fontSize * 1.25f);
             if (sp != null)
             {
                 GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
@@ -457,7 +510,7 @@ namespace LumiWorld.Acs
                 icRt.anchorMin = icRt.anchorMax = new Vector2(0f, 0.5f);
                 icRt.pivot = new Vector2(0f, 0.5f);
                 icRt.anchoredPosition = new Vector2(12f, 0f);
-                icRt.sizeDelta = new Vector2(16f, 16f);
+                icRt.sizeDelta = new Vector2(iconSize, iconSize);
                 iconImg = icObj.GetComponent<Image>();
                 iconImg.sprite = sp;
                 iconImg.preserveAspect = true;
@@ -471,7 +524,7 @@ namespace LumiWorld.Acs
             RectTransform lrt = labelTmp.rectTransform;
             lrt.anchorMin = Vector2.zero;
             lrt.anchorMax = Vector2.one;
-            lrt.offsetMin = new Vector2(sp != null ? 33f : 8f, 0f);
+            lrt.offsetMin = new Vector2(sp != null ? (iconSize + 17f) : 8f, 0f);
             lrt.offsetMax = new Vector2(-8f, 0f);
             return btn;
         }
@@ -481,7 +534,7 @@ namespace LumiWorld.Acs
             if (bg != null)
             {
                 bg.sprite = darkActivePill
-                    ? (active ? PillSprite : PillSprite)
+                    ? GetCapsuleSprite(34)
                     : GetBorderedSurfaceSprite(
                         active ? "SubTabActive" : "SubTabInactive",
                         active ? Slot : new Color(0.90f, 0.88f, 0.84f, 1f),
@@ -507,7 +560,7 @@ namespace LumiWorld.Acs
             PlaceTopRight(obj.GetComponent<RectTransform>(), xFromRight, yFromTop, size, size);
 
             Image bg = obj.GetComponent<Image>();
-            bg.sprite = PillSprite;
+            bg.sprite = GetCapsuleSprite(Mathf.RoundToInt(size));
             bg.type = Image.Type.Sliced;
             bg.color = Inset;
             bg.raycastTarget = true;
@@ -538,7 +591,7 @@ namespace LumiWorld.Acs
             PlaceTopRight(rt, xFromRight, yFromTop, width, height);
 
             Image bg = chipObj.GetComponent<Image>();
-            bg.sprite = PillSprite;
+            bg.sprite = GetCapsuleSprite(Mathf.RoundToInt(height));
             bg.type = Image.Type.Sliced;
             bg.color = Primary;
             bg.raycastTarget = false;
@@ -568,7 +621,7 @@ namespace LumiWorld.Acs
             return rt;
         }
 
-        public static Image CreateSelectionBorder(Transform parent, int radius = 14, float thickness = 2.6f)
+        public static Image CreateSelectionBorder(Transform parent, int radius = 22, float thickness = 2.6f)
         {
             GameObject obj = new GameObject("SelectionBorder", typeof(RectTransform), typeof(Image));
             obj.transform.SetParent(parent, false);
@@ -631,11 +684,18 @@ namespace LumiWorld.Acs
             }
         }
 
-        // Aliases of the shared rounded surface (tint via Image.color). Pills use the same 9-slice.
+        // Aliases of the shared rounded surface (tint via Image.color). Pills use a dedicated smooth 28px capsule 9-slice.
         public static Sprite WindowSprite => SurfaceSprite;
-        public static Sprite PillSprite => SurfaceSprite;
-        public static Sprite ButtonPrimarySprite => SurfaceSprite;
-        public static Sprite ButtonSecondarySprite => SurfaceSprite;
+        public static Sprite PillSprite => GetBorderedSurfaceSprite("Pill_Capsule_R28", Color.white, Color.clear, 28, 0f);
+
+        public static Sprite GetCapsuleSprite(int height)
+        {
+            int r = Mathf.Max(6, height / 2);
+            return GetBorderedSurfaceSprite("Capsule_H" + height, Color.white, Color.clear, r, 0f);
+        }
+
+        public static Sprite ButtonPrimarySprite => GetBorderedSurfaceSprite("BtnPrimary_R28", Color.white, Color.clear, 28, 0f);
+        public static Sprite ButtonSecondarySprite => GetBorderedSurfaceSprite("BtnSecondary_R28", Color.white, Color.clear, 28, 0f);
 
         public static Sprite BorderSprite
         {

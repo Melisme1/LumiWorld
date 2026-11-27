@@ -168,7 +168,7 @@ public class MainMenuController : MonoBehaviour
             canvas = root.GetComponentInChildren<Canvas>(true);
             if (canvas != null) break;
         }
-        if (canvas == null) canvas = FindFirstObjectByType<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
 
         if (canvas == null)
         {

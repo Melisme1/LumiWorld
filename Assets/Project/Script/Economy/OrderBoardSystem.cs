@@ -419,7 +419,7 @@ public class OrderBoardSystem : MonoBehaviour
         // 3. Dự phòng: Thú riêng lẻ trên ô đất
         if (ids.Count == 0)
         {
-            var animals = UnityEngine.Object.FindObjectsByType<AnimalIndividual>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            var animals = UnityEngine.Object.FindObjectsByType<AnimalIndividual>(FindObjectsInactive.Exclude);
             if (animals != null)
             {
                 foreach (var animal in animals)

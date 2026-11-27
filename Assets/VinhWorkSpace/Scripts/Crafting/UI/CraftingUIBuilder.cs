@@ -231,6 +231,7 @@ namespace LumiWorld.Economy.Crafting
             queueRect.sizeDelta = new Vector2(180f, 46f);
 
             b.queueToggleBg = EconomyHUD.CreatePanel(queueRect, LumiWorldUITheme.Inset);
+            b.queueToggleBg.sprite = LumiWorldUITheme.GetCapsuleSprite(46);
             b.queueToggleBg.raycastTarget = true;
             LumiWorldUITheme.AddSoftElevation(queueRect.gameObject, 2.5f, 0.14f);
 
@@ -256,6 +257,7 @@ namespace LumiWorld.Economy.Crafting
             closeRect.anchoredPosition = new Vector2(PanelWidth - 72f, -16f);
             closeRect.sizeDelta = new Vector2(46f, 46f);
             Image closeBg = EconomyHUD.CreatePanel(closeRect, LumiWorldUITheme.Inset);
+            closeBg.sprite = LumiWorldUITheme.GetCapsuleSprite(46);
             closeBg.raycastTarget = true;
             LumiWorldUITheme.AddSoftElevation(closeRect.gameObject, 2.5f, 0.14f);
             Button closeBtn = closeRect.gameObject.AddComponent<Button>();
@@ -304,6 +306,7 @@ namespace LumiWorld.Economy.Crafting
             rect.sizeDelta = new Vector2(w, h);
 
             Image bg = EconomyHUD.CreatePanel(rect, active ? LumiWorldUITheme.Primary : LumiWorldUITheme.Inset);
+            bg.sprite = LumiWorldUITheme.GetCapsuleSprite(Mathf.RoundToInt(h));
             bg.raycastTarget = true;
             LumiWorldUITheme.AddSoftElevation(rect.gameObject, 3f, 0.16f);
 
@@ -369,6 +372,7 @@ namespace LumiWorld.Economy.Crafting
                 le.preferredHeight = 48f;
 
                 Image bg = EconomyHUD.CreatePanel(tRect, LumiWorldUITheme.Inset);
+                bg.sprite = LumiWorldUITheme.GetCapsuleSprite(48);
                 bg.raycastTarget = true;
                 LumiWorldUITheme.AddSoftElevation(tRect.gameObject, 2.5f, 0.13f);
 
@@ -462,11 +466,13 @@ namespace LumiWorld.Economy.Crafting
 
             // 3D elevated bright card (#FCFBF8) without wire outline when unselected
             Image bg = EconomyHUD.CreatePanel(row, LumiWorldUITheme.Slot);
+            bg.sprite = LumiWorldUITheme.GetCapsuleSprite(78);
             bg.raycastTarget = true;
             LumiWorldUITheme.AddSoftElevation(row.gameObject, 3.5f, 0.16f);
 
             // Selected border (dark graphite, no checkmark per P-01/P-02)
             Image selectedBorder = EconomyHUD.AddBlueBorder(row, LumiWorldUITheme.Primary);
+            selectedBorder.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("RecipeCardSel_H78", Color.clear, LumiWorldUITheme.Primary, 39, 2.5f);
             selectedBorder.gameObject.name = "SelectedBorder";
             selectedBorder.gameObject.SetActive(false);
 
@@ -647,6 +653,7 @@ namespace LumiWorld.Economy.Crafting
             decRect.anchoredPosition = new Vector2(82f, 0f);
             decRect.sizeDelta = new Vector2(40f, 38f);
             b.btnDecrease = EconomyHUD.AddButton(decRect, LumiWorldUITheme.Inset);
+            decRect.GetComponent<Image>().sprite = LumiWorldUITheme.GetCapsuleSprite(38);
             LumiWorldUITheme.AddSoftElevation(decRect.gameObject, 2f, 0.12f);
             b.btnDecrease.onClick.AddListener(() => onAdjustQty(-1));
             TextMeshProUGUI decLbl = EconomyHUD.CreateText("L", decRect, 20f, LumiWorldUITheme.Text, TextAlignmentOptions.Center);
@@ -660,6 +667,7 @@ namespace LumiWorld.Economy.Crafting
             qtyBox.anchoredPosition = new Vector2(128f, 0f);
             qtyBox.sizeDelta = new Vector2(58f, 38f);
             EconomyHUD.CreatePanel(qtyBox, LumiWorldUITheme.Slot);
+            qtyBox.GetComponent<Image>().sprite = LumiWorldUITheme.GetCapsuleSprite(38);
             LumiWorldUITheme.AddSoftElevation(qtyBox.gameObject, 2f, 0.12f);
             b.quantityText = EconomyHUD.CreateText("Qty", qtyBox, 17f, LumiWorldUITheme.Text, TextAlignmentOptions.Center);
             ApplyHeadingFont(b.quantityText);
@@ -672,6 +680,7 @@ namespace LumiWorld.Economy.Crafting
             incRect.anchoredPosition = new Vector2(192f, 0f);
             incRect.sizeDelta = new Vector2(40f, 38f);
             b.btnIncrease = EconomyHUD.AddButton(incRect, LumiWorldUITheme.Inset);
+            incRect.GetComponent<Image>().sprite = LumiWorldUITheme.GetCapsuleSprite(38);
             LumiWorldUITheme.AddSoftElevation(incRect.gameObject, 2f, 0.12f);
             b.btnIncrease.onClick.AddListener(() => onAdjustQty(1));
             TextMeshProUGUI incLbl = EconomyHUD.CreateText("L", incRect, 20f, LumiWorldUITheme.Text, TextAlignmentOptions.Center);
@@ -701,6 +710,7 @@ namespace LumiWorld.Economy.Crafting
 
             b.btnStartCraft = EconomyHUD.AddButton(craftBtnRect, LumiWorldUITheme.Primary);
             b.btnStartCraftBg = craftBtnRect.GetComponent<Image>();
+            b.btnStartCraftBg.sprite = LumiWorldUITheme.GetCapsuleSprite(52);
             LumiWorldUITheme.AddSoftElevation(craftBtnRect.gameObject, 3.5f, 0.18f);
             b.btnStartCraft.onClick.AddListener(() => onStartCraft());
 
