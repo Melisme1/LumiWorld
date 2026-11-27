@@ -464,9 +464,9 @@ namespace LumiWorld.Acs
             else
             {
                 labelTmp = CreateLabel(row.transform, "Label", label, fontSize, fg, false, TextAlignmentOptions.Center);
-                Stretch(labelTmp.rectTransform);
                 labelTmp.overflowMode = TextOverflowModes.Overflow;
                 labelTmp.enableWordWrapping = false;
+                Stretch(labelTmp.rectTransform);
             }
 
             return btn;

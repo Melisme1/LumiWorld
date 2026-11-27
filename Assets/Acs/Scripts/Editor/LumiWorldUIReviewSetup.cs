@@ -113,7 +113,7 @@ namespace LumiWorld.Acs.Editor
             var target = new RenderTexture(1600, 900, 24); var previous = RenderTexture.active;
             camera.targetTexture = target;
             Canvas.ForceUpdateCanvases();
-            foreach (var text in Object.FindObjectsByType<TextMeshProUGUI>()) text.ForceMeshUpdate();
+            foreach (var text in Object.FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Exclude)) text.ForceMeshUpdate();
             Canvas.ForceUpdateCanvases(); camera.Render(); RenderTexture.active = target;
             var image = new Texture2D(1600, 900, TextureFormat.RGB24, false); image.ReadPixels(new Rect(0, 0, 1600, 900), 0, 0); image.Apply();
             File.WriteAllBytes(Path.Combine(output, name), image.EncodeToPNG());

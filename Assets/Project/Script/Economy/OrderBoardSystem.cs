@@ -231,12 +231,11 @@ public class OrderBoardSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Bỏ đơn ở ô slot (miễn phí). Ô trống có đơn mới sau refillSeconds. Đơn cơ bản không bỏ được.
+    /// Bỏ đơn ở ô slot (miễn phí). Ô trống có đơn mới sau refillSeconds.
     /// </summary>
     public bool Discard(int slot)
     {
         if (timeRuntime.IsPaused) return false;
-        if (slot == BaselineSlot) return false;
 
         ActiveOrder order = GetOrder(slot);
         if (order == null) return false;

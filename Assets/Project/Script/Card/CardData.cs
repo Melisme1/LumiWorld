@@ -162,7 +162,6 @@ public class CardData : ScriptableObject
         return sharedAcrossRainIslands ||
             (string.Equals(cardID, "Rain", System.StringComparison.OrdinalIgnoreCase) && !isTriangleRain);
     }
-
     /// <summary>
     /// Kiểm tra lá bài này có phải thẻ Khu Dân Cư / Làng Mạc (Settlement Card) hay không
     /// </summary>

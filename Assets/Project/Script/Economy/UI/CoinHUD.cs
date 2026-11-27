@@ -76,7 +76,7 @@ public class CoinHUD : MonoBehaviour
         panelSize = new Vector2(138f, 48f);
         rect.sizeDelta = panelSize;
         if (!WorldLaunch.IsVisit && !VisitSession.Active)
-            rect.anchoredPosition = new Vector2(-100f, -14f);
+            rect.anchoredPosition = new Vector2(-126f, -14f);
 
         // Body nảy khi số dư đổi; số bay nằm ngoài Body nên không nảy theo
         body = EconomyHUD.CreateRect("Body", rect);
