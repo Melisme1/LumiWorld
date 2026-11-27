@@ -1,5 +1,12 @@
 using UnityEngine;
 
+public enum ScoreTutorialPointerMode
+{
+    None,
+    Click,
+    Drag
+}
+
 /// <summary>
 /// One score gated tutorial step configured from the Scene Inspector.
 /// </summary>
@@ -7,9 +14,11 @@ using UnityEngine;
 public class ScoreTutorialStep
 {
     [Min(0)] public int scoreThreshold;
-    public string title;
-    [TextArea(2, 4)] public string purpose;
-    [TextArea(3, 6)] public string instructions;
-    [Tooltip("Optional highlight image created and positioned by you in the Scene.")]
-    public GameObject highlightImage;
+    [TextArea(4, 10)] public string purpose;
+    [Tooltip("Scene RectTransform that defines the position and size of the tutorial hole.")]
+    public RectTransform customHighlightArea;
+    [Min(0)] public float holePadding = 12f;
+    public ScoreTutorialPointerMode pointerMode;
+    [Tooltip("For Drag mode, pointer starts this many canvas units from the target center.")]
+    public Vector2 dragStartOffset = new Vector2(-100f, 0f);
 }
