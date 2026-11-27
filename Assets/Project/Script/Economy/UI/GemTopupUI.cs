@@ -72,10 +72,10 @@ public class GemTopupUI : MonoBehaviour
 
     private void BuildChip()
     {
-        // Hàng trên bên phải: Settings (x -20), Coins (-76..-214), World Map (-222..-270); ô Gem nằm ngay bên trái
+        // Hàng trên bên phải: Settings (x -70..-118), Coins (-126..-264), World Map (-274..-322); ô Gem nằm bên trái World Map (-334..-468)
         chip = EconomyHUD.CreateRect("GemChip", transform);
         chip.anchorMin = chip.anchorMax = chip.pivot = new Vector2(1f, 1f);
-        chip.anchoredPosition = new Vector2(-280f, -14f);
+        chip.anchoredPosition = new Vector2(-334f, -14f);
         chip.sizeDelta = new Vector2(134f, 48f);
         // Nút bo tròn cùng màu ô Coins (AddButton tự tạo Image nền, không thêm CreatePanel: một object chỉ có một Image)
         Button open = EconomyHUD.AddButton(chip, LumiWorld.Acs.LumiWorldUITheme.Primary);
