@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FoxSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: fox
-  speciesName: "Cáo"
+  speciesName: "Fox"
   description: "Chú cáo lông vàng thông minh và hiếu động, sở hữu đôi tai thính nhạy luôn lắng nghe từng chuyển động của rừng già."
   locomotionType: 0
   baseWalkSpeed: 0.52

@@ -42,6 +42,16 @@ public class CardCatalog : ScriptableObject
             }
         }
 
+        // Fallback for hybrid creatures or any cards loaded in Resources/Cards
+        CardData hybrid = Resources.Load<CardData>($"Cards/{cardId}")
+                       ?? BreedingManager.ResolveCardSafe(cardId, cardId);
+        if (hybrid != null)
+        {
+            BreedingManager.EnsureCardFullyConfigured(hybrid);
+            byId[cardId] = hybrid;
+            return hybrid;
+        }
+
         return null;
     }
 

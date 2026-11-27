@@ -27,6 +27,9 @@ public class CardData : ScriptableObject
     public string cardName;
     public Sprite cardImage;
 
+    /// <summary>Canonical identifier used across hand, catalog, and collection persistence.</summary>
+    public string EffectiveCardId => !string.IsNullOrEmpty(cardID) ? cardID : name;
+
     [Header("Type")]
     public CardType cardType;
     public CardRarity rarity = CardRarity.Common;
@@ -159,7 +162,6 @@ public class CardData : ScriptableObject
         return sharedAcrossRainIslands ||
             (string.Equals(cardID, "Rain", System.StringComparison.OrdinalIgnoreCase) && !isTriangleRain);
     }
-
     /// <summary>
     /// Kiểm tra lá bài này có phải thẻ Khu Dân Cư / Làng Mạc (Settlement Card) hay không
     /// </summary>

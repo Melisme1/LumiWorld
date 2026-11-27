@@ -390,7 +390,7 @@ namespace LumiWorld.Acs
             label.fontStyle = style;
             label.color = Color.white;
             label.raycastTarget = false;
-            label.enableWordWrapping = false;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
             label.overflowMode = TextOverflowModes.Ellipsis;
             return label;
         }

@@ -689,6 +689,7 @@ public class CardDeskController : MonoBehaviour
 
         handCounts.Clear();
         foreach (KeyValuePair<string, int> pair in countByCardID) handCounts[pair.Key] = pair.Value;
+        RecordDiscoveredCreatures(uniqueCards);
         handLoaded = true;
         if (dealStarterHand) SaveHand();
 
@@ -1180,6 +1181,8 @@ public class CardDeskController : MonoBehaviour
         if (cardData.reusable && GetHeldCount(key) > 0) return;
 
         handCounts[key] = (handCounts.TryGetValue(key, out int heldBefore) ? heldBefore : 0) + 1;
+        if (cardData.cardType == CardType.Creature)
+            EconomySaveSystem.Instance?.MarkCreatureDiscovered(key);
         SaveHand();
 
         if (slotByCardID.TryGetValue(key, out GameObject existingSlot) && existingSlot != null)
@@ -1328,6 +1331,24 @@ public class CardDeskController : MonoBehaviour
 
         float floorSpacing = Mathf.Min(scaledWidth + 5f, 76f);
         return Mathf.Clamp(targetSpacing, floorSpacing, 95f);
+    }
+
+    private static void RecordDiscoveredCreatures(List<CardData> cardsToCheck)
+    {
+        if (WorldLaunch.IsVisit || cardsToCheck == null || cardsToCheck.Count == 0) return;
+        EconomySaveSystem save = EconomySaveSystem.Instance;
+        if (save == null) return;
+
+        List<string> creatureIds = null;
+        foreach (CardData data in cardsToCheck)
+        {
+            if (data == null || data.cardType != CardType.Creature) continue;
+            string key = GetCardKey(data);
+            if (string.IsNullOrEmpty(key)) continue;
+            creatureIds ??= new List<string>();
+            creatureIds.Add(key);
+        }
+        if (creatureIds != null) save.MarkCreaturesDiscovered(creatureIds);
     }
 
     private static string GetCardKey(CardData data)

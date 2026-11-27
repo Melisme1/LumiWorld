@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GrasshopperSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: grasshopper
-  speciesName: "Ch\xE2u Ch\u1EA5u"
+  speciesName: "Grasshopper"
   description: "Sinh v\u1EADt nhanh nh\u1EB9n bay nh\u1EA3y tr\xEAn nh\u1EEFng
     b\u1EE5i c\u1ECF d\u1EA1i v\xF9ng n\xFAi cao, th\xEDch nghi v\u1EDBi kh\xED
     h\u1EADu kh\u1EAFc nghi\u1EC7t."

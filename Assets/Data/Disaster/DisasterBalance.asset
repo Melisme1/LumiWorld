@@ -29,7 +29,7 @@ MonoBehaviour:
     spawnByTime: 1
     weight: 1
     restrictToBiomes: 1
-    affectedBiomes: 020000000100000003000000
+    affectedBiomes: 02000000010000000300000004000000050000000600000007000000
     spreadRadius: 1
     spreadIntervalSeconds: 8
     maxTiles: 7
@@ -42,7 +42,7 @@ MonoBehaviour:
     spawnByTime: 1
     weight: 1.2
     restrictToBiomes: 1
-    affectedBiomes: 020000000100000003000000
+    affectedBiomes: 01000000020000000300000004000000060000000700000005000000
     spreadRadius: 2
     spreadIntervalSeconds: 1
     maxTiles: 6

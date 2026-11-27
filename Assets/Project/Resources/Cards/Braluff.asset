@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b12995f0b94ac36498b536349c9d9af6, type: 3}
+  m_Name: Braluff
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardID: creature_braluff
+  cardName: Braluff
+  cardImage: {fileID: 21300000, guid: a8845555bc7646d599db6f84e23b41c2, type: 3}
+  cardType: 0
+  baseScore: 5
+  alwaysBaseScore: 0
+  shopPrice: 60
+  placementFee: 0
+  prefabToPlace: {fileID: 0}
+  placementOffset: {x: 0, y: 0, z: 0}
+  replacesTile: 0
+  clearPropsOnTransform: 0
+  occupiesTile: 1
+  animalSpeciesData: {fileID: 11400000, guid: a1b2c3d4e5f600010001000000000017, type: 2}
+  producedResource: {fileID: 0}
+  landResourceBonus: 0
+  biomeCycleDuration: 30
+  maxBiomeTilesOverride: 0
+  transformRules: []
+  habitatSpawnMargin: 0.5
+  habitatProps: []
+  allowedTilePrefabs: []

@@ -376,7 +376,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         changeResourceBtnRect.sizeDelta = new Vector2(144f, 26f);
 
         Image chgBg = chgObj.GetComponent<Image>();
-        chgBg.sprite = LumiWorldUITheme.PillSprite;
+        chgBg.sprite = LumiWorldUITheme.GetCapsuleSprite(26);
         chgBg.type = Image.Type.Sliced;
         chgBg.color = LumiWorldUITheme.Inset;
         LumiWorldUITheme.AddSoftElevation(chgObj, 2f, 0.14f);
@@ -420,7 +420,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         hbRect.sizeDelta = new Vector2(P05ResidentsWidth, 42f);
 
         Image hbImg = hBarObj.GetComponent<Image>();
-        hbImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
+        hbImg.sprite = LumiWorldUITheme.GetCapsuleSprite(42);
         hbImg.type = Image.Type.Sliced;
         hbImg.color = LumiWorldUITheme.Primary;
         LumiWorldUITheme.AddSoftElevation(hBarObj, 3f, 0.20f);
@@ -502,7 +502,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         SetTopLeft(backRect, new Vector2(16f, -14f), new Vector2(166f, 28f));
 
         Image backBg = backBtnObj.GetComponent<Image>();
-        backBg.sprite = LumiWorldUITheme.PillSprite;
+        backBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
         backBg.type = Image.Type.Sliced;
         backBg.color = LumiWorldUITheme.Inset;
 
@@ -610,7 +610,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         rpRect.sizeDelta = new Vector2(82f, 28f);
 
         Image rpBg = rankPillObj.GetComponent<Image>();
-        rpBg.sprite = LumiWorldUITheme.PillSprite;
+        rpBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
         rpBg.type = Image.Type.Sliced;
         rpBg.color = LumiWorldUITheme.Surface;
         LumiWorldUITheme.AddSoftElevation(rankPillObj, 2f, 0.16f);
@@ -657,15 +657,17 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         hungerProgressLabel = CreateLabel(fcRect, "FullnessValue", "50 / 100", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineRight);
         SetTopLeft(hungerProgressLabel.rectTransform, new Vector2(120f, -8f), new Vector2(96f, 20f));
 
-        // Progress Bar Track
-        GameObject barTrack = new GameObject("ProgressTrack", typeof(RectTransform), typeof(Image));
+        // Progress Bar Track (Capsule masked with supersampled AA)
+        GameObject barTrack = new GameObject("ProgressTrack", typeof(RectTransform), typeof(Image), typeof(Mask));
         barTrack.transform.SetParent(fcRect, false);
         RectTransform btRect = barTrack.GetComponent<RectTransform>();
         SetTopLeft(btRect, new Vector2(14f, -33f), new Vector2(202f, 10f));
         Image btImg = barTrack.GetComponent<Image>();
-        btImg.sprite = LumiWorldUITheme.PillSprite;
+        btImg.sprite = LumiWorldUITheme.GetCapsuleSprite(10);
         btImg.type = Image.Type.Sliced;
         btImg.color = LumiWorldUITheme.Inset;
+        Mask btMask = barTrack.GetComponent<Mask>();
+        btMask.showMaskGraphic = true;
 
         GameObject barFill = new GameObject("ProgressFill", typeof(RectTransform), typeof(Image));
         barFill.transform.SetParent(btRect, false);
@@ -675,20 +677,20 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         bfRect.offsetMin = Vector2.zero;
         bfRect.offsetMax = Vector2.zero;
         hungerFillImg = barFill.GetComponent<Image>();
-        hungerFillImg.sprite = LumiWorldUITheme.PillSprite;
+        hungerFillImg.sprite = LumiWorldUITheme.GetCapsuleSprite(10);
         hungerFillImg.type = Image.Type.Filled;
         hungerFillImg.fillMethod = Image.FillMethod.Horizontal;
         hungerFillImg.fillOrigin = 0;
         hungerFillImg.fillAmount = 0.5f;
         hungerFillImg.color = LumiWorldUITheme.Success;
 
-        // Status Pill inside Fullness Card
+        // Status Pill inside Fullness Card (Capsule pill)
         GameObject stPillObj = new GameObject("StatusPill", typeof(RectTransform), typeof(Image));
         stPillObj.transform.SetParent(fcRect, false);
         RectTransform stPillRect = stPillObj.GetComponent<RectTransform>();
         SetTopLeft(stPillRect, new Vector2(14f, -49f), new Vector2(106f, 20f));
         statusPillBg = stPillObj.GetComponent<Image>();
-        statusPillBg.sprite = LumiWorldUITheme.PillSprite;
+        statusPillBg.sprite = LumiWorldUITheme.GetCapsuleSprite(20);
         statusPillBg.type = Image.Type.Sliced;
         statusPillBg.color = new Color(0.33f, 0.55f, 0.24f, 0.14f);
 
@@ -705,7 +707,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         SetTopLeft(fdRect, new Vector2(16f, -374f), new Vector2(230f, 44f));
 
         Image fdBg = foodCard.GetComponent<Image>();
-        fdBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        fdBg.sprite = LumiWorldUITheme.GetCapsuleSprite(44);
         fdBg.type = Image.Type.Sliced;
         fdBg.color = LumiWorldUITheme.Surface;
         LumiWorldUITheme.AddSoftElevation(foodCard, 2.5f, 0.14f);
@@ -880,7 +882,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         rt.sizeDelta = size;
 
         Image img = btnObj.GetComponent<Image>();
-        img.sprite = isPrimary ? LumiWorldUITheme.ButtonPrimarySprite : LumiWorldUITheme.ButtonSecondarySprite;
+        img.sprite = LumiWorldUITheme.GetCapsuleSprite(Mathf.RoundToInt(size.y));
         img.type = Image.Type.Sliced;
         img.color = isPrimary ? LumiWorldUITheme.Primary : LumiWorldUITheme.Inset;
         LumiWorldUITheme.AddSoftElevation(btnObj, 2.5f, 0.16f);
@@ -922,7 +924,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         closeRect.sizeDelta = new Vector2(size, size);
 
         Image closeBg = closeBtnObj.GetComponent<Image>();
-        closeBg.sprite = LumiWorldUITheme.PillSprite;
+        closeBg.sprite = LumiWorldUITheme.GetCapsuleSprite(Mathf.RoundToInt(size));
         closeBg.type = Image.Type.Sliced;
         closeBg.color = LumiWorldUITheme.Inset;
 
@@ -1568,7 +1570,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             bRect.sizeDelta = new Vector2(66f, 28f);
 
             Image btnImg = btnObj.GetComponent<Image>();
-            btnImg.sprite = LumiWorldUITheme.PillSprite;
+            btnImg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
             btnImg.type = Image.Type.Sliced;
             btnImg.color = hasAssignedResource ? LumiWorldUITheme.Inset : LumiWorldUITheme.Primary;
 
@@ -1722,35 +1724,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private static Sprite GetSelectionOutlineSprite()
     {
-        if (s_SelectionOutlineSprite != null) return s_SelectionOutlineSprite;
-
-        int w = 64, h = 64, r = 12;
-        float stroke = 3f;
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        tex.wrapMode = TextureWrapMode.Clamp;
-        Color[] px = new Color[w * h];
-
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                float dx = (x < r) ? r - x : (x > w - 1 - r ? x - (w - 1 - r) : 0f);
-                float dy = (y < r) ? r - y : (y > h - 1 - r ? y - (h - 1 - r) : 0f);
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                if (dist > r)
-                    px[y * w + x] = Color.clear;
-                else if (dist >= r - stroke || x < stroke || x >= w - stroke || y < stroke || y >= h - stroke)
-                    px[y * w + x] = LumiWorldUITheme.Primary;
-                else
-                    px[y * w + x] = Color.clear;
-            }
-        }
-
-        tex.SetPixels(px);
-        tex.Apply();
-        s_SelectionOutlineSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r + 2, r + 2, r + 2, r + 2));
-        return s_SelectionOutlineSprite;
+        return LumiWorldUITheme.GetBorderedSurfaceSprite("SelOutline_R20_S2.5", Color.clear, LumiWorldUITheme.Primary, 20, 2.5f);
     }
 
     #endregion
@@ -1837,7 +1811,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     private AnimalIndividual FindAnimalIndividual(string individualId, string speciesId)
     {
-        var allAnimals = FindObjectsByType<AnimalIndividual>(FindObjectsSortMode.None);
+        var allAnimals = FindObjectsByType<AnimalIndividual>(FindObjectsInactive.Exclude);
         foreach (var a in allAnimals)
         {
             if (a == null) continue;
@@ -1899,12 +1873,19 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         CloseRenameModal();
     }
 
+    private static string CapitalizeName(string str)
+    {
+        if (string.IsNullOrEmpty(str)) return str;
+        if (str.Length == 1) return char.ToUpperInvariant(str[0]).ToString();
+        return char.ToUpperInvariant(str[0]) + str.Substring(1);
+    }
+
     private string GetCreatureName(HabitatResident resident, string fallback)
     {
-        if (resident == null) return fallback ?? "Creature";
+        if (resident == null) return CapitalizeName(fallback ?? "Creature");
         if (!string.IsNullOrEmpty(resident.customName))
         {
-            return resident.customName;
+            return CapitalizeName(resident.customName);
         }
 
         string saved = CreatureCareManager.Instance != null ? CreatureCareManager.Instance.GetCustomName(resident.individualId) : null;
@@ -1922,10 +1903,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         if (!string.IsNullOrEmpty(saved))
         {
             resident.customName = saved;
-            return saved;
+            return CapitalizeName(saved);
         }
 
-        return !string.IsNullOrEmpty(fallback) ? fallback : resident.speciesId;
+        string finalName = !string.IsNullOrEmpty(fallback) ? fallback : resident.speciesId;
+        return CapitalizeName(finalName);
     }
 
     private void SaveCreatureName(HabitatResident resident, string newName)

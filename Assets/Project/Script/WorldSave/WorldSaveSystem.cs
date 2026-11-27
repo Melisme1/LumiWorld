@@ -104,7 +104,7 @@ public class WorldSaveSystem : MonoBehaviour
 
         keptPlacements = data.placements ?? new List<PlacementRecord>();
 
-        HexWorldGenerator generator = FindFirstObjectByType<HexWorldGenerator>();
+        HexWorldGenerator generator = FindAnyObjectByType<HexWorldGenerator>();
         if (generator == null || tileCatalog == null || data.tiles == null || data.tiles.Count == 0)
         {
             BlockSaves("Có file world nhưng chưa dựng được ô đất (thiếu HexWorldGenerator hoặc TileCatalog). Đảo hiện ra là đảo tạm.");
@@ -356,6 +356,7 @@ public class WorldSaveSystem : MonoBehaviour
 
         keptPlacements.Clear();
         if (upgradedLegacyIds || duplicateCount > 0) MarkDirty();
+        MarkPlacedCreaturesDiscovered();
         ReconcileOccupancy(generator);
         LumiWorld.Acs.HabitatRuntimeManager.NotifyWorldChanged();
         if (LumiWorld.Acs.HabitatRuntimeManager.TryGetActive(out var habitat)) habitat.RefreshNow();
@@ -526,8 +527,35 @@ public class WorldSaveSystem : MonoBehaviour
     {
         if (Instance == null || WorldLaunch.IsVisit) return;
 
-        if (card != null) Instance.placedCards.Add(card);
+        if (card != null)
+        {
+            Instance.placedCards.Add(card);
+            if (card.cardData != null && card.cardData.cardType == CardType.Creature)
+                EconomySaveSystem.Instance?.MarkCreatureDiscovered(card.cardData.EffectiveCardId);
+        }
         Instance.dirty = true;
+    }
+
+    public void CollectPlacedCreatureIds(ICollection<string> destination)
+    {
+        if (destination == null) return;
+        foreach (PlacedCard card in placedCards)
+        {
+            if (card == null || card.cardData == null || card.cardData.cardType != CardType.Creature) continue;
+            string id = card.cardData.EffectiveCardId;
+            if (!string.IsNullOrEmpty(id)) destination.Add(id);
+        }
+    }
+
+    private void MarkPlacedCreaturesDiscovered()
+    {
+        if (WorldLaunch.IsVisit || savesBlocked) return;
+        EconomySaveSystem save = EconomySaveSystem.Instance;
+        if (save == null) return;
+
+        var ids = new List<string>();
+        CollectPlacedCreatureIds(ids);
+        if (ids.Count > 0) save.MarkCreaturesDiscovered(ids);
     }
 
     /// <summary>Chụp world từ object đang sống rồi ghi ra file. Trả về false nếu ghi lỗi (sẽ thử lại).</summary>
@@ -561,7 +589,7 @@ public class WorldSaveSystem : MonoBehaviour
         if (HexBiomeClusterConnector.Instance != null)
             data.nextClusterId = HexBiomeClusterConnector.Instance.NextClusterId;
 
-        HexWorldGenerator generator = FindFirstObjectByType<HexWorldGenerator>();
+        HexWorldGenerator generator = FindAnyObjectByType<HexWorldGenerator>();
         if (generator != null)
         {
             foreach (KeyValuePair<HexCoordinates, GameObject> pair in generator.MapTiles)

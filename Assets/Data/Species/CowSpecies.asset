@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CowSpecies
   m_EditorClassIdentifier: Assembly-CSharp::AnimalSpeciesData
   speciesID: cow
-  speciesName: "B\xF2 S\u1EEFa"
+  speciesName: "Cow"
   description: "Lo\xE0i b\xF2 s\u1EEFa hi\u1EC1n l\xE0nh, th\xEDch nhai c\u1ECF
     non d\u01B0\u1EDBi b\xF3ng r\xE2m v\xE0 cung c\u1EA5p ngu\u1ED3n s\u1EEFa th\u01A1m
     ngon."

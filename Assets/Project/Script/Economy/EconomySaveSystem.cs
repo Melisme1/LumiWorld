@@ -195,6 +195,13 @@ public class EconomySaveSystem : MonoBehaviour
                 break;
             }
 
+            case "GemsPurchased":
+            {
+                // Gem do server giữ (không nằm trong bản lưu): chỉ báo HUD đọc lại số dư và hiện "+X"
+                GemWallet.NotifyPurchased(JsonUtility.FromJson<GemsPurchasedPayload>(payload));
+                break;
+            }
+
             case "ItemsBought":
             case "ItemsReturned":
             case "TradeReceived":
@@ -465,7 +472,42 @@ public class EconomySaveSystem : MonoBehaviour
         if (data.claimedMilestoneIds == null) data.claimedMilestoneIds = new List<string>();
         if (data.claimedAchievementIds == null) data.claimedAchievementIds = new List<string>();
         if (data.hand == null) data.hand = new List<HandCardStack>();
+        if (data.discoveredCreatureIds == null) data.discoveredCreatureIds = new List<string>();
         if (data.craftingJobs == null) data.craftingJobs = new List<CraftingJobRecord>();
+    }
+
+    public bool IsCreatureDiscovered(string cardId)
+    {
+        if (string.IsNullOrEmpty(cardId)) return false;
+        EnsureLoaded();
+        return data.discoveredCreatureIds.Contains(cardId);
+    }
+
+    public bool MarkCreatureDiscovered(string cardId)
+    {
+        if (string.IsNullOrEmpty(cardId) || WorldLaunch.IsVisit || SaveSync.SavesSuspended) return false;
+        EnsureLoaded();
+        if (data.discoveredCreatureIds.Contains(cardId)) return false;
+
+        data.discoveredCreatureIds.Add(cardId);
+        MarkDirty();
+        return true;
+    }
+
+    public bool MarkCreaturesDiscovered(IEnumerable<string> cardIds)
+    {
+        if (cardIds == null || WorldLaunch.IsVisit || SaveSync.SavesSuspended) return false;
+        EnsureLoaded();
+
+        bool added = false;
+        foreach (string cardId in cardIds)
+        {
+            if (string.IsNullOrEmpty(cardId) || data.discoveredCreatureIds.Contains(cardId)) continue;
+            data.discoveredCreatureIds.Add(cardId);
+            added = true;
+        }
+        if (added) MarkDirty();
+        return added;
     }
 
     // Dữ liệu được cập nhật ngay khi ví/kho đổi (không đợi lúc lưu),
