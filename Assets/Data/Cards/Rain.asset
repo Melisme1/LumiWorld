@@ -18,6 +18,7 @@ MonoBehaviour:
   cardType: 3
   rarity: 0
   islandId: starter
+  sharedAcrossRainIslands: 1
   reusable: 0
   elevationChange: 0
   isTriangleRain: 0
@@ -35,6 +36,7 @@ MonoBehaviour:
   clearPropsOnTransform: 1
   occupiesTile: 0
   isRiverCard: 0
+  isSettlementCard: 0
   animalSpeciesData: {fileID: 0}
   producedResource: {fileID: 0}
   landResourceBonus: 0
@@ -47,6 +49,12 @@ MonoBehaviour:
     lushTilePrefab: {fileID: 846643552139226012, guid: c10000048a144b6289b7996f34397104, type: 3}
   - aridTilePrefab: {fileID: 5258101239339502816, guid: c10000058a144b6289b7996f34397105, type: 3}
     lushTilePrefab: {fileID: 1548687027083203766, guid: c10000068a144b6289b7996f34397106, type: 3}
+  - aridTilePrefab: {fileID: 7183748375909557867, guid: 4498ae68cf0bd214d9525b8be59e5228, type: 3}
+    lushTilePrefab: {fileID: 2860111143883177298, guid: 0c645b36627eebf40a1e29e8b9fd8c2a, type: 3}
+  - aridTilePrefab: {fileID: 2021555092579219777, guid: 80a964f62ce5647418bc6d53ec6e9f11, type: 3}
+    lushTilePrefab: {fileID: 1177094368271423758, guid: 583306ba6f722da4bbf9fddf263c4563, type: 3}
+  - aridTilePrefab: {fileID: 1109778477419674152, guid: a98b4ec07255c1d4e953fc9e73f2d2ed, type: 3}
+    lushTilePrefab: {fileID: 2134725155444299587, guid: dadf788d8480a074a9ac76ad3d9aa7e6, type: 3}
   habitatSpawnMargin: 0.8
   habitatProps: []
   groundCoverPrefabs: []
@@ -56,3 +64,6 @@ MonoBehaviour:
   - {fileID: 6631663884789134560, guid: c10000018a144b6289b7996f34397101, type: 3}
   - {fileID: 3253958818025765182, guid: c10000038a144b6289b7996f34397103, type: 3}
   - {fileID: 5258101239339502816, guid: c10000058a144b6289b7996f34397105, type: 3}
+  - {fileID: 7183748375909557867, guid: 4498ae68cf0bd214d9525b8be59e5228, type: 3}
+  - {fileID: 2021555092579219777, guid: 80a964f62ce5647418bc6d53ec6e9f11, type: 3}
+  - {fileID: 1109778477419674152, guid: a98b4ec07255c1d4e953fc9e73f2d2ed, type: 3}

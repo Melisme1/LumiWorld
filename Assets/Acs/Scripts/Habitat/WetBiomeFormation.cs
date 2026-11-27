@@ -76,14 +76,20 @@ namespace LumiWorld.Acs
                             var ids = new HashSet<string>(members.Select(m => m.placementId), StringComparer.Ordinal);
                             if (parent != null && (parent.HexCount >= members.Count ||
                                 parent.members.Any(m => !ids.Contains(m.placementId)))) continue;
-                            if (!validateFootprintOnly && members.Count != (parent == null ? 3 : parent.HexCount == 3 ? 6 : 10)) continue;
+                            // Strictly enforce equilateral triangle milestones (3, 6, 10) without merging 2 already-formed biomes.
+                            // Allow forming straight into 6 or 10 from unformed tiles, or upgrading 3->6, 3->10, 6->10.
+                            if (!validateFootprintOnly && members.Count != 3 && members.Count != 6 && members.Count != 10) continue;
                             var candidate = new BiomeFormationCandidate(parent?.habitatId, ids, origin);
                             if (seen.Add(candidate.Key)) result.Add(candidate);
                         }
                 }
             }
-            return result.OrderByDescending(c => c.ExistingHabitatId != null)
-                .ThenByDescending(c => c.MemberIds.Count).ThenBy(c => c.Key, StringComparer.Ordinal).ToList();
+            // Prioritize larger triangle milestones first (10 > 6 > 3), then upgrading an existing formed biome.
+            return result
+                .OrderByDescending(c => c.MemberIds.Count)
+                .ThenByDescending(c => c.ExistingHabitatId != null)
+                .ThenBy(c => c.Key, StringComparer.Ordinal)
+                .ToList();
         }
 
         public static bool IsValidFootprint(IReadOnlyList<HabitatHexMember> members)

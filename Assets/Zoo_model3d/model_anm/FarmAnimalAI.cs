@@ -164,37 +164,24 @@ public class FarmAnimalAI : MonoBehaviour
 
     void Start()
     {
+        // Connection Dance (20s CircleDance / MeetUp) đã được gỡ bỏ hoàn toàn theo yêu cầu thiết kế.
+        // Toàn bộ chuyển động & animation của sinh vật được điều khiển thống nhất bởi AnimalMovementAI.
+        currentState = AnimalState.WanderRandom;
+        isConnectionOnCooldown = false;
+        cooldownRemainingSeconds = 0f;
+        formattedCooldownRemaining = "Ready";
+
         if (movementAI == null) movementAI = GetComponent<AnimalMovementAI>();
-        CacheAndClassifyAnimations();
-        SnapToTileSurface();
-        StartCoroutine(MainAILoop());
+        if (movementAI == null)
+        {
+            movementAI = gameObject.AddComponent<AnimalMovementAI>();
+        }
     }
 
     void Update()
     {
-        // Đếm ngược thời gian hồi connection
-        if (cooldownRemainingSeconds > 0f)
-        {
-            cooldownRemainingSeconds -= Time.deltaTime;
-            isConnectionOnCooldown = true;
-
-            int hours = (int)(cooldownRemainingSeconds / 3600);
-            int mins = (int)((cooldownRemainingSeconds % 3600) / 60);
-            int secs = (int)(cooldownRemainingSeconds % 60);
-
-            if (hours > 0)
-                formattedCooldownRemaining = $"{hours}h {mins:D2}m {secs:D2}s";
-            else
-                formattedCooldownRemaining = $"{mins:D2}m {secs:D2}s";
-
-            if (cooldownRemainingSeconds <= 0f)
-            {
-                cooldownRemainingSeconds = 0f;
-                isConnectionOnCooldown = false;
-                formattedCooldownRemaining = "Ready";
-                Debug.Log($"<color=#34D399><b>[LumiWorld Connection]</b> ✨ {animalID} ({biome}) đã hồi xong thời gian chờ! Sẵn sàng kết nối khi chạm mặt.</color>");
-            }
-        }
+        // Giữ state luôn là WanderRandom để không bao giờ chặn AnimalMovementAI
+        currentState = AnimalState.WanderRandom;
     }
 
     // =========================================================================

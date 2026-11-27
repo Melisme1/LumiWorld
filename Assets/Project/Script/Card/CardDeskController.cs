@@ -941,13 +941,26 @@ public class CardDeskController : MonoBehaviour
         }
 
         dealStarter = false;
+        bool migratedLegacyCards = false;
         var result = new List<CardData>();
         CardCatalog catalog = WorldSaveSystem.Instance != null ? WorldSaveSystem.Instance.Cards : null;
         foreach (HandCardStack stack in saved.hand)
         {
             if (stack == null || stack.count <= 0 || string.IsNullOrEmpty(stack.cardId)) continue;
 
-            CardData data = catalog != null ? catalog.Find(stack.cardId) : null;
+            string lookupId = stack.cardId;
+            if (string.Equals(lookupId, "Rain.Wet", StringComparison.OrdinalIgnoreCase))
+            {
+                CardData unifiedRain = catalog != null ? catalog.Find("Rain") : null;
+                if (unifiedRain != null)
+                {
+                    for (int i = 0; i < stack.count; i++) result.Add(unifiedRain);
+                    migratedLegacyCards = true;
+                    continue;
+                }
+            }
+
+            CardData data = catalog != null ? catalog.Find(lookupId) : null;
             if (data == null)
             {
                 unresolvedHand.Add(stack);
@@ -956,6 +969,7 @@ public class CardDeskController : MonoBehaviour
             }
             for (int i = 0; i < stack.count; i++) result.Add(data);
         }
+        if (migratedLegacyCards) dealStarter = true;
         return result;
     }
 
@@ -981,8 +995,8 @@ public class CardDeskController : MonoBehaviour
     private bool deferHandFileWrite;
 
     public string ActiveIslandId { get; private set; } = "starter";
-    private bool BelongsToActiveIsland(CardData data) => data != null &&
-        (string.IsNullOrEmpty(data.islandId) ? "starter" : data.islandId) == ActiveIslandId;
+    private bool BelongsToActiveIsland(CardData data) =>
+        LumiWorld.Acs.Islands.IslandPlacementRules.CanCardBelongToIsland(data, ActiveIslandId);
 
     public void SelectIsland(string islandId)
     {

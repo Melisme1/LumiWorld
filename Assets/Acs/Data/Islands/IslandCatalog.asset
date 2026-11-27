@@ -25,6 +25,7 @@ MonoBehaviour:
     prerequisiteIsland: starter
     discoveryBiomes: 
     discoveryCreatures: 3
+    allowsRain: 1
     startingNature: []
     rainCard: {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     startingRain: 6
@@ -32,7 +33,10 @@ MonoBehaviour:
     - {fileID: 6631663884789134560, guid: c10000018a144b6289b7996f34397101, type: 3}
     - {fileID: 3253958818025765182, guid: c10000038a144b6289b7996f34397103, type: 3}
     - {fileID: 5258101239339502816, guid: c10000058a144b6289b7996f34397105, type: 3}
-    lushTiles: []
+    lushTiles:
+    - {fileID: 8492549821474773207, guid: c10000028a144b6289b7996f34397102, type: 3}
+    - {fileID: 846643552139226012, guid: c10000048a144b6289b7996f34397104, type: 3}
+    - {fileID: 1548687027083203766, guid: c10000068a144b6289b7996f34397106, type: 3}
   - id: wet
     displayName: Wet Island
     habitatIsland: 2
@@ -45,12 +49,13 @@ MonoBehaviour:
     prerequisiteIsland: starter
     discoveryBiomes: 010000000200000003000000
     discoveryCreatures: 3
+    allowsRain: 1
     startingNature:
     - {fileID: 11400000, guid: 30968363e4ee01e44969f52482d6a2ad, type: 2}
     - {fileID: 11400000, guid: 019f359a5517d6642800e7072f4b8e45, type: 2}
     - {fileID: 11400000, guid: 9d6d45f221056a342a2fe04a89bc2832, type: 2}
     - {fileID: 11400000, guid: 7f44c078bfa786045a711741b9a6d7ec, type: 2}
-    rainCard: {fileID: 11400000, guid: 5459d5c122b1a294ab5b6f41c0a8e062, type: 2}
+    rainCard: {fileID: 11400000, guid: fc950cc11030e0948967012ed6e031a1, type: 2}
     startingRain: 6
     dryTiles:
     - {fileID: 7183748375909557867, guid: 4498ae68cf0bd214d9525b8be59e5228, type: 3}

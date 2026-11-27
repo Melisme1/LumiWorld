@@ -52,13 +52,21 @@ namespace LumiWorld.Acs
 
         public int HexCount => members != null ? members.Count : 0;
 
+        /// <summary>
+        /// True only when this cluster has formed an actual biome (Wet: explicitly confirmed 3/6/10; Starter: 3+ hexes).
+        /// Unformed tiles (&lt;3 hex or unconfirmed Wet placements) must not behave as biomes or open Biome HUD.
+        /// </summary>
+        public bool IsFormedBiome => island == HabitatIsland.Wet
+            ? (confirmedFormation && HexCount >= 3)
+            : HexCount >= 3;
+
         public static int CalculateCreatureCapacity(int hexCount)
         {
             if (hexCount < 3) return 0;
             return hexCount < 6 ? 2 : hexCount < 10 ? 4 : 6;
         }
 
-        public int CreatureCapacity => CalculateCreatureCapacity(HexCount);
+        public int CreatureCapacity => IsFormedBiome ? CalculateCreatureCapacity(HexCount) : 0;
 
         public void EnsureSlots()
         {
@@ -66,6 +74,7 @@ namespace LumiWorld.Acs
             EnsureSlot(ResourceTier.Tier1, 0);
             EnsureSlot(ResourceTier.Tier1, 1);
             EnsureSlot(ResourceTier.Tier2, 0);
+            EnsureSlot(ResourceTier.Tier2, 1);
         }
 
         private void EnsureSlot(ResourceTier tier, int index)

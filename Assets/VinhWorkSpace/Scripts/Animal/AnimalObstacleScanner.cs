@@ -82,6 +82,8 @@ public static class AnimalObstacleScanner
             return null;
         }
 
+        var tileInfo = tileObj.GetComponent<HexTileInfo>();
+        var biomeSurface = tileInfo != null ? tileInfo.biomeSurface : null;
         int currentChildCount = tileObj.transform.childCount;
         for (int i = 0; i < tileObj.transform.childCount; i++)
         {
@@ -90,6 +92,10 @@ public static class AnimalObstacleScanner
             {
                 currentChildCount += c.childCount;
             }
+        }
+        if (biomeSurface != null)
+        {
+            currentChildCount ^= (biomeSurface.GetEntityId().GetHashCode() * 397);
         }
 
         if (TileObstaclesCache.TryGetValue(hex, out List<AnimalMovementAI.TileObstacle> cachedList) &&
@@ -114,10 +120,44 @@ public static class AnimalObstacleScanner
         newList.Clear();
 
         ScanTransformForObstacles(tileObj.transform, newList);
+        if (biomeSurface != null)
+        {
+            ScanWetBiomeSurfaceObstacles(biomeSurface.transform, hex, newList);
+        }
 
         TileObstaclesCache[hex] = newList;
         TileObstaclesChildCount[hex] = currentChildCount;
         return newList;
+    }
+
+    private static void ScanWetBiomeSurfaceObstacles(Transform surfaceRoot, HexCoordinates hex, List<AnimalMovementAI.TileObstacle> results)
+    {
+        if (surfaceRoot == null) return;
+        for (int i = 0; i < surfaceRoot.childCount; i++)
+        {
+            Transform child = surfaceRoot.GetChild(i);
+            if (child == null) continue;
+            string n = child.name;
+            if (n == "Ground_Basin" || n == "Water_Surface" || n.IndexOf("Waterfall", StringComparison.OrdinalIgnoreCase) >= 0)
+                continue;
+
+            if (n.IndexOf("BiomeProps", StringComparison.OrdinalIgnoreCase) >= 0 || child.childCount > 0 && IsContainerGroup(n))
+            {
+                ScanWetBiomeSurfaceObstacles(child, hex, results);
+                continue;
+            }
+
+            if (HexMetrics.WorldToHex(child.position) != hex) continue;
+            EvaluateAndAddObstacle(child, results);
+        }
+    }
+
+    private static bool IsContainerGroup(string name)
+    {
+        return name.IndexOf("Props", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Group", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Container", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Decor", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     public static void ScanTransformForObstacles(Transform root, List<AnimalMovementAI.TileObstacle> results)
@@ -195,27 +235,36 @@ public static class AnimalObstacleScanner
         {
             obstacleRadius = Mathf.Clamp(0.10f * (prop.localScale.x / 0.35f), 0.08f, 0.15f);
         }
-        // Tảng đá / Khối đá (Boulder, Rock, Slab) - vd: MossyForestBoulders, HighlandBoulderSlabs
+        // Tảng đá / Khối đá / Vách thác (Boulder, Rock, Slab, Cliff, Headwater, Stone)
         else if (name.IndexOf("Boulder", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  name.IndexOf("Rock", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                 name.IndexOf("Slab", StringComparison.OrdinalIgnoreCase) >= 0)
+                 name.IndexOf("Slab", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Cliff", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Headwater", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Stone", StringComparison.OrdinalIgnoreCase) >= 0)
         {
-            obstacleRadius = Mathf.Clamp(0.14f * (prop.localScale.x / 0.35f), 0.10f, 0.20f);
+            obstacleRadius = Mathf.Clamp(ComputeDefaultRadius(prop), 0.12f, 0.36f);
         }
-        // Khúc gỗ mục / Thân cây nằm (Log) - vd: HollowMossyLog
-        else if (name.IndexOf("Log", StringComparison.OrdinalIgnoreCase) >= 0)
+        // Khúc gỗ mục / Thân cây nằm (Log, Driftwood, Fallen)
+        else if (name.IndexOf("Log", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Driftwood", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Fallen", StringComparison.OrdinalIgnoreCase) >= 0)
         {
-            obstacleRadius = Mathf.Clamp(0.12f * (prop.localScale.x / 0.35f), 0.09f, 0.18f);
+            obstacleRadius = Mathf.Clamp(ComputeDefaultRadius(prop), 0.10f, 0.24f);
         }
-        // Thân đại thụ & Cây lớn - vd: HeroOak, Beech, Pine, Sentinel, Hero
+        // Thân đại thụ & Cây lớn (Oak, Beech, Pine, Sentinel, Hero, Banyan, Trunk, Canopy, Mangrove, Palm)
         else if (name.IndexOf("Oak", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  name.IndexOf("GreatOak", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  name.IndexOf("Sentinel", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  name.IndexOf("Beech", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  name.IndexOf("Pine", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                 name.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0)
+                 name.IndexOf("Hero", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Banyan", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Trunk", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Mangrove", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 name.IndexOf("Palm", StringComparison.OrdinalIgnoreCase) >= 0)
         {
-            obstacleRadius = Mathf.Clamp(0.18f * (prop.localScale.x / 1.0f), 0.14f, 0.26f);
+            obstacleRadius = Mathf.Clamp(0.18f * Mathf.Max(0.75f, prop.localScale.x), 0.14f, 0.28f);
         }
         // Cây thân vừa / nhỏ - vd: Birch, Willow, DwarfBirch, Tree
         else if (name.IndexOf("Birch", StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -276,6 +325,16 @@ public static class AnimalObstacleScanner
                name.IndexOf("Heather", StringComparison.OrdinalIgnoreCase) >= 0 ||
                name.IndexOf("Shrub", StringComparison.OrdinalIgnoreCase) >= 0 ||
                name.IndexOf("Bush", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Reed", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Cattail", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Lotus", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Lily", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Moss", StringComparison.OrdinalIgnoreCase) >= 0 && name.IndexOf("Boulder", StringComparison.OrdinalIgnoreCase) < 0 && name.IndexOf("Rock", StringComparison.OrdinalIgnoreCase) < 0 && name.IndexOf("Stump", StringComparison.OrdinalIgnoreCase) < 0 && name.IndexOf("Log", StringComparison.OrdinalIgnoreCase) < 0 ||
+               name.IndexOf("Weed", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Water", StringComparison.OrdinalIgnoreCase) >= 0 && name.IndexOf("Headwater", StringComparison.OrdinalIgnoreCase) < 0 ||
+               name.IndexOf("Foam", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Splash", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               name.IndexOf("Ripple", StringComparison.OrdinalIgnoreCase) >= 0 ||
                (name.IndexOf("Sprout", StringComparison.OrdinalIgnoreCase) >= 0 && name.IndexOf("Stump", StringComparison.OrdinalIgnoreCase) < 0);
     }
 }

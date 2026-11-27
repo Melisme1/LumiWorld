@@ -15,13 +15,14 @@ namespace LumiWorld.Acs
         public static int GetSlotCount(int hexCount, ResourceTier tier)
         {
             if (hexCount < 3 || hexCount > HabitatTopologyService.MaximumHexCount) return 0;
-            if (tier == ResourceTier.Tier1) return hexCount == 3 ? 1 : 2;
-            return tier == ResourceTier.Tier2 && hexCount >= 6 ? 1 : 0;
+            if (tier == ResourceTier.Tier1) return hexCount >= 6 ? 2 : 1;
+            if (tier == ResourceTier.Tier2) return hexCount >= 10 ? 2 : (hexCount >= 6 ? 1 : 0);
+            return 0;
         }
 
         public static bool IsSlotUnlocked(HabitatState habitat, ResourceTier tier, int index)
         {
-            return habitat != null && index >= 0 && index < GetSlotCount(habitat.HexCount, tier);
+            return habitat != null && habitat.IsFormedBiome && index >= 0 && index < GetSlotCount(habitat.HexCount, tier);
         }
 
         public static HabitatEligibilityResult EvaluateResource(HabitatState habitat,
@@ -93,9 +94,11 @@ namespace LumiWorld.Acs
             if (string.IsNullOrEmpty(resourceId)) return Reject("No resource selected.");
             var definition = FindDefinition(catalog, resourceId);
             if (definition == null || definition.tier != tier) return Reject("Resource not in catalog or wrong tier.");
-            if (tier == ResourceTier.Tier1 && habitat.slots != null &&
+            if (habitat.slots != null &&
                 habitat.slots.Exists(s => s != null && s.tier == tier && s.index != index && s.selectedResourceId == resourceId))
-                return Reject("Both T1 slots cannot select the same resource.");
+                return Reject(tier == ResourceTier.Tier1
+                    ? "Both T1 slots cannot select the same resource."
+                    : "Both T2 slots cannot select the same resource.");
             return EvaluateResource(habitat, definition, catalog != null ? catalog.speciesRegistry : null, canProduce);
         }
 

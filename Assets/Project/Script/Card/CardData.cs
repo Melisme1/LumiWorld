@@ -33,6 +33,8 @@ public class CardData : ScriptableObject
 
     [Header("Island deck")]
     public string islandId = "starter";
+    [Tooltip("When enabled, this card is shared across every unlocked island with allowsRain = true instead of being locked to one islandId.")]
+    public bool sharedAcrossRainIslands = false;
     public bool reusable;
     [Range(-1, 1)] public int elevationChange;
     public bool isTriangleRain = false;
@@ -152,6 +154,12 @@ public class CardData : ScriptableObject
             || string.Equals(cardName, "Pouring Rain", System.StringComparison.OrdinalIgnoreCase);
     }
 
+    public bool IsSharedRainCard()
+    {
+        return sharedAcrossRainIslands ||
+            (string.Equals(cardID, "Rain", System.StringComparison.OrdinalIgnoreCase) && !isTriangleRain);
+    }
+
     /// <summary>
     /// Kiểm tra lá bài này có phải thẻ Khu Dân Cư / Làng Mạc (Settlement Card) hay không
     /// </summary>
@@ -213,6 +221,14 @@ public class CardData : ScriptableObject
             }
         }
 
+        if (IsSharedRainCard() &&
+            LumiWorld.Acs.Islands.IslandRuntimeManager.Instance != null &&
+            LumiWorld.Acs.Islands.IslandRuntimeManager.Instance.Catalog != null)
+        {
+            GameObject catalogLush = LumiWorld.Acs.Islands.IslandRuntimeManager.Instance.Catalog.TryResolveRainLushTile(currentTileObj);
+            if (catalogLush != null) return catalogLush;
+        }
+
         return prefabToPlace;
     }
 
@@ -221,33 +237,43 @@ public class CardData : ScriptableObject
     /// </summary>
     public bool IsTransformSourceTile(GameObject tileObj)
     {
-        if (tileObj == null || transformRules == null || transformRules.Count == 0) return false;
+        if (tileObj == null) return false;
 
         HexTileInfo tileInfo = tileObj.GetComponent<HexTileInfo>();
         GameObject sourcePrefab = tileInfo != null ? tileInfo.sourcePrefab : null;
         string cleanTileName = tileObj.name.Replace("(Clone)", "").Trim();
 
-        foreach (var rule in transformRules)
+        if (transformRules != null && transformRules.Count > 0)
         {
-            if (rule == null || rule.aridTilePrefab == null) continue;
-
-            if (sourcePrefab != null && sourcePrefab == rule.aridTilePrefab) return true;
-
-            string cleanAridName = rule.aridTilePrefab.name.Replace("(Clone)", "").Trim();
-            if (sourcePrefab != null)
+            foreach (var rule in transformRules)
             {
-                string cleanSourcePrefabName = sourcePrefab.name.Replace("(Clone)", "").Trim();
-                if (string.Equals(cleanSourcePrefabName, cleanAridName, System.StringComparison.OrdinalIgnoreCase))
+                if (rule == null || rule.aridTilePrefab == null) continue;
+
+                if (sourcePrefab != null && sourcePrefab == rule.aridTilePrefab) return true;
+
+                string cleanAridName = rule.aridTilePrefab.name.Replace("(Clone)", "").Trim();
+                if (sourcePrefab != null)
+                {
+                    string cleanSourcePrefabName = sourcePrefab.name.Replace("(Clone)", "").Trim();
+                    if (string.Equals(cleanSourcePrefabName, cleanAridName, System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+
+                if (cleanTileName.IndexOf($"[{cleanAridName}]", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    cleanTileName.IndexOf(cleanAridName, System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return true;
                 }
             }
+        }
 
-            if (cleanTileName.IndexOf($"[{cleanAridName}]", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                cleanTileName.IndexOf(cleanAridName, System.StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return true;
-            }
+        if (IsSharedRainCard() &&
+            LumiWorld.Acs.Islands.IslandRuntimeManager.Instance != null &&
+            LumiWorld.Acs.Islands.IslandRuntimeManager.Instance.Catalog != null)
+        {
+            return LumiWorld.Acs.Islands.IslandRuntimeManager.Instance.Catalog.IsRainTransformableDryTile(tileObj);
         }
 
         return false;
@@ -331,6 +357,11 @@ public class HabitatPropRule
         // Bắt buộc ô này phải là ô khô nguồn hợp lệ (Arid) mà bạn đã kéo vào transformRules hoặc allowedTilePrefabs
         if (IsTileTransformCard())
         {
+            if (IsSharedRainCard())
+            {
+                return IsTransformSourceTile(tileObj);
+            }
+
             bool hasTransformRules = transformRules != null && transformRules.Count > 0;
             bool hasAllowedPrefabs = allowedTilePrefabs != null && allowedTilePrefabs.Count > 0;
 

@@ -34,12 +34,14 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     private int lastStageScreenH;
     private float lastStageParentScale;
 
-    // Panel 1 (P-05): Biome / Residents / Production
+    // Panel 1 (P-05): Biome / Residents / Production (4 slots: T1#1, T1#2, T2#1, T2#2)
     private const float P05PanelWidth = 340f;
-    private const float P05PanelBaseHeight = 524f;
-    private const float P05ResidentsBaseHeight = 128f;
-    private const float P05ResidentsExtraRowHeight = 116f;
+    private const float P05PanelBaseHeight = 542f;
+    private const float P05ResidentsBaseHeight = 124f;
+    private const float P05ResidentsExtraRowHeight = 104f;
     private const float P05ResidentsWidth = 308f;
+    private const float P05SlotCardHeight = 46f;
+    private const float P05SlotCardPitch = 51f;
 
     private RectTransform panelListRect;
     private Image biomeEmblemImg;
@@ -153,7 +155,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
     public void OpenForHabitat(HabitatState habitat)
     {
-        if (habitat == null) return;
+        if (habitat == null || !habitat.IsFormedBiome) return;
         currentHabitat = habitat;
 
         if (rootModal != null)
@@ -292,7 +294,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         panelListRect.anchorMin = new Vector2(1f, 1f);
         panelListRect.anchorMax = new Vector2(1f, 1f);
         panelListRect.pivot = new Vector2(1f, 1f);
-        panelListRect.anchoredPosition = new Vector2(-14f, -48f);
+        panelListRect.anchoredPosition = new Vector2(-14f, -40f);
         panelListRect.sizeDelta = new Vector2(P05PanelWidth, P05PanelBaseHeight);
 
         Image p1Bg = p1Obj.GetComponent<Image>();
@@ -403,11 +405,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         changeResourceBtn.navigation = new Navigation { mode = Navigation.Mode.None };
         changeResourceBtn.onClick.AddListener(OnChangePrimaryResourceClicked);
 
-        // Production Slots Container
+        // Production Slots Container (4 slots: 2 T1 + 2 T2)
         GameObject resSlotsObj = new GameObject("ResourceSlotsContainer", typeof(RectTransform));
         resSlotsObj.transform.SetParent(panelListRect, false);
         resourceSlotsRoot = resSlotsObj.GetComponent<RectTransform>();
-        SetTopLeft(resourceSlotsRoot, new Vector2(16f, -270f), new Vector2(P05ResidentsWidth, 180f));
+        SetTopLeft(resourceSlotsRoot, new Vector2(16f, -266f), new Vector2(P05ResidentsWidth, 206f));
 
         // --- 4. BOTTOM PRIMARY CTA: "[G-24] Collect all (N)" ---
         GameObject hBarObj = new GameObject("CollectAllBtn", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -461,15 +463,15 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
         if (productionHeaderRect != null)
         {
-            productionHeaderRect.anchoredPosition = new Vector2(16f, -(238f + extraY));
+            productionHeaderRect.anchoredPosition = new Vector2(16f, -(234f + extraY));
         }
         if (changeResourceBtnRect != null)
         {
-            changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -(236f + extraY));
+            changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -(232f + extraY));
         }
         if (resourceSlotsRoot != null)
         {
-            resourceSlotsRoot.anchoredPosition = new Vector2(16f, -(270f + extraY));
+            resourceSlotsRoot.anchoredPosition = new Vector2(16f, -(266f + extraY));
         }
     }
 
@@ -1132,7 +1134,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         if (runtime != null && runtime.HabitatManager != null && runtime.HabitatManager.Catalog != null)
         {
             var liveHabitat = runtime.HabitatManager.FindHabitat(currentHabitat.habitatId);
-            if (liveHabitat == null)
+            if (liveHabitat == null || !liveHabitat.IsFormedBiome)
             {
                 ClosePanels();
                 return;
@@ -1248,7 +1250,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
 
         int currentResidents = currentHabitat.residents != null ? currentHabitat.residents.Count : 0;
-        int maxCapacity = Mathf.Max(1, currentHabitat.CreatureCapacity);
+        int maxCapacity = currentHabitat.CreatureCapacity;
         if (residentsHeaderText != null)
         {
             residentsHeaderText.text = $"Residents ({currentResidents}/{maxCapacity})";
@@ -1289,10 +1291,10 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         else
         {
             const float cardW = 90f;
-            const float cardH = 108f;
+            float cardH = currentResidents >= 4 ? 98f : 106f;
             const float gapX = 8f;
-            const float gapY = 8f;
-            const float topPad = 10f;
+            const float gapY = 6f;
+            const float topPad = 8f;
 
             List<HabitatResident> validResidents = new List<HabitatResident>();
             for (int i = 0; i < currentHabitat.residents.Count && validResidents.Count < 6; i++)
@@ -1336,7 +1338,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         {
             (ResourceTier.Tier1, 0),
             (ResourceTier.Tier1, 1),
-            (ResourceTier.Tier2, 0)
+            (ResourceTier.Tier2, 0),
+            (ResourceTier.Tier2, 1)
         };
 
         for (int i = 0; i < slotConfigs.Length; i++)
@@ -1469,13 +1472,13 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         string resName = hasAssignedResource ? slotData.name : (isUnlocked ? "Unassigned slot" : "Locked slot");
         Sprite icon = slotData != null ? slotData.icon : null;
         double rate = slotData != null ? slotData.rate : 0.0;
-        string reason = slotData != null ? slotData.reason : (!isUnlocked ? "Unlocks at " + (tier == ResourceTier.Tier2 ? "6" : (subIndex == 0 ? "3" : "4")) + " hex" : "");
+        string reason = slotData != null ? slotData.reason : (!isUnlocked ? "Unlocks at " + ResourceInventoryUILayout.UnlockHexCount(tier, subIndex) + " Hexes" : "");
         bool isProducing = isUnlocked && rate > 0.001;
 
         GameObject cardObj = new GameObject($"ResSlot_{slotIndex}", typeof(RectTransform), typeof(Image));
         cardObj.transform.SetParent(parent, false);
         RectTransform rt = cardObj.GetComponent<RectTransform>();
-        SetTopLeft(rt, new Vector2(0f, -slotIndex * 58f), new Vector2(P05ResidentsWidth, 52f));
+        SetTopLeft(rt, new Vector2(0f, -slotIndex * P05SlotCardPitch), new Vector2(P05ResidentsWidth, P05SlotCardHeight));
 
         Image bg = cardObj.GetComponent<Image>();
         bg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -1483,11 +1486,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         bg.color = isUnlocked ? LumiWorldUITheme.Surface : LumiWorldUITheme.Inset;
         if (isUnlocked) LumiWorldUITheme.AddSoftElevation(cardObj, 2.5f, 0.14f);
 
-        // 1. Icon Box (38x38)
+        // 1. Icon Box (34x34)
         GameObject iconBox = new GameObject("IconBox", typeof(RectTransform), typeof(Image));
         iconBox.transform.SetParent(rt, false);
         RectTransform ibRect = iconBox.GetComponent<RectTransform>();
-        SetTopLeft(ibRect, new Vector2(8f, -7f), new Vector2(38f, 38f));
+        SetTopLeft(ibRect, new Vector2(7f, -6f), new Vector2(34f, 34f));
         Image ibImg = iconBox.GetComponent<Image>();
         ibImg.sprite = LumiWorldUITheme.SurfaceSprite;
         ibImg.type = Image.Type.Sliced;
@@ -1522,8 +1525,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
 
         // 2. Title & Status lines
-        TextMeshProUGUI l1Text = CreateLabel(rt, "Title", resName, 12.5f, isUnlocked ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(l1Text.rectTransform, new Vector2(54f, -6f), new Vector2(174f, 20f));
+        TextMeshProUGUI l1Text = CreateLabel(rt, "Title", resName, 12f, isUnlocked ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(l1Text.rectTransform, new Vector2(49f, -4f), new Vector2(179f, 19f));
 
         string subStr;
         Color subCol = LumiWorldUITheme.Muted;
@@ -1551,8 +1554,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             subCol = LumiWorldUITheme.Warning;
         }
 
-        TextMeshProUGUI l2Text = CreateLabel(rt, "Subtitle", subStr, 10.5f, subCol, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(l2Text.rectTransform, new Vector2(54f, -26f), new Vector2(174f, 18f));
+        TextMeshProUGUI l2Text = CreateLabel(rt, "Subtitle", subStr, 10f, subCol, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(l2Text.rectTransform, new Vector2(49f, -23f), new Vector2(179f, 17f));
 
         // 3. Action button on the right ("Assign" / "Change")
         if (isUnlocked)
