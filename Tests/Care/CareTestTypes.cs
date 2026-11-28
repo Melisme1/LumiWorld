@@ -3,18 +3,27 @@ using System;
 using System.Collections.Generic;
 namespace UnityEngine
 {
-    public class Object { public string name; }
+    public class Object
+    {
+        public string name;
+        public static void DontDestroyOnLoad(Object value) { }
+    }
     public class ScriptableObject : Object { }
     public class MonoBehaviour : Object
     {
+        public GameObject gameObject = new GameObject("care");
         protected static T FindAnyObjectByType<T>() where T : class => null;
         protected static void Destroy(Object value) { }
     }
-    public class GameObject { public GameObject(string name) { } public T AddComponent<T>() where T : new() => new T(); }
+    public class GameObject : Object { public GameObject(string name) { this.name = name; } public T AddComponent<T>() where T : new() => new T(); }
+    public static class Application { public static bool isPlaying = true; }
     public sealed class TooltipAttribute : Attribute { public TooltipAttribute(string text) { } }
     public sealed class MinAttribute : Attribute { public MinAttribute(float value) { } }
     public sealed class RangeAttribute : Attribute { public RangeAttribute(float min, float max) { } }
     public sealed class CreateAssetMenuAttribute : Attribute { public string fileName, menuName; }
+    public enum RuntimeInitializeLoadType { SubsystemRegistration }
+    public sealed class RuntimeInitializeOnLoadMethodAttribute : Attribute
+    { public RuntimeInitializeOnLoadMethodAttribute(RuntimeInitializeLoadType type) { } }
     public static class Mathf { public static int Max(int a, int b) => Math.Max(a,b); public static int Min(int a, int b) => Math.Min(a,b); }
     public static class Debug
     {
@@ -43,6 +52,12 @@ public class EconomySaveSystem
 {
     public static readonly EconomySaveSystem Instance = new EconomySaveSystem();
     public void Attach(ResourceInventory inventory) { }
+}
+public static class WorldLaunch { public static bool IsVisit; }
+public static class BreedingManager
+{
+    public static AnimalSpeciesData GetOrCreateBraluffSpecies() => new AnimalSpeciesData { speciesID = "braluff" };
+    public static CardData GetOrCreateBraluffCard() => new CardData();
 }
 namespace LumiWorld.Acs
 {

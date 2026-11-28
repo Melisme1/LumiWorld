@@ -12,6 +12,16 @@ using UnityEngine;
 public class BiomeBuffVisualManager : MonoBehaviour
 {
     private static BiomeBuffVisualManager _instance;
+    public static BiomeBuffVisualManager ExistingInstance
+    {
+        get
+        {
+            if (_instance == null)
+                _instance = FindAnyObjectByType<BiomeBuffVisualManager>();
+            return _instance;
+        }
+    }
+
     public static BiomeBuffVisualManager Instance
     {
         get
@@ -118,6 +128,9 @@ public class BiomeBuffVisualManager : MonoBehaviour
 
         if (_sharedHoverBaseMaterial != null) Destroy(_sharedHoverBaseMaterial);
         if (_hexOverlayMesh != null) Destroy(_hexOverlayMesh);
+
+        if (_instance == this)
+            _instance = null;
     }
 
     /// <summary>

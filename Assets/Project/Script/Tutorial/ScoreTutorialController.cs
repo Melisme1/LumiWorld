@@ -16,6 +16,7 @@ public class ScoreTutorialController : MonoBehaviour
     [SerializeField] private ScoreTutorialOverlay overlay;
 
     private int nextStepIndex;
+    private ScoreManager subscribedScoreManager;
 
     private void Awake()
     {
@@ -35,20 +36,28 @@ public class ScoreTutorialController : MonoBehaviour
 
     private void OnEnable()
     {
-        if (ScoreManager.Instance != null)
-            ScoreManager.Instance.OnScoreChanged += HandleScoreChanged;
+        TrySubscribeToScoreManager();
     }
 
     private void Start()
     {
-        if (ScoreManager.Instance != null)
-            HandleScoreChanged(ScoreManager.Instance.CurrentScore);
+        TrySubscribeToScoreManager();
+    }
+
+    private void Update()
+    {
+        // ScoreManager may be created or enabled after this controller during world startup.
+        if (subscribedScoreManager == null)
+            TrySubscribeToScoreManager();
+
+        // Also reconcile current state so score changes during New Game/world restore cannot be missed.
+        if (subscribedScoreManager != null)
+            HandleScoreChanged(subscribedScoreManager.CurrentScore);
     }
 
     private void OnDisable()
     {
-        if (ScoreManager.Instance != null)
-            ScoreManager.Instance.OnScoreChanged -= HandleScoreChanged;
+        UnsubscribeFromScoreManager();
     }
 
     private void OnDestroy()
@@ -67,6 +76,26 @@ public class ScoreTutorialController : MonoBehaviour
             return;
 
         overlay.Show(step);
+    }
+
+    private void TrySubscribeToScoreManager()
+    {
+        ScoreManager current = ScoreManager.Instance;
+        if (current == null || current == subscribedScoreManager)
+            return;
+
+        UnsubscribeFromScoreManager();
+        subscribedScoreManager = current;
+        subscribedScoreManager.OnScoreChanged += HandleScoreChanged;
+        HandleScoreChanged(subscribedScoreManager.CurrentScore);
+    }
+
+    private void UnsubscribeFromScoreManager()
+    {
+        if (subscribedScoreManager != null)
+            subscribedScoreManager.OnScoreChanged -= HandleScoreChanged;
+
+        subscribedScoreManager = null;
     }
 
     private void HandleContinue()
