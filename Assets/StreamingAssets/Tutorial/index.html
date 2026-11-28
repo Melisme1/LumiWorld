@@ -10,6 +10,8 @@
 .detail-panel.open{overflow:hidden!important}.detail-dialog{overflow:hidden!important;padding:24px!important;max-height:92vh}.flow-img{height:clamp(110px,19vh,210px)}.flow-caption{text-align:left;line-height:1.45;overflow-wrap:anywhere}.flow-caption p{margin:8px 0}.flow-caption ol,.flow-caption ul{margin:7px 0;padding-left:20px}.flow-caption li{margin:3px 0}.step-flow{gap:18px 26px}.flow-arrow{right:-22px}.detail-head{padding-bottom:12px}.detail-head p{margin:2px 0}.detail-dialog{scrollbar-width:none}.detail-dialog::-webkit-scrollbar,.detail-panel.open::-webkit-scrollbar{display:none}@media(max-height:720px){.detail-panel.open{padding:2vh 2vw}.detail-dialog{max-height:96vh;padding:16px!important}.flow-img{height:clamp(90px,15vh,150px)}.flow-caption{font-size:13px}}
 .flow-img{position:relative}.flow-img img{display:block;width:100%;height:100%;object-fit:contain}.image-placeholder{color:#69816e;text-align:center;font-size:14px;padding:14px}.image-placeholder strong{display:block;font-size:34px;margin-bottom:6px}.detail-head .art{display:none}.flow-img img{position:absolute;inset:0;object-fit:contain;padding:8px}.flow-img .image-placeholder{position:absolute;inset:0;display:grid;align-content:center;justify-items:center}.flow-caption{text-align:left;overflow-wrap:anywhere}.flow-caption p{margin:6px 0}.detail-panel.open{overflow:hidden}.detail-dialog{overflow:auto}.step-flow{align-items:start}.flow-step{min-width:0}.flow-caption ol,.flow-caption ul{padding-left:20px}
 .flow-img{height:auto!important;aspect-ratio:1/1;width:100%;max-width:320px;margin:0 auto}.flow-img img{object-fit:contain}.flow-step{display:flex;flex-direction:column}.flow-caption{width:100%;min-height:76px}.step-flow{gap:20px 28px}@media(max-width:700px){.step-flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow-img{max-width:260px}}
+.detail-dialog{overflow:hidden!important}.step-flow{max-height:calc(92vh - 150px);overflow-y:auto;overflow-x:hidden;padding:4px 14px 16px 4px;scrollbar-width:thin;scrollbar-color:#78927b #e8e1d4;cursor:grab}.step-flow:active{cursor:grabbing}.step-flow::-webkit-scrollbar{width:12px}.step-flow::-webkit-scrollbar-track{background:#e8e1d4;border-radius:10px}.step-flow::-webkit-scrollbar-thumb{background:#78927b;border:3px solid #e8e1d4;border-radius:10px}@media(max-height:720px){.step-flow{max-height:calc(96vh - 125px)}}
+.step-flow{padding-right:22px;user-select:none;cursor:grab}.step-flow:active{cursor:grabbing}.step-flow .flow-step{padding-right:18px}.step-flow .flow-arrow{right:0;z-index:2;background:var(--cream);border-radius:50%;padding:0 3px}.step-flow::-webkit-scrollbar{width:16px}.step-flow::-webkit-scrollbar-thumb{background:#78927b;border:3px solid #e8e1d4;border-radius:10px;min-height:38px}.step-flow::-webkit-scrollbar-track{background:#e8e1d4;border-radius:10px}
 </style>
 </head>
 <body><main class="wrap">
@@ -27,12 +29,51 @@
 // Mỗi mục Detail có bộ ảnh riêng. Link tương đối tính từ thư mục chứa index.html.
 // Ví dụ đúng: "img/1.png" (không ghi lại "Assets/StreamingAssets/Tutorial/").
 const tutorialImages={
-  'Chọn thẻ bài':['img/1.png','img/3.png','img/2.png'],
+  'Thẻ bài':['img/1.png','img/3.png','img/2.png'],
   'Thẻ môi trường':['img/Nature.png','img/ruleNature.png','img/natureBeauty.png'],
   'Thẻ Thú':['','',''],
   'Thu hút sinh vật':['','','']
 };
+// Thêm/bớt step bằng cách thêm/xóa object trong mảng steps của mục tương ứng.
+const tutorialSteps={
+ 'Thẻ bài':[
+  {image:'img/1.png',text:'Chọn nhóm thẻ trong khay bài.'},
+  {image:'img/3.png',text:'Kéo thẻ bài vào ô đất; số trên thẻ là số lượng đang có.'},
+  {image:'img/2.png',text:'Hoàn tất thao tác và xem thay đổi của khối đất.'}
+ ],
+ 'Thẻ môi trường':[
+  {image:'img/Nature.png',text:'Chọn thẻ môi trường sau khi đã sử dụng thẻ mưa.'},
+  {image:'img/ruleNature.png',text:'Mỗi thẻ môi trường có nguyên tắc đặt dựa trên độ cao của Hex.'},
+  {image:'img/natureBeauty.png',text:'Nhóm từ 3 Hex phù hợp trở lên sẽ tạo môi trường tốt hơn.'}
+ ],
+ 'Thẻ Thú':[
+  {image:'img/DragCreature.png',text:'Kéo thú vào địa hình đã có Môi trường trên 3 Hex.'},
+  {image:'img/Creture.png',text:'Click vào môi trường để hiển thị thông tin của môi trường và click vào thú sẽ hiển thị trạng thái của thú.'},
+  {image:'img/CretureCollection.png',text:'. Những thẻ thú bạn sở hữu sẽ mở khóa ở collection'},
+  {image:'img/CreatureKhaithac.png',text:'. Assign khai thác tài nguyên cần các con thú phù hợp để assign'}
+ ],
+ 'Thu hút sinh vật':[
+  {image:'',text:'Tạo habitat phù hợp với loài thú.'},
+  {image:'',text:'Theo dõi sinh vật xuất hiện trên đảo.'},
+  {image:'',text:'Nhận thẻ thú và khám phá loài đó trong Collection.'},
+  {image:'',text:'Nhận thẻ thú và khám phá loài đó trong Collection.'}
+ ]
+};
 const detailPanel=document.getElementById('step-detail');
+function enableDragScroll(element){
+ let dragging=false,startY=0,startTop=0;
+ element.addEventListener('pointerdown',event=>{
+  if(event.target.closest('button,a'))return;
+  dragging=true;startY=event.clientY;startTop=element.scrollTop;
+  element.setPointerCapture(event.pointerId);
+ });
+ element.addEventListener('pointermove',event=>{
+  if(!dragging)return;
+  element.scrollTop=startTop-(event.clientY-startY);
+ });
+ const stop=()=>{dragging=false};
+ element.addEventListener('pointerup',stop);element.addEventListener('pointercancel',stop);
+}
 function tutorialImage(src,alt,fallback){
  if(!src)return '<div class="image-placeholder"><strong>'+fallback+'</strong>Thêm link ảnh tại tutorialImages</div>';
  return '<img src="'+src.replaceAll('&','&amp;').replaceAll('"','&quot;')+'" alt="'+alt+'">';
@@ -42,16 +83,10 @@ document.querySelectorAll('.tutorial-card').forEach(card=>{
  card.querySelector('.detail-btn').addEventListener('click',()=>{
  document.querySelectorAll('.tutorial-card').forEach(item=>item.classList.remove('selected'));
  card.classList.add('selected');
- const images=tutorialImages[card.dataset.title] || ['','',''];
- const captionsByTopic={
-  'Chọn thẻ bài':['Chọn nhóm thẻ trong khay bài.','Kéo thẻ bài vào ô đất; số trên thẻ là số lượng đang có.','hoàn thành bước kéo thẻ xem thay đổi của khối đất.'],
-  'Thẻ môi trường':['Chọn thẻ môi trường sau khi đã sử dụng thẻ mưa.','Mỗi thẻ môi trường có nguyên tắc đặt dựa trên độ cao của Hex.','Nhóm từ 3 Hex phù hợp trở lên sẽ tạo môi trường tốt hơn.'],
-  'Thẻ Thú':['Đặt địa hình để mở rộng khu vực đảo.','Kết hợp độ cao Hex phù hợp với thẻ môi trường.','Tạo nhóm Hex liền kề để hệ sinh thái phát triển tốt hơn.'],
-  'Thu hút sinh vật':['Tạo habitat phù hợp với loài thú.','Theo dõi sinh vật xuất hiện trên đảo.','Nhận thẻ thú và khám phá loài đó trong Collection.']
- };
- const captions=captionsByTopic[card.dataset.title] || ['Xem bước hướng dẫn thứ nhất.','Tiếp tục thao tác theo hướng dẫn.','Hoàn tất và kiểm tra kết quả trên đảo.'];
- detailPanel.innerHTML='<div class="detail-dialog"><button class="close-detail" type="button" aria-label="Đóng">×</button><header class="detail-head"><div><h2>'+card.dataset.title+'</h2></div></header><div class="step-flow">'+images.map((src,i)=>'<article class="flow-step"><div class="flow-img">'+tutorialImage(src,captions[i],card.dataset.icon)+'</div><div class="flow-caption"><span class="flow-number">'+(i+1)+'</span>'+captions[i]+'</div>'+(i<2?'<span class="flow-arrow">➜</span>':'')+'</article>').join('')+'</div></div>';
+ const steps=tutorialSteps[card.dataset.title] || [];
+ detailPanel.innerHTML='<div class="detail-dialog"><button class="close-detail" type="button" aria-label="Đóng">×</button><header class="detail-head"><div><h2>'+card.dataset.title+'</h2></div></header><div class="step-flow">'+steps.map((step,i)=>'<article class="flow-step"><div class="flow-img">'+tutorialImage(step.image,step.text,card.dataset.icon)+'</div><div class="flow-caption"><span class="flow-number">'+(i+1)+'</span>'+step.text+'</div>'+(i<steps.length-1?'<span class="flow-arrow">➜</span>':'')+'</article>').join('')+'</div></div>';
  detailPanel.classList.add('open');
+ enableDragScroll(detailPanel.querySelector('.step-flow'));
  detailPanel.querySelectorAll('.flow-img img').forEach(img=>img.addEventListener('error',()=>{img.replaceWith(Object.assign(document.createElement('div'),{className:'image-placeholder',innerHTML:'<strong>＋</strong>Không tải được ảnh. Kiểm tra link.'}));}));
  detailPanel.querySelector('.close-detail').addEventListener('click',()=>detailPanel.classList.remove('open'));
  });
