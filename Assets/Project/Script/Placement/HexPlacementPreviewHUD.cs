@@ -138,21 +138,21 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         tooltipPill.gameObject.SetActive(false);
 
         // =====================================================================
-        // 2. FEEDBACK TOAST
+        // 2. FEEDBACK TOAST (non-blocking top banner, never overlaps top HUD or freezes gameplay)
         // =====================================================================
         GameObject toastObj = new GameObject("FeedbackToast", typeof(RectTransform), typeof(Image));
         toastObj.transform.SetParent(transform, false);
         toastPanel = toastObj.GetComponent<RectTransform>();
-        toastPanel.anchorMin = new Vector2(0.5f, 0.5f);
-        toastPanel.anchorMax = new Vector2(0.5f, 0.5f);
-        toastPanel.pivot = new Vector2(0.5f, 0.5f);
-        toastPanel.anchoredPosition = new Vector2(0f, 160f);
-        toastPanel.sizeDelta = new Vector2(520f, 48f);
+        toastPanel.anchorMin = new Vector2(0.5f, 1f);
+        toastPanel.anchorMax = new Vector2(0.5f, 1f);
+        toastPanel.pivot = new Vector2(0.5f, 1f);
+        toastPanel.anchoredPosition = new Vector2(0f, -86f);
+        toastPanel.sizeDelta = new Vector2(360f, 40f);
 
         Image toastBg = toastObj.GetComponent<Image>();
         toastBg.sprite = LumiWorldUITheme.PillSprite;
         toastBg.type = Image.Type.Sliced;
-        toastBg.color = LumiWorldUITheme.Surface;
+        toastBg.color = LumiWorldUITheme.Slot;
         toastBg.raycastTarget = false;
         LumiWorldUITheme.AddSoftElevation(toastObj, 4f, 0.22f);
 
@@ -160,13 +160,17 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         toastLabelObj.transform.SetParent(toastPanel, false);
         RectTransform toastLabelRect = toastLabelObj.GetComponent<RectTransform>();
         EconomyHUD.Stretch(toastLabelRect);
+        toastLabelRect.offsetMin = new Vector2(18f, 0f);
+        toastLabelRect.offsetMax = new Vector2(-18f, 0f);
 
         toastText = toastLabelObj.GetComponent<TextMeshProUGUI>();
         toastText.font = LumiWorldUITheme.Body;
         toastText.alignment = TextAlignmentOptions.Center;
-        toastText.fontSize = 15f;
+        toastText.fontSize = 14.5f;
         toastText.fontStyle = FontStyles.Bold;
         toastText.color = LumiWorldUITheme.Text;
+        toastText.textWrappingMode = TextWrappingModes.NoWrap;
+        toastText.overflowMode = TextOverflowModes.Ellipsis;
         toastText.raycastTarget = false;
 
         toastPanel.gameObject.SetActive(false);
@@ -268,11 +272,17 @@ public class HexPlacementPreviewHUD : MonoBehaviour
             }
             else
             {
+                if (toastCoroutine != null)
+                {
+                    StopCoroutine(toastCoroutine);
+                    toastCoroutine = null;
+                }
                 string reason = !canAffordFee
                     ? $"Not enough Coins ({placementFee} required)."
                     : (!string.IsNullOrEmpty(validationError) ? validationError : "Cannot place here.");
                 toastText.text = reason;
                 toastText.color = LumiWorldUITheme.Error;
+                ResizeToastToFit(reason);
                 if (!toastPanel.gameObject.activeSelf) toastPanel.gameObject.SetActive(true);
             }
         }
@@ -284,7 +294,7 @@ public class HexPlacementPreviewHUD : MonoBehaviour
         {
             tooltipPill.gameObject.SetActive(false);
         }
-        if (toastPanel != null && toastPanel.gameObject.activeSelf)
+        if (toastCoroutine == null && toastPanel != null && toastPanel.gameObject.activeSelf)
         {
             toastPanel.gameObject.SetActive(false);
         }
@@ -292,6 +302,48 @@ public class HexPlacementPreviewHUD : MonoBehaviour
 
     public static void ShowFeedbackToast(string message, float duration = 2.8f)
     {
-        GameDialogUI.ShowNotice(message);
+        if (string.IsNullOrWhiteSpace(message)) return;
+        if (instance == null)
+        {
+            instance = FindAnyObjectByType<HexPlacementPreviewHUD>();
+        }
+        if (instance == null) return;
+        instance.ShowToastInternal(message, duration);
+    }
+
+    private void ShowToastInternal(string message, float duration)
+    {
+        if (toastPanel == null || toastText == null) return;
+
+        if (toastCoroutine != null)
+        {
+            StopCoroutine(toastCoroutine);
+            toastCoroutine = null;
+        }
+
+        toastText.text = message;
+        toastText.color = LumiWorldUITheme.Text;
+        ResizeToastToFit(message);
+        toastPanel.gameObject.SetActive(true);
+        toastPanel.SetAsLastSibling();
+        toastCoroutine = StartCoroutine(HideToastAfterDelay(Mathf.Max(0.8f, duration)));
+    }
+
+    private void ResizeToastToFit(string message)
+    {
+        if (toastPanel == null || toastText == null) return;
+        float preferred = toastText.GetPreferredValues(message).x;
+        float width = Mathf.Clamp(preferred + 40f, 220f, 620f);
+        toastPanel.sizeDelta = new Vector2(width, 40f);
+    }
+
+    private IEnumerator HideToastAfterDelay(float duration)
+    {
+        yield return new WaitForSecondsRealtime(duration);
+        toastCoroutine = null;
+        if (toastPanel != null)
+        {
+            toastPanel.gameObject.SetActive(false);
+        }
     }
 }

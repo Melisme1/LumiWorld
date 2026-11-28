@@ -43,6 +43,40 @@ public class SettlementBorderBuilder : MonoBehaviour
         }
     }
 
+    public void DestroyClusterBorders(int clusterId)
+    {
+        if (_bordersParent == null) return;
+        string containerName = $"Borders_Cluster_{clusterId}";
+        for (int i = _bordersParent.childCount - 1; i >= 0; i--)
+        {
+            Transform child = _bordersParent.GetChild(i);
+            if (child == null || !string.Equals(child.name, containerName, System.StringComparison.Ordinal)) continue;
+            child.gameObject.SetActive(false);
+            child.SetParent(null, false);
+            if (Application.isPlaying) Destroy(child.gameObject);
+            else DestroyImmediate(child.gameObject);
+        }
+    }
+
+    public void DestroyOrphanedBorders(HashSet<int> activeClusterIds)
+    {
+        if (_bordersParent == null || activeClusterIds == null) return;
+        for (int i = _bordersParent.childCount - 1; i >= 0; i--)
+        {
+            Transform child = _bordersParent.GetChild(i);
+            if (child == null) continue;
+            const string prefix = "Borders_Cluster_";
+            if (!child.name.StartsWith(prefix, System.StringComparison.Ordinal)) continue;
+            if (int.TryParse(child.name.Substring(prefix.Length), out int cid) && !activeClusterIds.Contains(cid))
+            {
+                child.gameObject.SetActive(false);
+                child.SetParent(null, false);
+                if (Application.isPlaying) Destroy(child.gameObject);
+                else DestroyImmediate(child.gameObject);
+            }
+        }
+    }
+
     /// <summary>
     /// Kiểm tra xem prefab có phải là dạng KayKit Hex-Centered (pivot tại tâm ô hex, mesh bên trong lệch sẵn ra mép ở X = -1.0)
     /// </summary>
@@ -82,7 +116,7 @@ public class SettlementBorderBuilder : MonoBehaviour
     public GameObject BuildClosedBorders(
         int clusterId,
         List<HexCoordinates> clusterHexes,
-        SettlementTier tier,
+        bool useStoneWalls,
         SettlementAssetConfig config,
         HexWorldGenerator worldGen,
         Dictionary<HexCoordinates, SettlementTile> settlementTiles = null)
@@ -91,14 +125,9 @@ public class SettlementBorderBuilder : MonoBehaviour
 
         EnsureBordersParent();
 
-        // 1. Tìm hoặc dọn sạch container viền cũ của cụm này
+        // 1. Dọn sạch toàn bộ container viền cũ của cụm này (tắt & tách khỏi parent ngay trong frame để tránh kẹt bản cũ khi gộp nhiều ô cùng frame)
         string containerName = $"Borders_Cluster_{clusterId}";
-        Transform oldContainer = _bordersParent.Find(containerName);
-        if (oldContainer != null)
-        {
-            if (Application.isPlaying) Destroy(oldContainer.gameObject);
-            else DestroyImmediate(oldContainer.gameObject);
-        }
+        DestroyClusterBorders(clusterId);
 
         GameObject borderContainer = new GameObject(containerName);
         borderContainer.transform.SetParent(_bordersParent, false);
@@ -143,8 +172,8 @@ public class SettlementBorderBuilder : MonoBehaviour
 
         if (perimeterEdges.Count == 0) return borderContainer;
 
-        // 3. Chọn bộ model (Tường đá cho GrandCity, Rào gỗ cho Làng & Thị trấn)
-        bool isStoneWall = (tier == SettlementTier.GrandCity);
+        // 3. Chọn bộ model (Tường đá cho cấp tối đa dạng tụ cụm, Rào gỗ cho các cấp thấp / dạng dải)
+        bool isStoneWall = useStoneWalls;
         GameObject straightPrefab = isStoneWall ? config.wallStraight : config.fenceStraight;
         GameObject gatePrefab = isStoneWall ? config.wallGate : config.fenceGate;
         float yOffset = isStoneWall ? config.wallYOffset : config.fenceYOffset;

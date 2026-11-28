@@ -415,8 +415,9 @@ public class WorldSaveSystem : MonoBehaviour
         }
         else if (card.IsSettlementCard())
         {
-            // Làng dựng lại qua SettlementClusterManager để có SettlementTile, gom cụm và lên cấp (Hamlet -> Town -> ...)
-            objectToPlace = SettlementClusterManager.Instance.PlaceSettlement(coords, tile, card, position).gameObject;
+            // Building dựng lại qua SettlementClusterManager để có SettlementTile, gom cụm (nếu ClusterExpansion) và cấp độ
+            int restoredLevel = record.buildingLevel >= 1 ? record.buildingLevel : 1;
+            objectToPlace = SettlementClusterManager.Instance.PlaceSettlement(coords, tile, card, position, restoredLevel).gameObject;
         }
         else if (card.IsTileTransformCard())
         {
@@ -612,6 +613,7 @@ public class WorldSaveSystem : MonoBehaviour
             var ai = card.GetComponentInChildren<FarmAnimalAI>(true);
             float cooldown = ai != null ? Mathf.Max(0f, ai.cooldownRemainingSeconds) : 0f;
             var river = card.GetComponent<RiverTileSegment>();
+            var settlement = card.GetComponentInParent<SettlementTile>();
             data.placements.Add(new PlacementRecord
             {
                 connectionCooldownSeconds = cooldown,
@@ -623,6 +625,7 @@ public class WorldSaveSystem : MonoBehaviour
                 r = card.placedHex.R,
                 clusterId = card.clusterId,
                 displayedScore = card.displayedScore,
+                buildingLevel = settlement != null ? Mathf.Max(1, settlement.BuildingLevel) : 1,
                 placementId = identity != null ? identity.PlacementId : null,
                 qualityRank = identity != null ? (int)identity.QualityRank : 0,
                 animalId = animal != null ? animal.UniqueID : null,

@@ -1268,6 +1268,11 @@ namespace LumiWorld.Acs
                         st.isBurned = false;
                         st.aridity = 0f;
                         st.RefreshVisual();
+                        if (tile.GetComponent<SettlementTile>() != null)
+                        {
+                            SettlementClusterManager.Instance?.RefreshSettlementAt(hex);
+                        }
+                        HexBiomeClusterConnector.Instance?.RestoreMissingBridges();
                     }
                 }
             }
@@ -1391,8 +1396,9 @@ namespace LumiWorld.Acs
             var connector = HexBiomeClusterConnector.Instance;
             if (connector == null) return;
 
+            bool isSettlementTile = tileObj.GetComponent<SettlementTile>() != null;
             TileDisasterState tileState = tileObj.GetComponent<TileDisasterState>();
-            if (tileState != null)
+            if (!isSettlementTile && tileState != null)
                 connector.RemoveConnectionsForHex(tileState.coordinates);
 
             Transform container = connector.ConnectionsContainer;
@@ -1403,6 +1409,13 @@ namespace LumiWorld.Acs
             {
                 Transform prop = props[i];
                 if (prop == null || prop == container) continue;
+                // Không tắt nhầm SeamBridge/CornerFiller của các cạnh lân cận không cháy
+                if (prop.name.StartsWith("SeamBridge_", StringComparison.Ordinal) ||
+                    prop.name.StartsWith("CornerFiller_", StringComparison.Ordinal) ||
+                    prop.name.StartsWith("EdgeBridge_", StringComparison.Ordinal))
+                {
+                    continue;
+                }
 
                 Vector3 delta = prop.position - center;
                 float sqr = delta.x * delta.x + delta.z * delta.z;
@@ -1546,10 +1559,16 @@ namespace LumiWorld.Acs
                 }
 
                 var tileInfo = tileObj.GetComponent<HexTileInfo>();
-                if (tileInfo != null)
+                if (tileInfo != null && tileObj.GetComponent<SettlementTile>() == null)
                 {
                     tileInfo.isOccupied = false;
                 }
+
+                if (tileObj.GetComponent<SettlementTile>() != null)
+                {
+                    SettlementClusterManager.Instance?.RefreshSettlementAt(state.coordinates);
+                }
+                HexBiomeClusterConnector.Instance?.RestoreMissingBridges();
 
                 // Ô tro tàn đã hồi phục và thẻ trên ô đã bị dọn: ghi lại đảo
                 WorldSaveSystem.MarkDirty();

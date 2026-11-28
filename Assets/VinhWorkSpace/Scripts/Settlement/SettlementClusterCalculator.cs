@@ -112,23 +112,6 @@ public static class SettlementClusterCalculator
     }
 
     /// <summary>
-    /// Xác định cấp độ quy mô của Quần thể định cư dựa trên số ô và hình thái cụm
-    /// </summary>
-    public static SettlementTier DetermineTier(List<HexCoordinates> cluster)
-    {
-        if (cluster == null || cluster.Count <= 1) return SettlementTier.Hamlet;
-        if (cluster.Count < 5) return SettlementTier.Town;
-
-        // Nếu từ 5 ô trở lên: phân biệt dạng Dải Dài (TradingAvenue) vs Dạng Tụ Lại (GrandCity)
-        if (IsLinearCluster(cluster))
-        {
-            return SettlementTier.TradingAvenue;
-        }
-
-        return SettlementTier.GrandCity;
-    }
-
-    /// <summary>
     /// Tính toán chính xác toàn bộ các cạnh biên giới ngoài cùng để tạo VÀNH ĐAI KHÉP KÍN 360 ĐỘ.
     /// Bất biến toán học:
     /// - Cạnh nào tiếp giáp với ô ngoài cụm -> Đánh dấu là Cạnh Biên Giới Ngoài (Perimeter Edge).
@@ -179,4 +162,3 @@ public static class SettlementClusterCalculator
         return edges;
     }
 }
-

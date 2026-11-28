@@ -75,6 +75,7 @@ public class EconomyHUD : MonoBehaviour
         CreateOverlay<HexPlacementPreviewHUD>("HexPlacementPreviewHUD");
         CreateOverlay<GameSettingsUI>("GameSettingsUI");
         CreateOverlay<AutoFeedUI>("AutoFeedUI");
+        CreateOverlay<MapStructureInfoUI>("MapStructureInfoUI");
         CreateOverlay<CollapsibleHUDToolbar>("CollapsibleHUDToolbar");
         CreateOverlay<CreationLabUI>("CreationLabUI");
 

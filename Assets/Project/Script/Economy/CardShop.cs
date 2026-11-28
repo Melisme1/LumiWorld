@@ -172,7 +172,7 @@ public static class CardShop
         if (key.Contains("reedmarsh")) return "Reedmarsh";
         if (key.Contains("lilywater")) return "Lilywater";
         if (key.Contains("streamstone")) return "Streamstone";
-        if (key.Contains("làng trung cổ") || key.Contains("lang trung co") || key.Contains("medieval")) return "Medieval Village";
+        if (key.Contains("làng trung cổ") || key.Contains("lang trung co") || key.Contains("medieval") || key.Contains("granary")) return BuildingRules.GranaryPostDisplayName;
         if (key.Contains("đồng cỏ") || key.Contains("dong co")) return "Meadows";
 
         return name;

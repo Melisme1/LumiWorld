@@ -333,15 +333,19 @@ public class HexBiomeClusterConnector : MonoBehaviour
 
         if (!worldGen.MapTiles.TryGetValue(centerHex, out GameObject centerTile) || centerTile == null)
             return;
-        if (IsBurnedTile(centerTile)) return;
 
         PlacedCard centerCard = GetHabitatCardOnTile(centerTile);
+        bool centerIsSettlement = centerTile.GetComponent<SettlementTile>() != null ||
+                                  (centerCard != null && centerCard.cardData != null && centerCard.cardData.IsSettlementCard());
         bool centerHasRiver = (RiverNetworkManager.Instance != null && RiverNetworkManager.Instance.HasRiver(centerHex));
+        if (IsBurnedTile(centerTile) && !centerIsSettlement && !centerHasRiver) return;
+
         if (centerHabitatData == null || (!centerHabitatData.HasHabitatProps() && !centerHabitatData.IsSettlementCard()))
         {
             if (centerCard != null && centerCard.cardData != null && (centerCard.cardData.HasHabitatProps() || centerCard.cardData.IsSettlementCard()))
             {
                 centerHabitatData = centerCard.cardData;
+                centerIsSettlement = centerIsSettlement || centerCard.cardData.IsSettlementCard();
             }
             else if (!centerHasRiver)
             {
@@ -363,9 +367,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
             HexCoordinates hB = centerHex.GetNeighbor(dir);
             HexCoordinates hC = centerHex.GetNeighbor((dir + 1) % 6);
 
-            if (worldGen.MapTiles.TryGetValue(hB, out GameObject tileB) && tileB != null && !IsBurnedTile(tileB) &&
-                worldGen.MapTiles.TryGetValue(hC, out GameObject tileC) && tileC != null && !IsBurnedTile(tileC))
+            if (worldGen.MapTiles.TryGetValue(hB, out GameObject tileB) && tileB != null &&
+                worldGen.MapTiles.TryGetValue(hC, out GameObject tileC) && tileC != null)
             {
+                if ((!centerIsSettlement && (IsBurnedTile(tileB) || IsBurnedTile(tileC)))) continue;
+
                 PlacedCard cardB = GetHabitatCardOnTile(tileB);
                 PlacedCard cardC = GetHabitatCardOnTile(tileC);
 
@@ -373,19 +379,14 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     AreHabitatsMatching(centerHabitatData, cardB.cardData) &&
                     AreHabitatsMatching(centerHabitatData, cardC.cardData))
                 {
-                    if (enableBiomeSizeLimit)
+                    if (!AreClusterMembersCompatible(centerHex, centerCard, hB, cardB, centerIsSettlement) ||
+                        !AreClusterMembersCompatible(centerHex, centerCard, hC, cardC, centerIsSettlement))
                     {
-                        if (centerCard == null || centerCard.clusterId <= 0 ||
-                            cardB.clusterId <= 0 || cardC.clusterId <= 0 ||
-                            cardB.clusterId != centerCard.clusterId ||
-                            cardC.clusterId != centerCard.clusterId)
-                        {
-                            continue;
-                        }
+                        continue;
                     }
 
                     string cornerKey = GetCornerKey(centerHex, hB, hC);
-                    if (!_createdCornerFillers.Contains(cornerKey))
+                    if (!HasActiveConnectionChild($"CornerFiller_{cornerKey}", _createdCornerFillers, cornerKey))
                     {
                         newCorners.Add((hB, tileB, hC, tileC, cornerKey));
                         clusterEdgeKeys.Add(GetEdgeKey(centerHex, hB));
@@ -399,10 +400,11 @@ public class HexBiomeClusterConnector : MonoBehaviour
         {
             HexCoordinates neighborHex = centerHex.GetNeighbor(dir);
 
-            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) &&
-                neighborTile != null && !IsBurnedTile(neighborTile))
+            if (worldGen.MapTiles.TryGetValue(neighborHex, out GameObject neighborTile) && neighborTile != null)
             {
                 PlacedCard neighborCard = GetHabitatCardOnTile(neighborTile);
+                bool neighborIsSettlement = neighborTile.GetComponent<SettlementTile>() != null ||
+                                            (neighborCard != null && neighborCard.cardData != null && neighborCard.cardData.IsSettlementCard());
 
                 bool riverCrossesEdge = false;
                 if (RiverNetworkManager.Instance != null)
@@ -417,22 +419,24 @@ public class HexBiomeClusterConnector : MonoBehaviour
                     }
                 }
 
+                if (!riverCrossesEdge && !(centerIsSettlement && neighborIsSettlement) &&
+                    (IsBurnedTile(centerTile) || IsBurnedTile(neighborTile)))
+                {
+                    continue;
+                }
+
                 bool habitatsMatch = (neighborCard != null && AreHabitatsMatching(centerHabitatData, neighborCard.cardData));
 
                 if (habitatsMatch || riverCrossesEdge)
                 {
-                    if (!riverCrossesEdge && enableBiomeSizeLimit)
+                    if (!riverCrossesEdge &&
+                        !AreClusterMembersCompatible(centerHex, centerCard, neighborHex, neighborCard, centerIsSettlement && neighborIsSettlement))
                     {
-                        if (centerCard == null || centerCard.clusterId <= 0 ||
-                            neighborCard == null || neighborCard.clusterId <= 0 ||
-                            neighborCard.clusterId != centerCard.clusterId)
-                        {
-                            continue;
-                        }
+                        continue;
                     }
 
                     string edgeKey = GetEdgeKey(centerHex, neighborHex);
-                    if (!_createdEdgeBridges.Contains(edgeKey))
+                    if (!HasActiveConnectionChild($"SeamBridge_{edgeKey}", _createdEdgeBridges, edgeKey))
                     {
                         _createdEdgeBridges.Add(edgeKey);
                         CardData bridgeHabitatData = centerHabitatData != null ? centerHabitatData : (neighborCard != null ? neighborCard.cardData : null);
@@ -465,6 +469,40 @@ public class HexBiomeClusterConnector : MonoBehaviour
         {
             CheckAndCelebrateCluster(centerHex, centerHabitatData, worldGen);
         }
+    }
+
+    private bool AreClusterMembersCompatible(
+        HexCoordinates hexA,
+        PlacedCard cardA,
+        HexCoordinates hexB,
+        PlacedCard cardB,
+        bool bothSettlements)
+    {
+        if (bothSettlements && SettlementClusterManager.Instance != null)
+        {
+            return SettlementClusterManager.Instance.IsSameBuildingCluster(hexA, hexB);
+        }
+        if (!enableBiomeSizeLimit) return true;
+        return cardA != null && cardA.clusterId > 0 &&
+               cardB != null && cardB.clusterId > 0 &&
+               cardB.clusterId == cardA.clusterId;
+    }
+
+    private bool HasActiveConnectionChild(string childName, HashSet<string> trackingSet, string key)
+    {
+        if (!trackingSet.Contains(key)) return false;
+        Transform existing = ConnectionsContainer != null ? ConnectionsContainer.Find(childName) : null;
+        if (existing != null && existing.gameObject.activeSelf)
+        {
+            return true;
+        }
+        if (existing != null && !existing.gameObject.activeSelf)
+        {
+            existing.gameObject.SetActive(true);
+            return true;
+        }
+        trackingSet.Remove(key);
+        return false;
     }
 
     public static PlacedCard GetHabitatCardOnTile(GameObject tileObj)
@@ -510,7 +548,12 @@ public class HexBiomeClusterConnector : MonoBehaviour
     public static bool AreNatureCardsMatching(CardData a, CardData b)
     {
         if (a == null || b == null) return false;
-        if (a.IsSettlementCard() && b.IsSettlementCard()) return true;
+        if (a.IsSettlementCard() && b.IsSettlementCard())
+        {
+            return a.GetBuildingUpgradeMethod() == BuildingUpgradeMethod.ClusterExpansion &&
+                   b.GetBuildingUpgradeMethod() == BuildingUpgradeMethod.ClusterExpansion &&
+                   string.Equals(a.GetBuildingTypeId(), b.GetBuildingTypeId(), StringComparison.OrdinalIgnoreCase);
+        }
         return a.cardType == CardType.Terrain && b.cardType == CardType.Terrain &&
             !string.IsNullOrEmpty(a.cardID) && string.Equals(a.cardID, b.cardID, StringComparison.Ordinal);
     }
@@ -518,7 +561,12 @@ public class HexBiomeClusterConnector : MonoBehaviour
     public static bool AreHabitatsMatching(CardData a, CardData b)
     {
         if (a == null || b == null) return false;
-        if (a.IsSettlementCard() && b.IsSettlementCard()) return true;
+        if (a.IsSettlementCard() && b.IsSettlementCard())
+        {
+            return a.GetBuildingUpgradeMethod() == BuildingUpgradeMethod.ClusterExpansion &&
+                   b.GetBuildingUpgradeMethod() == BuildingUpgradeMethod.ClusterExpansion &&
+                   string.Equals(a.GetBuildingTypeId(), b.GetBuildingTypeId(), StringComparison.OrdinalIgnoreCase);
+        }
         if (!a.HasHabitatProps() || !b.HasHabitatProps()) return false;
 
         if (a.cardID == b.cardID) return true;
@@ -1206,7 +1254,7 @@ public class HexBiomeClusterConnector : MonoBehaviour
                 if (n.StartsWith("SeamBridge_"))
                 {
                     string key = n.Substring("SeamBridge_".Length);
-                    string[] parts = key.Split('_');
+                    string[] parts = key.Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 4 &&
                         int.TryParse(parts[0], out int q1) && int.TryParse(parts[1], out int r1) &&
                         int.TryParse(parts[2], out int q2) && int.TryParse(parts[3], out int r2))
@@ -1304,6 +1352,13 @@ public class HexBiomeClusterConnector : MonoBehaviour
         {
             Transform child = _connectionsContainer.GetChild(i);
             if (child == null) continue;
+            string cName = child.name;
+            if (cName.StartsWith("SeamBridge_", StringComparison.Ordinal) ||
+                cName.StartsWith("CornerFiller_", StringComparison.Ordinal) ||
+                cName.StartsWith("EdgeBridge_", StringComparison.Ordinal))
+            {
+                continue;
+            }
             Vector3 delta = child.position - center;
             if (delta.x * delta.x + delta.z * delta.z > radiusSqr) continue;
             DestroyConnectionObject(child);
@@ -1323,6 +1378,12 @@ public class HexBiomeClusterConnector : MonoBehaviour
     {
         if (connection == null) return;
 
+        string cName = connection.name;
+        if (cName.StartsWith("SeamBridge_", StringComparison.Ordinal))
+            _createdEdgeBridges.Remove(cName.Substring("SeamBridge_".Length));
+        else if (cName.StartsWith("CornerFiller_", StringComparison.Ordinal))
+            _createdCornerFillers.Remove(cName.Substring("CornerFiller_".Length));
+
         MeshFilter meshFilter = connection.GetComponent<MeshFilter>();
         Mesh mesh = meshFilter != null ? meshFilter.sharedMesh : null;
         if (mesh != null && _ownedConnectionMeshes.Remove(mesh))
@@ -1331,8 +1392,17 @@ public class HexBiomeClusterConnector : MonoBehaviour
             DestroyOwnedMesh(mesh);
         }
 
-        if (Application.isPlaying) Destroy(connection.gameObject);
-        else DestroyImmediate(connection.gameObject);
+        if (Application.isPlaying)
+        {
+            // Tách khỏi container ngay trong frame hiện tại để ConnectAllNearby kế tiếp không tưởng nhầm cầu cũ còn sống
+            connection.gameObject.SetActive(false);
+            connection.SetParent(null, false);
+            Destroy(connection.gameObject);
+        }
+        else
+        {
+            DestroyImmediate(connection.gameObject);
+        }
     }
 
     private void DestroyOwnedConnectionMeshes()

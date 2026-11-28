@@ -89,9 +89,25 @@ public class CardData : ScriptableObject
     [Tooltip("Nếu tích chọn: đây là lá bài Sông Suối (tạo rãnh suối uốn lượn nối các ô và bến nước cho thú)")]
     public bool isRiverCard = false;
 
-    [Header("Settlement / Village Integration")]
-    [Tooltip("Nếu tích chọn: đây là lá bài Khu Dân Cư / Làng Mạc (tự sinh làng ngẫu nhiên và tiến hóa thành đô thị khép kín)")]
+    [Header("Settlement / Building Integration")]
+    [Tooltip("Nếu tích chọn: đây là lá bài Building (đặt trên đất Lush chưa có Biome, sinh cảnh quan bản địa).")]
     public bool isSettlementCard = false;
+
+    [Tooltip("Mã định danh loại Building (ví dụ: granary_post). Chỉ các ô cùng BuildingTypeId và dùng ClusterExpansion mới gộp cụm.")]
+    public string buildingTypeId = "";
+
+    [Tooltip("Tên hiển thị của loại Building trong UI/Tooltip.")]
+    public string buildingDisplayName = "";
+
+    [Tooltip("Phương thức nâng cấp: ClusterExpansion (đặt thêm thẻ cùng loại kế bên) hoặc DirectUpgrade (nâng cấp trực tiếp trong UI).")]
+    public BuildingUpgradeMethod buildingUpgradeMethod = BuildingUpgradeMethod.ClusterExpansion;
+
+    [Tooltip("Chức năng chính của loại Building.")]
+    public BuildingFunctionKind buildingFunctionKind = BuildingFunctionKind.AutoFeeding;
+
+    [Min(1)]
+    [Tooltip("Cấp tối đa của loại Building này (mặc định 5 cho Granary Post).")]
+    public int buildingMaxLevel = BuildingRules.GranaryPostMaxLevel;
 
     [Header("Animal Integration (For Creature Cards)")]
     [Tooltip("Dữ liệu thông số loài động vật nếu lá bài này là Creature (để sinh ra cá thể 1★-5★ với Trait riêng)")]
@@ -163,12 +179,45 @@ public class CardData : ScriptableObject
             (string.Equals(cardID, "Rain", System.StringComparison.OrdinalIgnoreCase) && !isTriangleRain);
     }
     /// <summary>
-    /// Kiểm tra lá bài này có phải thẻ Khu Dân Cư / Làng Mạc (Settlement Card) hay không
+    /// Kiểm tra lá bài này có phải thẻ Building dùng hệ thống đất quy hoạch + aura hay không
     /// </summary>
     public bool IsSettlementCard()
     {
-        return isSettlementCard || cardID == "Medieval_Village" || 
+        return isSettlementCard || cardID == "Medieval_Village" ||
                (cardType == CardType.Building && (prefabToPlace == null || string.Equals(cardName, "Village", System.StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public string GetBuildingTypeId()
+    {
+        if (!string.IsNullOrWhiteSpace(buildingTypeId)) return buildingTypeId.Trim();
+        if (IsSettlementCard() && (string.Equals(cardID, "Medieval_Village", System.StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(cardID)))
+            return BuildingRules.GranaryPostTypeId;
+        return !string.IsNullOrWhiteSpace(cardID) ? cardID.Trim() : BuildingRules.GranaryPostTypeId;
+    }
+
+    public string GetBuildingDisplayName()
+    {
+        if (!string.IsNullOrWhiteSpace(buildingDisplayName)) return buildingDisplayName.Trim();
+        if (string.Equals(GetBuildingTypeId(), BuildingRules.GranaryPostTypeId, System.StringComparison.OrdinalIgnoreCase))
+            return BuildingRules.GranaryPostDisplayName;
+        return !string.IsNullOrWhiteSpace(cardName) ? cardName : GetBuildingTypeId();
+    }
+
+    public BuildingUpgradeMethod GetBuildingUpgradeMethod() => buildingUpgradeMethod;
+
+    public BuildingFunctionKind GetBuildingFunctionKind()
+    {
+        if (string.Equals(GetBuildingTypeId(), BuildingRules.GranaryPostTypeId, System.StringComparison.OrdinalIgnoreCase))
+            return BuildingFunctionKind.AutoFeeding;
+        return buildingFunctionKind;
+    }
+
+    public int GetBuildingMaxLevel()
+    {
+        if (buildingMaxLevel >= 1) return buildingMaxLevel;
+        return string.Equals(GetBuildingTypeId(), BuildingRules.GranaryPostTypeId, System.StringComparison.OrdinalIgnoreCase)
+            ? BuildingRules.GranaryPostMaxLevel
+            : 1;
     }
 
     /// <summary>

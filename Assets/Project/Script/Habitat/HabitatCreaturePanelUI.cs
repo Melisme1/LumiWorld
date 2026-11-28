@@ -35,13 +35,13 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     private float lastStageParentScale;
 
     // Panel 1 (P-05): Biome / Residents / Production (4 slots: T1#1, T1#2, T2#1, T2#2)
-    private const float P05PanelWidth = 340f;
-    private const float P05PanelBaseHeight = 542f;
-    private const float P05ResidentsBaseHeight = 124f;
-    private const float P05ResidentsExtraRowHeight = 104f;
-    private const float P05ResidentsWidth = 308f;
-    private const float P05SlotCardHeight = 46f;
-    private const float P05SlotCardPitch = 51f;
+    private const float P05PanelWidth = 416f;
+    private const float P05PanelBaseHeight = 582f;
+    private const float P05ResidentsBaseHeight = 134f;
+    private const float P05ResidentsExtraRowHeight = 114f;
+    private const float P05ResidentsWidth = 384f;
+    private const float P05SlotCardHeight = 52f;
+    private const float P05SlotCardPitch = 57f;
 
     private RectTransform panelListRect;
     private Image biomeEmblemImg;
@@ -59,8 +59,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     private Image harvestAllIconImg;
 
     // Panel 2 (P-06): Creature Detail
-    private const float P06PanelWidth = 262f;
-    private const float P06PanelHeight = 476f;
+    private const float P06PanelWidth = 314f;
+    private const float P06PanelHeight = 518f;
 
     private RectTransform panelDetailRect;
     private TextMeshProUGUI backToBiomeText;
@@ -156,6 +156,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
     public void OpenForHabitat(HabitatState habitat)
     {
         if (habitat == null || !habitat.IsFormedBiome) return;
+        BiomeBuffVisualManager.ExistingInstance?.ClearSelectionBuff();
         currentHabitat = habitat;
 
         if (rootModal != null)
@@ -294,7 +295,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         panelListRect.anchorMin = new Vector2(1f, 1f);
         panelListRect.anchorMax = new Vector2(1f, 1f);
         panelListRect.pivot = new Vector2(1f, 1f);
-        panelListRect.anchoredPosition = new Vector2(-14f, -40f);
+        panelListRect.anchoredPosition = new Vector2(-14f, -82f);
         panelListRect.sizeDelta = new Vector2(P05PanelWidth, P05PanelBaseHeight);
 
         Image p1Bg = p1Obj.GetComponent<Image>();
@@ -309,50 +310,50 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject emblemObj = new GameObject("BiomeEmblem", typeof(RectTransform), typeof(Image));
         emblemObj.transform.SetParent(panelListRect, false);
         RectTransform emRect = emblemObj.GetComponent<RectTransform>();
-        SetTopLeft(emRect, new Vector2(16f, -12f), new Vector2(54f, 54f));
+        SetTopLeft(emRect, new Vector2(16f, -12f), new Vector2(60f, 60f));
         biomeEmblemImg = emblemObj.GetComponent<Image>();
         biomeEmblemImg.preserveAspect = true;
         biomeEmblemImg.raycastTarget = false;
 
-        habitatNameText = CreateLabel(panelListRect, "BiomeName", "Leafwood", 20f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        habitatNameText = CreateLabel(panelListRect, "BiomeName", "Leafwood", 23f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         habitatNameText.font = LumiWorldUITheme.Heading ?? habitatNameText.font;
         habitatNameText.enableAutoSizing = true;
-        habitatNameText.fontSizeMin = 14f;
-        habitatNameText.fontSizeMax = 21f;
+        habitatNameText.fontSizeMin = 16f;
+        habitatNameText.fontSizeMax = 23.5f;
         habitatNameText.overflowMode = TextOverflowModes.Overflow;
-        SetTopLeft(habitatNameText.rectTransform, new Vector2(78f, -12f), new Vector2(210f, 34f));
+        SetTopLeft(habitatNameText.rectTransform, new Vector2(86f, -12f), new Vector2(274f, 36f));
 
         // Footprint row under Biome Name
         GameObject fpRow = new GameObject("FootprintRow", typeof(RectTransform));
         fpRow.transform.SetParent(panelListRect, false);
         RectTransform fpRect = fpRow.GetComponent<RectTransform>();
-        SetTopLeft(fpRect, new Vector2(78f, -44f), new Vector2(204f, 22f));
+        SetTopLeft(fpRect, new Vector2(86f, -48f), new Vector2(240f, 22f));
 
         GameObject fpIcObj = new GameObject("FootprintGlyph", typeof(RectTransform), typeof(Image));
         fpIcObj.transform.SetParent(fpRect, false);
         RectTransform fpIcRect = fpIcObj.GetComponent<RectTransform>();
-        SetTopLeft(fpIcRect, new Vector2(0f, -2f), new Vector2(18f, 18f));
+        SetTopLeft(fpIcRect, new Vector2(0f, -2f), new Vector2(19f, 19f));
         footprintGlyphImg = fpIcObj.GetComponent<Image>();
         footprintGlyphImg.preserveAspect = true;
         footprintGlyphImg.color = LumiWorldUITheme.Muted;
         footprintGlyphImg.raycastTarget = false;
 
-        footprintCountText = CreateLabel(fpRect, "FootprintText", "3 hex", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        footprintCountText = CreateLabel(fpRect, "FootprintText", "3 hex", 13.5f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
         footprintCountText.overflowMode = TextOverflowModes.Overflow;
-        SetTopLeft(footprintCountText.rectTransform, new Vector2(23f, 0f), new Vector2(176f, 22f));
+        SetTopLeft(footprintCountText.rectTransform, new Vector2(24f, 0f), new Vector2(210f, 22f));
 
         // Close [x] button
-        CreateCloseButton(panelListRect, new Vector2(-14f, -14f), () => PlayCloseWithAnimation(panelListRect, ClosePanels), 28f);
+        CreateCloseButton(panelListRect, new Vector2(-14f, -14f), () => PlayCloseWithAnimation(panelListRect, ClosePanels), 30f);
 
         // --- 2. RESIDENTS SECTION ---
-        residentsHeaderText = CreateLabel(panelListRect, "ResidentsHeader", "Residents (0/2)", 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        residentsHeaderText = CreateLabel(panelListRect, "ResidentsHeader", "Residents (0/2)", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         residentsHeaderText.overflowMode = TextOverflowModes.Overflow;
-        SetTopLeft(residentsHeaderText.rectTransform, new Vector2(16f, -74f), new Vector2(240f, 24f));
+        SetTopLeft(residentsHeaderText.rectTransform, new Vector2(16f, -80f), new Vector2(280f, 24f));
 
         GameObject resBoxObj = new GameObject("ResidentsContainer", typeof(RectTransform), typeof(Image));
         resBoxObj.transform.SetParent(panelListRect, false);
         creatureGridRoot = resBoxObj.GetComponent<RectTransform>();
-        SetTopLeft(creatureGridRoot, new Vector2(16f, -100f), new Vector2(P05ResidentsWidth, P05ResidentsBaseHeight));
+        SetTopLeft(creatureGridRoot, new Vector2(16f, -106f), new Vector2(P05ResidentsWidth, P05ResidentsBaseHeight));
 
         Image resBoxBg = resBoxObj.GetComponent<Image>();
         resBoxBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -362,21 +363,21 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         LumiWorldUITheme.AddSoftElevation(resBoxObj, 2.5f, 0.14f);
 
         // --- 3. PRODUCTION SECTION ---
-        TextMeshProUGUI prodHdr = CreateLabel(panelListRect, "ProductionHeader", "Production", 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        TextMeshProUGUI prodHdr = CreateLabel(panelListRect, "ProductionHeader", "Production", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         prodHdr.overflowMode = TextOverflowModes.Overflow;
         productionHeaderRect = prodHdr.rectTransform;
-        SetTopLeft(productionHeaderRect, new Vector2(16f, -238f), new Vector2(140f, 26f));
+        SetTopLeft(productionHeaderRect, new Vector2(16f, -252f), new Vector2(180f, 26f));
 
         // "[Refresh] Change resource" button on right of Production header
         GameObject chgObj = new GameObject("ChangeResourceBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         chgObj.transform.SetParent(panelListRect, false);
         changeResourceBtnRect = chgObj.GetComponent<RectTransform>();
         changeResourceBtnRect.anchorMin = changeResourceBtnRect.anchorMax = changeResourceBtnRect.pivot = new Vector2(1f, 1f);
-        changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -236f);
-        changeResourceBtnRect.sizeDelta = new Vector2(144f, 26f);
+        changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -250f);
+        changeResourceBtnRect.sizeDelta = new Vector2(160f, 28f);
 
         Image chgBg = chgObj.GetComponent<Image>();
-        chgBg.sprite = LumiWorldUITheme.GetCapsuleSprite(26);
+        chgBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
         chgBg.type = Image.Type.Sliced;
         chgBg.color = LumiWorldUITheme.Inset;
         LumiWorldUITheme.AddSoftElevation(chgObj, 2f, 0.14f);
@@ -386,19 +387,19 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform chgIcRect = chgIcObj.GetComponent<RectTransform>();
         chgIcRect.anchorMin = chgIcRect.anchorMax = new Vector2(0f, 0.5f);
         chgIcRect.pivot = new Vector2(0f, 0.5f);
-        chgIcRect.anchoredPosition = new Vector2(10f, 0f);
-        chgIcRect.sizeDelta = new Vector2(13f, 13f);
+        chgIcRect.anchoredPosition = new Vector2(11f, 0f);
+        chgIcRect.sizeDelta = new Vector2(14f, 14f);
         Image chgIcImg = chgIcObj.GetComponent<Image>();
         chgIcImg.sprite = LumiWorldUITheme.Glyph("Refresh");
         chgIcImg.preserveAspect = true;
         chgIcImg.color = LumiWorldUITheme.Text;
         chgIcImg.raycastTarget = false;
 
-        TextMeshProUGUI chgLbl = CreateLabel(changeResourceBtnRect, "Label", "Change resource", 11f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        TextMeshProUGUI chgLbl = CreateLabel(changeResourceBtnRect, "Label", "Change resource", 12f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         chgLbl.rectTransform.anchorMin = Vector2.zero;
         chgLbl.rectTransform.anchorMax = Vector2.one;
-        chgLbl.rectTransform.offsetMin = new Vector2(27f, 0f);
-        chgLbl.rectTransform.offsetMax = new Vector2(-8f, 0f);
+        chgLbl.rectTransform.offsetMin = new Vector2(30f, 0f);
+        chgLbl.rectTransform.offsetMax = new Vector2(-10f, 0f);
 
         changeResourceBtn = chgObj.GetComponent<Button>();
         changeResourceBtn.targetGraphic = chgBg;
@@ -409,7 +410,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject resSlotsObj = new GameObject("ResourceSlotsContainer", typeof(RectTransform));
         resSlotsObj.transform.SetParent(panelListRect, false);
         resourceSlotsRoot = resSlotsObj.GetComponent<RectTransform>();
-        SetTopLeft(resourceSlotsRoot, new Vector2(16f, -266f), new Vector2(P05ResidentsWidth, 206f));
+        SetTopLeft(resourceSlotsRoot, new Vector2(16f, -286f), new Vector2(P05ResidentsWidth, 224f));
 
         // --- 4. BOTTOM PRIMARY CTA: "[G-24] Collect all (N)" ---
         GameObject hBarObj = new GameObject("CollectAllBtn", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -417,7 +418,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform hbRect = hBarObj.GetComponent<RectTransform>();
         hbRect.anchorMin = hbRect.anchorMax = hbRect.pivot = new Vector2(0.5f, 0f);
         hbRect.anchoredPosition = new Vector2(0f, 16f);
-        hbRect.sizeDelta = new Vector2(P05ResidentsWidth, 42f);
+        hbRect.sizeDelta = new Vector2(P05ResidentsWidth, 44f);
 
         Image hbImg = hBarObj.GetComponent<Image>();
         hbImg.sprite = LumiWorldUITheme.GetCapsuleSprite(42);
@@ -437,7 +438,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         hbIcObj.transform.SetParent(hbRect, false);
         RectTransform hbIcRect = hbIcObj.GetComponent<RectTransform>();
         hbIcRect.anchorMin = hbIcRect.anchorMax = hbIcRect.pivot = new Vector2(0.5f, 0.5f);
-        hbIcRect.anchoredPosition = new Vector2(-62f, 0f);
+        hbIcRect.anchoredPosition = new Vector2(-72f, 0f);
         hbIcRect.sizeDelta = new Vector2(16f, 16f);
         harvestAllIconImg = hbIcObj.GetComponent<Image>();
         harvestAllIconImg.sprite = LumiWorldUITheme.Glyph("G-24");
@@ -445,9 +446,10 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         harvestAllIconImg.color = Color.white;
         harvestAllIconImg.raycastTarget = false;
 
-        harvestAllButtonText = CreateLabel(hbRect, "Label", "Collect all (0)", 13.5f, Color.white, true, TextAlignmentOptions.Center);
+        harvestAllButtonText = CreateLabel(hbRect, "Label", "Collect all (0)", 14.5f, Color.white, true, TextAlignmentOptions.Center);
         harvestAllButtonText.overflowMode = TextOverflowModes.Overflow;
         EconomyHUD.Stretch(harvestAllButtonText.rectTransform);
+        harvestAllButtonText.rectTransform.offsetMin = new Vector2(18f, 0f);
     }
 
     private void UpdatePanel1DynamicLayout(int residentCount)
@@ -463,28 +465,28 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
         if (productionHeaderRect != null)
         {
-            productionHeaderRect.anchoredPosition = new Vector2(16f, -(234f + extraY));
+            productionHeaderRect.anchoredPosition = new Vector2(16f, -(252f + extraY));
         }
         if (changeResourceBtnRect != null)
         {
-            changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -(232f + extraY));
+            changeResourceBtnRect.anchoredPosition = new Vector2(-16f, -(250f + extraY));
         }
         if (resourceSlotsRoot != null)
         {
-            resourceSlotsRoot.anchoredPosition = new Vector2(16f, -(266f + extraY));
+            resourceSlotsRoot.anchoredPosition = new Vector2(16f, -(286f + extraY));
         }
     }
 
     private void BuildPanel2(Transform parent)
     {
-        // P-06: Docked immediately left of P-05 (262 x 476 du -> bottom stays cleanly above P-03 Card Tray)
+        // P-06: Docked immediately left of P-05 (314 x 518 du)
         GameObject p2Obj = new GameObject("P06_CreatureDetailPanel", typeof(RectTransform), typeof(Image));
         p2Obj.transform.SetParent(parent, false);
         panelDetailRect = p2Obj.GetComponent<RectTransform>();
         panelDetailRect.anchorMin = new Vector2(1f, 1f);
         panelDetailRect.anchorMax = new Vector2(1f, 1f);
         panelDetailRect.pivot = new Vector2(1f, 1f);
-        panelDetailRect.anchoredPosition = new Vector2(-364f, -48f);
+        panelDetailRect.anchoredPosition = new Vector2(-440f, -82f);
         panelDetailRect.sizeDelta = new Vector2(P06PanelWidth, P06PanelHeight);
 
         Image p2Bg = p2Obj.GetComponent<Image>();
@@ -499,10 +501,10 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject backBtnObj = new GameObject("BackToBiomeBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         backBtnObj.transform.SetParent(panelDetailRect, false);
         RectTransform backRect = backBtnObj.GetComponent<RectTransform>();
-        SetTopLeft(backRect, new Vector2(16f, -14f), new Vector2(166f, 28f));
+        SetTopLeft(backRect, new Vector2(16f, -14f), new Vector2(196f, 30f));
 
         Image backBg = backBtnObj.GetComponent<Image>();
-        backBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
+        backBg.sprite = LumiWorldUITheme.GetCapsuleSprite(30);
         backBg.type = Image.Type.Sliced;
         backBg.color = LumiWorldUITheme.Inset;
 
@@ -511,32 +513,32 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform backIcRect = backIcObj.GetComponent<RectTransform>();
         backIcRect.anchorMin = backIcRect.anchorMax = new Vector2(0f, 0.5f);
         backIcRect.pivot = new Vector2(0f, 0.5f);
-        backIcRect.anchoredPosition = new Vector2(10f, 0f);
-        backIcRect.sizeDelta = new Vector2(13f, 13f);
+        backIcRect.anchoredPosition = new Vector2(11f, 0f);
+        backIcRect.sizeDelta = new Vector2(14f, 14f);
         Image backIcImg = backIcObj.GetComponent<Image>();
         backIcImg.sprite = LumiWorldUITheme.Glyph("ArrowLeft");
         backIcImg.preserveAspect = true;
         backIcImg.color = LumiWorldUITheme.Text;
         backIcImg.raycastTarget = false;
 
-        backToBiomeText = CreateLabel(backRect, "Label", "Back to Leafwood", 11.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        backToBiomeText = CreateLabel(backRect, "Label", "Back to Leafwood", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         backToBiomeText.rectTransform.anchorMin = Vector2.zero;
         backToBiomeText.rectTransform.anchorMax = Vector2.one;
-        backToBiomeText.rectTransform.offsetMin = new Vector2(28f, 0f);
-        backToBiomeText.rectTransform.offsetMax = new Vector2(-8f, 0f);
+        backToBiomeText.rectTransform.offsetMin = new Vector2(30f, 0f);
+        backToBiomeText.rectTransform.offsetMax = new Vector2(-10f, 0f);
 
         Button backBtn = backBtnObj.GetComponent<Button>();
         backBtn.targetGraphic = backBg;
         backBtn.navigation = new Navigation { mode = Navigation.Mode.None };
         backBtn.onClick.AddListener(CloseDetailPanelOnly);
 
-        CreateCloseButton(panelDetailRect, new Vector2(-14f, -14f), CloseDetailPanelOnly, 28f);
+        CreateCloseButton(panelDetailRect, new Vector2(-14f, -14f), CloseDetailPanelOnly, 30f);
 
         // --- 2. CREATURE PORTRAIT STAGE (Official non-background cutout PNG) ---
         GameObject stageObj = new GameObject("CreatureDisplayStage", typeof(RectTransform), typeof(Image));
         stageObj.transform.SetParent(panelDetailRect, false);
         RectTransform mRect = stageObj.GetComponent<RectTransform>();
-        SetTopLeft(mRect, new Vector2(16f, -50f), new Vector2(230f, 166f));
+        SetTopLeft(mRect, new Vector2(16f, -54f), new Vector2(282f, 178f));
 
         Image stageBg = stageObj.GetComponent<Image>();
         stageBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -550,8 +552,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform artRect = artObj.GetComponent<RectTransform>();
         artRect.anchorMin = Vector2.zero;
         artRect.anchorMax = Vector2.one;
-        artRect.offsetMin = new Vector2(10f, 8f);
-        artRect.offsetMax = new Vector2(-10f, -8f);
+        artRect.offsetMin = new Vector2(12f, 10f);
+        artRect.offsetMax = new Vector2(-12f, -10f);
         creatureArtImg = artObj.GetComponent<Image>();
         creatureArtImg.preserveAspect = true;
         creatureArtImg.raycastTarget = false;
@@ -560,15 +562,15 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject nameRow = new GameObject("NameAndRankRow", typeof(RectTransform));
         nameRow.transform.SetParent(panelDetailRect, false);
         RectTransform nrRect = nameRow.GetComponent<RectTransform>();
-        SetTopLeft(nrRect, new Vector2(16f, -226f), new Vector2(230f, 34f));
+        SetTopLeft(nrRect, new Vector2(16f, -242f), new Vector2(282f, 36f));
 
-        creatureNameText = CreateLabel(nrRect, "CreatureName", "Bramblet", 16.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        creatureNameText = CreateLabel(nrRect, "CreatureName", "Bramblet", 18.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         creatureNameText.font = LumiWorldUITheme.Heading ?? creatureNameText.font;
         creatureNameText.enableAutoSizing = true;
-        creatureNameText.fontSizeMin = 12f;
-        creatureNameText.fontSizeMax = 17f;
+        creatureNameText.fontSizeMin = 13f;
+        creatureNameText.fontSizeMax = 19f;
         creatureNameText.overflowMode = TextOverflowModes.Overflow;
-        SetTopLeft(creatureNameText.rectTransform, new Vector2(0f, -1f), new Vector2(118f, 32f));
+        SetTopLeft(creatureNameText.rectTransform, new Vector2(0f, -1f), new Vector2(150f, 34f));
 
         Button nameClickBtn = creatureNameText.gameObject.AddComponent<Button>();
         nameClickBtn.transition = Selectable.Transition.None;
@@ -578,7 +580,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject editBtnObj = new GameObject("EditBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         editBtnObj.transform.SetParent(nrRect, false);
         RectTransform ebRect = editBtnObj.GetComponent<RectTransform>();
-        SetTopLeft(ebRect, new Vector2(120f, -4f), new Vector2(24f, 24f));
+        SetTopLeft(ebRect, new Vector2(154f, -5f), new Vector2(26f, 26f));
 
         Image ebBg = editBtnObj.GetComponent<Image>();
         ebBg.sprite = LumiWorldUITheme.PillSprite;
@@ -589,7 +591,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         ebIcObj.transform.SetParent(ebRect, false);
         RectTransform ebIcRect = ebIcObj.GetComponent<RectTransform>();
         ebIcRect.anchorMin = ebIcRect.anchorMax = ebIcRect.pivot = new Vector2(0.5f, 0.5f);
-        ebIcRect.sizeDelta = new Vector2(13f, 13f);
+        ebIcRect.sizeDelta = new Vector2(14f, 14f);
         Image ebIcImg = ebIcObj.GetComponent<Image>();
         ebIcImg.sprite = LumiWorldUITheme.Glyph("Pencil");
         ebIcImg.preserveAspect = true;
@@ -607,10 +609,10 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform rpRect = rankPillObj.GetComponent<RectTransform>();
         rpRect.anchorMin = rpRect.anchorMax = rpRect.pivot = new Vector2(1f, 0.5f);
         rpRect.anchoredPosition = new Vector2(0f, 0f);
-        rpRect.sizeDelta = new Vector2(82f, 28f);
+        rpRect.sizeDelta = new Vector2(92f, 30f);
 
         Image rpBg = rankPillObj.GetComponent<Image>();
-        rpBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
+        rpBg.sprite = LumiWorldUITheme.GetCapsuleSprite(30);
         rpBg.type = Image.Type.Sliced;
         rpBg.color = LumiWorldUITheme.Surface;
         LumiWorldUITheme.AddSoftElevation(rankPillObj, 2f, 0.16f);
@@ -620,19 +622,19 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform rpIcRect = rpIcObj.GetComponent<RectTransform>();
         rpIcRect.anchorMin = rpIcRect.anchorMax = new Vector2(0f, 0.5f);
         rpIcRect.pivot = new Vector2(0f, 0.5f);
-        rpIcRect.anchoredPosition = new Vector2(8f, 0f);
-        rpIcRect.sizeDelta = new Vector2(15f, 15f);
+        rpIcRect.anchoredPosition = new Vector2(9f, 0f);
+        rpIcRect.sizeDelta = new Vector2(16f, 16f);
         rankPillGlyphImg = rpIcObj.GetComponent<Image>();
         rankPillGlyphImg.sprite = LumiWorldUITheme.RankGlyph(1);
         rankPillGlyphImg.preserveAspect = true;
         rankPillGlyphImg.color = LumiWorldUITheme.Text;
         rankPillGlyphImg.raycastTarget = false;
 
-        rankPillText = CreateLabel(rpRect, "RankLabel", "Rank I", 11.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        rankPillText = CreateLabel(rpRect, "RankLabel", "Rank I", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         rankPillText.rectTransform.anchorMin = Vector2.zero;
         rankPillText.rectTransform.anchorMax = Vector2.one;
-        rankPillText.rectTransform.offsetMin = new Vector2(27f, 0f);
-        rankPillText.rectTransform.offsetMax = new Vector2(-6f, 0f);
+        rankPillText.rectTransform.offsetMin = new Vector2(29f, 0f);
+        rankPillText.rectTransform.offsetMax = new Vector2(-8f, 0f);
 
         rankPillButton = rankPillObj.GetComponent<Button>();
         rankPillButton.targetGraphic = rpBg;
@@ -643,7 +645,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject fullCard = new GameObject("FullnessCard", typeof(RectTransform), typeof(Image));
         fullCard.transform.SetParent(panelDetailRect, false);
         RectTransform fcRect = fullCard.GetComponent<RectTransform>();
-        SetTopLeft(fcRect, new Vector2(16f, -268f), new Vector2(230f, 76f));
+        SetTopLeft(fcRect, new Vector2(16f, -286f), new Vector2(282f, 82f));
 
         Image fcBg = fullCard.GetComponent<Image>();
         fcBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -651,19 +653,19 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         fcBg.color = LumiWorldUITheme.Surface;
         LumiWorldUITheme.AddSoftElevation(fullCard, 2.5f, 0.14f);
 
-        TextMeshProUGUI fullTitle = CreateLabel(fcRect, "FullnessLabel", "Fullness", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(fullTitle.rectTransform, new Vector2(14f, -8f), new Vector2(96f, 20f));
+        TextMeshProUGUI fullTitle = CreateLabel(fcRect, "FullnessLabel", "Fullness", 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(fullTitle.rectTransform, new Vector2(14f, -8f), new Vector2(120f, 22f));
 
-        hungerProgressLabel = CreateLabel(fcRect, "FullnessValue", "50 / 100", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineRight);
-        SetTopLeft(hungerProgressLabel.rectTransform, new Vector2(120f, -8f), new Vector2(96f, 20f));
+        hungerProgressLabel = CreateLabel(fcRect, "FullnessValue", "50 / 100", 13f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineRight);
+        SetTopLeft(hungerProgressLabel.rectTransform, new Vector2(148f, -8f), new Vector2(120f, 22f));
 
         // Progress Bar Track (Capsule masked with supersampled AA)
         GameObject barTrack = new GameObject("ProgressTrack", typeof(RectTransform), typeof(Image), typeof(Mask));
         barTrack.transform.SetParent(fcRect, false);
         RectTransform btRect = barTrack.GetComponent<RectTransform>();
-        SetTopLeft(btRect, new Vector2(14f, -33f), new Vector2(202f, 10f));
+        SetTopLeft(btRect, new Vector2(14f, -35f), new Vector2(254f, 11f));
         Image btImg = barTrack.GetComponent<Image>();
-        btImg.sprite = LumiWorldUITheme.GetCapsuleSprite(10);
+        btImg.sprite = LumiWorldUITheme.GetCapsuleSprite(11);
         btImg.type = Image.Type.Sliced;
         btImg.color = LumiWorldUITheme.Inset;
         Mask btMask = barTrack.GetComponent<Mask>();
@@ -677,7 +679,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         bfRect.offsetMin = Vector2.zero;
         bfRect.offsetMax = Vector2.zero;
         hungerFillImg = barFill.GetComponent<Image>();
-        hungerFillImg.sprite = LumiWorldUITheme.GetCapsuleSprite(10);
+        hungerFillImg.sprite = LumiWorldUITheme.GetCapsuleSprite(11);
         hungerFillImg.type = Image.Type.Filled;
         hungerFillImg.fillMethod = Image.FillMethod.Horizontal;
         hungerFillImg.fillOrigin = 0;
@@ -688,26 +690,26 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject stPillObj = new GameObject("StatusPill", typeof(RectTransform), typeof(Image));
         stPillObj.transform.SetParent(fcRect, false);
         RectTransform stPillRect = stPillObj.GetComponent<RectTransform>();
-        SetTopLeft(stPillRect, new Vector2(14f, -49f), new Vector2(106f, 20f));
+        SetTopLeft(stPillRect, new Vector2(14f, -52f), new Vector2(118f, 22f));
         statusPillBg = stPillObj.GetComponent<Image>();
-        statusPillBg.sprite = LumiWorldUITheme.GetCapsuleSprite(20);
+        statusPillBg.sprite = LumiWorldUITheme.GetCapsuleSprite(22);
         statusPillBg.type = Image.Type.Sliced;
         statusPillBg.color = new Color(0.33f, 0.55f, 0.24f, 0.14f);
 
-        statusPillText = CreateLabel(stPillRect, "StatusText", "Healthy", 10.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        statusPillText = CreateLabel(stPillRect, "StatusText", "Healthy", 11.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
         EconomyHUD.Stretch(statusPillText.rectTransform);
 
         // --- 5. FAVORITE / ASSIGNED FOOD CARD ---
-        TextMeshProUGUI foodHdr = CreateLabel(panelDetailRect, "FoodHeader", "Food", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(foodHdr.rectTransform, new Vector2(16f, -352f), new Vector2(140f, 20f));
+        TextMeshProUGUI foodHdr = CreateLabel(panelDetailRect, "FoodHeader", "Food", 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(foodHdr.rectTransform, new Vector2(16f, -378f), new Vector2(160f, 22f));
 
         GameObject foodCard = new GameObject("FoodCard", typeof(RectTransform), typeof(Image));
         foodCard.transform.SetParent(panelDetailRect, false);
         RectTransform fdRect = foodCard.GetComponent<RectTransform>();
-        SetTopLeft(fdRect, new Vector2(16f, -374f), new Vector2(230f, 44f));
+        SetTopLeft(fdRect, new Vector2(16f, -402f), new Vector2(282f, 48f));
 
         Image fdBg = foodCard.GetComponent<Image>();
-        fdBg.sprite = LumiWorldUITheme.GetCapsuleSprite(44);
+        fdBg.sprite = LumiWorldUITheme.GetCapsuleSprite(48);
         fdBg.type = Image.Type.Sliced;
         fdBg.color = LumiWorldUITheme.Surface;
         LumiWorldUITheme.AddSoftElevation(foodCard, 2.5f, 0.14f);
@@ -715,26 +717,26 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject fdIcObj = new GameObject("FoodIcon", typeof(RectTransform), typeof(Image));
         fdIcObj.transform.SetParent(fdRect, false);
         RectTransform fdIcRect = fdIcObj.GetComponent<RectTransform>();
-        SetTopLeft(fdIcRect, new Vector2(10f, -6f), new Vector2(32f, 32f));
+        SetTopLeft(fdIcRect, new Vector2(12f, -7f), new Vector2(34f, 34f));
         foodIconImg = fdIcObj.GetComponent<Image>();
         foodIconImg.preserveAspect = true;
         foodIconImg.raycastTarget = false;
 
-        foodNameText = CreateLabel(fdRect, "FoodName", "Raspberries", 13f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(foodNameText.rectTransform, new Vector2(50f, -10f), new Vector2(170f, 24f));
+        foodNameText = CreateLabel(fdRect, "FoodName", "Raspberries", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(foodNameText.rectTransform, new Vector2(54f, -11f), new Vector2(216f, 26f));
 
         // Feedback notification line above buttons
-        feedbackNotifyText = CreateLabel(panelDetailRect, "FeedbackText", "", 10.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        feedbackNotifyText = CreateLabel(panelDetailRect, "FeedbackText", "", 11.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
         feedbackNotifyText.rectTransform.anchorMin = feedbackNotifyText.rectTransform.anchorMax = feedbackNotifyText.rectTransform.pivot = new Vector2(0.5f, 0f);
-        feedbackNotifyText.rectTransform.anchoredPosition = new Vector2(0f, 54f);
-        feedbackNotifyText.rectTransform.sizeDelta = new Vector2(230f, 16f);
+        feedbackNotifyText.rectTransform.anchoredPosition = new Vector2(0f, 56f);
+        feedbackNotifyText.rectTransform.sizeDelta = new Vector2(282f, 18f);
 
         // --- 6. SIDE-BY-SIDE FEED (G-22) & TREAT (G-23) BUTTONS ---
         feedButton = CreateActionPillButton(
             panelDetailRect,
             "FeedBtn",
-            new Vector2(-59f, 14f),
-            new Vector2(110f, 36f),
+            new Vector2(-72f, 14f),
+            new Vector2(134f, 38f),
             isPrimary: true,
             glyphCode: "G-22",
             label: "Feed",
@@ -744,8 +746,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         medicineButton = CreateActionPillButton(
             panelDetailRect,
             "TreatBtn",
-            new Vector2(59f, 14f),
-            new Vector2(110f, 36f),
+            new Vector2(72f, 14f),
+            new Vector2(134f, 38f),
             isPrimary: false,
             glyphCode: "G-23",
             label: "Treat",
@@ -777,7 +779,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         GameObject cardObj = new GameObject("PopoverCard", typeof(RectTransform), typeof(Image));
         cardObj.transform.SetParent(rankPopoverObj.transform, false);
         RectTransform cardRect = cardObj.GetComponent<RectTransform>();
-        SetTopLeft(cardRect, new Vector2(24f, -264f), new Vector2(214f, 134f));
+        SetTopLeft(cardRect, new Vector2(36f, -290f), new Vector2(242f, 140f));
 
         Image cardBg = cardObj.GetComponent<Image>();
         cardBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -793,13 +795,13 @@ public class HabitatCreaturePanelUI : MonoBehaviour
 
         CreateCloseButton(cardRect, new Vector2(-10f, -10f), CloseRankPopover, 24f);
 
-        rankPopoverCareText = CreateLabel(cardRect, "CareLabel", "Care progress: 100 / 100", 11.5f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(rankPopoverCareText.rectTransform, new Vector2(14f, -38f), new Vector2(186f, 18f));
+        rankPopoverCareText = CreateLabel(cardRect, "CareLabel", "Care progress: 100 / 100", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(rankPopoverCareText.rectTransform, new Vector2(14f, -40f), new Vector2(214f, 18f));
 
         GameObject careTrack = new GameObject("CareTrack", typeof(RectTransform), typeof(Image));
         careTrack.transform.SetParent(cardRect, false);
         RectTransform ctRect = careTrack.GetComponent<RectTransform>();
-        SetTopLeft(ctRect, new Vector2(14f, -60f), new Vector2(186f, 10f));
+        SetTopLeft(ctRect, new Vector2(14f, -64f), new Vector2(214f, 10f));
         Image ctImg = careTrack.GetComponent<Image>();
         ctImg.sprite = LumiWorldUITheme.PillSprite;
         ctImg.type = Image.Type.Sliced;
@@ -822,7 +824,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform rbRect = rBtnObj.GetComponent<RectTransform>();
         rbRect.anchorMin = rbRect.anchorMax = rbRect.pivot = new Vector2(0.5f, 0f);
         rbRect.anchoredPosition = new Vector2(0f, 12f);
-        rbRect.sizeDelta = new Vector2(186f, 34f);
+        rbRect.sizeDelta = new Vector2(214f, 36f);
 
         Image rbImg = rBtnObj.GetComponent<Image>();
         rbImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
@@ -1030,7 +1032,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform boxRect = boxObj.GetComponent<RectTransform>();
         boxRect.anchorMin = boxRect.anchorMax = boxRect.pivot = new Vector2(0.5f, 0.5f);
         boxRect.anchoredPosition = new Vector2(0f, 12f);
-        boxRect.sizeDelta = new Vector2(232f, 160f);
+        boxRect.sizeDelta = new Vector2(272f, 168f);
 
         Image boxBg = boxObj.GetComponent<Image>();
         boxBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -1039,16 +1041,16 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         boxObj.AddComponent<ResourceUIInputBlocker>();
         LumiWorldUITheme.AddSoftElevation(boxObj, 5f, 0.24f);
 
-        TextMeshProUGUI titleTmp = CreateLabel(boxRect, "Title", "Rename creature", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
-        SetTopLeft(titleTmp.rectTransform, new Vector2(12f, -14f), new Vector2(208f, 22f));
+        TextMeshProUGUI titleTmp = CreateLabel(boxRect, "Title", "Rename creature", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        SetTopLeft(titleTmp.rectTransform, new Vector2(14f, -14f), new Vector2(244f, 22f));
 
-        TextMeshProUGUI descTmp = CreateLabel(boxRect, "Desc", "Enter creature nickname:", 11f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
-        SetTopLeft(descTmp.rectTransform, new Vector2(12f, -36f), new Vector2(208f, 16f));
+        TextMeshProUGUI descTmp = CreateLabel(boxRect, "Desc", "Enter creature nickname:", 12f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.Center);
+        SetTopLeft(descTmp.rectTransform, new Vector2(14f, -38f), new Vector2(244f, 18f));
 
         GameObject inputObj = new GameObject("InputField", typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
         inputObj.transform.SetParent(boxObj.transform, false);
         RectTransform inRect = inputObj.GetComponent<RectTransform>();
-        SetTopLeft(inRect, new Vector2(16f, -60f), new Vector2(200f, 34f));
+        SetTopLeft(inRect, new Vector2(18f, -64f), new Vector2(236f, 36f));
 
         Image inBg = inputObj.GetComponent<Image>();
         inBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -1081,7 +1083,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform cbRect = cancelBtnObj.GetComponent<RectTransform>();
         cbRect.anchorMin = cbRect.anchorMax = cbRect.pivot = new Vector2(0f, 0f);
         cbRect.anchoredPosition = new Vector2(16f, 14f);
-        cbRect.sizeDelta = new Vector2(94f, 32f);
+        cbRect.sizeDelta = new Vector2(112f, 34f);
         Image cbImg = cancelBtnObj.GetComponent<Image>();
         cbImg.sprite = LumiWorldUITheme.ButtonSecondarySprite;
         cbImg.type = Image.Type.Sliced;
@@ -1095,7 +1097,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         RectTransform cfbRect = confirmBtnObj.GetComponent<RectTransform>();
         cfbRect.anchorMin = cfbRect.anchorMax = cfbRect.pivot = new Vector2(1f, 0f);
         cfbRect.anchoredPosition = new Vector2(-16f, 14f);
-        cfbRect.sizeDelta = new Vector2(94f, 32f);
+        cfbRect.sizeDelta = new Vector2(112f, 34f);
         Image cfbImg = confirmBtnObj.GetComponent<Image>();
         cfbImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
         cfbImg.type = Image.Type.Sliced;
@@ -1292,11 +1294,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
         else
         {
-            const float cardW = 90f;
-            float cardH = currentResidents >= 4 ? 98f : 106f;
-            const float gapX = 8f;
-            const float gapY = 6f;
-            const float topPad = 8f;
+            const float cardW = 114f;
+            float cardH = currentResidents >= 4 ? 106f : 116f;
+            const float gapX = 10f;
+            const float gapY = 8f;
+            const float topPad = 9f;
 
             List<HabitatResident> validResidents = new List<HabitatResident>();
             for (int i = 0; i < currentHabitat.residents.Count && validResidents.Count < 6; i++)
@@ -1395,7 +1397,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             GameObject avtObj = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
             avtObj.transform.SetParent(rt, false);
             RectTransform avtRect = avtObj.GetComponent<RectTransform>();
-            SetTopLeft(avtRect, new Vector2((cardW - 58f) * 0.5f, -6f), new Vector2(58f, 58f));
+            SetTopLeft(avtRect, new Vector2((cardW - 64f) * 0.5f, -7f), new Vector2(64f, 64f));
             Image avtImg = avtObj.GetComponent<Image>();
             avtImg.sprite = portrait;
             avtImg.preserveAspect = true;
@@ -1406,11 +1408,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         string defaultName = !string.IsNullOrEmpty(resData.canonicalAvt) ? resData.canonicalAvt : resData.displayName;
         string cName = GetCreatureName(resident, defaultName);
 
-        TextMeshProUGUI nameLbl = CreateLabel(rt, "Name", cName, 11.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        TextMeshProUGUI nameLbl = CreateLabel(rt, "Name", cName, 13f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
         nameLbl.enableAutoSizing = true;
-        nameLbl.fontSizeMin = 9.5f;
-        nameLbl.fontSizeMax = 12f;
-        SetTopLeft(nameLbl.rectTransform, new Vector2(4f, -66f), new Vector2(cardW - 8f, 18f));
+        nameLbl.fontSizeMin = 10.5f;
+        nameLbl.fontSizeMax = 13.5f;
+        SetTopLeft(nameLbl.rectTransform, new Vector2(4f, -73f), new Vector2(cardW - 8f, 20f));
 
         // Status ("Working" vs "Needs care") + "!" warning badge when hungry
         var hunger = ResourceProductionRuntime.Instance != null
@@ -1422,12 +1424,12 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             rt,
             "Status",
             needsCare ? "● Needs care" : "● Working",
-            9.8f,
+            11f,
             needsCare ? LumiWorldUITheme.Warning : LumiWorldUITheme.Success,
             true,
             TextAlignmentOptions.Center);
         statusLbl.overflowMode = TextOverflowModes.Overflow;
-        SetTopLeft(statusLbl.rectTransform, new Vector2(4f, -85f), new Vector2(cardW - 8f, 16f));
+        SetTopLeft(statusLbl.rectTransform, new Vector2(4f, -94f), new Vector2(cardW - 8f, 16f));
 
         if (needsCare)
         {
@@ -1488,11 +1490,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         bg.color = isUnlocked ? LumiWorldUITheme.Surface : LumiWorldUITheme.Inset;
         if (isUnlocked) LumiWorldUITheme.AddSoftElevation(cardObj, 2.5f, 0.14f);
 
-        // 1. Icon Box (34x34)
+        // 1. Icon Box (38x38)
         GameObject iconBox = new GameObject("IconBox", typeof(RectTransform), typeof(Image));
         iconBox.transform.SetParent(rt, false);
         RectTransform ibRect = iconBox.GetComponent<RectTransform>();
-        SetTopLeft(ibRect, new Vector2(7f, -6f), new Vector2(34f, 34f));
+        SetTopLeft(ibRect, new Vector2(8f, -7f), new Vector2(38f, 38f));
         Image ibImg = iconBox.GetComponent<Image>();
         ibImg.sprite = LumiWorldUITheme.SurfaceSprite;
         ibImg.type = Image.Type.Sliced;
@@ -1518,7 +1520,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             lockObj.transform.SetParent(ibRect, false);
             RectTransform lockRect = lockObj.GetComponent<RectTransform>();
             lockRect.anchorMin = lockRect.anchorMax = lockRect.pivot = new Vector2(0.5f, 0.5f);
-            lockRect.sizeDelta = new Vector2(16f, 16f);
+            lockRect.sizeDelta = new Vector2(18f, 18f);
             Image lockImg = lockObj.GetComponent<Image>();
             lockImg.sprite = LumiWorldUITheme.Glyph(isUnlocked ? "Plus" : "Lock");
             lockImg.preserveAspect = true;
@@ -1527,8 +1529,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
         }
 
         // 2. Title & Status lines
-        TextMeshProUGUI l1Text = CreateLabel(rt, "Title", resName, 12f, isUnlocked ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(l1Text.rectTransform, new Vector2(49f, -4f), new Vector2(179f, 19f));
+        TextMeshProUGUI l1Text = CreateLabel(rt, "Title", resName, 13.5f, isUnlocked ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(l1Text.rectTransform, new Vector2(54f, -5f), new Vector2(236f, 21f));
 
         string subStr;
         Color subCol = LumiWorldUITheme.Muted;
@@ -1556,8 +1558,8 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             subCol = LumiWorldUITheme.Warning;
         }
 
-        TextMeshProUGUI l2Text = CreateLabel(rt, "Subtitle", subStr, 10f, subCol, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(l2Text.rectTransform, new Vector2(49f, -23f), new Vector2(179f, 17f));
+        TextMeshProUGUI l2Text = CreateLabel(rt, "Subtitle", subStr, 11.2f, subCol, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(l2Text.rectTransform, new Vector2(54f, -26f), new Vector2(236f, 19f));
 
         // 3. Action button on the right ("Assign" / "Change")
         if (isUnlocked)
@@ -1566,11 +1568,11 @@ public class HabitatCreaturePanelUI : MonoBehaviour
             btnObj.transform.SetParent(rt, false);
             RectTransform bRect = btnObj.GetComponent<RectTransform>();
             bRect.anchorMin = bRect.anchorMax = bRect.pivot = new Vector2(1f, 0.5f);
-            bRect.anchoredPosition = new Vector2(-8f, 0f);
-            bRect.sizeDelta = new Vector2(66f, 28f);
+            bRect.anchoredPosition = new Vector2(-9f, 0f);
+            bRect.sizeDelta = new Vector2(76f, 30f);
 
             Image btnImg = btnObj.GetComponent<Image>();
-            btnImg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
+            btnImg.sprite = LumiWorldUITheme.GetCapsuleSprite(30);
             btnImg.type = Image.Type.Sliced;
             btnImg.color = hasAssignedResource ? LumiWorldUITheme.Inset : LumiWorldUITheme.Primary;
 
@@ -1578,7 +1580,7 @@ public class HabitatCreaturePanelUI : MonoBehaviour
                 bRect,
                 "Label",
                 hasAssignedResource ? "Change" : "Assign",
-                11f,
+                12f,
                 hasAssignedResource ? LumiWorldUITheme.Text : Color.white,
                 true,
                 TextAlignmentOptions.Center);

@@ -235,4 +235,5 @@ public class PlacementRecord
     public float connectionCooldownSeconds; // số giây còn lại lúc lưu, dùng khi đồng hồ máy bị lùi
     public int riverFlowStep = -1;   // chỉ thẻ sông: bước dòng chảy lúc lưu; -1 = không phải sông hoặc bản lưu cũ, tính lại khi nạp
     public bool riverIsOrigin;       // chỉ thẻ sông: ô đầu nguồn
+    public int buildingLevel = 1;    // cấp của Building (đặc biệt cho loại nâng cấp trực tiếp)
 }

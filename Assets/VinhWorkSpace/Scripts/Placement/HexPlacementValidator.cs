@@ -251,8 +251,14 @@ public class HexPlacementValidator : MonoBehaviour
                 return false;
             }
 
-            // Cho phép phủ thêm Biome lên ô đã có Settlement (để kết hợp Biome + Building)
-            if (IsTileOccupied(tileObj) && tileObj.GetComponent<SettlementTile>() == null)
+            // Ô đã có Building/Settlement thì không đặt Terrain/Biome đè lên
+            if (tileObj.GetComponent<SettlementTile>() != null)
+            {
+                lastValidationError = "This tile already has a settlement!";
+                return false;
+            }
+
+            if (IsTileOccupied(tileObj))
             {
                 lastValidationError = "This tile is already occupied.";
                 return false;
@@ -260,10 +266,10 @@ public class HexPlacementValidator : MonoBehaviour
         }
         else if (cardData != null && cardData.IsSettlementCard())
         {
-            // Bắt buộc ô phải có thẻ bài địa hình (Terrain) trước khi đặt Building
-            if (!HasPlacedTerrain(tileObj))
+            // Chỉ cho phép đặt Building trên ô đã tưới nước (Lush) và CHƯA có Biome/Terrain
+            if (HasPlacedTerrain(tileObj))
             {
-                lastValidationError = "Must place a Terrain card before placing a building.";
+                lastValidationError = "Buildings can only be placed on watered tiles without a biome.";
                 return false;
             }
 
@@ -281,14 +287,15 @@ public class HexPlacementValidator : MonoBehaviour
                 return false;
             }
 
-            bool hasCreatureOnTile = HasPlacedCreature(tileObj);
-            CardData existingTerrain = GetPlacedTerrainCard(tileObj);
-
-            // Kiểm tra 2 chiều: nếu ô này đang nằm trong cụm Biome, việc tách ô để xây Building
-            // phải đảm bảo cụm Biome còn lại (hoặc bị cắt đôi) vẫn đủ ô duy trì toàn bộ thú (kể cả thú cần dời từ ô này).
-            if (existingTerrain != null &&
-                !CanRemoveTileFromBiomeCluster(coords, existingTerrain, worldGen, useHabitatRules, hasCreatureOnTile, out lastValidationError))
+            if (HasPlacedCreature(tileObj))
             {
+                lastValidationError = BuildingsCreaturesSeparateError;
+                return false;
+            }
+
+            if (IsTileOccupied(tileObj))
+            {
+                lastValidationError = "This tile is already occupied.";
                 return false;
             }
         }

@@ -40,21 +40,21 @@ public sealed class BiomeClusterBuffInfo
 public static class BiomeBuffCalculator
 {
     /// <summary>
-    /// Quy tắc tầm ảnh hưởng của cụm Building:
-    /// - 1-2 ô: 0 (chưa tỏa buff)
-    /// - 3-4 ô: 1 ô xung quanh cụm
-    /// - 5+ ô: 2 ô xung quanh cụm
+    /// Quy tắc tầm ảnh hưởng của cụm Building theo Phương án A (Granary Post Lv.1..5):
+    /// - Lv.1–2 (1–2 ô): bán kính 1 ô
+    /// - Lv.3–4 (3–4 ô): bán kính 2 ô
+    /// - Lv.5 (5+ ô): bán kính 3 ô
     /// </summary>
     public static int GetBuildingAuraRadius(int clusterTileCount)
     {
-        if (clusterTileCount < 3) return 0;
-        if (clusterTileCount < 5) return 1;
-        return 2;
+        if (clusterTileCount <= 0) return 0;
+        int level = BuildingRules.GetLevelForClusterSize(clusterTileCount, BuildingRules.GranaryPostMaxLevel);
+        return BuildingRules.GetAuraRadius(BuildingRules.GranaryPostTypeId, level);
     }
 
     public static BuildingBuffTier GetBuildingBuffTier(int clusterTileCount)
     {
-        if (clusterTileCount < 3) return BuildingBuffTier.None;
+        if (clusterTileCount <= 0) return BuildingBuffTier.None;
         return clusterTileCount >= 5 ? BuildingBuffTier.Grand : BuildingBuffTier.Town;
     }
 
@@ -67,15 +67,46 @@ public static class BiomeBuffCalculator
         out int prospectiveClusterSize,
         out int auraRadius)
     {
-        List<HexCoordinates> cluster = CollectConnectedHexes(
+        return CollectBuildingAuraHexes(
             previewHex,
-            h => h == previewHex || (isExistingBuilding != null && isExistingBuilding(h)));
+            BuildingRules.GranaryPostTypeId,
+            BuildingUpgradeMethod.ClusterExpansion,
+            BuildingRules.GranaryPostMaxLevel,
+            1,
+            isExistingBuilding,
+            out prospectiveClusterSize,
+            out auraRadius);
+    }
+
+    public static HashSet<HexCoordinates> CollectBuildingAuraHexes(
+        HexCoordinates previewHex,
+        string buildingTypeId,
+        BuildingUpgradeMethod upgradeMethod,
+        int maxLevel,
+        int fixedLevel,
+        Func<HexCoordinates, bool> isSameClusterBuilding,
+        out int prospectiveClusterSize,
+        out int auraRadius)
+    {
+        List<HexCoordinates> cluster = upgradeMethod == BuildingUpgradeMethod.ClusterExpansion
+            ? CollectConnectedHexes(
+                previewHex,
+                h => h == previewHex || (isSameClusterBuilding != null && isSameClusterBuilding(h)))
+            : new List<HexCoordinates> { previewHex };
 
         prospectiveClusterSize = cluster.Count;
-        auraRadius = GetBuildingAuraRadius(prospectiveClusterSize);
+        int level = upgradeMethod == BuildingUpgradeMethod.ClusterExpansion
+            ? BuildingRules.GetLevelForClusterSize(prospectiveClusterSize, maxLevel)
+            : Math.Max(1, fixedLevel);
+        auraRadius = BuildingRules.GetAuraRadius(buildingTypeId, level);
 
+        return CollectAuraHexesAroundCluster(cluster, auraRadius);
+    }
+
+    public static HashSet<HexCoordinates> CollectAuraHexesAroundCluster(IReadOnlyList<HexCoordinates> cluster, int auraRadius)
+    {
         HashSet<HexCoordinates> auraHexes = new HashSet<HexCoordinates>();
-        if (auraRadius <= 0) return auraHexes;
+        if (cluster == null || cluster.Count == 0 || auraRadius <= 0) return auraHexes;
 
         for (int i = 0; i < cluster.Count; i++)
         {
@@ -89,6 +120,69 @@ public static class BiomeBuffCalculator
         }
 
         return auraHexes;
+    }
+
+    public static List<HexCoordinates> CollectConnectedBuildingCluster(
+        HexCoordinates seedHex,
+        Func<HexCoordinates, bool> isBuildingTile)
+    {
+        return CollectConnectedHexes(seedHex, isBuildingTile);
+    }
+
+    public static List<HexCoordinates> CollectConnectedRiverCluster(
+        HexCoordinates seedHex,
+        Func<HexCoordinates, bool> isRiverTile)
+    {
+        return CollectConnectedHexes(seedHex, isRiverTile);
+    }
+
+    public static HashSet<HexCoordinates> CollectRiverNetworkAuraHexes(IEnumerable<HexCoordinates> riverHexes)
+    {
+        HashSet<HexCoordinates> auraHexes = new HashSet<HexCoordinates>();
+        if (riverHexes == null) return auraHexes;
+        foreach (var rHex in riverHexes)
+        {
+            auraHexes.Add(rHex);
+            for (int dir = 0; dir < 6; dir++)
+            {
+                auraHexes.Add(rHex.GetNeighbor(dir));
+            }
+        }
+        return auraHexes;
+    }
+
+    public static RiverBuffTier EvaluateRiverBuffForCluster(
+        List<HexCoordinates> clusterHexes,
+        Func<HexCoordinates, bool> isRiverTile,
+        HashSet<HexCoordinates> restrictToRivers = null)
+    {
+        if (isRiverTile == null) return RiverBuffTier.None;
+
+        HashSet<HexCoordinates> touchingRivers = new HashSet<HexCoordinates>();
+        for (int i = 0; i < clusterHexes.Count; i++)
+        {
+            HexCoordinates hex = clusterHexes[i];
+            if (isRiverTile(hex) && (restrictToRivers == null || restrictToRivers.Contains(hex)))
+                touchingRivers.Add(hex);
+
+            int localAdjacentRivers = 0;
+            for (int dir = 0; dir < 6; dir++)
+            {
+                HexCoordinates nHex = hex.GetNeighbor(dir);
+                if (isRiverTile(nHex) && (restrictToRivers == null || restrictToRivers.Contains(nHex)))
+                {
+                    touchingRivers.Add(nHex);
+                    localAdjacentRivers++;
+                }
+            }
+
+            if (localAdjacentRivers >= 2)
+            {
+                return RiverBuffTier.Peninsula;
+            }
+        }
+
+        return touchingRivers.Count > 0 ? RiverBuffTier.Riverside : RiverBuffTier.None;
     }
 
     /// <summary>
@@ -114,7 +208,9 @@ public static class BiomeBuffCalculator
         Func<HexCoordinates, string> getBiomeTerrainId,
         Func<HexCoordinates, int> getBiomeClusterId,
         Func<HexCoordinates, bool> isBuildingTile,
-        Func<HexCoordinates, bool> isRiverTile)
+        Func<HexCoordinates, bool> isRiverTile,
+        Func<HexCoordinates, HexCoordinates, bool> areSameBuildingCluster = null,
+        Func<HexCoordinates, int, int> getBuildingClusterAuraRadius = null)
     {
         List<BiomeClusterBuffInfo> results = new List<BiomeClusterBuffInfo>();
         if (allHexes == null || getBiomeTerrainId == null) return results;
@@ -122,7 +218,7 @@ public static class BiomeBuffCalculator
         List<HexCoordinates> hexList = new List<HexCoordinates>(allHexes);
         hexList.Sort(CompareHex);
 
-        // 1. Gom toàn bộ cụm Building và tầm ảnh hưởng tương ứng
+        // 1. Gom toàn bộ cụm Building (chỉ gộp khi cùng loại ClusterExpansion) và tầm ảnh hưởng tương ứng
         List<(List<HexCoordinates> hexes, int radius, BuildingBuffTier tier)> buildingAuras =
             new List<(List<HexCoordinates>, int, BuildingBuffTier)>();
         if (isBuildingTile != null)
@@ -133,8 +229,13 @@ public static class BiomeBuffCalculator
                 HexCoordinates seed = hexList[i];
                 if (visitedBuildings.Contains(seed) || !isBuildingTile(seed)) continue;
 
-                List<HexCoordinates> bCluster = CollectConnectedHexes(seed, isBuildingTile, visitedBuildings);
-                int radius = GetBuildingAuraRadius(bCluster.Count);
+                List<HexCoordinates> bCluster = CollectConnectedHexes(
+                    seed,
+                    h => isBuildingTile(h) && (areSameBuildingCluster == null || areSameBuildingCluster(seed, h)),
+                    visitedBuildings);
+                int radius = getBuildingClusterAuraRadius != null
+                    ? getBuildingClusterAuraRadius(seed, bCluster.Count)
+                    : GetBuildingAuraRadius(bCluster.Count);
                 if (radius > 0)
                 {
                     buildingAuras.Add((bCluster, radius, GetBuildingBuffTier(bCluster.Count)));
@@ -192,32 +293,7 @@ public static class BiomeBuffCalculator
         List<HexCoordinates> clusterHexes,
         Func<HexCoordinates, bool> isRiverTile)
     {
-        if (isRiverTile == null) return RiverBuffTier.None;
-
-        HashSet<HexCoordinates> touchingRivers = new HashSet<HexCoordinates>();
-        for (int i = 0; i < clusterHexes.Count; i++)
-        {
-            HexCoordinates hex = clusterHexes[i];
-            if (isRiverTile(hex)) touchingRivers.Add(hex);
-
-            int localAdjacentRivers = 0;
-            for (int dir = 0; dir < 6; dir++)
-            {
-                HexCoordinates nHex = hex.GetNeighbor(dir);
-                if (isRiverTile(nHex))
-                {
-                    touchingRivers.Add(nHex);
-                    localAdjacentRivers++;
-                }
-            }
-
-            if (localAdjacentRivers >= 2)
-            {
-                return RiverBuffTier.Peninsula;
-            }
-        }
-
-        return touchingRivers.Count > 0 ? RiverBuffTier.Riverside : RiverBuffTier.None;
+        return EvaluateRiverBuffForCluster(clusterHexes, isRiverTile, null);
     }
 
     private static BuildingBuffTier EvaluateBuildingBuffForCluster(

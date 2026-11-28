@@ -2,6 +2,22 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
+/// Phân loại đối tượng 3D để tính toán tỉ lệ hiển thị thống nhất trong SettlementAssetConfig.
+/// </summary>
+public enum SettlementScaleType
+{
+    Building = 0,
+    Centerpiece = 1,
+    Castle = 2,
+    Border = 3,
+    Prop = 4,
+    Flora = 5,
+    SteppingStone = 6,
+    Tree = 7,
+    Bush = 8
+}
+
+/// <summary>
 /// Cấu hình danh mục tài nguyên 3D (Model FBX hoặc Prefab) cho Hệ thống Làng mạc & Đô thị.
 /// Tách rời 100% cấu hình khỏi logic code:
 /// - Giai đoạn đầu: Kéo thả trực tiếp các file model FBX từ gói KayKit Medieval.

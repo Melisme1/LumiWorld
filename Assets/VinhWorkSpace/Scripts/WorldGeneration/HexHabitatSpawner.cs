@@ -53,13 +53,38 @@ public class HexHabitatSpawner : MonoBehaviour
     {
         if (cardData == null || !cardData.HasHabitatProps() || tileTransform == null) return;
 
-        StartCoroutine(SpawnHabitatRoutine(cardData, tileTransform, centerWorldPos));
+        StartCoroutine(SpawnHabitatRoutine(cardData, tileTransform, centerWorldPos, false, null));
     }
 
-    private IEnumerator SpawnHabitatRoutine(CardData cardData, Transform tileTransform, Vector3 centerWorldPos)
+    /// <summary>
+    /// Sinh props cảnh quan thuần visual cho ô Building (không tạo Habitat_ và không gắn thẻ Terrain).
+    /// </summary>
+    public void SpawnSettlementDecor(CardData cardData, Transform tileTransform, Vector3 centerWorldPos, System.Action onCompleted = null)
     {
+        if (cardData == null || !cardData.HasHabitatProps() || tileTransform == null)
+        {
+            onCompleted?.Invoke();
+            return;
+        }
+
+        StartCoroutine(SpawnHabitatRoutine(cardData, tileTransform, centerWorldPos, true, onCompleted));
+    }
+
+    private IEnumerator SpawnHabitatRoutine(CardData cardData, Transform tileTransform, Vector3 centerWorldPos, bool isSettlementDecor, System.Action onCompleted)
+    {
+        string prefix = isSettlementDecor ? "SettlementBiomeDecor_" : "Habitat_";
+        for (int i = tileTransform.childCount - 1; i >= 0; i--)
+        {
+            Transform existing = tileTransform.GetChild(i);
+            if (existing != null && existing.name.StartsWith(prefix, System.StringComparison.Ordinal))
+            {
+                onCompleted?.Invoke();
+                yield break;
+            }
+        }
+
         // Tạo GameObject cha để gom nhóm toàn bộ props trên ô
-        GameObject habitatContainer = new GameObject($"Habitat_{cardData.cardName}");
+        GameObject habitatContainer = new GameObject($"{prefix}{cardData.cardName}");
         habitatContainer.transform.SetParent(tileTransform, true);
         habitatContainer.transform.position = centerWorldPos;
 
@@ -107,7 +132,7 @@ public class HexHabitatSpawner : MonoBehaviour
             );
         }
 
-        WaitForSeconds waitStagger = (staggerDelay > 0f) ? new WaitForSeconds(staggerDelay) : null;
+        WaitForSeconds waitStagger = (!isSettlementDecor && staggerDelay > 0f) ? new WaitForSeconds(staggerDelay) : null;
         int nextClusterId = 0;
 
         // Duyệt qua từng quy tắc prop đã cấu hình trong lá bài
@@ -274,7 +299,7 @@ public class HexHabitatSpawner : MonoBehaviour
                         }
 
                         // Tạo prop thực tế
-                        SpawnPropInstance(selectedPrefab, propPos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{rule.groupName}_C{c}_{pIdx}", rng);
+                        SpawnPropInstance(selectedPrefab, propPos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{rule.groupName}_C{c}_{pIdx}", rng, isSettlementDecor);
                         placedProps.Add((propPos2D, Mathf.Max(0.12f, rule.minDistance * 0.65f), thisClusterId));
 
                         if (waitStagger != null)
@@ -306,7 +331,7 @@ public class HexHabitatSpawner : MonoBehaviour
 
                     if (rule.placeAtCenter)
                     {
-                        if (tileHasRiver) continue; // Bỏ qua cây đại thụ ở tâm khi ô này đã có suối chảy qua!
+                        if (tileHasRiver || isSettlementDecor) continue; // Bỏ qua cây đại thụ ở tâm khi ô có suối hoặc Building!
 
                         bool centerOccupied = false;
                         foreach (var placed in placedProps)
@@ -386,7 +411,7 @@ public class HexHabitatSpawner : MonoBehaviour
                         }
                     }
 
-                    SpawnPropInstance(selectedPrefab, candidatePos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{selectedPrefab.name}_{spawnedThisGroup}", rng);
+                    SpawnPropInstance(selectedPrefab, candidatePos2D, rule, randomScale, habitatContainer.transform, centerWorldPos, $"{selectedPrefab.name}_{spawnedThisGroup}", rng, isSettlementDecor);
                     placedProps.Add((candidatePos2D, rule.minDistance, -1));
                     spawnedThisGroup++;
 
@@ -410,6 +435,8 @@ public class HexHabitatSpawner : MonoBehaviour
                 riverSeg
             );
         }
+
+        onCompleted?.Invoke();
     }
 
     /// <summary>
@@ -471,9 +498,29 @@ public class HexHabitatSpawner : MonoBehaviour
         Transform container,
         Vector3 centerWorldPos,
         string instanceName,
-        DecorRandom rng)
+        DecorRandom rng,
+        bool isSettlementDecor = false)
     {
-        float yOffset = GetPrefabBottomYOffset(selectedPrefab, rule.customGroundEmbed) * randomScale;
+        float effectiveScale = randomScale;
+        string finalName = instanceName;
+        if (isSettlementDecor && selectedPrefab != null)
+        {
+            string lower = selectedPrefab.name.ToLowerInvariant();
+            bool isRock = lower.Contains("stone") || lower.Contains("rock") || lower.Contains("boulder");
+            bool isTree = lower.Contains("tree") || lower.Contains("pine") || lower.Contains("oak") || lower.Contains("willow");
+            if (isRock)
+            {
+                effectiveScale *= 0.55f;
+                finalName += "_scaled";
+            }
+            else if (isTree)
+            {
+                effectiveScale *= 0.72f;
+                finalName += "_scaled";
+            }
+        }
+
+        float yOffset = GetPrefabBottomYOffset(selectedPrefab, rule.customGroundEmbed) * effectiveScale;
         Vector3 worldSpawnPos = centerWorldPos + new Vector3(pos2D.x, yOffset, pos2D.y);
 
         float tiltAngle = Mathf.Max(0f, rule.maxTiltAngle);
@@ -484,7 +531,7 @@ public class HexHabitatSpawner : MonoBehaviour
         ) * selectedPrefab.transform.rotation;
 
         GameObject propInstance = Instantiate(selectedPrefab, worldSpawnPos, randomRotation, container);
-        propInstance.name = instanceName;
+        propInstance.name = finalName;
         propInstance.transform.localScale = Vector3.zero;
 
         // Tự động tắt Collider trên các props trang trí để giải phóng CPU Physics
@@ -495,7 +542,7 @@ public class HexHabitatSpawner : MonoBehaviour
         }
 
         // Tắt đổ bóng cho các prop nhỏ (cỏ, hoa, sỏi đá, bụi cụm) để tối ưu draw calls
-        if (randomScale < 0.75f || rule.minDistance < 0.35f || rule.clusterAsPatch)
+        if (effectiveScale < 0.75f || rule.minDistance < 0.35f || rule.clusterAsPatch)
         {
             Renderer[] propRenderers = propInstance.GetComponentsInChildren<Renderer>();
             for (int r = 0; r < propRenderers.Length; r++)
@@ -504,7 +551,7 @@ public class HexHabitatSpawner : MonoBehaviour
             }
         }
 
-        Vector3 targetScale = selectedPrefab.transform.localScale * randomScale;
+        Vector3 targetScale = selectedPrefab.transform.localScale * effectiveScale;
         StartCoroutine(AnimatePropPopIn(propInstance.transform, targetScale));
         return propInstance;
     }

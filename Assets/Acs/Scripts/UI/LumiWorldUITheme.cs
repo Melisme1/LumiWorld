@@ -286,6 +286,15 @@ namespace LumiWorld.Acs
             return fit / parentScale;
         }
 
+        public static float ComputeResponsiveModalScale(Component anchorComponent, float modalW, float modalH, float marginX = 48f, float marginY = 92f)
+        {
+            float baseScale = ComputeFitScale(anchorComponent, out Vector2 stageSize);
+            float availW = Mathf.Max(320f, stageSize.x - marginX);
+            float availH = Mathf.Max(240f, stageSize.y - marginY);
+            float clamp = Mathf.Min(1f, availW / Mathf.Max(1f, modalW), availH / Mathf.Max(1f, modalH));
+            return baseScale * Mathf.Max(0.45f, clamp);
+        }
+
         // ---------------------------------------------------------
         // Shared UI Builder Helpers (used across Phase 4 & 5 UIs)
         // ---------------------------------------------------------
@@ -632,6 +641,187 @@ namespace LumiWorld.Acs
             img.color = Color.white;
             img.raycastTarget = false;
             return img;
+        }
+
+        public static Sprite GetSliderKnobSprite()
+        {
+            const string key = "ProcSliderKnob_64";
+            if (spriteCache.TryGetValue(key, out var cached) && cached != null)
+                return cached;
+
+            const int size = 64;
+            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = key,
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            Color[] px = new Color[size * size];
+            const float center = (size - 1) * 0.5f;
+            const float outerR = 29f;
+            const float ringThickness = 6.5f;
+            const int ss = 4;
+            float invSsSq = 1f / (ss * ss);
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float aSum = 0f;
+                    float ringSum = 0f;
+                    for (int sy = 0; sy < ss; sy++)
+                    {
+                        float py = y + (sy + 0.5f) / ss - center;
+                        for (int sx = 0; sx < ss; sx++)
+                        {
+                            float pxX = x + (sx + 0.5f) / ss - center;
+                            float d = Mathf.Sqrt(pxX * pxX + py * py);
+                            if (d <= outerR)
+                            {
+                                aSum += 1f;
+                                if (d >= outerR - ringThickness)
+                                    ringSum += 1f;
+                            }
+                        }
+                    }
+                    float a = aSum * invSsSq;
+                    if (a <= 0.002f)
+                    {
+                        px[y * size + x] = Color.clear;
+                    }
+                    else
+                    {
+                        float rT = ringSum / Mathf.Max(0.0001f, aSum);
+                        Color c = Color.Lerp(Surface, Primary, rT);
+                        c.a *= a;
+                        px[y * size + x] = c;
+                    }
+                }
+            }
+
+            tex.SetPixels(px);
+            tex.Apply();
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+            spriteCache[key] = sp;
+            return sp;
+        }
+
+        public static Slider CreateCleanSlider(Transform parent, string name, float trackHeight = 8f, float knobDiameter = 22f)
+        {
+            float totalH = Mathf.Max(knobDiameter + 4f, 28f);
+            float padX = knobDiameter * 0.5f;
+
+            GameObject sliderObj = new GameObject(name, typeof(RectTransform), typeof(Slider));
+            sliderObj.transform.SetParent(parent, false);
+            Slider slider = sliderObj.GetComponent<Slider>();
+            slider.wholeNumbers = true;
+            slider.navigation = new Navigation { mode = Navigation.Mode.None };
+
+            // Recessed track
+            GameObject trackObj = new GameObject("Track", typeof(RectTransform), typeof(Image));
+            trackObj.transform.SetParent(sliderObj.transform, false);
+            RectTransform trRt = trackObj.GetComponent<RectTransform>();
+            trRt.anchorMin = new Vector2(0f, 0.5f);
+            trRt.anchorMax = new Vector2(1f, 0.5f);
+            trRt.pivot = new Vector2(0.5f, 0.5f);
+            trRt.offsetMin = new Vector2(padX, -trackHeight * 0.5f);
+            trRt.offsetMax = new Vector2(-padX, trackHeight * 0.5f);
+            Image trImg = trackObj.GetComponent<Image>();
+            trImg.sprite = GetBorderedSurfaceSprite("SliderTrack_R8", Inset, Edge, 8, 1.5f);
+            trImg.type = Image.Type.Sliced;
+            trImg.pixelsPerUnitMultiplier = 2.5f;
+            trImg.color = Color.white;
+            trImg.raycastTarget = false;
+
+            // Fill area
+            GameObject fillArea = new GameObject("FillArea", typeof(RectTransform));
+            fillArea.transform.SetParent(sliderObj.transform, false);
+            RectTransform faRt = fillArea.GetComponent<RectTransform>();
+            faRt.anchorMin = new Vector2(0f, 0.5f);
+            faRt.anchorMax = new Vector2(1f, 0.5f);
+            faRt.pivot = new Vector2(0.5f, 0.5f);
+            faRt.offsetMin = new Vector2(padX, -trackHeight * 0.5f);
+            faRt.offsetMax = new Vector2(-padX, trackHeight * 0.5f);
+
+            GameObject fillObj = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            fillObj.transform.SetParent(fillArea.transform, false);
+            RectTransform fRt = fillObj.GetComponent<RectTransform>();
+            fRt.anchorMin = Vector2.zero;
+            fRt.anchorMax = Vector2.one;
+            fRt.sizeDelta = Vector2.zero;
+            fRt.anchoredPosition = Vector2.zero;
+            Image fImg = fillObj.GetComponent<Image>();
+            fImg.sprite = GetBorderedSurfaceSprite("SliderFill_R8", Primary, Color.clear, 8, 0f);
+            fImg.type = Image.Type.Sliced;
+            fImg.pixelsPerUnitMultiplier = 2.5f;
+            fImg.color = Color.white;
+            fImg.raycastTarget = false;
+            slider.fillRect = fRt;
+
+            // Handle area: explicit height = knobDiameter and handle sizeDelta.y = 0 so Unity's Slider never stretches knob into an oval
+            GameObject handleArea = new GameObject("HandleArea", typeof(RectTransform));
+            handleArea.transform.SetParent(sliderObj.transform, false);
+            RectTransform haRt = handleArea.GetComponent<RectTransform>();
+            haRt.anchorMin = new Vector2(0f, 0.5f);
+            haRt.anchorMax = new Vector2(1f, 0.5f);
+            haRt.pivot = new Vector2(0.5f, 0.5f);
+            haRt.offsetMin = new Vector2(padX, -knobDiameter * 0.5f);
+            haRt.offsetMax = new Vector2(-padX, knobDiameter * 0.5f);
+
+            GameObject handleObj = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+            handleObj.transform.SetParent(handleArea.transform, false);
+            RectTransform hRt = handleObj.GetComponent<RectTransform>();
+            hRt.pivot = new Vector2(0.5f, 0.5f);
+            hRt.sizeDelta = new Vector2(knobDiameter, 0f);
+            Image hImg = handleObj.GetComponent<Image>();
+            hImg.sprite = GetSliderKnobSprite();
+            hImg.preserveAspect = true;
+            hImg.color = Color.white;
+            hImg.raycastTarget = true;
+            AddSoftElevation(handleObj, 2f, 0.22f);
+            slider.handleRect = hRt;
+            slider.targetGraphic = hImg;
+
+            sliderObj.GetComponent<RectTransform>().sizeDelta = new Vector2(200f, totalH);
+            return slider;
+        }
+
+        public static Button CreateIconSquareButton(Transform parent, string name, string glyphName, float w, float h, Action onClick, bool surfaceBg = true)
+        {
+            GameObject btnObj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            btnObj.transform.SetParent(parent, false);
+            RectTransform rt = btnObj.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(w, h);
+
+            Image bg = btnObj.GetComponent<Image>();
+            bg.sprite = GetBorderedSurfaceSprite(
+                surfaceBg ? "SqBtnSurf_R10" : "SqBtnInset_R10",
+                surfaceBg ? Surface : Inset,
+                Edge,
+                10,
+                1.2f);
+            bg.type = Image.Type.Sliced;
+            bg.color = Color.white;
+            bg.raycastTarget = true;
+            AddSoftElevation(btnObj, 2f, 0.14f);
+
+            GameObject icObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+            icObj.transform.SetParent(rt, false);
+            RectTransform icRt = icObj.GetComponent<RectTransform>();
+            icRt.anchorMin = icRt.anchorMax = icRt.pivot = new Vector2(0.5f, 0.5f);
+            float icSize = Mathf.Min(w, h) * 0.48f;
+            icRt.sizeDelta = new Vector2(icSize, icSize);
+            Image icImg = icObj.GetComponent<Image>();
+            icImg.sprite = Glyph(glyphName);
+            icImg.preserveAspect = true;
+            icImg.color = Text;
+            icImg.raycastTarget = false;
+
+            Button btn = btnObj.GetComponent<Button>();
+            btn.targetGraphic = bg;
+            ApplyButtonDisabledNeutral(btn);
+            if (onClick != null) btn.onClick.AddListener(() => onClick());
+            return btn;
         }
 
         public static Sprite CreaturePortrait(string canonicalName)

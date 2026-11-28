@@ -10,13 +10,23 @@ public class SettlementTile : MonoBehaviour
 {
     [Header("Tile Identity")]
     public HexCoordinates Coordinates;
-    public SettlementRole CurrentRole = SettlementRole.Residential;
-    public SettlementTier CurrentTier = SettlementTier.Hamlet;
+    public BuildingVisualPreset VisualPreset = BuildingVisualPreset.Standard;
+
+    [Header("Unified Building State")]
+    public string BuildingTypeId = BuildingRules.GranaryPostTypeId;
+    public string BuildingDisplayName = BuildingRules.GranaryPostDisplayName;
+    public BuildingUpgradeMethod UpgradeMethod = BuildingUpgradeMethod.ClusterExpansion;
+    public BuildingFunctionKind FunctionKind = BuildingFunctionKind.AutoFeeding;
+    public int BuildingLevel = 1;
+    public int MaxLevel = BuildingRules.GranaryPostMaxLevel;
+    public string ClusterKey = "";
 
     [Header("Containers")]
     [SerializeField] private Transform contentRoot;
 
     private List<GameObject> _spawnedInstances = new List<GameObject>();
+    private SettlementAssetConfig _lastConfig;
+    private List<int> _lastExternalDirs;
 
     public Transform ContentRoot => contentRoot != null ? contentRoot : transform;
 
@@ -84,9 +94,9 @@ public class SettlementTile : MonoBehaviour
     /// Hỗ trợ cả chế độ đơn lẻ (Single Hamlet) và quy hoạch cụm đô thị liên kết (Cluster-Aware Town).
     /// </summary>
     public void BuildProcedural(
-        SettlementAssetConfig config, 
-        SettlementRole role, 
-        SettlementTier tier,
+        SettlementAssetConfig config,
+        BuildingVisualPreset visualPreset,
+        int buildingLevel,
         int clusterSize = 1,
         Vector3 clusterCenterWorld = default,
         List<int> internalDirs = null,
@@ -97,17 +107,18 @@ public class SettlementTile : MonoBehaviour
         EnsureContentRoot();
         ClearContent();
 
-        CurrentRole = role;
-        CurrentTier = tier;
+        VisualPreset = visualPreset;
+        BuildingLevel = Mathf.Max(1, buildingLevel);
+        _lastConfig = config;
+        _lastExternalDirs = externalDirs != null ? new List<int>(externalDirs) : null;
 
         // Cập nhật lại vị trí bề mặt theo độ cao thực tế của ô đất
         float surfaceY = GetTileSurfaceY();
         ContentRoot.position = new Vector3(transform.position.x, surfaceY, transform.position.z);
 
-        // Tạo hạt giống ngẫu nhiên: Kết hợp cả tọa độ ô, vai trò và quy mô cụm (clusterSize)
-        // để khi mở rộng thêm ô mới, toàn bộ cụm sẽ tự động tái quy hoạch và nâng cấp kiến trúc mới
+        // Tạo hạt giống ngẫu nhiên: Kết hợp tọa độ ô, visualPreset và quy mô cụm (clusterSize)
         int clusterSeed = clusterSize * 104729;
-        int seed = (Coordinates.Q * 73856093) ^ (Coordinates.R * 19349663) ^ ((int)role * 83492791) ^ clusterSeed;
+        int seed = (Coordinates.Q * 73856093) ^ (Coordinates.R * 19349663) ^ ((int)visualPreset * 83492791) ^ clusterSeed;
         System.Random rng = new System.Random(seed);
 
         Vector3 rootPos = ContentRoot.position;
@@ -139,11 +150,13 @@ public class SettlementTile : MonoBehaviour
 
         float spreadDist = Mathf.Clamp(Mathf.Max(config.GetHouseDistance(), 0.56f), 0.52f, 0.68f);
 
-        // 1. SINH CÔNG TRÌNH THEO VAI TRÒ ĐẶC THÙ (DISTRICT ZONING)
-        if (role == SettlementRole.CivicCore)
+        // 1. SINH CÔNG TRÌNH THEO BỐ CỤC VISUAL CỦA Ô
+        if (visualPreset == BuildingVisualPreset.LandmarkCore)
         {
-            // Ô LÕI ĐẠI ĐÔ THỊ: Lâu Đài Hoàng Gia (Castle) hoặc Nhà Thờ Lớn (Church)
-            GameObject corePrefab = config.GetRandomCivicBuilding(rng);
+            // Ô LÕI CẤP CAO (Lv.5+): Luôn ưu tiên Lâu Đài Lớn (castleBuilding) làm điểm nhấn trung tâm
+            GameObject corePrefab = SettlementAssetConfig.IsValidPrefab(config.castleBuilding)
+                ? config.castleBuilding
+                : config.GetRandomCivicBuilding(rng);
             if (corePrefab != null)
             {
                 Vector3 centerPos = rootPos + new Vector3(0, config.buildingYOffset, 0);
@@ -172,7 +185,7 @@ public class SettlementTile : MonoBehaviour
                 occupiedZones.Add((coreLocal2D, 0.38f));
 
                 SpawnModel(corePrefab, centerPos, rot, config.GetScale(SettlementScaleType.Castle));
-                SpawnBuildingVignette(centerPos, rot, SettlementRole.CivicCore, config, rng);
+                SpawnBuildingVignette(centerPos, rot, BuildingVisualPreset.LandmarkCore, config, rng);
             }
 
             // Đại quảng trường hoàng gia lát đá bao quanh lâu đài
@@ -195,12 +208,12 @@ public class SettlementTile : MonoBehaviour
 
             if (isMultiTile && validBuildingDirs.Count > 0)
             {
-                SpawnClusterPerimeterHouses(config, rng, Mathf.Min(validBuildingDirs.Count, 2), tier, validBuildingDirs, clusterCenterWorld, null, occupiedZones, riverZones);
+                SpawnClusterPerimeterHouses(config, rng, Mathf.Min(validBuildingDirs.Count, 2), buildingLevel, validBuildingDirs, clusterCenterWorld, null, occupiedZones, riverZones);
             }
         }
-        else if (role == SettlementRole.MarketSquare)
+        else if (visualPreset == BuildingVisualPreset.Market)
         {
-            // KHU CHỢ / BAZAAR SẦM UẤT (MARKET DISTRICT)
+            // KHU CHỢ / BAZAAR SẦM UẤT
             List<int> spreadDirs = PickMaximallySeparatedDirs(validBuildingDirs, 2, rng);
             List<int> usedDirs = new List<int>();
 
@@ -227,18 +240,18 @@ public class SettlementTile : MonoBehaviour
             if (isMultiTile)
             {
                 int extraHouses = Mathf.Clamp(validBuildingDirs.Count - usedDirs.Count, 1, 2);
-                SpawnClusterPerimeterHouses(config, rng, extraHouses, tier, validBuildingDirs, clusterCenterWorld, usedDirs, occupiedZones, riverZones);
+                SpawnClusterPerimeterHouses(config, rng, extraHouses, buildingLevel, validBuildingDirs, clusterCenterWorld, usedDirs, occupiedZones, riverZones);
             }
             else
             {
-                SpawnPerimeterHouses(config, rng, 2, tier, occupiedZones, riverZones, riverSeg);
+                SpawnPerimeterHouses(config, rng, 2, buildingLevel, occupiedZones, riverZones, riverSeg);
             }
 
             SpawnCobblestonePlaza(config, rng, rootPos, 0.36f, 14);
         }
-        else if (role == SettlementRole.Craftsman)
+        else if (visualPreset == BuildingVisualPreset.Production)
         {
-            // KHU XƯỞNG SẢN XUẤT & LÀNG NGHỀ (CRAFTSMEN DISTRICT)
+            // KHU XƯỞNG SẢN XUẤT & LÀNG NGHỀ
             List<int> spreadDirs = PickMaximallySeparatedDirs(validBuildingDirs, 2, rng);
             List<int> usedDirs = new List<int>();
 
@@ -247,7 +260,7 @@ public class SettlementTile : MonoBehaviour
             {
                 int cDir = spreadDirs[0];
                 usedDirs.Add(cDir);
-                PlaceSpreadBuildingInDir(mainCraft, cDir, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, SettlementRole.Craftsman);
+                PlaceSpreadBuildingInDir(mainCraft, cDir, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, BuildingVisualPreset.Production);
             }
 
             if (spreadDirs.Count > 1)
@@ -259,25 +272,25 @@ public class SettlementTile : MonoBehaviour
                 if (secondCraft == null) secondCraft = config.GetRandomMediumHouse(rng);
                 if (secondCraft != null)
                 {
-                    PlaceSpreadBuildingInDir(secondCraft, cDir2, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, SettlementRole.Craftsman);
+                    PlaceSpreadBuildingInDir(secondCraft, cDir2, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, BuildingVisualPreset.Production);
                 }
             }
 
             if (isMultiTile)
             {
                 int extraHouses = Mathf.Clamp(validBuildingDirs.Count - usedDirs.Count, 1, 2);
-                SpawnClusterPerimeterHouses(config, rng, extraHouses, tier, validBuildingDirs, clusterCenterWorld, usedDirs, occupiedZones, riverZones);
+                SpawnClusterPerimeterHouses(config, rng, extraHouses, buildingLevel, validBuildingDirs, clusterCenterWorld, usedDirs, occupiedZones, riverZones);
             }
             else
             {
-                SpawnPerimeterHouses(config, rng, 2, tier, occupiedZones, riverZones, riverSeg);
+                SpawnPerimeterHouses(config, rng, 2, buildingLevel, occupiedZones, riverZones, riverSeg);
             }
 
             SpawnCobblestonePlaza(config, rng, rootPos, 0.32f, 10);
         }
-        else if (role == SettlementRole.Military)
+        else if (visualPreset == BuildingVisualPreset.WatchPost)
         {
-            // KHU DOANH TRẠI & PHÒNG THỦ QUÂN SỰ (MILITARY GARRISON)
+            // KHU CANH GÁC & PHÒNG THỦ
             List<int> spreadDirs = PickMaximallySeparatedDirs(validBuildingDirs, 2, rng);
             List<int> usedDirs = new List<int>();
 
@@ -286,7 +299,7 @@ public class SettlementTile : MonoBehaviour
             {
                 int mDir = spreadDirs[0];
                 usedDirs.Add(mDir);
-                PlaceSpreadBuildingInDir(mainMil, mDir, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, SettlementRole.Military);
+                PlaceSpreadBuildingInDir(mainMil, mDir, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, BuildingVisualPreset.WatchPost);
             }
 
             if (spreadDirs.Count > 1)
@@ -297,28 +310,27 @@ public class SettlementTile : MonoBehaviour
                 if (secondMil == null) secondMil = config.GetRandomMediumHouse(rng);
                 if (secondMil != null)
                 {
-                    PlaceSpreadBuildingInDir(secondMil, mDir2, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, SettlementRole.Military);
+                    PlaceSpreadBuildingInDir(secondMil, mDir2, spreadDist, 0.26f, config, rng, rootPos, hasClusterCenter, clusterCenterWorld, occupiedZones, riverZones, false, BuildingVisualPreset.WatchPost);
                 }
             }
 
             if (isMultiTile)
             {
                 int extraHouses = Mathf.Clamp(validBuildingDirs.Count - usedDirs.Count, 1, 2);
-                SpawnClusterPerimeterHouses(config, rng, extraHouses, tier, validBuildingDirs, clusterCenterWorld, usedDirs, occupiedZones, riverZones);
+                SpawnClusterPerimeterHouses(config, rng, extraHouses, buildingLevel, validBuildingDirs, clusterCenterWorld, usedDirs, occupiedZones, riverZones);
             }
             else
             {
-                SpawnPerimeterHouses(config, rng, 2, tier, occupiedZones, riverZones, riverSeg);
+                SpawnPerimeterHouses(config, rng, 2, buildingLevel, occupiedZones, riverZones, riverSeg);
             }
 
             SpawnCobblestonePlaza(config, rng, rootPos, 0.32f, 10);
         }
         else
         {
-            // 2. Ô DÂN CƯ THÔNG THƯỜNG (RESIDENTIAL / HAMLET)
+            // 2. BỐ CỤC NHÀ Ở TIÊU CHUẨN
             if (!isMultiTile)
             {
-                // Làng 1 ô (Hamlet): Chỉ đặt giếng/centerpiece ở giữa ô nếu KHÔNG có sông/đầu nguồn chiếm tâm ô!
                 if (!hasRiver)
                 {
                     GameObject centerPiece = config.GetRandomVillageCenterpiece(rng);
@@ -331,16 +343,14 @@ public class SettlementTile : MonoBehaviour
                     }
                 }
 
-                SpawnPerimeterHouses(config, rng, 3, tier, occupiedZones, riverZones, riverSeg);
+                SpawnPerimeterHouses(config, rng, 3, buildingLevel, occupiedZones, riverZones, riverSeg);
                 SpawnCobblestonePlaza(config, rng, rootPos, 0.28f, 10);
             }
             else
             {
-                // Khu phố cổ dân cư trong đô thị:
                 int perimeterCount = 2;
-                SpawnClusterPerimeterHouses(config, rng, perimeterCount, tier, validBuildingDirs, clusterCenterWorld, null, occupiedZones, riverZones);
+                SpawnClusterPerimeterHouses(config, rng, perimeterCount, buildingLevel, validBuildingDirs, clusterCenterWorld, null, occupiedZones, riverZones);
 
-                // Căn nhà phố phụ ở khoảng thoáng (né sông và né nhà đã đặt)
                 if (validBuildingDirs.Count > 0)
                 {
                     int midDir = validBuildingDirs[rng.Next(0, validBuildingDirs.Count)];
@@ -359,7 +369,7 @@ public class SettlementTile : MonoBehaviour
                         {
                             occupiedZones.Add((midLocal, 0.24f));
                             SpawnModel(midHouse, midPos, midRot, config.GetScale(SettlementScaleType.Building));
-                            SpawnBuildingVignette(midPos, midRot, SettlementRole.Residential, config, rng);
+                            SpawnBuildingVignette(midPos, midRot, BuildingVisualPreset.Standard, config, rng);
                             SpawnHouseFootpath(config, rng, midPos - rootPos);
                         }
                     }
@@ -389,7 +399,7 @@ public class SettlementTile : MonoBehaviour
         List<(Vector2 pos, float radius)> occupiedZones,
         List<(Vector2 pos, float radius)> riverZones,
         bool isMarketStall = false,
-        SettlementRole role = SettlementRole.MarketSquare)
+        BuildingVisualPreset visualPreset = BuildingVisualPreset.Market)
     {
         if (prefab == null) return;
 
@@ -414,7 +424,7 @@ public class SettlementTile : MonoBehaviour
 
         SpawnModel(prefab, spawnPos, rot, config.GetScale(SettlementScaleType.Building));
         if (isMarketStall) SpawnMarketStallVignette(spawnPos, rot, config, rng);
-        else SpawnBuildingVignette(spawnPos, rot, role, config, rng);
+        else SpawnBuildingVignette(spawnPos, rot, visualPreset, config, rng);
         SpawnHouseFootpath(config, rng, new Vector3(local2D.x, 0, local2D.y));
     }
 
@@ -614,7 +624,7 @@ public class SettlementTile : MonoBehaviour
         SettlementAssetConfig config,
         System.Random rng,
         int count,
-        SettlementTier tier,
+        int buildingLevel,
         List<(Vector2 pos, float radius)> occupiedZones = null,
         List<(Vector2 pos, float radius)> riverZones = null,
         RiverTileSegment riverSeg = null)
@@ -686,7 +696,7 @@ public class SettlementTile : MonoBehaviour
             float rotJitter = (float)(rng.NextDouble() * 30f - 15f);
             lookRot *= Quaternion.Euler(0, config.houseFacingOffset + rotJitter, 0);
 
-            GameObject housePrefab = (tier >= SettlementTier.Town && rng.NextDouble() > 0.45)
+            GameObject housePrefab = (buildingLevel >= 2 && rng.NextDouble() > 0.45)
                 ? config.GetRandomMediumHouse(rng)
                 : config.GetRandomSmallHouse(rng);
 
@@ -694,7 +704,7 @@ public class SettlementTile : MonoBehaviour
             {
                 SpawnModel(housePrefab, spawnWorldPos, lookRot, houseScale);
                 SpawnHouseFootpath(config, rng, localOffset);
-                SpawnBuildingVignette(spawnWorldPos, lookRot, SettlementRole.Residential, config, rng);
+                SpawnBuildingVignette(spawnWorldPos, lookRot, BuildingVisualPreset.Standard, config, rng);
             }
         }
     }
@@ -707,7 +717,7 @@ public class SettlementTile : MonoBehaviour
         SettlementAssetConfig config, 
         System.Random rng, 
         int count, 
-        SettlementTier tier, 
+        int buildingLevel, 
         List<int> externalDirs, 
         Vector3 clusterCenterWorld,
         List<int> excludedDirs = null,
@@ -779,7 +789,7 @@ public class SettlementTile : MonoBehaviour
             float rotJitter = (float)(rng.NextDouble() * 24f - 12f);
             lookRot *= Quaternion.Euler(0, config.houseFacingOffset + rotJitter, 0);
 
-            GameObject housePrefab = (tier >= SettlementTier.Town && rng.NextDouble() > 0.45)
+            GameObject housePrefab = (buildingLevel >= 2 && rng.NextDouble() > 0.45)
                 ? config.GetRandomMediumHouse(rng)
                 : config.GetRandomSmallHouse(rng);
 
@@ -787,7 +797,7 @@ public class SettlementTile : MonoBehaviour
             {
                 SpawnModel(housePrefab, spawnWorldPos, lookRot, houseScale);
                 SpawnHouseFootpath(config, rng, localOffset);
-                SpawnBuildingVignette(spawnWorldPos, lookRot, SettlementRole.Residential, config, rng);
+                SpawnBuildingVignette(spawnWorldPos, lookRot, BuildingVisualPreset.Standard, config, rng);
             }
         }
     }
@@ -799,7 +809,7 @@ public class SettlementTile : MonoBehaviour
     private void SpawnBuildingVignette(
         Vector3 buildingPos, 
         Quaternion buildingRot, 
-        SettlementRole role, 
+        BuildingVisualPreset visualPreset, 
         SettlementAssetConfig config, 
         System.Random rng)
     {
@@ -816,15 +826,15 @@ public class SettlementTile : MonoBehaviour
         sidePos.y = config.buildingYOffset;
 
         GameObject sideProp = null;
-        if (role == SettlementRole.Craftsman)
+        if (visualPreset == BuildingVisualPreset.Production)
         {
             sideProp = FindPropMatching(config, "lumber", "stone", "barrel");
         }
-        else if (role == SettlementRole.MarketSquare)
+        else if (visualPreset == BuildingVisualPreset.Market)
         {
             sideProp = FindPropMatching(config, "crate", "barrel", "sack");
         }
-        else if (role == SettlementRole.Military)
+        else if (visualPreset == BuildingVisualPreset.WatchPost)
         {
             sideProp = FindPropMatching(config, "weaponrack", "target", "crate");
         }
@@ -1000,27 +1010,35 @@ public class SettlementTile : MonoBehaviour
         }
     }
 
+    public void ReharmonizeBiomeDecor()
+    {
+        HarmonizeBiomePropsForSettlement(_lastConfig, _lastExternalDirs);
+    }
+
     /// <summary>
     /// Trung hòa & tái phân phối thảm thực vật / đá tảng Biome khi ô có Building (hoặc cả Building + Biome + River):
-    /// 1. Giữ nguyên thảm thực vật nhỏ (cỏ, hoa, nấm, bụi) ở mọi khoảng trống hợp lệ; chỉ đẩy dạt hoặc ẩn nếu đè khít chân móng nhà, lòng suối hoặc đúng cạnh có tường thành.
-    /// 2. Với cây lớn / tảng đá bị đè vào nhà, suối hoặc tường thành: thử tìm vị trí trống khác trên ô (góc sân, bãi trống) để phân phối lại đều đặn thay vì xóa trắng.
-    /// 3. Cân bằng tỉ lệ đá/cây vừa phải để Biome, Building và Sông suối đều nổi bật hài hòa, không cái nào lấn át hay làm lu mờ cái nào.
+    /// 1. Dọn sạch khoảng trung tâm quanh công trình/quảng trường và ven tường thành để phân biệt rõ "đất quy hoạch" với rừng hoang dã.
+    /// 2. Tỉa gọn số lượng cây lớn/đá tảng tối đa ở rìa sân; giữ hoa cỏ thấp ở các khoảng hở ngoại vi.
     /// </summary>
     public void HarmonizeBiomePropsForSettlement(SettlementAssetConfig config, List<int> externalDirs)
     {
         Vector2 tileCenter2D = new Vector2(transform.position.x, transform.position.z);
 
         // 1. Thu thập footprint thực tế của các công trình chính (bỏ qua phụ kiện nhỏ như thùng gỗ/bao tải/cờ)
-        List<(Vector2 localPos, float radius)> buildingZones = new List<(Vector2, float)>();
+        // Luôn giữ sạch lõi trung tâm (quảng trường / sân chính) để làng tách biệt rõ với rừng tự nhiên.
+        List<(Vector2 localPos, float radius)> buildingZones = new List<(Vector2, float)>
+        {
+            (Vector2.zero, 0.36f)
+        };
         foreach (var inst in _spawnedInstances)
         {
             if (inst == null) continue;
             string instName = inst.name.ToLowerInvariant();
 
             float radius;
-            if (instName.Contains("castle") || instName.Contains("church")) radius = 0.36f;
-            else if (instName.Contains("building_") || instName.Contains("tower") || instName.Contains("market") || instName.Contains("blacksmith") || instName.Contains("tavern") || instName.Contains("windmill") || instName.Contains("barracks")) radius = 0.25f;
-            else if (instName.Contains("well") || instName.Contains("tent") || instName.Contains("stage") || instName.Contains("scaffold")) radius = 0.18f;
+            if (instName.Contains("castle") || instName.Contains("church")) radius = 0.40f;
+            else if (instName.Contains("building_") || instName.Contains("tower") || instName.Contains("market") || instName.Contains("blacksmith") || instName.Contains("tavern") || instName.Contains("windmill") || instName.Contains("barracks")) radius = 0.30f;
+            else if (instName.Contains("well") || instName.Contains("tent") || instName.Contains("stage") || instName.Contains("scaffold")) radius = 0.22f;
             else continue; // Phụ kiện nhỏ ven đường không xóa thảm thực vật
 
             Vector2 local2D = new Vector2(inst.transform.position.x - tileCenter2D.x, inst.transform.position.z - tileCenter2D.y);
@@ -1046,6 +1064,10 @@ public class SettlementTile : MonoBehaviour
 
         // Danh sách các prop lớn đã giữ chỗ để tránh dồn 2 cây/đá vào cùng 1 điểm khi tái phân phối
         List<(Vector2 localPos, float radius)> placedLargeProps = new List<(Vector2, float)>();
+        const int maxSettlementTrees = 2;
+        const int maxSettlementRocks = 2;
+        int keptTrees = 0;
+        int keptRocks = 0;
 
         int seed = (Coordinates.Q * 48611) ^ (Coordinates.R * 96179) ^ 1337;
         System.Random rng = new System.Random(seed);
@@ -1072,13 +1094,24 @@ public class SettlementTile : MonoBehaviour
                 bool isTree = pName.Contains("tree") || pName.Contains("pine") || pName.Contains("oak") || pName.Contains("willow");
                 bool isBush = pName.Contains("bush") || pName.Contains("shrub") || pName.Contains("fern");
 
+                if ((isTree && keptTrees >= maxSettlementTrees) || (isRock && keptRocks >= maxSettlementRocks))
+                {
+                    prop.gameObject.SetActive(false);
+                    continue;
+                }
+
                 float propRadius = isTree ? 0.14f : (isRock ? 0.12f : (isBush ? 0.07f : 0.03f));
 
                 bool hasConflict = IsBiomePropConflicting(propLocal, propRadius, isTree || isRock, buildingZones, riverZones, wallNormals);
+                if (!hasConflict && (isTree || isRock) && propLocal.magnitude < 0.44f)
+                {
+                    // Đẩy cây lớn / đá ra rìa sân để phần giữa làng thoáng sạch, dễ phân biệt với rừng rậm
+                    hasConflict = true;
+                }
 
                 if (hasConflict)
                 {
-                    // Thử đẩy dạt / tái phân phối vào khoảng trống hợp lệ trên ô (giữa nhà, tường và suối)
+                    // Thử đẩy dạt / tái phân phối vào khoảng trống hợp lệ ở rìa sân (giữa nhà, tường và suối)
                     if (TryFindOpenBiomePropSpot(rng, propLocal, propRadius, isTree || isRock, buildingZones, riverZones, wallNormals, placedLargeProps, out Vector2 newLocal))
                     {
                         prop.position = new Vector3(tileCenter2D.x + newLocal.x, prop.position.y, tileCenter2D.y + newLocal.y);
@@ -1094,6 +1127,8 @@ public class SettlementTile : MonoBehaviour
                 else
                 {
                     prop.gameObject.SetActive(true);
+                    if (isTree) keptTrees++;
+                    if (isRock) keptRocks++;
                     if (isTree || isRock)
                     {
                         placedLargeProps.Add((propLocal, propRadius));
@@ -1104,12 +1139,12 @@ public class SettlementTile : MonoBehaviour
                     {
                         if (isRock)
                         {
-                            prop.localScale = prop.localScale * 0.60f;
+                            prop.localScale = prop.localScale * 0.55f;
                             prop.name = prop.name + "_scaled";
                         }
                         else if (isTree)
                         {
-                            prop.localScale = prop.localScale * 0.82f;
+                            prop.localScale = prop.localScale * 0.72f;
                             prop.name = prop.name + "_scaled";
                         }
                     }
@@ -1209,7 +1244,13 @@ public class SettlementTile : MonoBehaviour
         for (int i = 0; i < container.childCount; i++)
         {
             Transform child = container.GetChild(i);
-            if (child != null)
+            if (child == null) continue;
+            if (child.name.StartsWith("FilledGround_", System.StringComparison.OrdinalIgnoreCase) ||
+                (child.GetComponent<Renderer>() == null && child.childCount > 0))
+            {
+                CollectBiomePropsDirect(child, result);
+            }
+            else
             {
                 result.Add(child);
             }

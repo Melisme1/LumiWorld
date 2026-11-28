@@ -78,6 +78,7 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
     private void HandleMapTileClick()
     {
         if (isDraggingCreature) return;
+        if (ResourceInventoryUIController.Instance != null && ResourceInventoryUIController.Instance.isActiveAndEnabled) return;
 
         var mouse = Mouse.current;
         if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
@@ -98,6 +99,12 @@ public class HabitatDiamondBadgeManager : MonoBehaviour
 
         foreach (var hit in hits)
         {
+            if (MapStructureInfoUI.Instance != null && MapStructureInfoUI.Instance.ShouldInterceptMapHit(hit))
+            {
+                _lastClickedHabitatId = null;
+                return;
+            }
+
             if (BiomeSurface.TryResolveClickedHabitat(hit, habitatManager, out var habitat, out bool hitBlockingSurface))
             {
                 float now = Time.unscaledTime;

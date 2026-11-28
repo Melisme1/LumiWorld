@@ -26,6 +26,11 @@ namespace LumiWorld.Acs
         private float nextRefresh, receiptUntil;
         private Vector2 pressPosition;
         private bool mapPress;
+        private string lastClickedHabitatId;
+        private float lastHabitatClickTime = -10f;
+        private Vector2 lastHabitatClickPos;
+        private const float DoubleClickMaxInterval = 0.35f;
+        private const float DoubleClickMaxDistance = 14f;
         private List<ResourceUIItem> warehouseItems;
 
         public string SelectedHabitatId => selectedHabitatId;
@@ -275,14 +280,41 @@ namespace LumiWorld.Acs
             Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (var hit in hits)
             {
+                if (MapStructureInfoUI.Instance != null && MapStructureInfoUI.Instance.ShouldInterceptMapHit(hit))
+                {
+                    lastClickedHabitatId = null;
+                    lastHabitatClickTime = -10f;
+                    return;
+                }
+
                 if (BiomeSurface.TryResolveClickedHabitat(hit, manager, out var habitat, out bool hitBlockingSurface))
                 {
-                    Select(habitat);
+                    float now = Time.unscaledTime;
+                    bool isDoubleClick =
+                        string.Equals(lastClickedHabitatId, habitat.habitatId, StringComparison.Ordinal) &&
+                        (now - lastHabitatClickTime) <= DoubleClickMaxInterval &&
+                        Vector2.Distance(position, lastHabitatClickPos) <= DoubleClickMaxDistance;
+
+                    if (isDoubleClick)
+                    {
+                        lastClickedHabitatId = null;
+                        lastHabitatClickTime = -10f;
+                        Select(habitat);
+                    }
+                    else
+                    {
+                        lastClickedHabitatId = habitat.habitatId;
+                        lastHabitatClickTime = now;
+                        lastHabitatClickPos = position;
+                    }
                     return;
                 }
 
                 if (hitBlockingSurface) break;
             }
+
+            lastClickedHabitatId = null;
+            lastHabitatClickTime = -10f;
         }
 
         private void ShowModal(RectTransform modal)

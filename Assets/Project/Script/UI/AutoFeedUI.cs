@@ -8,17 +8,23 @@ using UnityEngine.UI;
 using LumiWorld.Acs;
 
 /// <summary>
-/// P-08 Automatic Feeding UI — LumiWorld UI Production Pack:
-/// - Single biome type selected at a time (NO "All biomes").
-/// - Biome selector pills use the same colored Biome Emblem (B-01..B-07) and canonical name as P-05.
-/// - Each biome type has its own independent 3 food slots and shared remaining budget for habitats/creatures
-///   of that biome type in the active world (saved per user/world/biome type; never copies global config).
-/// - Budget is never multiplied per creature and is only decremented when DepositCreatureFood actually succeeds.
+/// P-08 Automatic Feeding UI — Per-Cluster Granary Post model:
+/// - Each Granary Post cluster on the active island has its own independent 3 food slots and budget,
+///   saved per user/world/clusterKey (and migrated automatically when adjacent Granary Post tiles merge).
+/// - Number of unlocked slots (1 -> 2 -> 2 -> 3 -> 3) and aura radius (1 -> 1 -> 2 -> 2 -> 3)
+///   scale with that Granary Post's Level (1..5).
+/// - Feeds only formed Biomes that have at least one hex inside that Granary Post's aura.
 /// </summary>
 public class AutoFeedUI : MonoBehaviour
 {
     private static AutoFeedUI instance;
     public static AutoFeedUI Instance => instance;
+
+    /// <summary>
+    /// Fired whenever any Granary Post cluster's food slots or budgets are saved/consumed,
+    /// keeping the global Auto-Feed modal and per-Building inspector synchronized.
+    /// </summary>
+    public static event Action<string> OnClusterSlotsUpdated;
 
     public const float WindowWidth = 1040f;
     public const float WindowHeight = 620f;
@@ -28,6 +34,10 @@ public class AutoFeedUI : MonoBehaviour
     private GameObject window;
     private RectTransform panel;
     private RectTransform biomeTabsRow;
+    private RectTransform biomeTabsContent;
+    private TextMeshProUGUI clusterStatusPillText;
+    private TextMeshProUGUI clusterCoverageText;
+    private Button locateClusterBtn;
     private RectTransform foodListContent;
     private TextMeshProUGUI emptyFoodNoticeText;
     private TextMeshProUGUI remainingBudgetText;
@@ -35,7 +45,7 @@ public class AutoFeedUI : MonoBehaviour
     private Coroutine feedbackFadeRoutine;
     private Button applySetupButton;
 
-    // 3 Slot views for the currently selected biome
+    // 3 Slot views for the currently selected Granary Post cluster
     private readonly DispenserSlotView[] slotViews = new DispenserSlotView[3];
 
     private class DispenserSlotView
@@ -54,30 +64,33 @@ public class AutoFeedUI : MonoBehaviour
         public TextMeshProUGUI amountText;
         public Button incButton;
         public Button removeButton;
+        public GameObject lockedContainer;
+        public TextMeshProUGUI lockedText;
     }
 
-    private class BiomeTabView
+    private class ClusterTabView
     {
-        public BiomeAffinity affinity;
+        public string clusterKey;
         public Button button;
         public Image bg;
         public Image border;
         public Image emblem;
         public TextMeshProUGUI label;
+        public TextMeshProUGUI subLabel;
     }
 
-    private readonly List<BiomeTabView> biomeTabs = new List<BiomeTabView>();
+    private readonly List<ClusterTabView> clusterTabs = new List<ClusterTabView>();
 
-    // Per-biome 3-slot config in memory (synced with PlayerPrefs per world + biome)
-    private class BiomeFeedSlots
+    // Per-cluster 3-slot config in memory (synced with PlayerPrefs per world + clusterKey)
+    private class ClusterFeedSlots
     {
         public readonly string[] foodIds = new string[3];
         public readonly int[] budgets = new int[3];
     }
 
-    private readonly Dictionary<BiomeAffinity, BiomeFeedSlots> slotsByBiome = new Dictionary<BiomeAffinity, BiomeFeedSlots>();
-    private readonly Dictionary<BiomeAffinity, BiomeFeedSlots> draftsByBiome = new Dictionary<BiomeAffinity, BiomeFeedSlots>();
-    private BiomeAffinity activeBiome = BiomeAffinity.Leafwood;
+    private readonly Dictionary<string, ClusterFeedSlots> slotsByCluster = new Dictionary<string, ClusterFeedSlots>(StringComparer.Ordinal);
+    private readonly Dictionary<string, ClusterFeedSlots> draftsByCluster = new Dictionary<string, ClusterFeedSlots>(StringComparer.Ordinal);
+    private string activeClusterKey = string.Empty;
     private string loadedWorldScopeKey = string.Empty;
 
     // Available foods in Inventory (left column)
@@ -99,17 +112,6 @@ public class AutoFeedUI : MonoBehaviour
     private float nextAutoTickTime;
     private static Sprite s_SelectionBorderSprite;
 
-    private static readonly BiomeAffinity[] SupportedBiomes =
-    {
-        BiomeAffinity.Leafwood,
-        BiomeAffinity.Bloomfield,
-        BiomeAffinity.Windheath,
-        BiomeAffinity.Reedmarsh,
-        BiomeAffinity.Lilywater,
-        BiomeAffinity.Streamstone,
-        BiomeAffinity.Rainleaf
-    };
-
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -118,6 +120,8 @@ public class AutoFeedUI : MonoBehaviour
             return;
         }
         instance = this;
+        SettlementClusterManager.OnBuildingClusterMerged += HandleClusterMerged;
+        SettlementClusterManager.OnBuildingClustersChanged += HandleClustersChanged;
         EnsureWorldConfigLoaded();
         BuildWindow();
     }
@@ -136,6 +140,8 @@ public class AutoFeedUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        SettlementClusterManager.OnBuildingClusterMerged -= HandleClusterMerged;
+        SettlementClusterManager.OnBuildingClustersChanged -= HandleClustersChanged;
         if (instance == this) instance = null;
         EconomyHUD.UnregisterWindow(window);
     }
@@ -148,10 +154,15 @@ public class AutoFeedUI : MonoBehaviour
             panel.localScale = new Vector3(scale, scale, 1f);
         }
 
-        // Background auto-feeding tick every 3 seconds for biomes with remaining budget
+        // Background auto-feeding tick every 3 seconds for Granary Post clusters with remaining budget
         if (Application.isPlaying && !WorldLaunch.IsVisit && Time.unscaledTime >= nextAutoTickTime)
         {
             nextAutoTickTime = Time.unscaledTime + 3.0f;
+            if (LumiWorld.Acs.TimeSystem.GameTimeRuntime.Instance != null &&
+                LumiWorld.Acs.TimeSystem.GameTimeRuntime.Instance.IsPaused)
+            {
+                return;
+            }
             EnsureWorldConfigLoaded();
             RunBackgroundAutoFeedTick();
         }
@@ -159,17 +170,7 @@ public class AutoFeedUI : MonoBehaviour
 
     private float ComputePanelScale()
     {
-        var invCtrl = FindAnyObjectByType<ResourceInventoryUIController>(FindObjectsInactive.Include);
-        if (invCtrl != null && invCtrl.transform.lossyScale.x > 0.0001f && transform.lossyScale.x > 0.0001f)
-        {
-            return invCtrl.transform.lossyScale.x / transform.lossyScale.x;
-        }
-
-        Canvas rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
-        float canvasScale = rootCanvas != null && rootCanvas.scaleFactor > 0.01f ? rootCanvas.scaleFactor : 1f;
-        float fit = ResourceInventoryUILayout.FitScale(Screen.width, Screen.height);
-        float parentScale = transform.lossyScale.x > 0.0001f ? transform.lossyScale.x : (1f / canvasScale);
-        return fit / parentScale;
+        return LumiWorldUITheme.ComputeResponsiveModalScale(this, WindowWidth, WindowHeight, marginX: 40f, marginY: 88f);
     }
 
     public void Toggle()
@@ -180,7 +181,16 @@ public class AutoFeedUI : MonoBehaviour
 
     public void Open()
     {
+        OpenForCluster(activeClusterKey);
+    }
+
+    public void OpenForCluster(string clusterKey)
+    {
         EnsureWorldConfigLoaded();
+        if (!string.IsNullOrEmpty(clusterKey))
+        {
+            activeClusterKey = clusterKey;
+        }
         if (window == null) BuildWindow();
         if (panel != null)
         {
@@ -192,7 +202,7 @@ public class AutoFeedUI : MonoBehaviour
         window.transform.SetAsLastSibling();
         EconomyHUD.BringWindowToFront(window);
 
-        RefreshBiomeSelectorTabs();
+        RefreshClusterTabs();
         RefreshFoodInventory();
         RefreshSlotsAndBudgetUI();
         GameAudioManager.Instance?.PlayClick();
@@ -200,7 +210,7 @@ public class AutoFeedUI : MonoBehaviour
 
     public void Close()
     {
-        draftsByBiome.Clear();
+        draftsByCluster.Clear();
         modalEditingSlot = -1;
         if (quantityModalObj != null && quantityModalObj.activeSelf)
         {
@@ -214,8 +224,159 @@ public class AutoFeedUI : MonoBehaviour
         }
     }
 
+    public int GetClusterConfiguredSlotCount(string clusterKey)
+    {
+        if (string.IsNullOrEmpty(clusterKey)) return 0;
+        var cluster = FindClusterByKey(clusterKey);
+        int unlocked = cluster != null ? Mathf.Clamp(cluster.UnlockedFoodSlots, 0, 3) : 3;
+        var slots = GetSlotsFor(clusterKey);
+        int count = 0;
+        for (int i = 0; i < unlocked; i++)
+        {
+            if (!string.IsNullOrEmpty(slots.foodIds[i]) && slots.budgets[i] > 0) count++;
+        }
+        return count;
+    }
+
+    public bool TryGetClusterSlot(string clusterKey, int slotIndex, out string foodId, out int budget)
+    {
+        foodId = string.Empty;
+        budget = 0;
+        if (string.IsNullOrEmpty(clusterKey) || slotIndex < 0 || slotIndex >= 3) return false;
+        EnsureWorldConfigLoaded();
+        var slots = GetSlotsFor(clusterKey);
+        foodId = slots.foodIds[slotIndex] ?? string.Empty;
+        budget = slots.budgets[slotIndex];
+        return !string.IsNullOrEmpty(foodId) && budget > 0;
+    }
+
+    public bool SetClusterSlot(string clusterKey, int slotIndex, string foodId, int budget, out string feedbackMessage)
+    {
+        feedbackMessage = string.Empty;
+        if (WorldLaunch.IsVisit)
+        {
+            feedbackMessage = "Cannot edit on visiting island.";
+            return false;
+        }
+        if (string.IsNullOrEmpty(clusterKey) || slotIndex < 0 || slotIndex >= 3)
+        {
+            feedbackMessage = "Invalid Granary Post slot.";
+            return false;
+        }
+
+        EnsureWorldConfigLoaded();
+        var cluster = FindClusterByKey(clusterKey);
+        if (cluster == null)
+        {
+            feedbackMessage = "Granary Post not found.";
+            return false;
+        }
+        if (slotIndex >= cluster.UnlockedFoodSlots)
+        {
+            feedbackMessage = $"Unlocks at Lv. {BuildingRules.GetRequiredLevelForFoodSlot(slotIndex)}.";
+            return false;
+        }
+        if (string.IsNullOrEmpty(foodId))
+        {
+            return ClearClusterSlot(clusterKey, slotIndex);
+        }
+
+        var slots = GetSlotsFor(clusterKey);
+        for (int i = 0; i < 3; i++)
+        {
+            if (i != slotIndex && string.Equals(slots.foodIds[i], foodId, StringComparison.OrdinalIgnoreCase))
+            {
+                feedbackMessage = "Already assigned in another slot.";
+                return false;
+            }
+        }
+
+        int stock = GetInventoryStock(foodId);
+        if (stock <= 0 && !string.Equals(slots.foodIds[slotIndex], foodId, StringComparison.OrdinalIgnoreCase))
+        {
+            feedbackMessage = "Out of stock in Inventory.";
+            return false;
+        }
+
+        int maxCap = Mathf.Max(1, Mathf.Max(stock, string.Equals(slots.foodIds[slotIndex], foodId, StringComparison.OrdinalIgnoreCase) ? slots.budgets[slotIndex] : 0));
+        int clampedBudget = Mathf.Clamp(budget > 0 ? budget : Mathf.Min(stock, 20), 1, maxCap);
+
+        slots.foodIds[slotIndex] = foodId;
+        slots.budgets[slotIndex] = clampedBudget;
+
+        if (draftsByCluster.TryGetValue(clusterKey, out var draft))
+        {
+            draft.foodIds[slotIndex] = foodId;
+            draft.budgets[slotIndex] = clampedBudget;
+        }
+
+        SaveClusterSlots(clusterKey);
+        SyncGlobalUIIfVisible(clusterKey);
+        OnClusterSlotsUpdated?.Invoke(clusterKey);
+        return true;
+    }
+
+    public bool ClearClusterSlot(string clusterKey, int slotIndex)
+    {
+        if (WorldLaunch.IsVisit || string.IsNullOrEmpty(clusterKey) || slotIndex < 0 || slotIndex >= 3) return false;
+        EnsureWorldConfigLoaded();
+
+        var slots = GetSlotsFor(clusterKey);
+        bool changed = !string.IsNullOrEmpty(slots.foodIds[slotIndex]) || slots.budgets[slotIndex] != 0;
+        slots.foodIds[slotIndex] = string.Empty;
+        slots.budgets[slotIndex] = 0;
+
+        if (draftsByCluster.TryGetValue(clusterKey, out var draft))
+        {
+            draft.foodIds[slotIndex] = string.Empty;
+            draft.budgets[slotIndex] = 0;
+        }
+
+        if (changed)
+        {
+            SaveClusterSlots(clusterKey);
+            SyncGlobalUIIfVisible(clusterKey);
+            OnClusterSlotsUpdated?.Invoke(clusterKey);
+        }
+        return changed;
+    }
+
+    public int TriggerClusterFeedingNow(string clusterKey, out int matchingCreatures, out string lastFailureReason)
+    {
+        matchingCreatures = 0;
+        lastFailureReason = string.Empty;
+        if (WorldLaunch.IsVisit || string.IsNullOrEmpty(clusterKey)) return 0;
+
+        EnsureWorldConfigLoaded();
+        var cluster = FindClusterByKey(clusterKey);
+        if (cluster == null)
+        {
+            lastFailureReason = "Granary Post not found.";
+            return 0;
+        }
+
+        int deposited = ExecuteClusterFeeding(cluster, out matchingCreatures, out lastFailureReason);
+        SyncGlobalUIIfVisible(clusterKey);
+        OnClusterSlotsUpdated?.Invoke(clusterKey);
+        return deposited;
+    }
+
+    private void SyncGlobalUIIfVisible(string clusterKey)
+    {
+        if (IsOpen)
+        {
+            RefreshFoodInventory();
+            if (string.Equals(activeClusterKey, clusterKey, StringComparison.Ordinal))
+            {
+                UpdateFoodRowBorders();
+            }
+            RefreshClusterTabs();
+            RefreshSlotsAndBudgetUI();
+        }
+    }
+
     // =========================================================
-    // PER-WORLD, PER-BIOME PERSISTENCE
+    // PER-WORLD, PER-GRANARY-CLUSTER PERSISTENCE
     // =========================================================
 
     private static string GetWorldScopeKey()
@@ -228,88 +389,174 @@ public class AutoFeedUI : MonoBehaviour
     private void EnsureWorldConfigLoaded()
     {
         string currentKey = GetWorldScopeKey();
-        if (string.Equals(loadedWorldScopeKey, currentKey, StringComparison.Ordinal) && slotsByBiome.Count > 0)
+        if (string.Equals(loadedWorldScopeKey, currentKey, StringComparison.Ordinal))
         {
             return;
         }
 
         loadedWorldScopeKey = currentKey;
-        slotsByBiome.Clear();
-        draftsByBiome.Clear();
+        slotsByCluster.Clear();
+        draftsByCluster.Clear();
         modalEditingSlot = -1;
         if (quantityModalObj != null) quantityModalObj.SetActive(false);
 
-        foreach (BiomeAffinity biome in SupportedBiomes)
-        {
-            var data = new BiomeFeedSlots();
-            for (int i = 0; i < 3; i++)
-            {
-                string keyPrefix = $"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_{biome}_{i}";
-                data.foodIds[i] = PlayerPrefs.GetString(keyPrefix + "_Id", string.Empty);
-                data.budgets[i] = Mathf.Max(0, PlayerPrefs.GetInt(keyPrefix + "_Budget", 0));
-                if (string.IsNullOrEmpty(data.foodIds[i]) || data.budgets[i] <= 0)
-                {
-                    data.foodIds[i] = string.Empty;
-                    data.budgets[i] = 0;
-                }
-            }
-            slotsByBiome[biome] = data;
-        }
-
-        int savedBiomeInt = PlayerPrefs.GetInt($"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_ActiveBiome", (int)BiomeAffinity.Leafwood);
-        if (Enum.IsDefined(typeof(BiomeAffinity), savedBiomeInt) && savedBiomeInt != (int)BiomeAffinity.None)
-        {
-            activeBiome = (BiomeAffinity)savedBiomeInt;
-        }
-        else
-        {
-            activeBiome = BiomeAffinity.Leafwood;
-        }
+        activeClusterKey = PlayerPrefs.GetString($"LumiWorld_AutoFeed_v3_{loadedWorldScopeKey}_ActiveCluster", string.Empty);
     }
 
-    private BiomeFeedSlots GetSlotsFor(BiomeAffinity biome)
+    private void HandleClustersChanged()
+    {
+        if (!IsOpen) return;
+        RefreshClusterTabs();
+        RefreshSlotsAndBudgetUI();
+    }
+
+    private void HandleClusterMerged(IReadOnlyList<string> oldKeys, string newKey)
+    {
+        if (oldKeys == null || oldKeys.Count == 0 || string.IsNullOrEmpty(newKey)) return;
+        EnsureWorldConfigLoaded();
+
+        var merged = new ClusterFeedSlots();
+        var mergedFoods = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        void CollectFrom(ClusterFeedSlots source)
+        {
+            if (source == null) return;
+            for (int i = 0; i < 3; i++)
+            {
+                string fid = source.foodIds[i];
+                int bud = source.budgets[i];
+                if (string.IsNullOrEmpty(fid) || bud <= 0) continue;
+                if (mergedFoods.TryGetValue(fid, out int existing)) mergedFoods[fid] = existing + bud;
+                else mergedFoods[fid] = bud;
+            }
+        }
+
+        // Preserve any already-saved slots on newKey first, then fold oldKeys into it
+        if (slotsByCluster.TryGetValue(newKey, out var existingNew) || TryLoadClusterSlots(newKey, out existingNew))
+        {
+            CollectFrom(existingNew);
+        }
+
+        bool anyOldDiffers = false;
+        for (int k = 0; k < oldKeys.Count; k++)
+        {
+            string oldKey = oldKeys[k];
+            if (string.IsNullOrEmpty(oldKey) || string.Equals(oldKey, newKey, StringComparison.Ordinal)) continue;
+            anyOldDiffers = true;
+
+            var oldData = GetSlotsFor(oldKey);
+            CollectFrom(oldData);
+
+            slotsByCluster.Remove(oldKey);
+            draftsByCluster.Remove(oldKey);
+            ClearPersistedClusterSlots(oldKey);
+
+            if (string.Equals(activeClusterKey, oldKey, StringComparison.Ordinal))
+            {
+                activeClusterKey = newKey;
+            }
+        }
+
+        if (!anyOldDiffers) return;
+
+        int slotIdx = 0;
+        foreach (var kv in mergedFoods)
+        {
+            if (slotIdx >= 3) break;
+            merged.foodIds[slotIdx] = kv.Key;
+            merged.budgets[slotIdx] = kv.Value;
+            slotIdx++;
+        }
+
+        slotsByCluster[newKey] = merged;
+        SaveClusterSlots(newKey);
+        OnClusterSlotsUpdated?.Invoke(newKey);
+    }
+
+    private bool TryLoadClusterSlots(string clusterKey, out ClusterFeedSlots data)
+    {
+        data = new ClusterFeedSlots();
+        if (string.IsNullOrEmpty(clusterKey)) return false;
+
+        bool hasAny = false;
+        for (int i = 0; i < 3; i++)
+        {
+            string keyPrefix = $"LumiWorld_AutoFeed_v3_{loadedWorldScopeKey}_{clusterKey}_{i}";
+            data.foodIds[i] = PlayerPrefs.GetString(keyPrefix + "_Id", string.Empty);
+            data.budgets[i] = Mathf.Max(0, PlayerPrefs.GetInt(keyPrefix + "_Budget", 0));
+            if (string.IsNullOrEmpty(data.foodIds[i]) || data.budgets[i] <= 0)
+            {
+                data.foodIds[i] = string.Empty;
+                data.budgets[i] = 0;
+            }
+            else
+            {
+                hasAny = true;
+            }
+        }
+        return hasAny;
+    }
+
+    private ClusterFeedSlots GetSlotsFor(string clusterKey)
     {
         EnsureWorldConfigLoaded();
-        if (!slotsByBiome.TryGetValue(biome, out var data) || data == null)
+        if (string.IsNullOrEmpty(clusterKey)) return new ClusterFeedSlots();
+        if (!slotsByCluster.TryGetValue(clusterKey, out var data) || data == null)
         {
-            data = new BiomeFeedSlots();
-            slotsByBiome[biome] = data;
+            TryLoadClusterSlots(clusterKey, out data);
+            slotsByCluster[clusterKey] = data;
         }
         return data;
     }
 
-    private BiomeFeedSlots GetDisplayedSlots()
+    private ClusterFeedSlots GetDisplayedSlots()
     {
-        var saved = GetSlotsFor(activeBiome);
-        return draftsByBiome.TryGetValue(activeBiome, out var draft) ? draft : saved;
+        if (string.IsNullOrEmpty(activeClusterKey)) return new ClusterFeedSlots();
+        var saved = GetSlotsFor(activeClusterKey);
+        return draftsByCluster.TryGetValue(activeClusterKey, out var draft) ? draft : saved;
     }
 
-    private BiomeFeedSlots EditActiveSlots()
+    private ClusterFeedSlots EditActiveSlots()
     {
-        var saved = GetSlotsFor(activeBiome);
-        if (!draftsByBiome.TryGetValue(activeBiome, out var draft))
+        if (string.IsNullOrEmpty(activeClusterKey)) return new ClusterFeedSlots();
+        var saved = GetSlotsFor(activeClusterKey);
+        if (!draftsByCluster.TryGetValue(activeClusterKey, out var draft))
         {
-            draft = new BiomeFeedSlots();
+            draft = new ClusterFeedSlots();
             Array.Copy(saved.foodIds, draft.foodIds, saved.foodIds.Length);
             Array.Copy(saved.budgets, draft.budgets, saved.budgets.Length);
-            draftsByBiome.Add(activeBiome, draft);
+            draftsByCluster.Add(activeClusterKey, draft);
         }
         return draft;
     }
 
-    private void SaveBiomeSlots(BiomeAffinity biome)
+    private void SaveClusterSlots(string clusterKey)
     {
-        if (WorldLaunch.IsVisit) return;
+        if (WorldLaunch.IsVisit || string.IsNullOrEmpty(clusterKey)) return;
         EnsureWorldConfigLoaded();
-        var data = GetSlotsFor(biome);
+        var data = GetSlotsFor(clusterKey);
         for (int i = 0; i < 3; i++)
         {
-            string keyPrefix = $"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_{biome}_{i}";
+            string keyPrefix = $"LumiWorld_AutoFeed_v3_{loadedWorldScopeKey}_{clusterKey}_{i}";
             PlayerPrefs.SetString(keyPrefix + "_Id", data.foodIds[i] ?? string.Empty);
             PlayerPrefs.SetInt(keyPrefix + "_Budget", Mathf.Max(0, data.budgets[i]));
         }
-        PlayerPrefs.SetInt($"LumiWorld_AutoFeed_v2_{loadedWorldScopeKey}_ActiveBiome", (int)activeBiome);
+        if (!string.IsNullOrEmpty(activeClusterKey))
+        {
+            PlayerPrefs.SetString($"LumiWorld_AutoFeed_v3_{loadedWorldScopeKey}_ActiveCluster", activeClusterKey);
+        }
         PlayerPrefs.Save();
+    }
+
+    private void ClearPersistedClusterSlots(string clusterKey)
+    {
+        if (string.IsNullOrEmpty(clusterKey)) return;
+        for (int i = 0; i < 3; i++)
+        {
+            string keyPrefix = $"LumiWorld_AutoFeed_v3_{loadedWorldScopeKey}_{clusterKey}_{i}";
+            PlayerPrefs.DeleteKey(keyPrefix + "_Id");
+            PlayerPrefs.DeleteKey(keyPrefix + "_Budget");
+        }
     }
 
     // =========================================================
@@ -399,120 +646,172 @@ public class AutoFeedUI : MonoBehaviour
 
     private void BuildBiomeSelectorRow()
     {
-        GameObject rowObj = new GameObject("BiomeSelectorRow", typeof(RectTransform));
+        GameObject rowObj = new GameObject("ClusterSelectorRow", typeof(RectTransform));
         rowObj.transform.SetParent(panel, false);
         biomeTabsRow = rowObj.GetComponent<RectTransform>();
-        SetTopLeft(biomeTabsRow, new Vector2(28f, -68f), new Vector2(WindowWidth - 56f, 44f));
+        SetTopLeft(biomeTabsRow, new Vector2(28f, -66f), new Vector2(WindowWidth - 56f, 52f));
 
-        RefreshBiomeSelectorTabs();
+        GameObject scrollObj = new GameObject("TabsScroll", typeof(RectTransform), typeof(ScrollRect));
+        scrollObj.transform.SetParent(biomeTabsRow, false);
+        EconomyHUD.Stretch(scrollObj.GetComponent<RectTransform>());
+
+        ScrollRect scroll = scrollObj.GetComponent<ScrollRect>();
+        scroll.horizontal = true;
+        scroll.vertical = false;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 28f;
+
+        GameObject vpObj = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
+        vpObj.transform.SetParent(scrollObj.transform, false);
+        RectTransform vpRect = vpObj.GetComponent<RectTransform>();
+        EconomyHUD.Stretch(vpRect);
+        vpObj.GetComponent<Image>().color = Color.clear;
+
+        GameObject contentObj = new GameObject("Content", typeof(RectTransform));
+        contentObj.transform.SetParent(vpRect, false);
+        biomeTabsContent = contentObj.GetComponent<RectTransform>();
+        biomeTabsContent.anchorMin = new Vector2(0f, 0f);
+        biomeTabsContent.anchorMax = new Vector2(0f, 1f);
+        biomeTabsContent.pivot = new Vector2(0f, 0.5f);
+        biomeTabsContent.anchoredPosition = Vector2.zero;
+        biomeTabsContent.sizeDelta = new Vector2(WindowWidth - 56f, 0f);
+
+        scroll.viewport = vpRect;
+        scroll.content = biomeTabsContent;
+
+        RefreshClusterTabs();
     }
 
-    private void RefreshBiomeSelectorTabs()
+    private static List<SettlementClusterManager.BuildingClusterInfo> GetGranaryClusters()
     {
-        if (biomeTabsRow == null) return;
+        return SettlementClusterManager.Instance != null
+            ? SettlementClusterManager.Instance.GetGranaryPostClusters()
+            : new List<SettlementClusterManager.BuildingClusterInfo>();
+    }
 
-        for (int i = biomeTabsRow.childCount - 1; i >= 0; i--)
+    private static SettlementClusterManager.BuildingClusterInfo FindClusterByKey(string clusterKey)
+    {
+        if (string.IsNullOrEmpty(clusterKey)) return null;
+        var clusters = GetGranaryClusters();
+        for (int i = 0; i < clusters.Count; i++)
         {
-            Destroy(biomeTabsRow.GetChild(i).gameObject);
+            if (string.Equals(clusters[i].ClusterKey, clusterKey, StringComparison.Ordinal))
+                return clusters[i];
         }
-        biomeTabs.Clear();
+        return null;
+    }
 
-        // Collect biomes present on the active island first, followed by standard island biomes (no "All biomes")
-        List<BiomeAffinity> biomesToShow = new List<BiomeAffinity>();
-        HabitatRuntimeManager habManager = null;
-        if (ResourceProductionRuntime.Instance != null && ResourceProductionRuntime.Instance.HabitatManager != null)
-            habManager = ResourceProductionRuntime.Instance.HabitatManager;
-        else
-            HabitatRuntimeManager.TryGetActive(out habManager);
+    private static List<string> CollectCoveredBiomeNames(SettlementClusterManager.BuildingClusterInfo cluster)
+    {
+        var names = new List<string>();
+        if (cluster == null || cluster.Hexes == null || cluster.Hexes.Count == 0) return names;
+        if (!HabitatRuntimeManager.TryGetActive(out var hm) || hm.Habitats == null) return names;
 
-        if (habManager != null && habManager.Habitats != null)
+        HashSet<HexCoordinates> aura = BiomeBuffCalculator.CollectAuraHexesAroundCluster(cluster.Hexes, cluster.AuraRadius);
+        if (aura == null || aura.Count == 0) return names;
+
+        foreach (var hab in hm.Habitats)
         {
-            foreach (var h in habManager.Habitats)
+            if (hab == null || !hab.IsFormedBiome || hab.members == null) continue;
+            bool touches = false;
+            for (int m = 0; m < hab.members.Count; m++)
             {
-                if (h != null && Array.IndexOf(SupportedBiomes, h.affinity) >= 0 && !biomesToShow.Contains(h.affinity))
+                if (hab.members[m] != null && aura.Contains(hab.members[m].hex))
                 {
-                    biomesToShow.Add(h.affinity);
+                    touches = true;
+                    break;
                 }
             }
-        }
-
-        // Ensure core biomes are always selectable even before habitats are built
-        BiomeAffinity[] defaultIslandBiomes =
-        {
-            BiomeAffinity.Leafwood,
-            BiomeAffinity.Bloomfield,
-            BiomeAffinity.Windheath,
-            BiomeAffinity.Reedmarsh
-        };
-        foreach (var b in defaultIslandBiomes)
-        {
-            if (!biomesToShow.Contains(b)) biomesToShow.Add(b);
-        }
-
-        // Also include any biome that already has saved food slots in this world
-        foreach (var b in SupportedBiomes)
-        {
-            if (!biomesToShow.Contains(b))
+            if (touches)
             {
-                var slots = GetSlotsFor(b);
-                if (!string.IsNullOrEmpty(slots.foodIds[0]) || !string.IsNullOrEmpty(slots.foodIds[1]) || !string.IsNullOrEmpty(slots.foodIds[2]))
-                {
-                    biomesToShow.Add(b);
-                }
+                names.Add(HabitatCreaturePanelStyle.GetAffinityDisplayName(hab.affinity));
             }
         }
+        return names;
+    }
 
-        if (!biomesToShow.Contains(activeBiome) && biomesToShow.Count > 0)
+    private void RefreshClusterTabs()
+    {
+        if (biomeTabsRow == null || biomeTabsContent == null) return;
+
+        for (int i = biomeTabsContent.childCount - 1; i >= 0; i--)
         {
-            activeBiome = biomesToShow[0];
+            Destroy(biomeTabsContent.GetChild(i).gameObject);
+        }
+        clusterTabs.Clear();
+
+        List<SettlementClusterManager.BuildingClusterInfo> clusters = GetGranaryClusters();
+        if (clusters.Count == 0)
+        {
+            activeClusterKey = string.Empty;
+            biomeTabsContent.sizeDelta = new Vector2(WindowWidth - 56f, 0f);
+            TextMeshProUGUI emptyNotice = CreateTMP(
+                biomeTabsContent,
+                "NoGranaryNotice",
+                "Place a Granary Post on a watered tile to configure Auto-Feed for nearby biomes.",
+                14f,
+                LumiWorldUITheme.Muted,
+                true,
+                TextAlignmentOptions.MidlineLeft);
+            EconomyHUD.Stretch(emptyNotice.rectTransform);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(activeClusterKey) || !clusters.Exists(c => string.Equals(c.ClusterKey, activeClusterKey, StringComparison.Ordinal)))
+        {
+            activeClusterKey = clusters[0].ClusterKey;
         }
 
         float curX = 0f;
-        const float tabH = 40f;
-        const float tabW = 150f;
-        const float gapX = 12f;
+        const float tabH = 48f;
+        const float tabW = 228f;
+        const float gapX = 10f;
 
-        foreach (BiomeAffinity affinity in biomesToShow)
+        for (int i = 0; i < clusters.Count; i++)
         {
-            string bName = HabitatCreaturePanelStyle.GetAffinityDisplayName(affinity);
+            var cluster = clusters[i];
+            int configured = GetClusterConfiguredSlotCount(cluster.ClusterKey);
+            List<string> coveredBiomes = CollectCoveredBiomeNames(cluster);
+            string biomeSummary = coveredBiomes.Count == 0
+                ? "No biomes"
+                : (coveredBiomes.Count == 1 ? coveredBiomes[0] : $"{coveredBiomes[0]} +{coveredBiomes.Count - 1}");
+            string tabLabel = $"Granary #{i + 1} · Lv.{cluster.Level}";
+            string subLabel = $"{biomeSummary} · {configured}/{cluster.UnlockedFoodSlots} slots";
 
-            GameObject tabObj = new GameObject("BiomeTab_" + bName, typeof(RectTransform), typeof(Image), typeof(Button));
-            tabObj.transform.SetParent(biomeTabsRow, false);
+            GameObject tabObj = new GameObject("GranaryTab_" + i, typeof(RectTransform), typeof(Image), typeof(Button));
+            tabObj.transform.SetParent(biomeTabsContent, false);
             RectTransform tRect = tabObj.GetComponent<RectTransform>();
-            SetTopLeft(tRect, new Vector2(curX, 0f), new Vector2(tabW, tabH));
+            SetTopLeft(tRect, new Vector2(curX, -2f), new Vector2(tabW, tabH));
 
             Image bg = tabObj.GetComponent<Image>();
-            bg.sprite = LumiWorldUITheme.GetCapsuleSprite(Mathf.RoundToInt(tabH));
+            bg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("GranaryTabSurf_R14", Color.white, LumiWorldUITheme.Edge, 14, 1.2f);
             bg.type = Image.Type.Sliced;
-            LumiWorldUITheme.AddSoftElevation(tabObj, 2.5f, 0.14f);
+            LumiWorldUITheme.AddSoftElevation(tabObj, 2f, 0.12f);
 
-            // Colored Biome Emblem (B-01..B-07, shared with P-05)
             GameObject emObj = new GameObject("Emblem", typeof(RectTransform), typeof(Image));
             emObj.transform.SetParent(tRect, false);
             RectTransform emRect = emObj.GetComponent<RectTransform>();
             emRect.anchorMin = emRect.anchorMax = new Vector2(0f, 0.5f);
             emRect.pivot = new Vector2(0f, 0.5f);
             emRect.anchoredPosition = new Vector2(12f, 0f);
-            emRect.sizeDelta = new Vector2(28f, 28f);
+            emRect.sizeDelta = new Vector2(22f, 22f);
             Image emImg = emObj.GetComponent<Image>();
-            emImg.sprite = LumiWorldUITheme.BiomeEmblem(bName);
+            emImg.sprite = LumiWorldUITheme.Glyph("G-17") ?? LumiWorldUITheme.Glyph("G-06");
             emImg.preserveAspect = true;
+            emImg.color = LumiWorldUITheme.Text;
             emImg.raycastTarget = false;
 
-            TextMeshProUGUI lbl = CreateTMP(tRect, "Label", bName, 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-            lbl.rectTransform.anchorMin = Vector2.zero;
-            lbl.rectTransform.anchorMax = Vector2.one;
-            lbl.rectTransform.offsetMin = new Vector2(46f, 0f);
-            lbl.rectTransform.offsetMax = new Vector2(-12f, 0f);
-            lbl.enableAutoSizing = true;
-            lbl.fontSizeMin = 11f;
-            lbl.fontSizeMax = 15f;
+            TextMeshProUGUI lbl = CreateTMP(tRect, "Label", tabLabel, 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(lbl.rectTransform, new Vector2(42f, -5f), new Vector2(tabW - 52f, 20f));
+
+            TextMeshProUGUI sub = CreateTMP(tRect, "SubLabel", subLabel, 11f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(sub.rectTransform, new Vector2(42f, -25f), new Vector2(tabW - 52f, 16f));
 
             GameObject borderObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
             borderObj.transform.SetParent(tRect, false);
             EconomyHUD.Stretch(borderObj.GetComponent<RectTransform>());
             Image borderImg = borderObj.GetComponent<Image>();
-            borderImg.sprite = GetTabSelectionBorderSprite(Mathf.RoundToInt(tabH));
+            borderImg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("TabSelBorder_R14", Color.clear, LumiWorldUITheme.Primary, 14, 2.5f);
             borderImg.type = Image.Type.Sliced;
             borderImg.color = Color.white;
             borderImg.raycastTarget = false;
@@ -520,43 +819,47 @@ public class AutoFeedUI : MonoBehaviour
             Button btn = tabObj.GetComponent<Button>();
             btn.targetGraphic = bg;
             btn.navigation = new Navigation { mode = Navigation.Mode.None };
-            BiomeAffinity captured = affinity;
-            btn.onClick.AddListener(() => SelectBiomeTab(captured));
+            string capturedKey = cluster.ClusterKey;
+            btn.onClick.AddListener(() => SelectClusterTab(capturedKey));
 
-            biomeTabs.Add(new BiomeTabView
+            clusterTabs.Add(new ClusterTabView
             {
-                affinity = affinity,
+                clusterKey = cluster.ClusterKey,
                 button = btn,
                 bg = bg,
                 border = borderImg,
                 emblem = emImg,
-                label = lbl
+                label = lbl,
+                subLabel = sub
             });
 
             curX += tabW + gapX;
         }
 
-        UpdateBiomeTabVisuals();
+        biomeTabsContent.sizeDelta = new Vector2(Mathf.Max(WindowWidth - 56f, curX - gapX + 4f), 0f);
+        UpdateClusterTabVisuals();
     }
 
-    private void SelectBiomeTab(BiomeAffinity biome)
+    private void SelectClusterTab(string clusterKey)
     {
-        if (activeBiome == biome) return;
-        activeBiome = biome;
-        UpdateBiomeTabVisuals();
+        if (string.Equals(activeClusterKey, clusterKey, StringComparison.Ordinal)) return;
+        activeClusterKey = clusterKey;
+        UpdateClusterTabVisuals();
         UpdateFoodRowBorders();
         RefreshSlotsAndBudgetUI();
         GameAudioManager.Instance?.PlayClick();
     }
 
-    private void UpdateBiomeTabVisuals()
+    private void UpdateClusterTabVisuals()
     {
-        foreach (var tab in biomeTabs)
+        foreach (var tab in clusterTabs)
         {
-            bool active = tab.affinity == activeBiome;
+            bool active = string.Equals(tab.clusterKey, activeClusterKey, StringComparison.Ordinal);
             tab.bg.color = active ? LumiWorldUITheme.Slot : LumiWorldUITheme.Inset;
             if (tab.border != null) tab.border.gameObject.SetActive(active);
             if (tab.label != null) tab.label.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
+            if (tab.subLabel != null) tab.subLabel.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
+            if (tab.emblem != null) tab.emblem.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
         }
     }
 
@@ -636,28 +939,33 @@ public class AutoFeedUI : MonoBehaviour
         rightCard.AddComponent<ResourceUIInputBlocker>();
         LumiWorldUITheme.AddSoftElevation(rightCard, 4f, 0.16f);
 
-        // Header: "Assigned foods" + "Max 3 foods" pill
+        // Header: "Assigned foods" + coverage summary + [Locate] button
         var hdrTxt = CreateTMP(rRect, "AssignedHeader", "Assigned foods", 18.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(hdrTxt.rectTransform, new Vector2(22f, -16f), new Vector2(240f, 28f));
+        SetTopLeft(hdrTxt.rectTransform, new Vector2(22f, -12f), new Vector2(190f, 26f));
 
-        GameObject maxPill = new GameObject("Max3Pill", typeof(RectTransform), typeof(Image));
-        maxPill.transform.SetParent(rRect, false);
-        RectTransform mpRect = maxPill.GetComponent<RectTransform>();
-        mpRect.anchorMin = mpRect.anchorMax = mpRect.pivot = new Vector2(1f, 1f);
-        mpRect.anchoredPosition = new Vector2(-22f, -16f);
-        mpRect.sizeDelta = new Vector2(118f, 28f);
-        Image mpBg = maxPill.GetComponent<Image>();
-        mpBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
-        mpBg.type = Image.Type.Sliced;
-        mpBg.color = LumiWorldUITheme.Inset;
-        var mpTxt = CreateTMP(mpRect, "Label", "Max 3 foods", 12.5f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(mpTxt.rectTransform);
+        clusterCoverageText = CreateTMP(rRect, "CoverageSub", "Select a Granary Post", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(clusterCoverageText.rectTransform, new Vector2(22f, -38f), new Vector2(360f, 18f));
+
+        locateClusterBtn = LumiWorldUITheme.CreatePillButton(
+            rRect,
+            "LocateBtn",
+            "Locate",
+            "G-10",
+            primary: false,
+            fontSize: 12.5f,
+            onClick: OnLocateActiveClusterClicked,
+            out _,
+            out _,
+            out _,
+            radius: 14);
+        locateClusterBtn.gameObject.AddComponent<DialogButtonJuice>();
+        LumiWorldUITheme.PlaceTopRight(locateClusterBtn.GetComponent<RectTransform>(), 20f, 16f, 102f, 32f);
 
         // 3 Vertical Food Slot Rows
         const float slotW = 460f;
-        const float slotH = 104f;
-        const float startY = -58f;
-        const float gapY = 12f;
+        const float slotH = 100f;
+        const float startY = -66f;
+        const float gapY = 10f;
 
         for (int i = 0; i < 3; i++)
         {
@@ -775,6 +1083,30 @@ public class AutoFeedUI : MonoBehaviour
             // Remove [×] button at top-right of slot
             view.removeButton = CreateStepperSquareButton(occCont.transform, "RemoveBtn", new Vector2(slotW - 34f, -8f), new Vector2(26f, 26f), "Close", () => ClearSlot(slotIndex));
 
+            // --- C. LOCKED CONTAINER (slot unlocked at higher Granary Post Level) ---
+            GameObject lockedCont = new GameObject("LockedContainer", typeof(RectTransform));
+            lockedCont.transform.SetParent(sRect, false);
+            EconomyHUD.Stretch(lockedCont.GetComponent<RectTransform>());
+            view.lockedContainer = lockedCont;
+
+            GameObject lockIcObj = new GameObject("LockIcon", typeof(RectTransform), typeof(Image));
+            lockIcObj.transform.SetParent(lockedCont.transform, false);
+            RectTransform lIcRect = lockIcObj.GetComponent<RectTransform>();
+            lIcRect.anchorMin = lIcRect.anchorMax = lIcRect.pivot = new Vector2(0.5f, 0.5f);
+            lIcRect.anchoredPosition = new Vector2(-84f, 0f);
+            lIcRect.sizeDelta = new Vector2(20f, 20f);
+            Image lIcImg = lockIcObj.GetComponent<Image>();
+            lIcImg.sprite = LumiWorldUITheme.Glyph("Lock");
+            lIcImg.preserveAspect = true;
+            lIcImg.color = LumiWorldUITheme.Muted;
+            lIcImg.raycastTarget = false;
+
+            view.lockedText = CreateTMP(lockedCont.transform, "LockedLabel", "Unlocks at Lv. 2", 14f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+            RectTransform lTxtRect = view.lockedText.rectTransform;
+            lTxtRect.anchorMin = lTxtRect.anchorMax = lTxtRect.pivot = new Vector2(0.5f, 0.5f);
+            lTxtRect.anchoredPosition = new Vector2(18f, 0f);
+            lTxtRect.sizeDelta = new Vector2(180f, 28f);
+
             slotViews[i] = view;
         }
     }
@@ -787,7 +1119,7 @@ public class AutoFeedUI : MonoBehaviour
         SetTopLeft(rt, topLeftPos, size);
 
         Image bg = btnObj.GetComponent<Image>();
-        bg.sprite = LumiWorldUITheme.PillSprite;
+        bg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("AutoFeedSq_R10", Color.white, LumiWorldUITheme.Edge, 10, 1.2f);
         bg.type = Image.Type.Sliced;
         bg.color = LumiWorldUITheme.Surface;
         LumiWorldUITheme.AddSoftElevation(btnObj, 2f, 0.14f);
@@ -1009,13 +1341,25 @@ public class AutoFeedUI : MonoBehaviour
     {
         GameAudioManager.Instance?.PlayClick();
 
+        var cluster = FindClusterByKey(activeClusterKey);
+        if (cluster == null)
+        {
+            ShowFeedback("Place a Granary Post first.", LumiWorldUITheme.Warning);
+            return;
+        }
+        if (slotIndex >= cluster.UnlockedFoodSlots)
+        {
+            ShowFeedback($"Slot unlocks at Granary Post Lv. {BuildingRules.GetRequiredLevelForFoodSlot(slotIndex)}.", LumiWorldUITheme.Warning);
+            return;
+        }
+
         string candidateId = selectedFoodId;
         if (string.IsNullOrEmpty(candidateId))
         {
             ShowFeedback("Select an unassigned food from Inventory on the left.", LumiWorldUITheme.Warning);
             return;
         }
-        if (IsFoodAssignedInActiveBiome(candidateId))
+        if (IsFoodAssignedInActiveCluster(candidateId))
         {
             ShowFeedback("This food already has a slot. Select another food.", LumiWorldUITheme.Warning);
             return;
@@ -1024,7 +1368,7 @@ public class AutoFeedUI : MonoBehaviour
         AssignFoodToSlot(slotIndex, candidateId);
     }
 
-    private bool IsFoodAssignedInActiveBiome(string foodId)
+    private bool IsFoodAssignedInActiveCluster(string foodId)
     {
         if (string.IsNullOrEmpty(foodId)) return false;
         var slots = GetDisplayedSlots();
@@ -1038,13 +1382,16 @@ public class AutoFeedUI : MonoBehaviour
     private void AssignFoodToSlot(int slotIndex, string foodId)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
+        var cluster = FindClusterByKey(activeClusterKey);
+        if (cluster == null || slotIndex >= cluster.UnlockedFoodSlots) return;
+
         var slots = GetDisplayedSlots();
 
         for (int i = 0; i < 3; i++)
         {
             if (i != slotIndex && string.Equals(slots.foodIds[i], foodId, StringComparison.OrdinalIgnoreCase))
             {
-                ShowFeedback("Food is already assigned to another slot in this biome.", LumiWorldUITheme.Warning);
+                ShowFeedback("Food is already assigned to another slot in this Granary Post.", LumiWorldUITheme.Warning);
                 return;
             }
         }
@@ -1065,9 +1412,8 @@ public class AutoFeedUI : MonoBehaviour
         UpdateFoodRowBorders();
         RefreshSlotsAndBudgetUI();
 
-        string bName = HabitatCreaturePanelStyle.GetAffinityDisplayName(activeBiome);
         string fName = food != null ? food.name : foodId;
-        ShowFeedback($"Added {fName} (budget {defaultBudget}) to {bName}.", LumiWorldUITheme.Success);
+        ShowFeedback($"Added {fName} (budget {defaultBudget}) to Granary Post Lv.{cluster.Level}.", LumiWorldUITheme.Success);
     }
 
     private void ClearSlot(int slotIndex)
@@ -1118,8 +1464,61 @@ public class AutoFeedUI : MonoBehaviour
         }
     }
 
+    private void OnLocateActiveClusterClicked()
+    {
+        var cluster = FindClusterByKey(activeClusterKey);
+        if (cluster == null || cluster.Hexes == null || cluster.Hexes.Count == 0) return;
+
+        HexCoordinates targetHex = cluster.Hexes[0];
+        Vector3 worldCenter = Vector3.zero;
+        for (int i = 0; i < cluster.Hexes.Count; i++)
+        {
+            worldCenter += HexMetrics.HexToWorldPosition(cluster.Hexes[i], 0f);
+        }
+        worldCenter /= cluster.Hexes.Count;
+
+        Close();
+        HexCameraController.Instance?.FocusOnTarget(worldCenter, targetDistance: 6.2f, duration: 0.75f);
+        MapStructureInfoUI.Instance?.OpenForBuilding(targetHex);
+    }
+
     private void RefreshSlotsAndBudgetUI()
     {
+        var cluster = FindClusterByKey(activeClusterKey);
+        int unlockedSlots = cluster != null ? Mathf.Clamp(cluster.UnlockedFoodSlots, 0, 3) : 0;
+
+        if (clusterCoverageText != null)
+        {
+            if (cluster == null)
+            {
+                clusterCoverageText.text = "No Granary Post placed";
+                clusterCoverageText.color = LumiWorldUITheme.Muted;
+            }
+            else
+            {
+                var covered = CollectCoveredBiomeNames(cluster);
+                string biomeText = covered.Count > 0 ? $"Feeds: {string.Join(", ", covered)}" : "No biomes in range";
+                clusterCoverageText.text = $"Lv.{cluster.Level} · {cluster.Hexes.Count} {(cluster.Hexes.Count == 1 ? "tile" : "tiles")} · {cluster.AuraRadius}-hex · {biomeText}";
+                clusterCoverageText.color = covered.Count > 0 ? LumiWorldUITheme.Success : LumiWorldUITheme.Muted;
+            }
+        }
+        if (locateClusterBtn != null)
+        {
+            locateClusterBtn.interactable = cluster != null && cluster.Hexes != null && cluster.Hexes.Count > 0;
+        }
+
+        if (clusterStatusPillText != null)
+        {
+            clusterStatusPillText.text = cluster != null
+                ? $"Lv.{cluster.Level} · {unlockedSlots}/3 slots · {cluster.AuraRadius} hex"
+                : "No Granary Post";
+        }
+
+        if (applySetupButton != null)
+        {
+            applySetupButton.interactable = cluster != null;
+        }
+
         var slots = GetDisplayedSlots();
         long totalRemainingBudget = 0;
 
@@ -1127,6 +1526,22 @@ public class AutoFeedUI : MonoBehaviour
         {
             var view = slotViews[i];
             if (view == null) continue;
+
+            if (cluster == null || i >= unlockedSlots)
+            {
+                view.emptyContainer.SetActive(false);
+                view.occupiedContainer.SetActive(false);
+                if (view.lockedContainer != null) view.lockedContainer.SetActive(true);
+                if (view.lockedText != null)
+                {
+                    view.lockedText.text = cluster == null
+                        ? "Requires Granary Post"
+                        : $"Unlocks at Lv. {BuildingRules.GetRequiredLevelForFoodSlot(i)}";
+                }
+                continue;
+            }
+
+            if (view.lockedContainer != null) view.lockedContainer.SetActive(false);
 
             string foodId = slots.foodIds[i];
             int budget = slots.budgets[i];
@@ -1164,62 +1579,73 @@ public class AutoFeedUI : MonoBehaviour
 
         if (remainingBudgetText != null)
         {
-            string label = draftsByBiome.ContainsKey(activeBiome) ? "Pending budget" : "Remaining budget";
+            string label = !string.IsNullOrEmpty(activeClusterKey) && draftsByCluster.ContainsKey(activeClusterKey)
+                ? "Pending budget"
+                : "Remaining budget";
             remainingBudgetText.text = $"{label}: {totalRemainingBudget}";
         }
     }
 
     // =========================================================
-    // APPLY FEEDING SETUP & ACTUAL DEPOSIT EXECUTION
+    // APPLY FEEDING SETUP & CLUSTER-SCOPED DEPOSIT EXECUTION
     // =========================================================
 
     private void OnApplyFeedingSetupClicked()
     {
         GameAudioManager.Instance?.PlayClick();
-        var slots = GetSlotsFor(activeBiome);
-        if (draftsByBiome.TryGetValue(activeBiome, out var draft))
+        var cluster = FindClusterByKey(activeClusterKey);
+        if (cluster == null)
+        {
+            ShowFeedback("Place a Granary Post first.", LumiWorldUITheme.Warning);
+            return;
+        }
+
+        var slots = GetSlotsFor(activeClusterKey);
+        if (draftsByCluster.TryGetValue(activeClusterKey, out var draft))
         {
             Array.Copy(draft.foodIds, slots.foodIds, slots.foodIds.Length);
             Array.Copy(draft.budgets, slots.budgets, slots.budgets.Length);
-            draftsByBiome.Remove(activeBiome);
+            draftsByCluster.Remove(activeClusterKey);
         }
-        SaveBiomeSlots(activeBiome);
+        SaveClusterSlots(activeClusterKey);
 
+        int unlockedSlots = Mathf.Clamp(cluster.UnlockedFoodSlots, 0, 3);
         int configuredCount = 0;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < unlockedSlots; i++)
         {
             if (!string.IsNullOrEmpty(slots.foodIds[i]) && slots.budgets[i] > 0)
                 configuredCount++;
         }
 
-        string biomeName = HabitatCreaturePanelStyle.GetAffinityDisplayName(activeBiome);
         if (configuredCount == 0)
         {
-            ShowFeedback($"Cleared automatic feeding setup for {biomeName}.", LumiWorldUITheme.Muted);
+            ShowFeedback("Cleared automatic feeding setup for this Granary Post.", LumiWorldUITheme.Muted);
             RefreshFoodInventory();
             RefreshSlotsAndBudgetUI();
+            OnClusterSlotsUpdated?.Invoke(activeClusterKey);
             return;
         }
 
-        int depositedUnits = ExecuteBiomeFeeding(activeBiome, out int matchingCreatures, out string lastFailureReason);
+        int depositedUnits = ExecuteClusterFeeding(cluster, out int matchingCreatures, out string lastFailureReason);
         RefreshFoodInventory();
         RefreshSlotsAndBudgetUI();
+        OnClusterSlotsUpdated?.Invoke(activeClusterKey);
 
         if (depositedUnits > 0)
         {
-            ShowFeedback($"Fed {depositedUnits} food unit(s) to {biomeName} residents.", LumiWorldUITheme.Success);
+            ShowFeedback($"Fed {depositedUnits} food unit(s) to nearby biome residents.", LumiWorldUITheme.Success);
         }
         else if (matchingCreatures == 0)
         {
-            ShowFeedback($"Saved {biomeName} setup (no residents in {biomeName} yet).", LumiWorldUITheme.Muted);
+            ShowFeedback($"Saved setup (no biome residents within {cluster.AuraRadius}-hex range yet).", LumiWorldUITheme.Muted);
         }
         else if (!string.IsNullOrEmpty(lastFailureReason))
         {
-            ShowFeedback($"Saved {biomeName} setup · {lastFailureReason}", LumiWorldUITheme.Warning);
+            ShowFeedback($"Saved setup · {lastFailureReason}", LumiWorldUITheme.Warning);
         }
         else
         {
-            ShowFeedback($"Saved {biomeName} setup. Food is ready for residents when hungry.", LumiWorldUITheme.Success);
+            ShowFeedback("Saved setup. Food is ready for nearby residents when hungry.", LumiWorldUITheme.Success);
         }
     }
 
@@ -1228,13 +1654,21 @@ public class AutoFeedUI : MonoBehaviour
         var production = ResourceProductionRuntime.Instance;
         if (production == null || production.Inventory == null) return;
 
-        foreach (BiomeAffinity biome in SupportedBiomes)
+        var clusters = GetGranaryClusters();
+        for (int c = 0; c < clusters.Count; c++)
         {
-            // Preserve the edited budget until the player applies or closes the window.
-            if (draftsByBiome.ContainsKey(biome) || (biome == activeBiome && modalEditingSlot >= 0)) continue;
-            var slots = GetSlotsFor(biome);
+            var cluster = clusters[c];
+            if (cluster == null || string.IsNullOrEmpty(cluster.ClusterKey)) continue;
+            if (draftsByCluster.ContainsKey(cluster.ClusterKey) ||
+                (string.Equals(cluster.ClusterKey, activeClusterKey, StringComparison.Ordinal) && modalEditingSlot >= 0))
+            {
+                continue;
+            }
+
+            var slots = GetSlotsFor(cluster.ClusterKey);
+            int unlockedSlots = Mathf.Clamp(cluster.UnlockedFoodSlots, 0, 3);
             bool hasBudget = false;
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < unlockedSlots; i++)
             {
                 if (!string.IsNullOrEmpty(slots.foodIds[i]) && slots.budgets[i] > 0)
                 {
@@ -1244,7 +1678,10 @@ public class AutoFeedUI : MonoBehaviour
             }
             if (!hasBudget) continue;
 
-            ExecuteBiomeFeeding(biome, out _, out _);
+            if (ExecuteClusterFeeding(cluster, out _, out _) > 0)
+            {
+                OnClusterSlotsUpdated?.Invoke(cluster.ClusterKey);
+            }
         }
 
         if (IsOpen)
@@ -1255,15 +1692,15 @@ public class AutoFeedUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Feeds only creatures belonging to habitats of the specified biome type, using that biome's shared budget.
-    /// Decrements the slot budget ONLY when DepositCreatureFood returns true.
+    /// Feeds only creatures belonging to formed Biomes that have at least 1 hex inside this Granary Post's aura.
+    /// Uses only unlocked slots (1..3 based on Level) and decrements budget ONLY when DepositCreatureFood returns true.
     /// </summary>
-    private int ExecuteBiomeFeeding(BiomeAffinity targetBiome, out int matchingCreaturesCount, out string lastFailureReason)
+    private int ExecuteClusterFeeding(SettlementClusterManager.BuildingClusterInfo cluster, out int matchingCreaturesCount, out string lastFailureReason)
     {
         matchingCreaturesCount = 0;
         lastFailureReason = string.Empty;
 
-        if (WorldLaunch.IsVisit) return 0;
+        if (WorldLaunch.IsVisit || cluster == null || cluster.Hexes.Count == 0) return 0;
 
         var production = ResourceProductionRuntime.Instance;
         if (production == null || production.Inventory == null) return 0;
@@ -1272,10 +1709,25 @@ public class AutoFeedUI : MonoBehaviour
         if (habManager == null) HabitatRuntimeManager.TryGetActive(out habManager);
         if (habManager == null || habManager.Habitats == null) return 0;
 
+        HashSet<HexCoordinates> auraHexes = BiomeBuffCalculator.CollectAuraHexesAroundCluster(cluster.Hexes, cluster.AuraRadius);
+        if (auraHexes.Count == 0) return 0;
+
         var residentsList = new List<(string habitatId, string individualId)>();
         foreach (var h in habManager.Habitats)
         {
-            if (h == null || h.affinity != targetBiome || h.residents == null) continue;
+            if (h == null || !h.IsFormedBiome || h.residents == null || h.members == null) continue;
+
+            bool touchesAura = false;
+            for (int m = 0; m < h.members.Count; m++)
+            {
+                if (h.members[m] != null && auraHexes.Contains(h.members[m].hex))
+                {
+                    touchesAura = true;
+                    break;
+                }
+            }
+            if (!touchesAura) continue;
+
             foreach (var resident in h.residents)
             {
                 if (resident == null || string.IsNullOrEmpty(resident.individualId)) continue;
@@ -1286,14 +1738,15 @@ public class AutoFeedUI : MonoBehaviour
         matchingCreaturesCount = residentsList.Count;
         if (matchingCreaturesCount == 0) return 0;
 
-        var slots = GetSlotsFor(targetBiome);
+        var slots = GetSlotsFor(cluster.ClusterKey);
+        int unlockedSlots = Mathf.Clamp(cluster.UnlockedFoodSlots, 0, 3);
         int totalDeposited = 0;
 
         int seedUnits = production.CareSettings != null
             ? Mathf.Max(1, production.CareSettings.seedFoodUnitsToFull)
             : 50;
 
-        for (int s = 0; s < 3; s++)
+        for (int s = 0; s < unlockedSlots; s++)
         {
             string foodId = slots.foodIds[s];
             int remainingBudget = slots.budgets[s];
@@ -1315,7 +1768,6 @@ public class AutoFeedUI : MonoBehaviour
                 var (habId, indivId) = residentsList[r];
                 var care = production.GetCareState(indivId);
 
-                // Calculate how much food this creature currently needs based on hunger
                 int neededUnits = 0;
                 if (care != null)
                 {
@@ -1326,7 +1778,6 @@ public class AutoFeedUI : MonoBehaviour
                 long currentPantry = production.GetCreatureFoodAmount(indivId, foodId);
                 int hungerDeficit = Mathf.Max(0, neededUnits - (int)currentPantry);
 
-                // If creature is not hungry and has enough food, do not take food yet!
                 if (hungerDeficit <= 0) continue;
 
                 int availableForThis = Mathf.Min(hungerDeficit, Mathf.Min(remainingBudget - distributedThisSlot, stock - distributedThisSlot));
@@ -1349,7 +1800,7 @@ public class AutoFeedUI : MonoBehaviour
 
         if (totalDeposited > 0)
         {
-            SaveBiomeSlots(targetBiome);
+            SaveClusterSlots(cluster.ClusterKey);
         }
 
         return totalDeposited;
@@ -1371,7 +1822,7 @@ public class AutoFeedUI : MonoBehaviour
         int maxBudget = Mathf.Max(slots.budgets[slotIndex], stock);
 
         modalEditingSlot = slotIndex;
-        modalCurrentAmount = slots.budgets[slotIndex];
+        int initialAmount = Mathf.Max(1, slots.budgets[slotIndex]);
 
         if (quantityModalObj == null)
         {
@@ -1394,13 +1845,16 @@ public class AutoFeedUI : MonoBehaviour
         if (modalSlider != null)
         {
             modalSlider.minValue = 1;
-            modalSlider.maxValue = maxBudget;
-            modalSlider.SetValueWithoutNotify(modalCurrentAmount);
+            modalSlider.maxValue = Mathf.Max(1, maxBudget);
+            modalSlider.SetValueWithoutNotify(Mathf.Clamp(initialAmount, 1, Mathf.Max(1, maxBudget)));
         }
 
+        modalCurrentAmount = Mathf.Clamp(initialAmount, 1, Mathf.Max(1, maxBudget));
         UpdateModalAmountDisplay();
         quantityModalObj.SetActive(true);
         quantityModalObj.transform.SetAsLastSibling();
+        modalFoodNameText?.ForceMeshUpdate();
+        modalAmountValueText?.ForceMeshUpdate();
         GameAudioManager.Instance?.PlayClick();
     }
 
@@ -1450,59 +1904,9 @@ public class AutoFeedUI : MonoBehaviour
         modalAmountValueText = CreateTMP(cRect, "AmountValue", "1", 24f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
         SetTopLeft(modalAmountValueText.rectTransform, new Vector2(80f, -94f), new Vector2(200f, 30f));
 
-        // Slider
-        var sliderObj = new GameObject("Slider", typeof(RectTransform), typeof(Slider));
-        sliderObj.transform.SetParent(cRect, false);
-        SetTopLeft(sliderObj.GetComponent<RectTransform>(), new Vector2(30f, -132f), new Vector2(300f, 20f));
-
-        modalSlider = sliderObj.GetComponent<Slider>();
-        modalSlider.wholeNumbers = true;
-
-        var trackObj = new GameObject("Background", typeof(RectTransform), typeof(Image));
-        trackObj.transform.SetParent(sliderObj.transform, false);
-        var trRect = trackObj.GetComponent<RectTransform>();
-        trRect.anchorMin = new Vector2(0f, 0.30f);
-        trRect.anchorMax = new Vector2(1f, 0.70f);
-        trRect.offsetMin = Vector2.zero;
-        trRect.offsetMax = Vector2.zero;
-        var trImg = trackObj.GetComponent<Image>();
-        trImg.sprite = LumiWorldUITheme.PillSprite;
-        trImg.type = Image.Type.Sliced;
-        trImg.color = LumiWorldUITheme.Inset;
-
-        var fillArea = new GameObject("Fill Area", typeof(RectTransform));
-        fillArea.transform.SetParent(sliderObj.transform, false);
-        var faRect = fillArea.GetComponent<RectTransform>();
-        faRect.anchorMin = new Vector2(0f, 0.30f);
-        faRect.anchorMax = new Vector2(1f, 0.70f);
-        faRect.sizeDelta = new Vector2(-12f, 0f);
-
-        var fillObj = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-        fillObj.transform.SetParent(fillArea.transform, false);
-        var fRect = fillObj.GetComponent<RectTransform>();
-        EconomyHUD.Stretch(fRect);
-        var fImg = fillObj.GetComponent<Image>();
-        fImg.sprite = LumiWorldUITheme.PillSprite;
-        fImg.type = Image.Type.Sliced;
-        fImg.color = LumiWorldUITheme.Primary;
-        modalSlider.fillRect = fRect;
-
-        var handleArea = new GameObject("Handle Slide Area", typeof(RectTransform));
-        handleArea.transform.SetParent(sliderObj.transform, false);
-        var haRect = handleArea.GetComponent<RectTransform>();
-        EconomyHUD.Stretch(haRect);
-        haRect.sizeDelta = new Vector2(-16f, 0f);
-
-        var handleObj = new GameObject("Handle", typeof(RectTransform), typeof(Image));
-        handleObj.transform.SetParent(handleArea.transform, false);
-        var hRect = handleObj.GetComponent<RectTransform>();
-        hRect.sizeDelta = new Vector2(20f, 20f);
-        var hImg = handleObj.GetComponent<Image>();
-        hImg.sprite = LumiWorldUITheme.PillSprite;
-        hImg.type = Image.Type.Sliced;
-        hImg.color = LumiWorldUITheme.Primary;
-        modalSlider.handleRect = hRect;
-        modalSlider.targetGraphic = hImg;
+        // Slider (clean supersampled circle knob + 8px recessed track)
+        modalSlider = LumiWorldUITheme.CreateCleanSlider(cRect, "Slider", trackHeight: 8f, knobDiameter: 22f);
+        SetTopLeft(modalSlider.GetComponent<RectTransform>(), new Vector2(30f, -128f), new Vector2(300f, 28f));
 
         modalSlider.onValueChanged.AddListener((v) =>
         {
@@ -1511,33 +1915,21 @@ public class AutoFeedUI : MonoBehaviour
         });
 
         // Cancel & Apply buttons
-        GameObject cancelObj = new GameObject("CancelBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        cancelObj.transform.SetParent(cRect, false);
-        RectTransform cbRect = cancelObj.GetComponent<RectTransform>();
+        Button cancelBtn = LumiWorldUITheme.CreatePillButton(
+            cRect, "CancelBtn", "Cancel", null, primary: false, fontSize: 14f, onClick: CloseQuantityModal, out _, out _, out _, radius: 14);
+        cancelBtn.gameObject.AddComponent<DialogButtonJuice>();
+        RectTransform cbRect = cancelBtn.GetComponent<RectTransform>();
         cbRect.anchorMin = cbRect.anchorMax = cbRect.pivot = new Vector2(0f, 0f);
         cbRect.anchoredPosition = new Vector2(30f, 18f);
         cbRect.sizeDelta = new Vector2(142f, 38f);
-        Image cbImg = cancelObj.GetComponent<Image>();
-        cbImg.sprite = LumiWorldUITheme.ButtonSecondarySprite;
-        cbImg.type = Image.Type.Sliced;
-        cbImg.color = LumiWorldUITheme.Inset;
-        var cbTxt = CreateTMP(cbRect, "Label", "Cancel", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(cbTxt.rectTransform);
-        cancelObj.GetComponent<Button>().onClick.AddListener(CloseQuantityModal);
 
-        GameObject applyObj = new GameObject("ApplyBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        applyObj.transform.SetParent(cRect, false);
-        RectTransform abRect = applyObj.GetComponent<RectTransform>();
+        Button applyBtn = LumiWorldUITheme.CreatePillButton(
+            cRect, "ApplyBtn", "Apply", null, primary: true, fontSize: 14f, onClick: OnApplyQuantityModal, out _, out _, out _, radius: 14);
+        applyBtn.gameObject.AddComponent<DialogButtonJuice>();
+        RectTransform abRect = applyBtn.GetComponent<RectTransform>();
         abRect.anchorMin = abRect.anchorMax = abRect.pivot = new Vector2(1f, 0f);
         abRect.anchoredPosition = new Vector2(-30f, 18f);
         abRect.sizeDelta = new Vector2(142f, 38f);
-        Image abImg = applyObj.GetComponent<Image>();
-        abImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
-        abImg.type = Image.Type.Sliced;
-        abImg.color = LumiWorldUITheme.Primary;
-        var abTxt = CreateTMP(abRect, "Label", "Apply", 14f, Color.white, true, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(abTxt.rectTransform);
-        applyObj.GetComponent<Button>().onClick.AddListener(OnApplyQuantityModal);
     }
 
     private void UpdateModalAmountDisplay()

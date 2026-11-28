@@ -2020,20 +2020,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreTutorialController
   progressKey: LumiWorld.ScoreTutorial.v1
-  steps:
-  - scoreThreshold: 10
-    purpose: Test huong dan
-    customHighlightArea: {fileID: 235917631}
-    holePadding: 1
-    pointerMode: 0
-    dragStartOffset: {x: 0, y: 0}
-  - scoreThreshold: 15
-    purpose: 22222222222222222222
-    customHighlightArea: {fileID: 1243688024}
-    holePadding: 1
-    pointerMode: 0
-    dragStartOffset: {x: 0, y: 0}
-  replayCompletedSteps: 1
+  steps: []
+  replayCompletedSteps: 0
   overlay: {fileID: 1976809966}
 --- !u!1 &1357980047
 GameObject:

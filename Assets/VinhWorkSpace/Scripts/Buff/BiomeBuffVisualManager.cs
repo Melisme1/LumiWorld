@@ -68,13 +68,24 @@ public class BiomeBuffVisualManager : MonoBehaviour
         public Color BaseColor;
     }
 
+    private enum SelectionBuffKind
+    {
+        None = 0,
+        Building = 1,
+        River = 2
+    }
+
     private readonly Dictionary<string, BiomeBuffState> _previousBuffStates = new Dictionary<string, BiomeBuffState>();
     private readonly HashSet<string> _previousIncidentClusters = new HashSet<string>();
     private readonly Dictionary<string, ClusterBorderVisual> _borderVisuals = new Dictionary<string, ClusterBorderVisual>();
     private readonly List<GameObject> _hoverOverlayPool = new List<GameObject>();
+    private readonly List<GameObject> _selectionOverlayPool = new List<GameObject>();
+    private readonly HashSet<string> _selectedBuffedClusterKeys = new HashSet<string>();
 
     private Transform _borderRoot;
     private Transform _hoverRoot;
+    private Transform _selectionRoot;
+    private ClusterBorderVisual _selectionAuraRingVisual;
 
     private Material _sharedHoverBaseMaterial;
     private Mesh _hexOverlayMesh;
@@ -82,6 +93,7 @@ public class BiomeBuffVisualManager : MonoBehaviour
     private HexCoordinates _lastPreviewHex;
     private CardData _lastPreviewCard;
     private bool _hasActivePreview;
+    private SelectionBuffKind _selectionBuffKind = SelectionBuffKind.None;
 
     private void Awake()
     {
@@ -114,6 +126,17 @@ public class BiomeBuffVisualManager : MonoBehaviour
         RefreshAllBuffs();
     }
 
+    private void Update()
+    {
+        if (_selectionAuraRingVisual != null && _selectionAuraRingVisual.Root != null &&
+            _selectionAuraRingVisual.Root.activeSelf && _selectionAuraRingVisual.Material != null)
+        {
+            Color c = _selectionAuraRingVisual.BaseColor;
+            float pulse = 0.80f + 0.20f * Mathf.Sin(Time.unscaledTime * 3.2f);
+            _selectionAuraRingVisual.Material.color = new Color(c.r, c.g, c.b, Mathf.Clamp01(c.a * pulse));
+        }
+    }
+
     private void OnDestroy()
     {
         if (_habitatManager != null)
@@ -125,6 +148,8 @@ public class BiomeBuffVisualManager : MonoBehaviour
             DestroyBorderVisual(kvp.Value);
         }
         _borderVisuals.Clear();
+        DestroyBorderVisual(_selectionAuraRingVisual);
+        _selectionAuraRingVisual = null;
 
         if (_sharedHoverBaseMaterial != null) Destroy(_sharedHoverBaseMaterial);
         if (_hexOverlayMesh != null) Destroy(_hexOverlayMesh);
@@ -161,7 +186,12 @@ public class BiomeBuffVisualManager : MonoBehaviour
             if (hasWildIncident) _previousIncidentClusters.Add(info.ClusterKey);
             else _previousIncidentClusters.Remove(info.ClusterKey);
 
-            if (!info.BuffState.HasAnyBuff && !hasWildIncident)
+            bool isSelectedBuffed = _selectionBuffKind != SelectionBuffKind.None &&
+                                    _selectedBuffedClusterKeys.Contains(info.ClusterKey) &&
+                                    info.BuffState.HasAnyBuff;
+
+            // Chỉ luôn hiện viền đỏ của thú hoang; viền buff Building / Suối ẩn bình thường và chỉ hiện khi click chọn.
+            if (!hasWildIncident && !isSelectedBuffed)
             {
                 RemoveBorderForCluster(info.ClusterKey);
                 continue;
@@ -169,8 +199,7 @@ public class BiomeBuffVisualManager : MonoBehaviour
 
             bool newlyActivated =
                 (!wasInIncident && hasWildIncident) ||
-                (!prevState.HasRiverBuff && info.BuffState.HasRiverBuff) ||
-                (!prevState.HasBuildingBuff && info.BuffState.HasBuildingBuff);
+                isSelectedBuffed;
 
             UpdateBorderForCluster(info, worldGen, newlyActivated, hasWildIncident);
         }
@@ -212,6 +241,11 @@ public class BiomeBuffVisualManager : MonoBehaviour
             return;
         }
 
+        if (_selectionBuffKind != SelectionBuffKind.None)
+        {
+            ClearSelectionBuff(worldGen);
+        }
+
         _hasActivePreview = true;
         _lastPreviewCard = cardData;
         _lastPreviewHex = hoverHex;
@@ -224,14 +258,21 @@ public class BiomeBuffVisualManager : MonoBehaviour
 
         if (isBuilding)
         {
+            string bType = cardData.GetBuildingTypeId();
+            BuildingUpgradeMethod upgMethod = cardData.GetBuildingUpgradeMethod();
+            int maxLvl = cardData.GetBuildingMaxLevel();
+
             auraHexes = BiomeBuffCalculator.CollectBuildingAuraHexes(
                 hoverHex,
-                h => IsBuildingTileAt(h, worldGen),
+                bType,
+                upgMethod,
+                maxLvl,
+                1,
+                h => IsMatchingPreviewBuildingAt(h, bType, worldGen),
                 out int _,
                 out int radius);
             baseColor = buildingBuffColor;
 
-            // Khi cụm Building mới 1-2 ô (chưa đạt mốc 3 để tỏa buff), không vẽ aura rộng
             if (radius <= 0)
             {
                 HideHoverOverlaysOnly();
@@ -319,6 +360,315 @@ public class BiomeBuffVisualManager : MonoBehaviour
         }
     }
 
+    public void ShowSelectedBuildingBuff(HexCoordinates clickedHex, HexWorldGenerator worldGen = null)
+    {
+        if (worldGen == null) worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen == null || worldGen.MapTiles == null) return;
+
+        EnsureContainers();
+        EnsureSharedAssets();
+
+        var clusterInfo = SettlementClusterManager.Instance != null
+            ? SettlementClusterManager.Instance.GetClusterInfo(clickedHex)
+            : null;
+
+        List<HexCoordinates> cluster;
+        int radius;
+        if (clusterInfo != null && clusterInfo.Hexes.Count > 0)
+        {
+            cluster = clusterInfo.Hexes;
+            radius = clusterInfo.AuraRadius;
+        }
+        else
+        {
+            cluster = BiomeBuffCalculator.CollectConnectedBuildingCluster(
+                clickedHex,
+                h => IsSameBuildingClusterAt(clickedHex, h, worldGen));
+            radius = BiomeBuffCalculator.GetBuildingAuraRadius(cluster.Count);
+        }
+
+        if (cluster.Count == 0)
+        {
+            ClearSelectionBuff(worldGen);
+            return;
+        }
+
+        HashSet<HexCoordinates> clusterSet = new HashSet<HexCoordinates>(cluster);
+        HashSet<HexCoordinates> auraHexes = BiomeBuffCalculator.CollectAuraHexesAroundCluster(cluster, radius);
+
+        _selectionBuffKind = SelectionBuffKind.Building;
+        ApplySelectionOverlaysAndBorders(clusterSet, auraHexes, buildingBuffColor, worldGen);
+    }
+
+    public void ShowSelectedRiverBuff(HexCoordinates clickedHex, HexWorldGenerator worldGen = null)
+    {
+        if (worldGen == null) worldGen = FindAnyObjectByType<HexWorldGenerator>();
+        if (worldGen == null || worldGen.MapTiles == null) return;
+
+        EnsureContainers();
+        EnsureSharedAssets();
+
+        List<HexCoordinates> riverCluster = BiomeBuffCalculator.CollectConnectedRiverCluster(clickedHex, IsRiverTileAt);
+        if (riverCluster.Count == 0)
+        {
+            ClearSelectionBuff(worldGen);
+            return;
+        }
+
+        HashSet<HexCoordinates> riverSet = new HashSet<HexCoordinates>(riverCluster);
+        HashSet<HexCoordinates> auraHexes = BiomeBuffCalculator.CollectRiverNetworkAuraHexes(riverCluster);
+
+        _selectionBuffKind = SelectionBuffKind.River;
+        ApplySelectionOverlaysAndBorders(riverSet, auraHexes, riverBuffColor, worldGen);
+    }
+
+    public void ClearSelectionBuff(HexWorldGenerator worldGen = null)
+    {
+        bool hadSelection = _selectionBuffKind != SelectionBuffKind.None || _selectedBuffedClusterKeys.Count > 0;
+        _selectionBuffKind = SelectionBuffKind.None;
+        _selectedBuffedClusterKeys.Clear();
+
+        if (_selectionAuraRingVisual != null && _selectionAuraRingVisual.Root != null)
+        {
+            _selectionAuraRingVisual.Root.SetActive(false);
+        }
+
+        for (int i = 0; i < _selectionOverlayPool.Count; i++)
+        {
+            if (_selectionOverlayPool[i] != null) _selectionOverlayPool[i].SetActive(false);
+        }
+
+        if (hadSelection)
+        {
+            RefreshAllBuffs(worldGen);
+        }
+    }
+
+    private void ApplySelectionOverlaysAndBorders(
+        HashSet<HexCoordinates> sourceHexes,
+        HashSet<HexCoordinates> auraHexes,
+        Color baseColor,
+        HexWorldGenerator worldGen)
+    {
+        _selectedBuffedClusterKeys.Clear();
+
+        // 1. Vẽ duy nhất 1 vòng bao ngoài cùng quanh phạm vi ảnh hưởng của công trình / suối
+        HashSet<HexCoordinates> auraZoneHexes = new HashSet<HexCoordinates>(sourceHexes);
+        if (auraHexes != null)
+        {
+            foreach (var h in auraHexes) auraZoneHexes.Add(h);
+        }
+        UpdateSelectionAuraRing(auraZoneHexes, sourceHexes, baseColor, worldGen);
+
+        // 2. Chỉ khi có Biome đã hình thành chạm vào vùng ảnh hưởng mới bật buff visual cho Biome đó
+        List<BiomeClusterBuffInfo> clusters = EvaluateCurrentBiomeBuffs(worldGen);
+        HashSet<HexCoordinates> affectedBiomeHexes = new HashSet<HexCoordinates>();
+        for (int i = 0; i < clusters.Count; i++)
+        {
+            var cluster = clusters[i];
+            bool touchesAura = false;
+            for (int h = 0; h < cluster.Hexes.Count; h++)
+            {
+                if (auraHexes != null && auraHexes.Contains(cluster.Hexes[h]))
+                {
+                    touchesAura = true;
+                    break;
+                }
+            }
+
+            if (touchesAura)
+            {
+                _selectedBuffedClusterKeys.Add(cluster.ClusterKey);
+                for (int h = 0; h < cluster.Hexes.Count; h++)
+                {
+                    affectedBiomeHexes.Add(cluster.Hexes[h]);
+                }
+            }
+        }
+
+        int poolIndex = 0;
+        foreach (var hex in affectedBiomeHexes)
+        {
+            if (!worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null) continue;
+
+            Color c = new Color(baseColor.r, baseColor.g, baseColor.b, hoverAffectedBiomeAlpha);
+            float surfaceY = GetTileSurfaceY(tileObj);
+            Vector3 pos = tileObj.transform.position;
+            pos.y = surfaceY + 0.015f;
+
+            GameObject overlay = GetOrCreateOverlayFromPool(_selectionOverlayPool, _selectionRoot, "BuffSelectHex", poolIndex++);
+            overlay.SetActive(true);
+            overlay.transform.position = pos;
+
+            Renderer rend = overlay.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                rend.material.color = c;
+            }
+        }
+
+        for (int i = poolIndex; i < _selectionOverlayPool.Count; i++)
+        {
+            if (_selectionOverlayPool[i] != null) _selectionOverlayPool[i].SetActive(false);
+        }
+
+        RefreshAllBuffs(worldGen);
+    }
+
+    private void UpdateSelectionAuraRing(
+        HashSet<HexCoordinates> zoneHexes,
+        HashSet<HexCoordinates> sourceHexes,
+        Color baseColor,
+        HexWorldGenerator worldGen)
+    {
+        if (zoneHexes == null || zoneHexes.Count == 0)
+        {
+            if (_selectionAuraRingVisual != null && _selectionAuraRingVisual.Root != null)
+                _selectionAuraRingVisual.Root.SetActive(false);
+            return;
+        }
+
+        if (_selectionAuraRingVisual == null || _selectionAuraRingVisual.Root == null)
+        {
+            _selectionAuraRingVisual = CreateBorderVisual("SelectionAuraRing");
+            _selectionAuraRingVisual.Root.transform.SetParent(_selectionRoot, false);
+        }
+
+        if (_selectionAuraRingVisual.Material != null)
+        {
+            _selectionAuraRingVisual.Material.renderQueue = 3250;
+        }
+
+        _selectionAuraRingVisual.Root.SetActive(true);
+        RebuildZoneOutlineMesh(_selectionAuraRingVisual.Mesh, zoneHexes, sourceHexes, worldGen);
+        Color vividColor = _selectionBuffKind == SelectionBuffKind.River
+            ? new Color(0.22f, 0.88f, 1.00f, 0.96f)
+            : new Color(1.00f, 0.84f, 0.20f, 0.96f);
+        _selectionAuraRingVisual.BaseColor = vividColor;
+        _selectionAuraRingVisual.Material.color = vividColor;
+    }
+
+    private void RebuildZoneOutlineMesh(
+        Mesh mesh,
+        HashSet<HexCoordinates> zoneHexes,
+        HashSet<HexCoordinates> sourceHexes,
+        HexWorldGenerator worldGen)
+    {
+        mesh.Clear();
+        if (zoneHexes == null || zoneHexes.Count == 0) return;
+
+        // Lấy độ cao cao nhất trong cụm/vùng ảnh hưởng để vòng bao luôn nổi rõ, không bị chìm dưới vách đá khi xoay camera
+        float maxSurfaceY = HexMetrics.DefaultTileY + HexMetrics.TileHeight;
+        if (worldGen != null && worldGen.MapTiles != null)
+        {
+            foreach (var zh in zoneHexes)
+            {
+                if (worldGen.MapTiles.TryGetValue(zh, out GameObject tObj) && tObj != null)
+                {
+                    maxSurfaceY = Mathf.Max(maxSurfaceY, GetTileSurfaceY(tObj));
+                }
+            }
+            if (sourceHexes != null)
+            {
+                foreach (var sh in sourceHexes)
+                {
+                    if (worldGen.MapTiles.TryGetValue(sh, out GameObject st) && st != null)
+                    {
+                        maxSurfaceY = Mathf.Max(maxSurfaceY, GetTileSurfaceY(st));
+                    }
+                }
+            }
+        }
+
+        List<Vector3> vertices = new List<Vector3>();
+        List<Color> colors = new List<Color>();
+        List<int> triangles = new List<int>();
+
+        float rInner = HexMetrics.OuterRadius * 0.78f;
+        float rOuter = HexMetrics.OuterRadius * 1.03f;
+        Color innerColor = new Color(1f, 1f, 1f, 0.25f);
+        Color outerColor = new Color(1f, 1f, 1f, 1f);
+        Color topFadeColor = new Color(1f, 1f, 1f, 0f);
+        float ringBaseY = maxSurfaceY + 0.14f;
+        float rimH = 0.52f;
+
+        foreach (var hex in zoneHexes)
+        {
+            GameObject tileObj = null;
+            bool hasTile = worldGen != null && worldGen.MapTiles != null &&
+                           worldGen.MapTiles.TryGetValue(hex, out tileObj) && tileObj != null;
+            Vector3 center = hasTile ? tileObj.transform.position : HexMetrics.HexToWorldPosition(hex, HexMetrics.DefaultTileY);
+
+            for (int dir = 0; dir < 6; dir++)
+            {
+                if (zoneHexes.Contains(hex.GetNeighbor(dir))) continue;
+
+                float normalDeg = -60f * dir;
+                float a0 = Mathf.Deg2Rad * (normalDeg - 30f);
+                float a1 = Mathf.Deg2Rad * (normalDeg + 30f);
+
+                Vector3 dir0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0));
+                Vector3 dir1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1));
+
+                int baseIdx = vertices.Count;
+                Vector3 pInner0 = new Vector3(center.x + dir0.x * rInner, ringBaseY, center.z + dir0.z * rInner);
+                Vector3 pOuter0 = new Vector3(center.x + dir0.x * rOuter, ringBaseY, center.z + dir0.z * rOuter);
+                Vector3 pOuter1 = new Vector3(center.x + dir1.x * rOuter, ringBaseY, center.z + dir1.z * rOuter);
+                Vector3 pInner1 = new Vector3(center.x + dir1.x * rInner, ringBaseY, center.z + dir1.z * rInner);
+
+                vertices.Add(pInner0); colors.Add(innerColor);
+                vertices.Add(pOuter0); colors.Add(outerColor);
+                vertices.Add(pOuter1); colors.Add(outerColor);
+                vertices.Add(pInner1); colors.Add(innerColor);
+
+                // Vẽ 2 mặt cho vòng nằm ngang để nhìn rõ từ mọi góc camera
+                triangles.Add(baseIdx);
+                triangles.Add(baseIdx + 2);
+                triangles.Add(baseIdx + 1);
+                triangles.Add(baseIdx);
+                triangles.Add(baseIdx + 3);
+                triangles.Add(baseIdx + 2);
+
+                triangles.Add(baseIdx);
+                triangles.Add(baseIdx + 1);
+                triangles.Add(baseIdx + 2);
+                triangles.Add(baseIdx);
+                triangles.Add(baseIdx + 2);
+                triangles.Add(baseIdx + 3);
+
+                // Dải hào quang đứng cao 0.52m dễ thấy từ góc nghiêng & trên cao
+                int rimIdx = vertices.Count;
+                Vector3 pTop0 = new Vector3(pOuter0.x, pOuter0.y + rimH, pOuter0.z);
+                Vector3 pTop1 = new Vector3(pOuter1.x, pOuter1.y + rimH, pOuter1.z);
+
+                vertices.Add(pOuter0); colors.Add(outerColor);
+                vertices.Add(pTop0); colors.Add(topFadeColor);
+                vertices.Add(pTop1); colors.Add(topFadeColor);
+                vertices.Add(pOuter1); colors.Add(outerColor);
+
+                triangles.Add(rimIdx);
+                triangles.Add(rimIdx + 1);
+                triangles.Add(rimIdx + 2);
+                triangles.Add(rimIdx);
+                triangles.Add(rimIdx + 2);
+                triangles.Add(rimIdx + 3);
+
+                triangles.Add(rimIdx);
+                triangles.Add(rimIdx + 2);
+                triangles.Add(rimIdx + 1);
+                triangles.Add(rimIdx);
+                triangles.Add(rimIdx + 3);
+                triangles.Add(rimIdx + 2);
+            }
+        }
+
+        mesh.SetVertices(vertices);
+        mesh.SetColors(colors);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+    }
+
     private List<BiomeClusterBuffInfo> EvaluateCurrentBiomeBuffs(HexWorldGenerator worldGen)
     {
         return BiomeBuffCalculator.EvaluateAllBiomeBuffs(
@@ -326,7 +676,52 @@ public class BiomeBuffVisualManager : MonoBehaviour
             h => GetBiomeTerrainIdAt(h, worldGen),
             h => GetBiomeClusterIdAt(h, worldGen),
             h => IsBuildingTileAt(h, worldGen),
-            IsRiverTileAt);
+            IsRiverTileAt,
+            (a, b) => IsSameBuildingClusterAt(a, b, worldGen),
+            (seed, count) => GetBuildingAuraRadiusAt(seed, count, worldGen));
+    }
+
+    private static bool IsMatchingPreviewBuildingAt(HexCoordinates hex, string buildingTypeId, HexWorldGenerator worldGen)
+    {
+        if (worldGen == null || worldGen.MapTiles == null ||
+            !worldGen.MapTiles.TryGetValue(hex, out GameObject tileObj) || tileObj == null)
+            return false;
+        SettlementTile st = tileObj.GetComponent<SettlementTile>();
+        if (st == null || st.UpgradeMethod != BuildingUpgradeMethod.ClusterExpansion) return false;
+        return string.Equals(st.BuildingTypeId, buildingTypeId, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSameBuildingClusterAt(HexCoordinates a, HexCoordinates b, HexWorldGenerator worldGen)
+    {
+        if (SettlementClusterManager.Instance != null)
+            return SettlementClusterManager.Instance.IsSameBuildingCluster(a, b);
+        if (a == b) return IsBuildingTileAt(a, worldGen);
+        if (!worldGen.MapTiles.TryGetValue(a, out var tileA) || tileA == null) return false;
+        if (!worldGen.MapTiles.TryGetValue(b, out var tileB) || tileB == null) return false;
+        var stA = tileA.GetComponent<SettlementTile>();
+        var stB = tileB.GetComponent<SettlementTile>();
+        if (stA == null || stB == null) return false;
+        if (stA.UpgradeMethod != BuildingUpgradeMethod.ClusterExpansion ||
+            stB.UpgradeMethod != BuildingUpgradeMethod.ClusterExpansion)
+            return false;
+        return string.Equals(stA.BuildingTypeId, stB.BuildingTypeId, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int GetBuildingAuraRadiusAt(HexCoordinates seed, int clusterCount, HexWorldGenerator worldGen)
+    {
+        if (worldGen != null && worldGen.MapTiles != null &&
+            worldGen.MapTiles.TryGetValue(seed, out var tileObj) && tileObj != null)
+        {
+            var st = tileObj.GetComponent<SettlementTile>();
+            if (st != null)
+            {
+                int lvl = st.UpgradeMethod == BuildingUpgradeMethod.ClusterExpansion
+                    ? BuildingRules.GetLevelForClusterSize(clusterCount, st.MaxLevel)
+                    : Mathf.Max(1, st.BuildingLevel);
+                return BuildingRules.GetAuraRadius(st.BuildingTypeId, lvl);
+            }
+        }
+        return BiomeBuffCalculator.GetBuildingAuraRadius(clusterCount);
     }
 
     private static string GetBiomeTerrainIdAt(HexCoordinates hex, HexWorldGenerator worldGen)
@@ -447,7 +842,11 @@ public class BiomeBuffVisualManager : MonoBehaviour
 
         RebuildPerimeterRibbonMesh(visual.Mesh, info.Hexes, worldGen);
 
-        Color tint = hasWildIncident ? wildIncidentColor : ResolveBorderColor(info.BuffState);
+        Color tint = hasWildIncident
+            ? wildIncidentColor
+            : (_selectionBuffKind == SelectionBuffKind.Building
+                ? buildingBuffColor
+                : (_selectionBuffKind == SelectionBuffKind.River ? riverBuffColor : ResolveBorderColor(info.BuffState)));
         float targetAlpha = hasWildIncident ? borderIncidentAlpha : borderAmbientAlpha;
         visual.BaseColor = new Color(tint.r, tint.g, tint.b, targetAlpha);
 
@@ -646,10 +1045,15 @@ public class BiomeBuffVisualManager : MonoBehaviour
 
     private GameObject GetOrCreateHoverOverlay(int index)
     {
-        while (_hoverOverlayPool.Count <= index)
+        return GetOrCreateOverlayFromPool(_hoverOverlayPool, _hoverRoot, "BuffHoverHex", index);
+    }
+
+    private GameObject GetOrCreateOverlayFromPool(List<GameObject> pool, Transform root, string prefix, int index)
+    {
+        while (pool.Count <= index)
         {
-            GameObject go = new GameObject($"BuffHoverHex_{_hoverOverlayPool.Count}");
-            go.transform.SetParent(_hoverRoot, false);
+            GameObject go = new GameObject($"{prefix}_{pool.Count}");
+            go.transform.SetParent(root, false);
 
             MeshFilter mf = go.AddComponent<MeshFilter>();
             mf.sharedMesh = _hexOverlayMesh;
@@ -660,10 +1064,10 @@ public class BiomeBuffVisualManager : MonoBehaviour
             mr.receiveShadows = false;
 
             go.SetActive(false);
-            _hoverOverlayPool.Add(go);
+            pool.Add(go);
         }
 
-        return _hoverOverlayPool[index];
+        return pool[index];
     }
 
     private static float GetTileSurfaceY(GameObject tileObj)
@@ -677,6 +1081,7 @@ public class BiomeBuffVisualManager : MonoBehaviour
     {
         if (_borderRoot == null) _borderRoot = CreateChildRoot("BiomeBuffBorders");
         if (_hoverRoot == null) _hoverRoot = CreateChildRoot("HoverAuraPreview");
+        if (_selectionRoot == null) _selectionRoot = CreateChildRoot("SelectedBuffOverlays");
     }
 
     private Transform CreateChildRoot(string childName)
