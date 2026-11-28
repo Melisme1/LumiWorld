@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>LumiWorld Admin</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <!-- Đăng nhập: chỉ tài khoản admin vào được, dữ liệu lấy qua /api/v1/admin/* -->
+  <main id="login" class="login" hidden>
+    <form id="login-form" class="card login-card" autocomplete="on">
+      <h1>LumiWorld Admin</h1>
+      <p class="muted">Sign in with an admin account.</p>
+      <label>Username <input id="login-user" name="username" autocomplete="username" required maxlength="32"></label>
+      <label>Password <input id="login-pass" name="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit" class="primary" id="login-button">Sign in</button>
+      <p id="login-error" class="error" role="alert"></p>
+    </form>
+  </main>
+
+  <div id="app" class="app" hidden>
+    <header class="topbar">
+      <span class="brand">LumiWorld Admin</span>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#overview" data-tab="overview">Overview</a>
+        <a href="#players" data-tab="players">Players</a>
+        <a href="#config" data-tab="config">Settings</a>
+      </nav>
+      <span class="who"><span id="who-name"></span> <button id="logout" class="link">Sign out</button></span>
+    </header>
+
+    <!-- Tổng quan -->
+    <section id="tab-overview" class="tab" hidden>
+      <div class="section-head">
+        <h2>Overview</h2>
+        <div class="segmented" role="group" aria-label="Range">
+          <button data-range="7" class="active">7 days</button>
+          <button data-range="30">30 days</button>
+          <button data-range="90">90 days</button>
+        </div>
+      </div>
+      <p id="overview-status" class="muted"></p>
+      <div class="tiles">
+        <div class="tile"><span class="tile-label">Players</span><span class="tile-value" id="t-players">–</span></div>
+        <div class="tile"><span class="tile-label">Active today</span><span class="tile-value" id="t-active">–</span></div>
+        <div class="tile"><span class="tile-label">New (7 days)</span><span class="tile-value" id="t-new">–</span></div>
+        <div class="tile"><span class="tile-label">Shared islands</span><span class="tile-value" id="t-shared">–</span></div>
+        <div class="tile"><span class="tile-label">Market sales (7 days)</span><span class="tile-value" id="t-sales">–</span><span class="tile-sub" id="t-sales-coins"></span></div>
+        <div class="tile"><span class="tile-label">Coins in saves</span><span class="tile-value" id="t-coins">–</span></div>
+      </div>
+      <div class="card">
+        <h3>Active players per day</h3>
+        <div id="chart" class="chart" role="img" aria-label="Active players per day"></div>
+      </div>
+      <div class="card">
+        <h3>Daily numbers</h3>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr>
+              <th>Day</th><th>Active</th><th>New</th><th>Lots listed</th><th>Lots sold</th><th>Coins traded</th>
+              <th>Fees</th><th>Trades offered</th><th>Trades done</th><th>Shares</th><th>Visits</th><th>Obstacles</th>
+            </tr></thead>
+            <tbody id="daily-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Người chơi -->
+    <section id="tab-players" class="tab" hidden>
+      <div class="section-head">
+        <h2>Players</h2>
+        <form id="player-search" class="inline-form">
+          <input id="player-query" type="search" placeholder="Username or name" maxlength="32" aria-label="Search players">
+          <label class="check"><input id="player-suspended" type="checkbox"> Suspended only</label>
+          <button type="submit">Search</button>
+        </form>
+      </div>
+      <p id="players-status" class="muted" role="status"></p>
+      <div class="card table-wrap">
+        <table class="data">
+          <thead><tr>
+            <th>Username</th><th>Name</th><th>Role</th><th>Status</th><th>Joined</th><th>Last login</th><th>Score</th><th></th>
+          </tr></thead>
+          <tbody id="player-rows"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button id="players-prev">Previous</button>
+        <span id="players-page" class="muted"></span>
+        <button id="players-next">Next</button>
+      </div>
+    </section>
+
+    <!-- Tham số -->
+    <section id="tab-config" class="tab" hidden>
+      <div class="section-head">
+        <h2>Settings</h2>
+        <input id="config-filter" type="search" placeholder="Filter keys" aria-label="Filter settings">
+      </div>
+      <p class="muted">Changes apply to the next action on the server right away. Numbers only, except obstacle.allowedKinds.</p>
+      <p id="config-status" class="muted" role="status"></p>
+      <div id="config-groups"></div>
+    </section>
+  </div>
+</body>
+</html>
