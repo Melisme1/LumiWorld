@@ -52,6 +52,8 @@ public class AutoFeedUI : MonoBehaviour
     {
         public int index;
         public RectTransform root;
+        public Image bg;
+        public Shadow shadow;
         public GameObject emptyContainer;
         public Button addFoodButton;
         public TextMeshProUGUI addFoodLabel;
@@ -73,6 +75,7 @@ public class AutoFeedUI : MonoBehaviour
         public string clusterKey;
         public Button button;
         public Image bg;
+        public Shadow shadow;
         public Image border;
         public Image emblem;
         public TextMeshProUGUI label;
@@ -608,40 +611,21 @@ public class AutoFeedUI : MonoBehaviour
 
     private void BuildHeader()
     {
-        var titleTxt = CreateTMP(panel, "Title", "Automatic Feeding", 25f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        titleTxt.font = LumiWorldUITheme.Heading ?? titleTxt.font;
+        var titleTxt = LumiWorldUITheme.CreateLabel(panel, "Title", "Automatic Feeding", 25f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
         titleTxt.overflowMode = TextOverflowModes.Overflow;
-        SetTopLeft(titleTxt.rectTransform, new Vector2(30f, -15f), new Vector2(540f, 42f));
+        SetTopLeft(titleTxt.rectTransform, new Vector2(28f, -15f), new Vector2(540f, 42f));
 
-        // Close [×] button
-        GameObject closeObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        closeObj.transform.SetParent(panel, false);
-        var cRect = closeObj.GetComponent<RectTransform>();
-        cRect.anchorMin = cRect.anchorMax = cRect.pivot = new Vector2(1f, 1f);
-        cRect.anchoredPosition = new Vector2(-24f, -16f);
-        cRect.sizeDelta = new Vector2(42f, 42f);
+        // Close [×] button (matches P-00 / P-07 circle close button)
+        Button cBtn = LumiWorldUITheme.CreateCloseButton(panel, 28f, 16f, Close, 40f);
+        LumiWorldUITheme.AddSoftElevation(cBtn.gameObject, 2.5f, 0.14f);
 
-        var cImg = closeObj.GetComponent<Image>();
-        cImg.sprite = LumiWorldUITheme.PillSprite;
-        cImg.type = Image.Type.Sliced;
-        cImg.color = LumiWorldUITheme.Inset;
-        LumiWorldUITheme.AddSoftElevation(closeObj, 2.5f, 0.14f);
-
-        GameObject xIcObj = new GameObject("X", typeof(RectTransform), typeof(Image));
-        xIcObj.transform.SetParent(cRect, false);
-        RectTransform xIcRect = xIcObj.GetComponent<RectTransform>();
-        xIcRect.anchorMin = xIcRect.anchorMax = xIcRect.pivot = new Vector2(0.5f, 0.5f);
-        xIcRect.sizeDelta = new Vector2(18f, 18f);
-        Image xIcImg = xIcObj.GetComponent<Image>();
-        xIcImg.sprite = LumiWorldUITheme.Glyph("Close");
-        xIcImg.preserveAspect = true;
-        xIcImg.color = LumiWorldUITheme.Text;
-        xIcImg.raycastTarget = false;
-
-        var cBtn = closeObj.GetComponent<Button>();
-        cBtn.targetGraphic = cImg;
-        cBtn.navigation = new Navigation { mode = Navigation.Mode.None };
-        cBtn.onClick.AddListener(Close);
+        // Header Divider (matches P-00 / P-07)
+        var divObj = new GameObject("HeaderDivider", typeof(RectTransform), typeof(Image));
+        divObj.transform.SetParent(panel, false);
+        SetTopLeft(divObj.GetComponent<RectTransform>(), new Vector2(28f, -70f), new Vector2(WindowWidth - 56f, 2f));
+        var divImg = divObj.GetComponent<Image>();
+        divImg.color = LumiWorldUITheme.Inset;
+        divImg.raycastTarget = false;
     }
 
     private void BuildBiomeSelectorRow()
@@ -649,7 +633,7 @@ public class AutoFeedUI : MonoBehaviour
         GameObject rowObj = new GameObject("ClusterSelectorRow", typeof(RectTransform));
         rowObj.transform.SetParent(panel, false);
         biomeTabsRow = rowObj.GetComponent<RectTransform>();
-        SetTopLeft(biomeTabsRow, new Vector2(28f, -66f), new Vector2(WindowWidth - 56f, 52f));
+        SetTopLeft(biomeTabsRow, new Vector2(28f, -82f), new Vector2(WindowWidth - 56f, 52f));
 
         GameObject scrollObj = new GameObject("TabsScroll", typeof(RectTransform), typeof(ScrollRect));
         scrollObj.transform.SetParent(biomeTabsRow, false);
@@ -745,14 +729,14 @@ public class AutoFeedUI : MonoBehaviour
         {
             activeClusterKey = string.Empty;
             biomeTabsContent.sizeDelta = new Vector2(WindowWidth - 56f, 0f);
-            TextMeshProUGUI emptyNotice = CreateTMP(
+            TextMeshProUGUI emptyNotice = LumiWorldUITheme.CreateLabel(
                 biomeTabsContent,
                 "NoGranaryNotice",
                 "Place a Granary Post on a watered tile to configure Auto-Feed for nearby biomes.",
                 14f,
                 LumiWorldUITheme.Muted,
-                true,
-                TextAlignmentOptions.MidlineLeft);
+                headingFont: true,
+                align: TextAlignmentOptions.MidlineLeft);
             EconomyHUD.Stretch(emptyNotice.rectTransform);
             return;
         }
@@ -762,10 +746,10 @@ public class AutoFeedUI : MonoBehaviour
             activeClusterKey = clusters[0].ClusterKey;
         }
 
-        float curX = 0f;
+        float curX = 2f;
         const float tabH = 48f;
-        const float tabW = 228f;
-        const float gapX = 10f;
+        const float tabW = 248f;
+        const float gapX = 12f;
 
         for (int i = 0; i < clusters.Count; i++)
         {
@@ -784,37 +768,41 @@ public class AutoFeedUI : MonoBehaviour
             SetTopLeft(tRect, new Vector2(curX, -2f), new Vector2(tabW, tabH));
 
             Image bg = tabObj.GetComponent<Image>();
-            bg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("GranaryTabSurf_R14", Color.white, LumiWorldUITheme.Edge, 14, 1.2f);
+            bg.sprite = LumiWorldUITheme.SurfaceSprite;
             bg.type = Image.Type.Sliced;
+            bg.color = LumiWorldUITheme.Slot;
             LumiWorldUITheme.AddSoftElevation(tabObj, 2f, 0.12f);
+            Shadow tabShadow = tabObj.GetComponent<Shadow>();
+
+            GameObject emWell = new GameObject("EmblemWell", typeof(RectTransform), typeof(Image));
+            emWell.transform.SetParent(tRect, false);
+            SetTopLeft(emWell.GetComponent<RectTransform>(), new Vector2(10f, -8f), new Vector2(32f, 32f));
+            var ewBg = emWell.GetComponent<Image>();
+            ewBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            ewBg.type = Image.Type.Sliced;
+            ewBg.color = LumiWorldUITheme.Window;
+            ewBg.raycastTarget = false;
 
             GameObject emObj = new GameObject("Emblem", typeof(RectTransform), typeof(Image));
-            emObj.transform.SetParent(tRect, false);
+            emObj.transform.SetParent(emWell.transform, false);
             RectTransform emRect = emObj.GetComponent<RectTransform>();
-            emRect.anchorMin = emRect.anchorMax = new Vector2(0f, 0.5f);
-            emRect.pivot = new Vector2(0f, 0.5f);
-            emRect.anchoredPosition = new Vector2(12f, 0f);
-            emRect.sizeDelta = new Vector2(22f, 22f);
+            emRect.anchorMin = emRect.anchorMax = emRect.pivot = new Vector2(0.5f, 0.5f);
+            emRect.sizeDelta = new Vector2(18f, 18f);
             Image emImg = emObj.GetComponent<Image>();
             emImg.sprite = LumiWorldUITheme.Glyph("G-17") ?? LumiWorldUITheme.Glyph("G-06");
             emImg.preserveAspect = true;
             emImg.color = LumiWorldUITheme.Text;
             emImg.raycastTarget = false;
 
-            TextMeshProUGUI lbl = CreateTMP(tRect, "Label", tabLabel, 13.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-            SetTopLeft(lbl.rectTransform, new Vector2(42f, -5f), new Vector2(tabW - 52f, 20f));
+            TextMeshProUGUI lbl = LumiWorldUITheme.CreateLabel(tRect, "Label", tabLabel, 14f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(lbl.rectTransform, new Vector2(50f, -5f), new Vector2(tabW - 60f, 20f));
 
-            TextMeshProUGUI sub = CreateTMP(tRect, "SubLabel", subLabel, 11f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
-            SetTopLeft(sub.rectTransform, new Vector2(42f, -25f), new Vector2(tabW - 52f, 16f));
+            TextMeshProUGUI sub = LumiWorldUITheme.CreateLabel(tRect, "SubLabel", subLabel, 11.5f, LumiWorldUITheme.Muted, headingFont: false, align: TextAlignmentOptions.MidlineLeft);
+            sub.fontStyle = FontStyles.Normal;
+            SetTopLeft(sub.rectTransform, new Vector2(50f, -25f), new Vector2(tabW - 60f, 18f));
 
-            GameObject borderObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
-            borderObj.transform.SetParent(tRect, false);
-            EconomyHUD.Stretch(borderObj.GetComponent<RectTransform>());
-            Image borderImg = borderObj.GetComponent<Image>();
-            borderImg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("TabSelBorder_R14", Color.clear, LumiWorldUITheme.Primary, 14, 2.5f);
-            borderImg.type = Image.Type.Sliced;
-            borderImg.color = Color.white;
-            borderImg.raycastTarget = false;
+            // Radius 20 matches LumiWorldUITheme.SurfaceSprite corners pixel-for-pixel
+            Image borderImg = LumiWorldUITheme.CreateSelectionBorder(tRect, radius: 20, thickness: 2.5f);
 
             Button btn = tabObj.GetComponent<Button>();
             btn.targetGraphic = bg;
@@ -827,6 +815,7 @@ public class AutoFeedUI : MonoBehaviour
                 clusterKey = cluster.ClusterKey,
                 button = btn,
                 bg = bg,
+                shadow = tabShadow,
                 border = borderImg,
                 emblem = emImg,
                 label = lbl,
@@ -856,6 +845,7 @@ public class AutoFeedUI : MonoBehaviour
         {
             bool active = string.Equals(tab.clusterKey, activeClusterKey, StringComparison.Ordinal);
             tab.bg.color = active ? LumiWorldUITheme.Slot : LumiWorldUITheme.Inset;
+            if (tab.shadow != null) tab.shadow.enabled = active;
             if (tab.border != null) tab.border.gameObject.SetActive(active);
             if (tab.label != null) tab.label.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
             if (tab.subLabel != null) tab.subLabel.color = active ? LumiWorldUITheme.Text : LumiWorldUITheme.Muted;
@@ -868,7 +858,7 @@ public class AutoFeedUI : MonoBehaviour
         GameObject leftBox = new GameObject("LeftFoodListWell", typeof(RectTransform), typeof(Image));
         leftBox.transform.SetParent(panel, false);
         RectTransform lRect = leftBox.GetComponent<RectTransform>();
-        SetTopLeft(lRect, new Vector2(28f, -124f), new Vector2(464f, 416f));
+        SetTopLeft(lRect, new Vector2(28f, -144f), new Vector2(468f, 404f));
 
         Image wellBg = leftBox.GetComponent<Image>();
         wellBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -876,13 +866,20 @@ public class AutoFeedUI : MonoBehaviour
         wellBg.color = LumiWorldUITheme.Well;
         wellBg.raycastTarget = false;
 
+        var leftHdr = LumiWorldUITheme.CreateLabel(lRect, "LeftHeader", "Available foods", 17.5f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(leftHdr.rectTransform, new Vector2(18f, -14f), new Vector2(240f, 26f));
+
+        var leftHint = LumiWorldUITheme.CreateLabel(lRect, "LeftHint", "Select, then tap Assign", 12f, LumiWorldUITheme.Muted, headingFont: false, align: TextAlignmentOptions.MidlineRight);
+        leftHint.fontStyle = FontStyles.Normal;
+        SetTopLeft(leftHint.rectTransform, new Vector2(258f, -17f), new Vector2(192f, 20f));
+
         GameObject scrollObj = new GameObject("FoodScrollView", typeof(RectTransform), typeof(ScrollRect));
         scrollObj.transform.SetParent(lRect, false);
         RectTransform sRect = scrollObj.GetComponent<RectTransform>();
         sRect.anchorMin = Vector2.zero;
         sRect.anchorMax = Vector2.one;
-        sRect.offsetMin = new Vector2(6f, 6f);
-        sRect.offsetMax = new Vector2(-6f, -6f);
+        sRect.offsetMin = new Vector2(10f, 10f);
+        sRect.offsetMax = new Vector2(-10f, -48f);
 
         var scroll = scrollObj.GetComponent<ScrollRect>();
         scroll.horizontal = false;
@@ -906,21 +903,21 @@ public class AutoFeedUI : MonoBehaviour
         foodListContent.anchorMax = new Vector2(1f, 1f);
         foodListContent.pivot = new Vector2(0f, 1f);
         foodListContent.anchoredPosition = Vector2.zero;
-        foodListContent.sizeDelta = new Vector2(0f, 404f);
+        foodListContent.sizeDelta = new Vector2(0f, 346f);
 
         scroll.viewport = vRect;
         scroll.content = foodListContent;
 
-        emptyFoodNoticeText = CreateTMP(
+        emptyFoodNoticeText = LumiWorldUITheme.CreateLabel(
             scrollObj.transform,
             "EmptyNotice",
             "No configured creature food in Inventory.",
             15f,
             LumiWorldUITheme.Muted,
-            true,
-            TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(emptyFoodNoticeText.rectTransform);
-        emptyFoodNoticeText.textWrappingMode = TextWrappingModes.Normal;
+            headingFont: true,
+            align: TextAlignmentOptions.Center,
+            wrap: true);
+        LumiWorldUITheme.Stretch(emptyFoodNoticeText.rectTransform, 16f);
         emptyFoodNoticeText.gameObject.SetActive(false);
     }
 
@@ -929,7 +926,7 @@ public class AutoFeedUI : MonoBehaviour
         GameObject rightCard = new GameObject("RightAssignedCard", typeof(RectTransform), typeof(Image));
         rightCard.transform.SetParent(panel, false);
         RectTransform rRect = rightCard.GetComponent<RectTransform>();
-        SetTopLeft(rRect, new Vector2(508f, -124f), new Vector2(504f, 416f));
+        SetTopLeft(rRect, new Vector2(512f, -144f), new Vector2(500f, 404f));
 
         Image rBg = rightCard.GetComponent<Image>();
         rBg.sprite = LumiWorldUITheme.SurfaceSprite;
@@ -940,11 +937,11 @@ public class AutoFeedUI : MonoBehaviour
         LumiWorldUITheme.AddSoftElevation(rightCard, 4f, 0.16f);
 
         // Header: "Assigned foods" + coverage summary + [Locate] button
-        var hdrTxt = CreateTMP(rRect, "AssignedHeader", "Assigned foods", 18.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(hdrTxt.rectTransform, new Vector2(22f, -12f), new Vector2(190f, 26f));
+        var hdrTxt = LumiWorldUITheme.CreateLabel(rRect, "AssignedHeader", "Assigned foods", 18f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(hdrTxt.rectTransform, new Vector2(20f, -12f), new Vector2(240f, 26f));
 
-        clusterCoverageText = CreateTMP(rRect, "CoverageSub", "Select a Granary Post", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(clusterCoverageText.rectTransform, new Vector2(22f, -38f), new Vector2(360f, 18f));
+        clusterCoverageText = LumiWorldUITheme.CreateLabel(rRect, "CoverageSub", "Select a Granary Post", 12.5f, LumiWorldUITheme.Muted, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(clusterCoverageText.rectTransform, new Vector2(20f, -39f), new Vector2(344f, 20f));
 
         locateClusterBtn = LumiWorldUITheme.CreatePillButton(
             rRect,
@@ -952,20 +949,20 @@ public class AutoFeedUI : MonoBehaviour
             "Locate",
             "G-10",
             primary: false,
-            fontSize: 12.5f,
+            fontSize: 13f,
             onClick: OnLocateActiveClusterClicked,
             out _,
             out _,
             out _,
-            radius: 14);
+            radius: 17);
         locateClusterBtn.gameObject.AddComponent<DialogButtonJuice>();
-        LumiWorldUITheme.PlaceTopRight(locateClusterBtn.GetComponent<RectTransform>(), 20f, 16f, 102f, 32f);
+        LumiWorldUITheme.PlaceTopRight(locateClusterBtn.GetComponent<RectTransform>(), 20f, 16f, 106f, 34f);
 
-        // 3 Vertical Food Slot Rows
+        // 3 Vertical Food Slot Rows (balanced 20px side margins, 22px bottom margin)
         const float slotW = 460f;
-        const float slotH = 100f;
-        const float startY = -66f;
-        const float gapY = 10f;
+        const float slotH = 94f;
+        const float startY = -74f;
+        const float gapY = 12f;
 
         for (int i = 0; i < 3; i++)
         {
@@ -975,73 +972,87 @@ public class AutoFeedUI : MonoBehaviour
             GameObject slotObj = new GameObject("AssignedSlot_" + i, typeof(RectTransform), typeof(Image));
             slotObj.transform.SetParent(rRect, false);
             RectTransform sRect = slotObj.GetComponent<RectTransform>();
-            SetTopLeft(sRect, new Vector2(22f, y), new Vector2(slotW, slotH));
+            SetTopLeft(sRect, new Vector2(20f, y), new Vector2(slotW, slotH));
 
             Image sBg = slotObj.GetComponent<Image>();
             sBg.sprite = LumiWorldUITheme.SurfaceSprite;
             sBg.type = Image.Type.Sliced;
-            sBg.color = LumiWorldUITheme.Window;
+            sBg.color = LumiWorldUITheme.Slot;
             LumiWorldUITheme.AddSoftElevation(slotObj, 2.5f, 0.14f);
+            Shadow sShadow = slotObj.GetComponent<Shadow>();
 
-            var view = new DispenserSlotView { index = slotIndex, root = sRect };
+            var view = new DispenserSlotView { index = slotIndex, root = sRect, bg = sBg, shadow = sShadow };
 
-            // --- A. EMPTY CONTAINER ("[+ Add food]") ---
-            GameObject emptyCont = new GameObject("EmptyContainer", typeof(RectTransform));
+            // --- A. EMPTY CONTAINER (mirrors Habitat/Building Info slot layout + right primary "Assign" capsule) ---
+            GameObject emptyCont = new GameObject("EmptyContainer", typeof(RectTransform), typeof(Button));
             emptyCont.transform.SetParent(sRect, false);
             EconomyHUD.Stretch(emptyCont.GetComponent<RectTransform>());
             view.emptyContainer = emptyCont;
+            Button rowAssignBtn = emptyCont.GetComponent<Button>();
+            rowAssignBtn.transition = Selectable.Transition.None;
+            rowAssignBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+            rowAssignBtn.onClick.AddListener(() => OnAddFoodToSlotClicked(slotIndex));
 
-            GameObject addBtnObj = new GameObject("AddFoodBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-            addBtnObj.transform.SetParent(emptyCont.transform, false);
-            RectTransform abRect = addBtnObj.GetComponent<RectTransform>();
-            abRect.anchorMin = abRect.anchorMax = abRect.pivot = new Vector2(0.5f, 0.5f);
-            abRect.sizeDelta = new Vector2(168f, 40f);
-
-            Image abBg = addBtnObj.GetComponent<Image>();
-            abBg.sprite = LumiWorldUITheme.PillSprite;
-            abBg.type = Image.Type.Sliced;
-            abBg.color = LumiWorldUITheme.Surface;
-            LumiWorldUITheme.AddSoftElevation(addBtnObj, 2f, 0.14f);
+            GameObject emIcBox = new GameObject("EmptyIconBox", typeof(RectTransform), typeof(Image));
+            emIcBox.transform.SetParent(emptyCont.transform, false);
+            SetTopLeft(emIcBox.GetComponent<RectTransform>(), new Vector2(16f, -23f), new Vector2(48f, 48f));
+            var emIcBoxBg = emIcBox.GetComponent<Image>();
+            emIcBoxBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            emIcBoxBg.type = Image.Type.Sliced;
+            emIcBoxBg.color = LumiWorldUITheme.Slot;
+            emIcBoxBg.raycastTarget = false;
 
             GameObject plusIcObj = new GameObject("PlusIcon", typeof(RectTransform), typeof(Image));
-            plusIcObj.transform.SetParent(abRect, false);
+            plusIcObj.transform.SetParent(emIcBox.transform, false);
             RectTransform plusRect = plusIcObj.GetComponent<RectTransform>();
-            plusRect.anchorMin = plusRect.anchorMax = new Vector2(0f, 0.5f);
-            plusRect.pivot = new Vector2(0f, 0.5f);
-            plusRect.anchoredPosition = new Vector2(22f, 0f);
-            plusRect.sizeDelta = new Vector2(16f, 16f);
+            plusRect.anchorMin = plusRect.anchorMax = plusRect.pivot = new Vector2(0.5f, 0.5f);
+            plusRect.sizeDelta = new Vector2(20f, 20f);
             Image plusImg = plusIcObj.GetComponent<Image>();
             plusImg.sprite = LumiWorldUITheme.Glyph("Plus");
             plusImg.preserveAspect = true;
-            plusImg.color = LumiWorldUITheme.Text;
+            plusImg.color = LumiWorldUITheme.Muted;
             plusImg.raycastTarget = false;
 
-            view.addFoodLabel = CreateTMP(abRect, "Label", "Add food", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-            view.addFoodLabel.rectTransform.anchorMin = Vector2.zero;
-            view.addFoodLabel.rectTransform.anchorMax = Vector2.one;
-            view.addFoodLabel.rectTransform.offsetMin = new Vector2(46f, 0f);
-            view.addFoodLabel.rectTransform.offsetMax = new Vector2(-12f, 0f);
+            var emTitle = LumiWorldUITheme.CreateLabel(emptyCont.transform, "Title", "Unassigned slot", 15f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(emTitle.rectTransform, new Vector2(76f, -23f), new Vector2(246f, 24f));
 
-            view.addFoodButton = addBtnObj.GetComponent<Button>();
-            view.addFoodButton.targetGraphic = abBg;
-            view.addFoodButton.navigation = new Navigation { mode = Navigation.Mode.None };
-            view.addFoodButton.onClick.AddListener(() => OnAddFoodToSlotClicked(slotIndex));
+            var emSub = LumiWorldUITheme.CreateLabel(emptyCont.transform, "Sub", "Select food on left, then assign", 12f, LumiWorldUITheme.Muted, headingFont: false, align: TextAlignmentOptions.MidlineLeft);
+            emSub.fontStyle = FontStyles.Normal;
+            SetTopLeft(emSub.rectTransform, new Vector2(76f, -49f), new Vector2(246f, 20f));
 
-            // --- B. OCCUPIED CONTAINER ---
+            view.addFoodButton = LumiWorldUITheme.CreatePillButton(
+                emptyCont.transform,
+                "AddFoodBtn",
+                "Assign",
+                null,
+                primary: true,
+                fontSize: 13f,
+                onClick: () => OnAddFoodToSlotClicked(slotIndex),
+                out _,
+                out _,
+                out view.addFoodLabel,
+                radius: 17);
+            RectTransform abRect = view.addFoodButton.GetComponent<RectTransform>();
+            abRect.anchorMin = abRect.anchorMax = abRect.pivot = new Vector2(1f, 0.5f);
+            abRect.anchoredPosition = new Vector2(-16f, 0f);
+            abRect.sizeDelta = new Vector2(96f, 34f);
+
+            // --- B. OCCUPIED CONTAINER (single clean horizontal axis: Icon | Name/Stock | [-] [Amount] [+] | [×]) ---
             GameObject occCont = new GameObject("OccupiedContainer", typeof(RectTransform));
             occCont.transform.SetParent(sRect, false);
             EconomyHUD.Stretch(occCont.GetComponent<RectTransform>());
             view.occupiedContainer = occCont;
 
-            // Icon Box (64x64)
+            // Icon Box (56x56)
             GameObject icBox = new GameObject("IconBox", typeof(RectTransform), typeof(Image));
             icBox.transform.SetParent(occCont.transform, false);
             RectTransform ibRect = icBox.GetComponent<RectTransform>();
-            SetTopLeft(ibRect, new Vector2(16f, -20f), new Vector2(64f, 64f));
+            SetTopLeft(ibRect, new Vector2(14f, -19f), new Vector2(56f, 56f));
             Image ibBg = icBox.GetComponent<Image>();
             ibBg.sprite = LumiWorldUITheme.SurfaceSprite;
             ibBg.type = Image.Type.Sliced;
-            ibBg.color = LumiWorldUITheme.Slot;
+            ibBg.color = LumiWorldUITheme.Window;
+            ibBg.raycastTarget = false;
 
             GameObject icObj = new GameObject("FoodIcon", typeof(RectTransform), typeof(Image));
             icObj.transform.SetParent(ibRect, false);
@@ -1055,45 +1066,56 @@ public class AutoFeedUI : MonoBehaviour
             view.iconImage.raycastTarget = false;
 
             // Food Name & Subtitle
-            view.nameText = CreateTMP(occCont.transform, "FoodName", "Raspberries", 16.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-            SetTopLeft(view.nameText.rectTransform, new Vector2(94f, -24f), new Vector2(180f, 26f));
+            view.nameText = LumiWorldUITheme.CreateLabel(occCont.transform, "FoodName", "Raspberries", 16f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(view.nameText.rectTransform, new Vector2(80f, -22f), new Vector2(162f, 24f));
 
-            view.subText = CreateTMP(occCont.transform, "SubText", "Allocated budget", 13f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
-            SetTopLeft(view.subText.rectTransform, new Vector2(94f, -52f), new Vector2(180f, 22f));
+            view.subText = LumiWorldUITheme.CreateLabel(occCont.transform, "SubText", "Stock: 27", 12.5f, LumiWorldUITheme.Success, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(view.subText.rectTransform, new Vector2(80f, -48f), new Vector2(162f, 20f));
 
-            // Stepper Controls on Right: [-] [Amount] [+] and [×]
-            view.decButton = CreateStepperSquareButton(occCont.transform, "DecBtn", new Vector2(280f, -34f), new Vector2(36f, 36f), "Minus", () => ChangeSlotAmount(slotIndex, -1));
+            // Stepper Controls on Right (all vertically centered on y = -29 / -31, zero overlap!)
+            view.decButton = LumiWorldUITheme.CreateIconSquareButton(occCont.transform, "DecBtn", "Minus", 36f, 36f, () => ChangeSlotAmount(slotIndex, -1), surfaceBg: true);
+            SetTopLeft(view.decButton.GetComponent<RectTransform>(), new Vector2(252f, -29f), new Vector2(36f, 36f));
 
             GameObject amtBtnObj = new GameObject("AmountBtn", typeof(RectTransform), typeof(Image), typeof(Button));
             amtBtnObj.transform.SetParent(occCont.transform, false);
             RectTransform amRect = amtBtnObj.GetComponent<RectTransform>();
-            SetTopLeft(amRect, new Vector2(322f, -34f), new Vector2(56f, 36f));
+            SetTopLeft(amRect, new Vector2(294f, -29f), new Vector2(58f, 36f));
             Image amBg = amtBtnObj.GetComponent<Image>();
-            amBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            amBg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("AutoFeedAmt_R10", Color.white, LumiWorldUITheme.Edge, 10, 1.2f);
             amBg.type = Image.Type.Sliced;
-            amBg.color = LumiWorldUITheme.Slot;
-            view.amountText = CreateTMP(amRect, "AmountText", "10", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+            amBg.color = LumiWorldUITheme.Surface;
+            view.amountText = LumiWorldUITheme.CreateLabel(amRect, "AmountText", "10", 15.5f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.Center);
             EconomyHUD.Stretch(view.amountText.rectTransform);
             view.amountButton = amtBtnObj.GetComponent<Button>();
             view.amountButton.targetGraphic = amBg;
+            view.amountButton.navigation = new Navigation { mode = Navigation.Mode.None };
             view.amountButton.onClick.AddListener(() => OpenQuantityModal(slotIndex));
 
-            view.incButton = CreateStepperSquareButton(occCont.transform, "IncBtn", new Vector2(384f, -34f), new Vector2(36f, 36f), "Plus", () => ChangeSlotAmount(slotIndex, 1));
+            view.incButton = LumiWorldUITheme.CreateIconSquareButton(occCont.transform, "IncBtn", "Plus", 36f, 36f, () => ChangeSlotAmount(slotIndex, 1), surfaceBg: true);
+            SetTopLeft(view.incButton.GetComponent<RectTransform>(), new Vector2(358f, -29f), new Vector2(36f, 36f));
 
-            // Remove [×] button at top-right of slot
-            view.removeButton = CreateStepperSquareButton(occCont.transform, "RemoveBtn", new Vector2(slotW - 34f, -8f), new Vector2(26f, 26f), "Close", () => ClearSlot(slotIndex));
+            // Clean circle Remove [×] button aligned inline at right
+            view.removeButton = LumiWorldUITheme.CreateCloseButton(occCont.transform, 16f, 31f, () => ClearSlot(slotIndex), 32f);
 
-            // --- C. LOCKED CONTAINER (slot unlocked at higher Granary Post Level) ---
+            // --- C. LOCKED CONTAINER (mirrors Habitat/Building Info locked slot) ---
             GameObject lockedCont = new GameObject("LockedContainer", typeof(RectTransform));
             lockedCont.transform.SetParent(sRect, false);
             EconomyHUD.Stretch(lockedCont.GetComponent<RectTransform>());
             view.lockedContainer = lockedCont;
 
+            GameObject lockBox = new GameObject("LockIconBox", typeof(RectTransform), typeof(Image));
+            lockBox.transform.SetParent(lockedCont.transform, false);
+            SetTopLeft(lockBox.GetComponent<RectTransform>(), new Vector2(16f, -23f), new Vector2(48f, 48f));
+            var lbBg = lockBox.GetComponent<Image>();
+            lbBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            lbBg.type = Image.Type.Sliced;
+            lbBg.color = LumiWorldUITheme.Slot;
+            lbBg.raycastTarget = false;
+
             GameObject lockIcObj = new GameObject("LockIcon", typeof(RectTransform), typeof(Image));
-            lockIcObj.transform.SetParent(lockedCont.transform, false);
+            lockIcObj.transform.SetParent(lockBox.transform, false);
             RectTransform lIcRect = lockIcObj.GetComponent<RectTransform>();
             lIcRect.anchorMin = lIcRect.anchorMax = lIcRect.pivot = new Vector2(0.5f, 0.5f);
-            lIcRect.anchoredPosition = new Vector2(-84f, 0f);
             lIcRect.sizeDelta = new Vector2(20f, 20f);
             Image lIcImg = lockIcObj.GetComponent<Image>();
             lIcImg.sprite = LumiWorldUITheme.Glyph("Lock");
@@ -1101,45 +1123,14 @@ public class AutoFeedUI : MonoBehaviour
             lIcImg.color = LumiWorldUITheme.Muted;
             lIcImg.raycastTarget = false;
 
-            view.lockedText = CreateTMP(lockedCont.transform, "LockedLabel", "Unlocks at Lv. 2", 14f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
-            RectTransform lTxtRect = view.lockedText.rectTransform;
-            lTxtRect.anchorMin = lTxtRect.anchorMax = lTxtRect.pivot = new Vector2(0.5f, 0.5f);
-            lTxtRect.anchoredPosition = new Vector2(18f, 0f);
-            lTxtRect.sizeDelta = new Vector2(180f, 28f);
+            var lockTitle = LumiWorldUITheme.CreateLabel(lockedCont.transform, "LockedTitle", "Locked slot", 15f, LumiWorldUITheme.Muted, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(lockTitle.rectTransform, new Vector2(76f, -23f), new Vector2(340f, 24f));
+
+            view.lockedText = LumiWorldUITheme.CreateLabel(lockedCont.transform, "LockedLabel", "Unlocks at Lv. 2", 12.5f, LumiWorldUITheme.Muted, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(view.lockedText.rectTransform, new Vector2(76f, -49f), new Vector2(340f, 20f));
 
             slotViews[i] = view;
         }
-    }
-
-    private Button CreateStepperSquareButton(Transform parent, string name, Vector2 topLeftPos, Vector2 size, string glyphName, UnityEngine.Events.UnityAction onClick)
-    {
-        GameObject btnObj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
-        btnObj.transform.SetParent(parent, false);
-        RectTransform rt = btnObj.GetComponent<RectTransform>();
-        SetTopLeft(rt, topLeftPos, size);
-
-        Image bg = btnObj.GetComponent<Image>();
-        bg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("AutoFeedSq_R10", Color.white, LumiWorldUITheme.Edge, 10, 1.2f);
-        bg.type = Image.Type.Sliced;
-        bg.color = LumiWorldUITheme.Surface;
-        LumiWorldUITheme.AddSoftElevation(btnObj, 2f, 0.14f);
-
-        GameObject icObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
-        icObj.transform.SetParent(rt, false);
-        RectTransform icRect = icObj.GetComponent<RectTransform>();
-        icRect.anchorMin = icRect.anchorMax = icRect.pivot = new Vector2(0.5f, 0.5f);
-        icRect.sizeDelta = new Vector2(size.x * 0.48f, size.y * 0.48f);
-        Image icImg = icObj.GetComponent<Image>();
-        icImg.sprite = LumiWorldUITheme.Glyph(glyphName);
-        icImg.preserveAspect = true;
-        icImg.color = LumiWorldUITheme.Text;
-        icImg.raycastTarget = false;
-
-        Button btn = btnObj.GetComponent<Button>();
-        btn.targetGraphic = bg;
-        btn.navigation = new Navigation { mode = Navigation.Mode.None };
-        btn.onClick.AddListener(onClick);
-        return btn;
     }
 
     private void BuildFooterBar()
@@ -1149,8 +1140,8 @@ public class AutoFeedUI : MonoBehaviour
         budgetRow.transform.SetParent(panel, false);
         RectTransform brRect = budgetRow.GetComponent<RectTransform>();
         brRect.anchorMin = brRect.anchorMax = brRect.pivot = new Vector2(0f, 0f);
-        brRect.anchoredPosition = new Vector2(30f, 22f);
-        brRect.sizeDelta = new Vector2(320f, 36f);
+        brRect.anchoredPosition = new Vector2(28f, 18f);
+        brRect.sizeDelta = new Vector2(320f, 38f);
 
         GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         icObj.transform.SetParent(brRect, false);
@@ -1158,46 +1149,43 @@ public class AutoFeedUI : MonoBehaviour
         icRect.anchorMin = icRect.anchorMax = new Vector2(0f, 0.5f);
         icRect.pivot = new Vector2(0f, 0.5f);
         icRect.anchoredPosition = new Vector2(0f, 0f);
-        icRect.sizeDelta = new Vector2(22f, 22f);
+        icRect.sizeDelta = new Vector2(20f, 20f);
         Image icImg = icObj.GetComponent<Image>();
         icImg.sprite = LumiWorldUITheme.Glyph("G-18");
         icImg.preserveAspect = true;
         icImg.color = LumiWorldUITheme.Muted;
         icImg.raycastTarget = false;
 
-        remainingBudgetText = CreateTMP(brRect, "BudgetText", "Remaining budget: 0", 16f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        remainingBudgetText = LumiWorldUITheme.CreateLabel(brRect, "BudgetText", "Remaining budget: 0", 15.5f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
         remainingBudgetText.rectTransform.anchorMin = Vector2.zero;
         remainingBudgetText.rectTransform.anchorMax = Vector2.one;
-        remainingBudgetText.rectTransform.offsetMin = new Vector2(30f, 0f);
+        remainingBudgetText.rectTransform.offsetMin = new Vector2(28f, 0f);
         remainingBudgetText.rectTransform.offsetMax = Vector2.zero;
 
         // Center Feedback Notify Text
-        feedbackNotifyText = CreateTMP(panel, "FeedbackNotify", "", 13.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        feedbackNotifyText = LumiWorldUITheme.CreateLabel(panel, "FeedbackNotify", "", 13.5f, LumiWorldUITheme.Success, headingFont: true, align: TextAlignmentOptions.Center);
         feedbackNotifyText.rectTransform.anchorMin = feedbackNotifyText.rectTransform.anchorMax = feedbackNotifyText.rectTransform.pivot = new Vector2(0.5f, 0f);
-        feedbackNotifyText.rectTransform.anchoredPosition = new Vector2(-10f, 26f);
-        feedbackNotifyText.rectTransform.sizeDelta = new Vector2(380f, 28f);
+        feedbackNotifyText.rectTransform.anchoredPosition = new Vector2(-20f, 23f);
+        feedbackNotifyText.rectTransform.sizeDelta = new Vector2(360f, 28f);
 
-        // Right Primary CTA: "Apply feeding setup"
-        GameObject applyObj = new GameObject("ApplySetupBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        applyObj.transform.SetParent(panel, false);
-        RectTransform apRect = applyObj.GetComponent<RectTransform>();
+        // Right Primary CTA: "Apply feeding setup" (clean capsule matching P-05 CollectAllBtn)
+        applySetupButton = LumiWorldUITheme.CreatePillButton(
+            panel,
+            "ApplySetupBtn",
+            "Apply feeding setup",
+            null,
+            primary: true,
+            fontSize: 15f,
+            onClick: OnApplyFeedingSetupClicked,
+            out _,
+            out _,
+            out _,
+            radius: 23);
+        applySetupButton.gameObject.AddComponent<DialogButtonJuice>();
+        RectTransform apRect = applySetupButton.GetComponent<RectTransform>();
         apRect.anchorMin = apRect.anchorMax = apRect.pivot = new Vector2(1f, 0f);
-        apRect.anchoredPosition = new Vector2(-28f, 16f);
-        apRect.sizeDelta = new Vector2(236f, 48f);
-
-        Image apImg = applyObj.GetComponent<Image>();
-        apImg.sprite = LumiWorldUITheme.ButtonPrimarySprite;
-        apImg.type = Image.Type.Sliced;
-        apImg.color = LumiWorldUITheme.Primary;
-        LumiWorldUITheme.AddSoftElevation(applyObj, 3f, 0.20f);
-
-        var apTxt = CreateTMP(apRect, "Label", "Apply feeding setup", 16f, Color.white, true, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(apTxt.rectTransform);
-
-        applySetupButton = applyObj.GetComponent<Button>();
-        applySetupButton.targetGraphic = apImg;
-        applySetupButton.navigation = new Navigation { mode = Navigation.Mode.None };
-        applySetupButton.onClick.AddListener(OnApplyFeedingSetupClicked);
+        apRect.anchoredPosition = new Vector2(-28f, 14f);
+        apRect.sizeDelta = new Vector2(224f, 46f);
     }
 
     // =========================================================
@@ -1246,7 +1234,7 @@ public class AutoFeedUI : MonoBehaviour
 
         if (sameRows)
         {
-            foreach (var food in currentFoodList) foodStockLabels[food.id].text = $"{food.stock} available";
+            foreach (var food in currentFoodList) foodStockLabels[food.id].text = $"Stock: {food.stock} available";
             return;
         }
 
@@ -1257,7 +1245,7 @@ public class AutoFeedUI : MonoBehaviour
         if (currentFoodList.Count == 0)
         {
             selectedFoodId = string.Empty;
-            foodListContent.sizeDelta = new Vector2(0f, 404f);
+            foodListContent.sizeDelta = new Vector2(0f, 346f);
             return;
         }
 
@@ -1266,8 +1254,8 @@ public class AutoFeedUI : MonoBehaviour
             selectedFoodId = currentFoodList[0].id;
         }
 
-        const float rowW = 440f;
-        const float rowH = 68f;
+        const float rowW = 436f;
+        const float rowH = 72f;
         const float gapY = 10f;
         float curY = 4f;
 
@@ -1284,37 +1272,58 @@ public class AutoFeedUI : MonoBehaviour
             var rowBg = rowObj.GetComponent<Image>();
             rowBg.sprite = LumiWorldUITheme.SurfaceSprite;
             rowBg.type = Image.Type.Sliced;
-            rowBg.color = LumiWorldUITheme.Slot;
+            rowBg.color = LumiWorldUITheme.Surface;
             rowObj.AddComponent<ResourceUIInputBlocker>();
-            LumiWorldUITheme.AddSoftElevation(rowObj, 3f, 0.14f);
+            LumiWorldUITheme.AddSoftElevation(rowObj, 2.5f, 0.14f);
+
+            var icWell = new GameObject("IconBox", typeof(RectTransform), typeof(Image));
+            icWell.transform.SetParent(rowRect, false);
+            SetTopLeft(icWell.GetComponent<RectTransform>(), new Vector2(12f, -11f), new Vector2(50f, 50f));
+            var iwBg = icWell.GetComponent<Image>();
+            iwBg.sprite = LumiWorldUITheme.SurfaceSprite;
+            iwBg.type = Image.Type.Sliced;
+            iwBg.color = LumiWorldUITheme.Slot;
+            iwBg.raycastTarget = false;
 
             if (item.icon != null)
             {
                 var icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-                icObj.transform.SetParent(rowRect, false);
-                var icRect = icObj.GetComponent<RectTransform>();
-                SetTopLeft(icRect, new Vector2(12f, -10f), new Vector2(48f, 48f));
+                icObj.transform.SetParent(icWell.transform, false);
+                LumiWorldUITheme.Stretch(icObj.GetComponent<RectTransform>(), 5f);
                 var icImg = icObj.GetComponent<Image>();
                 icImg.sprite = item.icon;
                 icImg.preserveAspect = true;
                 icImg.raycastTarget = false;
             }
 
-            var nameTxt = CreateTMP(rowRect, "Name", item.name, 16.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-            SetTopLeft(nameTxt.rectTransform, new Vector2(72f, -12f), new Vector2(224f, 44f));
+            var nameTxt = LumiWorldUITheme.CreateLabel(rowRect, "Name", item.name, 16f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(nameTxt.rectTransform, new Vector2(74f, -13f), new Vector2(226f, 24f));
 
-            var stockTxt = CreateTMP(rowRect, "Stock", $"{item.stock} available", 14f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineRight);
-            SetTopLeft(stockTxt.rectTransform, new Vector2(rowW - 144f, -12f), new Vector2(128f, 44f));
+            var stockTxt = LumiWorldUITheme.CreateLabel(rowRect, "Stock", $"Stock: {item.stock} available", 13f, LumiWorldUITheme.Muted, headingFont: false, align: TextAlignmentOptions.MidlineLeft);
+            stockTxt.fontStyle = FontStyles.Normal;
+            SetTopLeft(stockTxt.rectTransform, new Vector2(74f, -38f), new Vector2(226f, 20f));
             foodStockLabels[item.id] = stockTxt;
 
-            var borderObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
-            borderObj.transform.SetParent(rowRect, false);
-            EconomyHUD.Stretch(borderObj.GetComponent<RectTransform>());
-            var borderImg = borderObj.GetComponent<Image>();
-            borderImg.sprite = GetSelectionBorderSprite();
-            borderImg.type = Image.Type.Sliced;
-            borderImg.color = Color.white;
-            borderImg.raycastTarget = false;
+            var statusObj = new GameObject("ReadyTag", typeof(RectTransform));
+            statusObj.transform.SetParent(rowRect, false);
+            RectTransform stRt = statusObj.GetComponent<RectTransform>();
+            stRt.anchorMin = stRt.anchorMax = new Vector2(1f, 0.5f);
+            stRt.pivot = new Vector2(1f, 0.5f);
+            stRt.anchoredPosition = new Vector2(-14f, 0f);
+            stRt.sizeDelta = new Vector2(106f, 28f);
+
+            var stIcObj = new GameObject("Check", typeof(RectTransform), typeof(Image));
+            stIcObj.transform.SetParent(stRt, false);
+            SetTopLeft(stIcObj.GetComponent<RectTransform>(), new Vector2(4f, -5f), new Vector2(18f, 18f));
+            var stIc = stIcObj.GetComponent<Image>();
+            stIc.sprite = LumiWorldUITheme.StatusReadySprite;
+            stIc.preserveAspect = true;
+            stIc.raycastTarget = false;
+
+            var stLbl = LumiWorldUITheme.CreateLabel(stRt, "Text", "Available", 13.5f, LumiWorldUITheme.Success, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+            SetTopLeft(stLbl.rectTransform, new Vector2(26f, 0f), new Vector2(78f, 28f));
+
+            Image borderImg = LumiWorldUITheme.CreateSelectionBorder(rowRect, radius: 20, thickness: 2.5f);
             foodRowBorders[item.id] = borderImg;
 
             var btn = rowObj.GetComponent<Button>();
@@ -1326,7 +1335,7 @@ public class AutoFeedUI : MonoBehaviour
             curY += rowH + gapY;
         }
 
-        foodListContent.sizeDelta = new Vector2(0f, Mathf.Max(404f, curY + 6f));
+        foodListContent.sizeDelta = new Vector2(0f, Mathf.Max(346f, curY + 6f));
         UpdateFoodRowBorders();
     }
 
@@ -1529,6 +1538,8 @@ public class AutoFeedUI : MonoBehaviour
 
             if (cluster == null || i >= unlockedSlots)
             {
+                if (view.bg != null) view.bg.color = LumiWorldUITheme.Inset;
+                if (view.shadow != null) view.shadow.enabled = false;
                 view.emptyContainer.SetActive(false);
                 view.occupiedContainer.SetActive(false);
                 if (view.lockedContainer != null) view.lockedContainer.SetActive(true);
@@ -1549,11 +1560,15 @@ public class AutoFeedUI : MonoBehaviour
 
             if (string.IsNullOrEmpty(foodId) || budget <= 0)
             {
+                if (view.bg != null) view.bg.color = LumiWorldUITheme.Well;
+                if (view.shadow != null) view.shadow.enabled = false;
                 view.emptyContainer.SetActive(true);
                 view.occupiedContainer.SetActive(false);
             }
             else
             {
+                if (view.bg != null) view.bg.color = LumiWorldUITheme.Slot;
+                if (view.shadow != null) view.shadow.enabled = true;
                 view.emptyContainer.SetActive(false);
                 view.occupiedContainer.SetActive(true);
 
@@ -1567,7 +1582,8 @@ public class AutoFeedUI : MonoBehaviour
                 view.iconImage.sprite = icon;
                 view.iconImage.color = icon != null ? Color.white : Color.clear;
                 view.nameText.text = dispName;
-                view.subText.text = $"Shared budget · {currentStock} in stock";
+                view.subText.text = currentStock > 0 ? $"Stock: {currentStock} in stock" : "Out of stock";
+                view.subText.color = currentStock > 0 ? LumiWorldUITheme.Success : LumiWorldUITheme.Warning;
                 view.amountText.text = budget.ToString();
                 view.decButton.interactable = budget > 1;
                 view.incButton.interactable = budget < currentStock;
@@ -1884,10 +1900,10 @@ public class AutoFeedUI : MonoBehaviour
         cardObj.AddComponent<ResourceUIInputBlocker>();
         LumiWorldUITheme.AddSoftElevation(cardObj, 5f, 0.24f);
 
-        var tTxt = CreateTMP(cRect, "Title", "Adjust food budget", 17f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
-        SetTopLeft(tTxt.rectTransform, new Vector2(20f, -14f), new Vector2(320f, 26f));
+        var tTxt = LumiWorldUITheme.CreateLabel(cRect, "Title", "Adjust food budget", 17f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.Center);
+        SetTopLeft(tTxt.rectTransform, new Vector2(20f, -12f), new Vector2(320f, 30f));
 
-        CreateStepperSquareButton(cRect, "CloseBtn", new Vector2(360f - 38f, -12f), new Vector2(28f, 28f), "Close", CloseQuantityModal);
+        LumiWorldUITheme.CreateCloseButton(cRect, 14f, 12f, CloseQuantityModal, 30f);
 
         var iconObj = new GameObject("FoodIcon", typeof(RectTransform), typeof(Image));
         iconObj.transform.SetParent(cRect, false);
@@ -1895,14 +1911,15 @@ public class AutoFeedUI : MonoBehaviour
         modalFoodIcon = iconObj.GetComponent<Image>();
         modalFoodIcon.preserveAspect = true;
 
-        modalFoodNameText = CreateTMP(cRect, "FoodName", "", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(modalFoodNameText.rectTransform, new Vector2(72f, -48f), new Vector2(260f, 20f));
+        modalFoodNameText = LumiWorldUITheme.CreateLabel(cRect, "FoodName", "", 15.5f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.MidlineLeft);
+        SetTopLeft(modalFoodNameText.rectTransform, new Vector2(72f, -45f), new Vector2(260f, 26f));
 
-        modalStorageText = CreateTMP(cRect, "StorageInfo", "", 12.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
-        SetTopLeft(modalStorageText.rectTransform, new Vector2(72f, -68f), new Vector2(260f, 18f));
+        modalStorageText = LumiWorldUITheme.CreateLabel(cRect, "StorageInfo", "", 12.5f, LumiWorldUITheme.Muted, headingFont: false, align: TextAlignmentOptions.MidlineLeft);
+        modalStorageText.fontStyle = FontStyles.Normal;
+        SetTopLeft(modalStorageText.rectTransform, new Vector2(72f, -68f), new Vector2(260f, 22f));
 
-        modalAmountValueText = CreateTMP(cRect, "AmountValue", "1", 24f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
-        SetTopLeft(modalAmountValueText.rectTransform, new Vector2(80f, -94f), new Vector2(200f, 30f));
+        modalAmountValueText = LumiWorldUITheme.CreateLabel(cRect, "AmountValue", "1", 24f, LumiWorldUITheme.Text, headingFont: true, align: TextAlignmentOptions.Center);
+        SetTopLeft(modalAmountValueText.rectTransform, new Vector2(80f, -92f), new Vector2(200f, 38f));
 
         // Slider (clean supersampled circle knob + 8px recessed track)
         modalSlider = LumiWorldUITheme.CreateCleanSlider(cRect, "Slider", trackHeight: 8f, knobDiameter: 22f);
@@ -1914,9 +1931,9 @@ public class AutoFeedUI : MonoBehaviour
             UpdateModalAmountDisplay();
         });
 
-        // Cancel & Apply buttons
+        // Cancel & Apply capsule buttons
         Button cancelBtn = LumiWorldUITheme.CreatePillButton(
-            cRect, "CancelBtn", "Cancel", null, primary: false, fontSize: 14f, onClick: CloseQuantityModal, out _, out _, out _, radius: 14);
+            cRect, "CancelBtn", "Cancel", null, primary: false, fontSize: 14f, onClick: CloseQuantityModal, out _, out _, out _, radius: 19);
         cancelBtn.gameObject.AddComponent<DialogButtonJuice>();
         RectTransform cbRect = cancelBtn.GetComponent<RectTransform>();
         cbRect.anchorMin = cbRect.anchorMax = cbRect.pivot = new Vector2(0f, 0f);
@@ -1924,7 +1941,7 @@ public class AutoFeedUI : MonoBehaviour
         cbRect.sizeDelta = new Vector2(142f, 38f);
 
         Button applyBtn = LumiWorldUITheme.CreatePillButton(
-            cRect, "ApplyBtn", "Apply", null, primary: true, fontSize: 14f, onClick: OnApplyQuantityModal, out _, out _, out _, radius: 14);
+            cRect, "ApplyBtn", "Apply", null, primary: true, fontSize: 14f, onClick: OnApplyQuantityModal, out _, out _, out _, radius: 19);
         applyBtn.gameObject.AddComponent<DialogButtonJuice>();
         RectTransform abRect = applyBtn.GetComponent<RectTransform>();
         abRect.anchorMin = abRect.anchorMax = abRect.pivot = new Vector2(1f, 0f);
@@ -1989,23 +2006,6 @@ public class AutoFeedUI : MonoBehaviour
         }
     }
 
-    private static TextMeshProUGUI CreateTMP(Transform parent, string name, string text, float fontSize, Color color, bool bold, TextAlignmentOptions align)
-    {
-        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-        obj.transform.SetParent(parent, false);
-        TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
-        tmp.font = LumiWorldUITheme.Body;
-        tmp.text = text;
-        tmp.fontSize = fontSize;
-        tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
-        tmp.color = color;
-        tmp.alignment = align;
-        tmp.overflowMode = TextOverflowModes.Ellipsis;
-        tmp.textWrappingMode = TextWrappingModes.NoWrap;
-        tmp.raycastTarget = false;
-        return tmp;
-    }
-
     private static void SetTopLeft(RectTransform rect, Vector2 pos, Vector2 size)
     {
         rect.anchorMin = new Vector2(0f, 1f);
@@ -2013,16 +2013,5 @@ public class AutoFeedUI : MonoBehaviour
         rect.pivot = new Vector2(0f, 1f);
         rect.anchoredPosition = pos;
         rect.sizeDelta = size;
-    }
-
-    private static Sprite GetSelectionBorderSprite()
-    {
-        return LumiWorldUITheme.GetBorderedSurfaceSprite("SelOutline_R20_S2.5", Color.clear, LumiWorldUITheme.Primary, 20, 2.5f);
-    }
-
-    private static Sprite GetTabSelectionBorderSprite(int height)
-    {
-        int r = Mathf.Max(6, height / 2);
-        return LumiWorldUITheme.GetBorderedSurfaceSprite("TabSelBorder_H" + height, Color.clear, Color.black, r, 2.5f);
     }
 }

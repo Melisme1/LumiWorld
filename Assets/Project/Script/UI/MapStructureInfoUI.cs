@@ -27,14 +27,14 @@ public class MapStructureInfoUI : MonoBehaviour
         River = 2
     }
 
-    private const float PanelWidth = 416f;
+    private const float PanelWidth = 448f;
     private const float AssignPopupWidth = 920f;
     private const float AssignPopupHeight = 580f;
 
-    private const float GranaryPanelHeight = 412f;
-    private const float BuildingCompactHeight = 254f;
-    private const float BuildingDirectUpgradeHeight = 314f;
-    private const float RiverPanelHeight = 368f;
+    private const float GranaryPanelHeight = 492f;
+    private const float BuildingCompactHeight = 290f;
+    private const float BuildingDirectUpgradeHeight = 360f;
+    private const float RiverPanelHeight = 416f;
 
     private const float DoubleClickMaxInterval = 0.35f;
     private const float DoubleClickMaxDistance = 14f;
@@ -43,13 +43,16 @@ public class MapStructureInfoUI : MonoBehaviour
     {
         public RectTransform root;
         public Image bg;
+        public Shadow shadow;
         public Image selectedBorder;
         public Image iconWell;
         public Image icon;
         public TextMeshProUGUI title;
         public TextMeshProUGUI sub;
-        public Image chipBg;
-        public TextMeshProUGUI chipText;
+        public GameObject actionBtnObj;
+        public Image actionBtnBg;
+        public TextMeshProUGUI actionBtnLabel;
+        public Button actionBtn;
         public Button button;
     }
 
@@ -548,7 +551,7 @@ public class MapStructureInfoUI : MonoBehaviour
         levelPillText.text = $"Lv. {level}/{maxLevel}";
         levelPillText.color = level >= maxLevel ? LumiWorldUITheme.Success : LumiWorldUITheme.Text;
 
-        LumiWorldUITheme.PlaceTopLeft(footprintGroup, 158f, 48f, 160f, 22f);
+        LumiWorldUITheme.PlaceTopLeft(footprintGroup, 174f, 52f, 180f, 24f);
         footprintGlyphImg.sprite = LumiWorldUITheme.FootprintGlyph(tileCount);
         subtitleText.text = $"{tileCount} {(tileCount == 1 ? "tile" : "tiles")}";
 
@@ -557,9 +560,9 @@ public class MapStructureInfoUI : MonoBehaviour
 
         if (funcKind == BuildingFunctionKind.AutoFeeding)
         {
-            effectWellBg.color = buffedCount > 0 ? new Color(0.87f, 0.93f, 0.84f, 1f) : new Color(0.95f, 0.90f, 0.76f, 1f);
+            effectWellBg.color = LumiWorldUITheme.Slot;
             effectIcon.sprite = LumiWorldUITheme.Glyph("G-06") ?? LumiWorldUITheme.Glyph("G-17");
-            effectIcon.color = buffedCount > 0 ? LumiWorldUITheme.Success : new Color(0.75f, 0.55f, 0.14f, 1f);
+            effectIcon.color = buffedCount > 0 ? LumiWorldUITheme.Success : LumiWorldUITheme.Muted;
 
             if (buffedCount > 0)
             {
@@ -574,7 +577,7 @@ public class MapStructureInfoUI : MonoBehaviour
             {
                 effectTitleText.text = $"Auto-Feed · {radius}-hex aura";
                 effectTitleText.color = LumiWorldUITheme.Text;
-                effectText.text = "No Biomes in golden ring";
+                effectText.text = "No Biomes within range yet";
             }
 
             slotsSectionObj.SetActive(true);
@@ -605,15 +608,15 @@ public class MapStructureInfoUI : MonoBehaviour
                 interactable: canFeedNow,
                 label: canFeedNow ? "Feed Nearby Now" : "Tap a slot to add food",
                 primary: canFeedNow,
-                topY: GranaryPanelHeight - 60f);
+                topY: GranaryPanelHeight - 64f);
             panelRect.sizeDelta = new Vector2(PanelWidth, GranaryPanelHeight);
         }
         else
         {
             CloseSlotPicker(refreshParent: false);
-            effectWellBg.color = new Color(0.95f, 0.90f, 0.76f, 1f);
+            effectWellBg.color = LumiWorldUITheme.Slot;
             effectIcon.sprite = LumiWorldUITheme.Glyph("G-17");
-            effectIcon.color = LumiWorldUITheme.Text;
+            effectIcon.color = buffedCount > 0 ? LumiWorldUITheme.Success : LumiWorldUITheme.Text;
             effectTitleText.text = buffedCount > 0 ? $"Buffing {buffedCount} {(buffedCount == 1 ? "Biome" : "Biomes")}" : $"{radius}-hex aura";
             effectTitleText.color = buffedCount > 0 ? LumiWorldUITheme.Success : LumiWorldUITheme.Text;
             effectText.text = upgradeMethod == BuildingUpgradeMethod.DirectUpgrade
@@ -643,7 +646,7 @@ public class MapStructureInfoUI : MonoBehaviour
                 interactable: canDirectUpgrade,
                 label: canDirectUpgrade ? $"Upgrade to Lv. {level + 1}" : "Max Level",
                 primary: canDirectUpgrade,
-                topY: BuildingDirectUpgradeHeight - 60f);
+                topY: BuildingDirectUpgradeHeight - 64f);
             panelRect.sizeDelta = new Vector2(PanelWidth, showUpgradeBtn ? BuildingDirectUpgradeHeight : BuildingCompactHeight);
         }
     }
@@ -653,58 +656,95 @@ public class MapStructureInfoUI : MonoBehaviour
         SlotRowView view = slotRows[index];
         if (view == null) return;
 
+        // Matches HabitatCreaturePanelUI.CreateResourceSlotCard 1:1
         if (!unlocked)
         {
-            view.bg.color = LumiWorldUITheme.Well;
-            view.iconWell.color = LumiWorldUITheme.Inset;
+            view.bg.color = LumiWorldUITheme.Inset;
+            if (view.shadow != null) view.shadow.enabled = false;
+            view.iconWell.color = LumiWorldUITheme.Slot;
             view.icon.sprite = LumiWorldUITheme.Glyph("Lock");
             view.icon.color = LumiWorldUITheme.Muted;
-            view.icon.rectTransform.sizeDelta = new Vector2(15f, 15f);
-            view.title.text = $"Locked · Lv. {unlockLevel}";
+            var icRt = view.icon.rectTransform;
+            icRt.anchorMin = icRt.anchorMax = icRt.pivot = new Vector2(0.5f, 0.5f);
+            icRt.offsetMin = Vector2.zero;
+            icRt.offsetMax = Vector2.zero;
+            icRt.sizeDelta = new Vector2(18f, 18f);
+
+            view.title.text = "Locked slot";
             view.title.color = LumiWorldUITheme.Muted;
-            LumiWorldUITheme.PlaceTopLeft(view.title.rectTransform, 58f, 15f, 240f, 22f);
-            view.sub.gameObject.SetActive(false);
-            view.chipBg.gameObject.SetActive(false);
+            view.sub.text = $"Unlocks at Lv. {unlockLevel}";
+            view.sub.color = LumiWorldUITheme.Muted;
+            if (view.actionBtnObj != null) view.actionBtnObj.SetActive(false);
             view.button.interactable = false;
             return;
         }
 
         view.button.interactable = true;
         view.bg.color = LumiWorldUITheme.Surface;
+        if (view.shadow != null) view.shadow.enabled = true;
+        view.iconWell.color = LumiWorldUITheme.Slot;
+        if (view.actionBtnObj != null) view.actionBtnObj.SetActive(true);
+
         if (hasFood)
         {
             var res = ResourceCatalog.Find(foodId);
             string foodName = ResourceInventoryUIPresentation.LocalizeResourceName(foodId, res != null ? res.resourceName : foodId);
             int stock = GetInventoryStock(foodId);
-            view.iconWell.color = LumiWorldUITheme.Slot;
-            view.icon.sprite = res != null && res.icon != null ? res.icon : LumiWorldUITheme.Glyph("G-06");
-            view.icon.color = Color.white;
-            view.icon.rectTransform.sizeDelta = new Vector2(28f, 28f);
+
+            if (res != null && res.icon != null)
+            {
+                view.icon.sprite = res.icon;
+                view.icon.color = Color.white;
+                var icRt = view.icon.rectTransform;
+                icRt.anchorMin = Vector2.zero;
+                icRt.anchorMax = Vector2.one;
+                icRt.offsetMin = new Vector2(4f, 4f);
+                icRt.offsetMax = new Vector2(-4f, -4f);
+            }
+            else
+            {
+                view.icon.sprite = LumiWorldUITheme.Glyph("G-06");
+                view.icon.color = LumiWorldUITheme.Muted;
+                var icRt = view.icon.rectTransform;
+                icRt.anchorMin = icRt.anchorMax = icRt.pivot = new Vector2(0.5f, 0.5f);
+                icRt.offsetMin = Vector2.zero;
+                icRt.offsetMax = Vector2.zero;
+                icRt.sizeDelta = new Vector2(18f, 18f);
+            }
+
             view.title.text = foodName;
             view.title.color = LumiWorldUITheme.Text;
-            LumiWorldUITheme.PlaceTopLeft(view.title.rectTransform, 58f, 7f, 210f, 20f);
-            view.sub.gameObject.SetActive(true);
-            view.sub.text = stock > 0 ? $"Stock: {stock}" : "Out of stock";
-            view.sub.color = stock > 0 ? LumiWorldUITheme.Muted : LumiWorldUITheme.Warning;
-            view.chipBg.gameObject.SetActive(true);
-            view.chipBg.color = new Color(0.84f, 0.90f, 0.80f, 1f);
-            view.chipText.text = $"{budget} cap";
-            view.chipText.color = LumiWorldUITheme.Success;
+            view.sub.text = stock > 0 ? $"Budget {budget} · Stock {stock}" : "Out of stock";
+            view.sub.color = stock > 0 ? LumiWorldUITheme.Success : LumiWorldUITheme.Warning;
+
+            if (view.actionBtnBg != null) view.actionBtnBg.color = LumiWorldUITheme.Inset;
+            if (view.actionBtnLabel != null)
+            {
+                view.actionBtnLabel.text = "Change";
+                view.actionBtnLabel.color = LumiWorldUITheme.Text;
+            }
         }
         else
         {
-            view.iconWell.color = LumiWorldUITheme.Inset;
             view.icon.sprite = LumiWorldUITheme.Glyph("Plus") ?? LumiWorldUITheme.Glyph("G-06");
-            view.icon.color = LumiWorldUITheme.Text;
-            view.icon.rectTransform.sizeDelta = new Vector2(15f, 15f);
-            view.title.text = "Empty slot";
-            view.title.color = LumiWorldUITheme.Muted;
-            LumiWorldUITheme.PlaceTopLeft(view.title.rectTransform, 58f, 15f, 210f, 22f);
-            view.sub.gameObject.SetActive(false);
-            view.chipBg.gameObject.SetActive(true);
-            view.chipBg.color = LumiWorldUITheme.Inset;
-            view.chipText.text = "Add";
-            view.chipText.color = LumiWorldUITheme.Text;
+            view.icon.color = LumiWorldUITheme.Muted;
+            var icRt = view.icon.rectTransform;
+            icRt.anchorMin = icRt.anchorMax = icRt.pivot = new Vector2(0.5f, 0.5f);
+            icRt.offsetMin = Vector2.zero;
+            icRt.offsetMax = Vector2.zero;
+            icRt.sizeDelta = new Vector2(18f, 18f);
+
+            view.title.text = "Unassigned slot";
+            view.title.color = LumiWorldUITheme.Text;
+            view.sub.text = "Tap to assign food";
+            view.sub.color = LumiWorldUITheme.Muted;
+
+            if (view.actionBtnBg != null) view.actionBtnBg.color = LumiWorldUITheme.Primary;
+            if (view.actionBtnLabel != null)
+            {
+                view.actionBtnLabel.text = "Assign";
+                view.actionBtnLabel.color = Color.white;
+            }
         }
     }
 
@@ -1125,7 +1165,7 @@ public class MapStructureInfoUI : MonoBehaviour
 
         titleText.text = FormatRiverPiece(seg != null ? seg.pieceType : RiverPieceType.Straight);
         levelPillBg.gameObject.SetActive(false);
-        LumiWorldUITheme.PlaceTopLeft(footprintGroup, 86f, 48f, 200f, 22f);
+        LumiWorldUITheme.PlaceTopLeft(footprintGroup, 96f, 52f, 220f, 24f);
         footprintGlyphImg.sprite = LumiWorldUITheme.FootprintGlyph(tileCount);
         subtitleText.text = $"{tileCount} {(tileCount == 1 ? "tile" : "tiles")}";
 
@@ -1247,16 +1287,16 @@ public class MapStructureInfoUI : MonoBehaviour
         if (actionButton == null) return;
         actionButton.gameObject.SetActive(visible);
         if (!visible) return;
-        LumiWorldUITheme.PlaceTopLeft(actionButton.GetComponent<RectTransform>(), 16f, topY, PanelWidth - 32f, 44f);
+        LumiWorldUITheme.PlaceTopLeft(actionButton.GetComponent<RectTransform>(), 20f, topY, PanelWidth - 40f, 46f);
         actionButton.interactable = interactable;
         if (actionButtonLabel != null)
         {
             actionButtonLabel.text = label;
-            actionButtonLabel.color = primary ? Color.white : LumiWorldUITheme.Muted;
+            actionButtonLabel.color = Color.white;
         }
         if (actionButtonBg != null)
         {
-            actionButtonBg.color = primary ? LumiWorldUITheme.Primary : LumiWorldUITheme.Inset;
+            actionButtonBg.color = primary ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
         }
     }
 
@@ -1477,7 +1517,7 @@ public class MapStructureInfoUI : MonoBehaviour
         backdropObj.transform.SetParent(rootModal.transform, false);
         EconomyHUD.Stretch(backdropObj.GetComponent<RectTransform>());
         Image bdImg = backdropObj.GetComponent<Image>();
-        bdImg.color = new Color(0.10f, 0.09f, 0.08f, 0.03f);
+        bdImg.color = new Color(0.10f, 0.09f, 0.08f, 0.14f);
         Button bdBtn = backdropObj.GetComponent<Button>();
         bdBtn.transition = Selectable.Transition.None;
         bdBtn.onClick.AddListener(OnBackdropClicked);
@@ -1501,19 +1541,19 @@ public class MapStructureInfoUI : MonoBehaviour
         panelObj.AddComponent<ResourceUIInputBlocker>();
         LumiWorldUITheme.AddSoftElevation(panelObj, 6f, 0.24f);
 
-        // 1. Header: 60x60 Card Art Emblem + Title + Level Pill + Footprint + [x]
+        // 1. Header: 64x64 Card Art Emblem + Title + Level Pill + Footprint + [x]
         GameObject artObj = new GameObject("StructureArtwork", typeof(RectTransform), typeof(Image));
         artObj.transform.SetParent(panelRect, false);
-        LumiWorldUITheme.PlaceTopLeft(artObj.GetComponent<RectTransform>(), 16f, 12f, 60f, 60f);
+        LumiWorldUITheme.PlaceTopLeft(artObj.GetComponent<RectTransform>(), 20f, 14f, 64f, 64f);
         emblemImage = artObj.GetComponent<Image>();
         emblemImage.preserveAspect = true;
         emblemImage.raycastTarget = false;
 
         GameObject fbObj = new GameObject("FallbackBadge", typeof(RectTransform), typeof(Image));
         fbObj.transform.SetParent(panelRect, false);
-        LumiWorldUITheme.PlaceTopLeft(fbObj.GetComponent<RectTransform>(), 18f, 14f, 54f, 54f);
+        LumiWorldUITheme.PlaceTopLeft(fbObj.GetComponent<RectTransform>(), 22f, 16f, 58f, 58f);
         emblemFallbackBg = fbObj.GetComponent<Image>();
-        emblemFallbackBg.sprite = LumiWorldUITheme.GetCapsuleSprite(54);
+        emblemFallbackBg.sprite = LumiWorldUITheme.GetCapsuleSprite(58);
         emblemFallbackBg.type = Image.Type.Sliced;
         emblemFallbackBg.color = LumiWorldUITheme.Inset;
         emblemFallbackBg.raycastTarget = false;
@@ -1522,148 +1562,199 @@ public class MapStructureInfoUI : MonoBehaviour
         fbIcObj.transform.SetParent(fbObj.transform, false);
         RectTransform fbIcRt = fbIcObj.GetComponent<RectTransform>();
         fbIcRt.anchorMin = fbIcRt.anchorMax = fbIcRt.pivot = new Vector2(0.5f, 0.5f);
-        fbIcRt.sizeDelta = new Vector2(26f, 26f);
+        fbIcRt.sizeDelta = new Vector2(28f, 28f);
         emblemFallbackIcon = fbIcObj.GetComponent<Image>();
         emblemFallbackIcon.preserveAspect = true;
         emblemFallbackIcon.raycastTarget = false;
 
-        titleText = LumiWorldUITheme.CreateLabel(panelRect, "Title", "Granary Post", 22.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        titleText = LumiWorldUITheme.CreateLabel(panelRect, "Title", "Granary Post", 24f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         titleText.enableAutoSizing = true;
-        titleText.fontSizeMin = 16f;
-        titleText.fontSizeMax = 23f;
-        LumiWorldUITheme.PlaceTopLeft(titleText.rectTransform, 86f, 12f, 274f, 34f);
+        titleText.fontSizeMin = 17f;
+        titleText.fontSizeMax = 24.5f;
+        titleText.overflowMode = TextOverflowModes.Overflow;
+        LumiWorldUITheme.PlaceTopLeft(titleText.rectTransform, 96f, 14f, 292f, 36f);
 
         GameObject lvObj = new GameObject("LevelPill", typeof(RectTransform), typeof(Image));
         lvObj.transform.SetParent(panelRect, false);
-        LumiWorldUITheme.PlaceTopLeft(lvObj.GetComponent<RectTransform>(), 86f, 48f, 64f, 22f);
+        LumiWorldUITheme.PlaceTopLeft(lvObj.GetComponent<RectTransform>(), 96f, 52f, 70f, 24f);
         levelPillBg = lvObj.GetComponent<Image>();
-        levelPillBg.sprite = LumiWorldUITheme.GetCapsuleSprite(22);
+        levelPillBg.sprite = LumiWorldUITheme.GetCapsuleSprite(24);
         levelPillBg.type = Image.Type.Sliced;
         levelPillBg.color = LumiWorldUITheme.Inset;
         levelPillBg.raycastTarget = false;
-        levelPillText = LumiWorldUITheme.CreateLabel(lvObj.transform, "Text", "Lv. 1/5", 12f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        levelPillText = LumiWorldUITheme.CreateLabel(lvObj.transform, "Text", "Lv. 1/5", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
         LumiWorldUITheme.Stretch(levelPillText.rectTransform);
 
         GameObject fpObj = new GameObject("FootprintRow", typeof(RectTransform));
         fpObj.transform.SetParent(panelRect, false);
         footprintGroup = fpObj.GetComponent<RectTransform>();
-        LumiWorldUITheme.PlaceTopLeft(footprintGroup, 158f, 48f, 160f, 22f);
+        LumiWorldUITheme.PlaceTopLeft(footprintGroup, 174f, 52f, 180f, 24f);
 
         GameObject fpIcObj = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
         fpIcObj.transform.SetParent(footprintGroup, false);
-        LumiWorldUITheme.PlaceTopLeft(fpIcObj.GetComponent<RectTransform>(), 0f, 2f, 18f, 18f);
+        LumiWorldUITheme.PlaceTopLeft(fpIcObj.GetComponent<RectTransform>(), 0f, 2.5f, 19f, 19f);
         footprintGlyphImg = fpIcObj.GetComponent<Image>();
         footprintGlyphImg.preserveAspect = true;
         footprintGlyphImg.color = LumiWorldUITheme.Muted;
         footprintGlyphImg.raycastTarget = false;
 
-        subtitleText = LumiWorldUITheme.CreateLabel(footprintGroup, "Count", "5 tiles", 13f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        subtitleText = LumiWorldUITheme.CreateLabel(footprintGroup, "Count", "5 tiles", 14f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
         subtitleText.overflowMode = TextOverflowModes.Overflow;
-        LumiWorldUITheme.PlaceTopLeft(subtitleText.rectTransform, 23f, 0f, 130f, 22f);
+        LumiWorldUITheme.PlaceTopLeft(subtitleText.rectTransform, 24f, 0f, 146f, 24f);
 
-        LumiWorldUITheme.CreateCloseButton(panelRect, 14f, 14f, Close, 30f);
+        LumiWorldUITheme.CreateCloseButton(panelRect, 16f, 16f, Close, 32f);
 
-        // 2. Concise Effect Card
-        effectCardBg = LumiWorldUITheme.CreateRoundedSurface(
-            panelRect, "EffectCard", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge, 14, 1.2f, 2.5f, 0.14f);
-        LumiWorldUITheme.PlaceTopLeft(effectCardBg.rectTransform, 16f, 82f, PanelWidth - 32f, 58f);
+        // 2. Concise Effect Card (borderless SurfaceSprite + elevation matching P-05 ResidentsContainer)
+        GameObject effObj = new GameObject("EffectCard", typeof(RectTransform), typeof(Image));
+        effObj.transform.SetParent(panelRect, false);
+        effectCardBg = effObj.GetComponent<Image>();
+        effectCardBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        effectCardBg.type = Image.Type.Sliced;
+        effectCardBg.color = LumiWorldUITheme.Surface;
+        effectCardBg.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(effObj, 2.5f, 0.14f);
+        LumiWorldUITheme.PlaceTopLeft(effectCardBg.rectTransform, 20f, 92f, PanelWidth - 40f, 70f);
 
-        effectWellBg = LumiWorldUITheme.CreateRoundedSurface(
-            effectCardBg.transform, "IconWell", LumiWorldUITheme.Inset, Color.clear, 11, 0f, 0f, 0f);
-        LumiWorldUITheme.PlaceTopLeft(effectWellBg.rectTransform, 12f, 10f, 38f, 38f);
+        GameObject effWellObj = new GameObject("IconWell", typeof(RectTransform), typeof(Image));
+        effWellObj.transform.SetParent(effectCardBg.transform, false);
+        effectWellBg = effWellObj.GetComponent<Image>();
+        effectWellBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        effectWellBg.type = Image.Type.Sliced;
+        effectWellBg.color = LumiWorldUITheme.Slot;
+        effectWellBg.raycastTarget = false;
+        LumiWorldUITheme.PlaceTopLeft(effectWellBg.rectTransform, 12f, 13f, 44f, 44f);
 
         GameObject effIcObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         effIcObj.transform.SetParent(effectWellBg.transform, false);
         RectTransform effIcRt = effIcObj.GetComponent<RectTransform>();
         effIcRt.anchorMin = effIcRt.anchorMax = effIcRt.pivot = new Vector2(0.5f, 0.5f);
-        effIcRt.sizeDelta = new Vector2(20f, 20f);
+        effIcRt.sizeDelta = new Vector2(22f, 22f);
         effectIcon = effIcObj.GetComponent<Image>();
         effectIcon.preserveAspect = true;
         effectIcon.raycastTarget = false;
 
-        effectTitleText = LumiWorldUITheme.CreateLabel(effectCardBg.transform, "EffectTitle", "", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        effectTitleText = LumiWorldUITheme.CreateLabel(effectCardBg.transform, "EffectTitle", "", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         effectTitleText.enableAutoSizing = true;
-        effectTitleText.fontSizeMin = 12f;
-        effectTitleText.fontSizeMax = 14f;
-        LumiWorldUITheme.PlaceTopLeft(effectTitleText.rectTransform, 60f, 9f, PanelWidth - 104f, 20f);
+        effectTitleText.fontSizeMin = 12.5f;
+        effectTitleText.fontSizeMax = 15.5f;
+        LumiWorldUITheme.PlaceTopLeft(effectTitleText.rectTransform, 68f, 13f, PanelWidth - 124f, 22f);
 
-        effectText = LumiWorldUITheme.CreateLabel(effectCardBg.transform, "EffectDesc", "", 12f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
-        LumiWorldUITheme.PlaceTopLeft(effectText.rectTransform, 60f, 30f, PanelWidth - 104f, 18f);
+        effectText = LumiWorldUITheme.CreateLabel(effectCardBg.transform, "EffectDesc", "", 12.5f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(effectText.rectTransform, 68f, 37f, PanelWidth - 124f, 20f);
 
-        // 3A. Granary Post Auto-Feed Slots Section
+        // 3A. Granary Post Auto-Feed Slots Section (spacious P-05 Production slot rhythm)
         slotsSectionObj = new GameObject("AutoFeedSlotsSection", typeof(RectTransform));
         slotsSectionObj.transform.SetParent(panelRect, false);
-        LumiWorldUITheme.PlaceTopLeft(slotsSectionObj.GetComponent<RectTransform>(), 16f, 150f, PanelWidth - 32f, 198f);
+        LumiWorldUITheme.PlaceTopLeft(slotsSectionObj.GetComponent<RectTransform>(), 20f, 178f, PanelWidth - 40f, 242f);
 
-        slotsHeaderText = LumiWorldUITheme.CreateLabel(slotsSectionObj.transform, "SlotsHeader", "Auto-Feed (0/3)", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        LumiWorldUITheme.PlaceTopLeft(slotsHeaderText.rectTransform, 0f, 0f, 240f, 22f);
+        slotsHeaderText = LumiWorldUITheme.CreateLabel(slotsSectionObj.transform, "SlotsHeader", "Auto-Feed (0/3)", 16f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        slotsHeaderText.overflowMode = TextOverflowModes.Overflow;
+        LumiWorldUITheme.PlaceTopLeft(slotsHeaderText.rectTransform, 0f, 0f, 250f, 26f);
 
-        slotsHintText = LumiWorldUITheme.CreateLabel(slotsSectionObj.transform, "SlotsHint", "Max Lv. 5", 12f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineRight);
-        LumiWorldUITheme.PlaceTopLeft(slotsHintText.rectTransform, 240f, 0f, PanelWidth - 272f, 22f);
+        slotsHintText = LumiWorldUITheme.CreateLabel(slotsSectionObj.transform, "SlotsHint", "Max Lv. 5", 12.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineRight);
+        LumiWorldUITheme.PlaceTopLeft(slotsHintText.rectTransform, 250f, 2f, PanelWidth - 290f, 22f);
 
         for (int i = 0; i < 3; i++)
         {
-            slotRows[i] = BuildSlotRow(slotsSectionObj.transform, i, 28f + i * 56f);
+            slotRows[i] = BuildSlotRow(slotsSectionObj.transform, i, 34f + i * 72f);
         }
 
-        mainFeedbackText = LumiWorldUITheme.CreateLabel(panelRect, "FeedbackText", "", 11.5f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
-        LumiWorldUITheme.PlaceTopLeft(mainFeedbackText.rectTransform, 16f, GranaryPanelHeight - 78f, PanelWidth - 32f, 18f);
+        mainFeedbackText = LumiWorldUITheme.CreateLabel(panelRect, "FeedbackText", "", 12f, LumiWorldUITheme.Success, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.PlaceTopLeft(mainFeedbackText.rectTransform, 20f, GranaryPanelHeight - 84f, PanelWidth - 40f, 18f);
 
         // 3B. Metrics Section (Streams & Non-AutoFeed Buildings)
         metricsSectionObj = new GameObject("MetricsSection", typeof(RectTransform));
         metricsSectionObj.transform.SetParent(panelRect, false);
-        LumiWorldUITheme.PlaceTopLeft(metricsSectionObj.GetComponent<RectTransform>(), 16f, 152f, PanelWidth - 32f, 76f);
+        LumiWorldUITheme.PlaceTopLeft(metricsSectionObj.GetComponent<RectTransform>(), 20f, 178f, PanelWidth - 40f, 88f);
 
-        float cardW = (PanelWidth - 32f - 10f) * 0.5f;
-        BuildMetricBox(metricsSectionObj.transform, 0f, 0f, cardW, 76f, out metric1Label, out metric1Value, out metric1Sub);
-        BuildMetricBox(metricsSectionObj.transform, cardW + 10f, 0f, cardW, 76f, out metric2Label, out metric2Value, out metric2Sub);
+        float cardW = (PanelWidth - 40f - 12f) * 0.5f;
+        BuildMetricBox(metricsSectionObj.transform, 0f, 0f, cardW, 88f, out metric1Label, out metric1Value, out metric1Sub);
+        BuildMetricBox(metricsSectionObj.transform, cardW + 12f, 0f, cardW, 88f, out metric2Label, out metric2Value, out metric2Sub);
         metricsSectionObj.SetActive(false);
 
         // 3C. Stream Bonuses List
         rulesContainer = new GameObject("RulesSection", typeof(RectTransform));
         rulesContainer.transform.SetParent(panelRect, false);
-        LumiWorldUITheme.PlaceTopLeft(rulesContainer.GetComponent<RectTransform>(), 16f, 240f, PanelWidth - 32f, 112f);
+        LumiWorldUITheme.PlaceTopLeft(rulesContainer.GetComponent<RectTransform>(), 20f, 282f, PanelWidth - 40f, 116f);
 
-        rulesHeaderText = LumiWorldUITheme.CreateLabel(rulesContainer.transform, "RulesHeader", "Bonuses", 15f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        LumiWorldUITheme.PlaceTopLeft(rulesHeaderText.rectTransform, 0f, 0f, PanelWidth - 32f, 22f);
+        rulesHeaderText = LumiWorldUITheme.CreateLabel(rulesContainer.transform, "RulesHeader", "Bonuses", 16f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(rulesHeaderText.rectTransform, 0f, 0f, PanelWidth - 40f, 24f);
 
-        rulesCardBg = LumiWorldUITheme.CreateRoundedSurface(
-            rulesContainer.transform, "RulesCard", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge, 14, 1.2f, 2f, 0.12f);
-        LumiWorldUITheme.PlaceTopLeft(rulesCardBg.rectTransform, 0f, 26f, PanelWidth - 32f, 82f);
+        GameObject rcObj = new GameObject("RulesCard", typeof(RectTransform), typeof(Image));
+        rcObj.transform.SetParent(rulesContainer.transform, false);
+        rulesCardBg = rcObj.GetComponent<Image>();
+        rulesCardBg.sprite = LumiWorldUITheme.SurfaceSprite;
+        rulesCardBg.type = Image.Type.Sliced;
+        rulesCardBg.color = LumiWorldUITheme.Surface;
+        rulesCardBg.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(rcObj, 2.5f, 0.14f);
+        LumiWorldUITheme.PlaceTopLeft(rulesCardBg.rectTransform, 0f, 28f, PanelWidth - 40f, 86f);
 
         for (int i = 0; i < 3; i++)
         {
             GameObject rowObj = new GameObject("RuleRow_" + i, typeof(RectTransform));
             rowObj.transform.SetParent(rulesCardBg.transform, false);
-            LumiWorldUITheme.PlaceTopLeft(rowObj.GetComponent<RectTransform>(), 14f, 6f + i * 24f, PanelWidth - 60f, 22f);
+            LumiWorldUITheme.PlaceTopLeft(rowObj.GetComponent<RectTransform>(), 16f, 8f + i * 24f, PanelWidth - 72f, 22f);
             ruleRows[i] = rowObj;
 
-            var leftTmp = LumiWorldUITheme.CreateLabel(rowObj.transform, "Left", "", 12.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
-            LumiWorldUITheme.PlaceTopLeft(leftTmp.rectTransform, 0f, 0f, 146f, 22f);
+            var leftTmp = LumiWorldUITheme.CreateLabel(rowObj.transform, "Left", "", 13f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+            LumiWorldUITheme.PlaceTopLeft(leftTmp.rectTransform, 0f, 0f, 156f, 22f);
             ruleLeftTexts[i] = leftTmp;
 
-            var rightTmp = LumiWorldUITheme.CreateLabel(rowObj.transform, "Right", "", 12.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
+            var rightTmp = LumiWorldUITheme.CreateLabel(rowObj.transform, "Right", "", 13f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
             rightTmp.overflowMode = TextOverflowModes.Overflow;
-            LumiWorldUITheme.PlaceTopLeft(rightTmp.rectTransform, 148f, 0f, PanelWidth - 208f, 22f);
+            LumiWorldUITheme.PlaceTopLeft(rightTmp.rectTransform, 158f, 0f, PanelWidth - 230f, 22f);
             ruleRightTexts[i] = rightTmp;
         }
         rulesContainer.SetActive(false);
 
-        // 4. Bottom Primary CTA
-        actionButton = LumiWorldUITheme.CreatePillButton(
-            panelRect,
-            "ActionBtn",
-            "Feed Nearby Now",
-            "G-06",
-            primary: true,
-            fontSize: 15f,
-            onClick: OnActionButtonClicked,
-            out actionButtonBg,
-            out _,
-            out actionButtonLabel,
-            radius: 14);
-        actionButton.gameObject.AddComponent<DialogButtonJuice>();
-        LumiWorldUITheme.PlaceTopLeft(actionButton.GetComponent<RectTransform>(), 16f, GranaryPanelHeight - 60f, PanelWidth - 32f, 44f);
+        // 4. Bottom Primary CTA (capsule pill + elevation matching P-05 CollectAllBtn)
+        GameObject actObj = new GameObject("ActionBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        actObj.transform.SetParent(panelRect, false);
+        RectTransform actRt = actObj.GetComponent<RectTransform>();
+        LumiWorldUITheme.PlaceTopLeft(actRt, 20f, GranaryPanelHeight - 64f, PanelWidth - 40f, 46f);
+
+        actionButtonBg = actObj.GetComponent<Image>();
+        actionButtonBg.sprite = LumiWorldUITheme.GetCapsuleSprite(46);
+        actionButtonBg.type = Image.Type.Sliced;
+        actionButtonBg.color = LumiWorldUITheme.Primary;
+        LumiWorldUITheme.AddSoftElevation(actObj, 3f, 0.20f);
+
+        actionButton = actObj.GetComponent<Button>();
+        actionButton.targetGraphic = actionButtonBg;
+        actionButton.navigation = new Navigation { mode = Navigation.Mode.None };
+        ColorBlock actColors = actionButton.colors;
+        actColors.disabledColor = Color.white;
+        actionButton.colors = actColors;
+        actionButton.onClick.AddListener(OnActionButtonClicked);
+        actObj.AddComponent<DialogButtonJuice>();
+
+        GameObject actContent = new GameObject("Content", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        actContent.transform.SetParent(actRt, false);
+        LumiWorldUITheme.Stretch(actContent.GetComponent<RectTransform>(), 12f);
+        var hlg = actContent.GetComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+        hlg.spacing = 8f;
+        hlg.childControlWidth = false;
+        hlg.childControlHeight = false;
+        hlg.childForceExpandWidth = false;
+        hlg.childForceExpandHeight = false;
+
+        GameObject actIcObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        actIcObj.transform.SetParent(actContent.transform, false);
+        actIcObj.GetComponent<RectTransform>().sizeDelta = new Vector2(17f, 17f);
+        Image actIcImg = actIcObj.GetComponent<Image>();
+        actIcImg.sprite = LumiWorldUITheme.Glyph("G-06");
+        actIcImg.preserveAspect = true;
+        actIcImg.color = Color.white;
+        actIcImg.raycastTarget = false;
+
+        actionButtonLabel = LumiWorldUITheme.CreateLabel(actContent.transform, "Label", "Feed Nearby Now", 15f, Color.white, true, TextAlignmentOptions.Center);
+        actionButtonLabel.overflowMode = TextOverflowModes.Overflow;
+        var csf = actionButtonLabel.gameObject.AddComponent<ContentSizeFitter>();
+        csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
         actionButton.gameObject.SetActive(false);
 
         // --- CENTERED ASSIGN FOOD POPUP (mirrors Habitat P-07 Assign Resource) ---
@@ -1838,8 +1929,8 @@ public class MapStructureInfoUI : MonoBehaviour
 
     private SlotRowView BuildSlotRow(Transform parent, int index, float yTop)
     {
-        float w = PanelWidth - 32f;
-        const float h = 50f;
+        float w = PanelWidth - 40f;
+        const float h = 62f;
         int capturedSlot = index;
 
         GameObject rowObj = new GameObject($"AutoFeedSlot_{index}", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -1851,16 +1942,23 @@ public class MapStructureInfoUI : MonoBehaviour
         bg.sprite = LumiWorldUITheme.SurfaceSprite;
         bg.type = Image.Type.Sliced;
         bg.color = LumiWorldUITheme.Surface;
-        LumiWorldUITheme.AddSoftElevation(rowObj, 2f, 0.10f);
+        LumiWorldUITheme.AddSoftElevation(rowObj, 2.5f, 0.14f);
+        Shadow rowShadow = rowObj.GetComponent<Shadow>();
 
         Button btn = rowObj.GetComponent<Button>();
         btn.targetGraphic = bg;
         LumiWorldUITheme.ApplyButtonDisabledNeutral(btn);
         btn.onClick.AddListener(() => OpenSlotPicker(capturedSlot));
 
-        Image iconWell = LumiWorldUITheme.CreateRoundedSurface(
-            rt, "IconWell", LumiWorldUITheme.Inset, Color.clear, 10, 0f, 0f, 0f);
-        LumiWorldUITheme.PlaceTopLeft(iconWell.rectTransform, 10f, 6f, 38f, 38f);
+        // 1. Icon Box (42x42, SurfaceSprite in Slot color — roomy P-05 Production slot)
+        GameObject iconBox = new GameObject("IconBox", typeof(RectTransform), typeof(Image));
+        iconBox.transform.SetParent(rt, false);
+        LumiWorldUITheme.PlaceTopLeft(iconBox.GetComponent<RectTransform>(), 10f, 10f, 42f, 42f);
+        Image iconWell = iconBox.GetComponent<Image>();
+        iconWell.sprite = LumiWorldUITheme.SurfaceSprite;
+        iconWell.type = Image.Type.Sliced;
+        iconWell.color = LumiWorldUITheme.Slot;
+        iconWell.raycastTarget = false;
 
         GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         icObj.transform.SetParent(iconWell.transform, false);
@@ -1871,30 +1969,40 @@ public class MapStructureInfoUI : MonoBehaviour
         ic.preserveAspect = true;
         ic.raycastTarget = false;
 
-        TextMeshProUGUI title = LumiWorldUITheme.CreateLabel(rt, "Title", "", 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
-        LumiWorldUITheme.PlaceTopLeft(title.rectTransform, 58f, 7f, 220f, 20f);
+        // 2. Title & Status lines
+        TextMeshProUGUI title = LumiWorldUITheme.CreateLabel(rt, "Title", "", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(title.rectTransform, 62f, 9f, 240f, 22f);
 
-        TextMeshProUGUI sub = LumiWorldUITheme.CreateLabel(rt, "Sub", "", 11.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        TextMeshProUGUI sub = LumiWorldUITheme.CreateLabel(rt, "Sub", "", 12f, LumiWorldUITheme.Muted, true, TextAlignmentOptions.MidlineLeft);
         sub.overflowMode = TextOverflowModes.Overflow;
-        LumiWorldUITheme.PlaceTopLeft(sub.rectTransform, 58f, 27f, 220f, 16f);
+        LumiWorldUITheme.PlaceTopLeft(sub.rectTransform, 62f, 33f, 240f, 20f);
 
-        GameObject chipObj = new GameObject("StatusChip", typeof(RectTransform), typeof(Image));
-        chipObj.transform.SetParent(rt, false);
-        LumiWorldUITheme.PlaceTopRight(chipObj.GetComponent<RectTransform>(), 10f, 12f, 70f, 26f);
-        Image chipBg = chipObj.GetComponent<Image>();
-        chipBg.sprite = LumiWorldUITheme.GetCapsuleSprite(26);
-        chipBg.type = Image.Type.Sliced;
-        chipBg.color = LumiWorldUITheme.Inset;
-        chipBg.raycastTarget = false;
+        // 3. Action capsule button on the right ("Assign" / "Change")
+        GameObject btnObj = new GameObject("SlotActionBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        btnObj.transform.SetParent(rt, false);
+        RectTransform bRect = btnObj.GetComponent<RectTransform>();
+        bRect.anchorMin = bRect.anchorMax = bRect.pivot = new Vector2(1f, 0.5f);
+        bRect.anchoredPosition = new Vector2(-12f, 0f);
+        bRect.sizeDelta = new Vector2(84f, 32f);
 
-        TextMeshProUGUI chipText = LumiWorldUITheme.CreateLabel(chipObj.transform, "ChipText", "Add", 12f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
-        LumiWorldUITheme.Stretch(chipText.rectTransform);
+        Image actionBg = btnObj.GetComponent<Image>();
+        actionBg.sprite = LumiWorldUITheme.GetCapsuleSprite(32);
+        actionBg.type = Image.Type.Sliced;
+        actionBg.color = LumiWorldUITheme.Primary;
+
+        TextMeshProUGUI actionLbl = LumiWorldUITheme.CreateLabel(bRect, "Label", "Assign", 12.5f, Color.white, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(actionLbl.rectTransform);
+
+        Button actionBtn = btnObj.GetComponent<Button>();
+        actionBtn.targetGraphic = actionBg;
+        actionBtn.navigation = new Navigation { mode = Navigation.Mode.None };
+        actionBtn.onClick.AddListener(() => OpenSlotPicker(capturedSlot));
 
         GameObject selObj = new GameObject("SelectedBorder", typeof(RectTransform), typeof(Image));
         selObj.transform.SetParent(rt, false);
         LumiWorldUITheme.Stretch(selObj.GetComponent<RectTransform>());
         Image selImg = selObj.GetComponent<Image>();
-        selImg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("SelOutline_R16_S2.5", Color.clear, LumiWorldUITheme.Primary, 16, 2.5f);
+        selImg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite("SelOutline_R20_S2.5", Color.clear, LumiWorldUITheme.Primary, 20, 2.5f);
         selImg.type = Image.Type.Sliced;
         selImg.color = Color.white;
         selImg.raycastTarget = false;
@@ -1904,13 +2012,16 @@ public class MapStructureInfoUI : MonoBehaviour
         {
             root = rt,
             bg = bg,
+            shadow = rowShadow,
             selectedBorder = selImg,
             iconWell = iconWell,
             icon = ic,
             title = title,
             sub = sub,
-            chipBg = chipBg,
-            chipText = chipText,
+            actionBtnObj = btnObj,
+            actionBtnBg = actionBg,
+            actionBtnLabel = actionLbl,
+            actionBtn = actionBtn,
             button = btn
         };
     }
@@ -1925,20 +2036,26 @@ public class MapStructureInfoUI : MonoBehaviour
         out TextMeshProUGUI valueTmp,
         out TextMeshProUGUI subTmp)
     {
-        Image box = LumiWorldUITheme.CreateRoundedSurface(
-            parent, "MetricBox", LumiWorldUITheme.Surface, LumiWorldUITheme.Edge, 14, 1.2f, 2f, 0.12f);
+        GameObject boxObj = new GameObject("MetricBox", typeof(RectTransform), typeof(Image));
+        boxObj.transform.SetParent(parent, false);
+        Image box = boxObj.GetComponent<Image>();
+        box.sprite = LumiWorldUITheme.SurfaceSprite;
+        box.type = Image.Type.Sliced;
+        box.color = LumiWorldUITheme.Surface;
+        box.raycastTarget = false;
+        LumiWorldUITheme.AddSoftElevation(boxObj, 2.5f, 0.14f);
         LumiWorldUITheme.PlaceTopLeft(box.rectTransform, x, y, w, h);
 
-        labelTmp = LumiWorldUITheme.CreateLabel(box.transform, "Label", "", 12.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
-        LumiWorldUITheme.PlaceTopLeft(labelTmp.rectTransform, 14f, 8f, w - 28f, 18f);
+        labelTmp = LumiWorldUITheme.CreateLabel(box.transform, "Label", "", 13f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        LumiWorldUITheme.PlaceTopLeft(labelTmp.rectTransform, 16f, 10f, w - 32f, 20f);
 
-        valueTmp = LumiWorldUITheme.CreateLabel(box.transform, "Value", "", 19f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
+        valueTmp = LumiWorldUITheme.CreateLabel(box.transform, "Value", "", 21f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineLeft);
         valueTmp.overflowMode = TextOverflowModes.Overflow;
-        LumiWorldUITheme.PlaceTopLeft(valueTmp.rectTransform, 14f, 26f, w - 28f, 24f);
+        LumiWorldUITheme.PlaceTopLeft(valueTmp.rectTransform, 16f, 32f, w - 32f, 26f);
 
-        subTmp = LumiWorldUITheme.CreateLabel(box.transform, "Sub", "", 11.5f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
+        subTmp = LumiWorldUITheme.CreateLabel(box.transform, "Sub", "", 12f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
         subTmp.overflowMode = TextOverflowModes.Overflow;
-        LumiWorldUITheme.PlaceTopLeft(subTmp.rectTransform, 14f, 52f, w - 28f, 16f);
+        LumiWorldUITheme.PlaceTopLeft(subTmp.rectTransform, 16f, 60f, w - 32f, 18f);
     }
 
     private void SyncStageScale()
