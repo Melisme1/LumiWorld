@@ -217,7 +217,19 @@ public static class WorldShareService
         // Ô cháy thành tro (bước 8), để người thăm thấy ô đen và không có cây như chủ đảo
         if (world.disasters != null && world.disasters.tiles != null)
             foreach (DisasterTileRecord tile in world.disasters.tiles)
-                if (tile != null && tile.isBurned) snapshot.burned.Add(new HexPointRecord { q = tile.q, r = tile.r });
+            {
+                if (tile == null) continue;
+                if (tile.isBurned) snapshot.burned.Add(new HexPointRecord { q = tile.q, r = tile.r });
+
+                // Thiên tai đang chạy trên ô (trước đây không gửi, nên Share/Update xong người thăm không thấy lửa, lốc, vật cản)
+                bool hasMarks = tile.marks != null && tile.marks.Count > 0;
+                if (!hasMarks && !tile.hasObstacle && tile.aridity <= 0f) continue;
+                var shown = new SnapshotDisasterTile { q = tile.q, r = tile.r, hasObstacle = tile.hasObstacle, aridity = tile.aridity };
+                if (hasMarks)
+                    foreach (DisasterMarkRecord mark in tile.marks)
+                        if (mark != null && !string.IsNullOrEmpty(mark.kind) && !shown.kinds.Contains(mark.kind)) shown.kinds.Add(mark.kind);
+                snapshot.disasterTiles.Add(shown);
+            }
 
         string json = JsonUtility.ToJson(snapshot);
         if (Encoding.UTF8.GetByteCount(json) > MaxSnapshotBytes)

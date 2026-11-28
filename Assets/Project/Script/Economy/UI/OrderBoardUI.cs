@@ -53,6 +53,7 @@ public class OrderBoardUI : MonoBehaviour
         public readonly List<ReqPillView> reqRows = new List<ReqPillView>();
         public TextMeshProUGUI rewardText;
         public Button skipButton;
+        public TextMeshProUGUI skipButtonLabel;
         public GameObject emptyContent;
         public TextMeshProUGUI emptyText;
         public RectTransform floatLayer;
@@ -347,7 +348,14 @@ public class OrderBoardUI : MonoBehaviour
             row.tagText.text = baseline ? "Basic order" : (order.requirements.Count > 1 ? "Mixed order" : "Regular order");
             row.tagText.color = baseline ? LumiWorldUITheme.Warning : LumiWorldUITheme.Muted;
 
-            if (row.skipButton != null) row.skipButton.gameObject.SetActive(!baseline);
+            if (row.skipButton != null)
+            {
+                row.skipButton.gameObject.SetActive(true);
+                if (row.skipButtonLabel != null)
+                {
+                    row.skipButtonLabel.text = "Cancel";
+                }
+            }
 
             for (int i = 0; i < row.reqRows.Count; i++)
             {
@@ -380,7 +388,7 @@ public class OrderBoardUI : MonoBehaviour
         detailPortrait.transform.parent.gameObject.SetActive(hasOrder);
         detailHeroArt.transform.parent.gameObject.SetActive(hasOrder);
         deliverButton.gameObject.SetActive(hasOrder);
-        if (discardButton != null) discardButton.gameObject.SetActive(hasOrder && selectedOrderSlot != OrderBoardSystem.BaselineSlot);
+        if (discardButton != null) discardButton.gameObject.SetActive(hasOrder);
 
         if (!hasOrder) return;
 
@@ -762,7 +770,7 @@ public class OrderBoardUI : MonoBehaviour
         // Hero resource art & name (NO "owned" text per P-10 rule)
         GameObject heroGroup = new GameObject("HeroResource", typeof(RectTransform));
         heroGroup.transform.SetParent(orderDetailPane, false);
-        LumiWorldUITheme.PlaceTopLeft(heroGroup.GetComponent<RectTransform>(), 16f, 92f, RightPaneWidth - 32f, 118f);
+        LumiWorldUITheme.PlaceTopLeft(heroGroup.GetComponent<RectTransform>(), 16f, 84f, RightPaneWidth - 32f, 110f);
 
         Image heroCard = LumiWorldUITheme.CreateRoundedSurface(heroGroup.transform, "Bg", LumiWorldUITheme.Slot, LumiWorldUITheme.Edge, 14, 1.2f, 0f, 0f);
         LumiWorldUITheme.Stretch(heroCard.rectTransform);
@@ -771,38 +779,38 @@ public class OrderBoardUI : MonoBehaviour
         haObj.transform.SetParent(heroGroup.transform, false);
         RectTransform haRt = haObj.GetComponent<RectTransform>();
         haRt.anchorMin = haRt.anchorMax = haRt.pivot = new Vector2(0.5f, 1f);
-        haRt.anchoredPosition = new Vector2(0f, -8f);
-        haRt.sizeDelta = new Vector2(76f, 76f);
+        haRt.anchoredPosition = new Vector2(0f, -6f);
+        haRt.sizeDelta = new Vector2(72f, 72f);
         detailHeroArt = haObj.GetComponent<Image>();
         detailHeroArt.preserveAspect = true;
         detailHeroArt.raycastTarget = false;
 
         detailHeroName = LumiWorldUITheme.CreateLabel(heroGroup.transform, "Name", "Oak Wood", 15.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
-        LumiWorldUITheme.PlaceTopLeft(detailHeroName.rectTransform, 10f, 88f, RightPaneWidth - 52f, 26f);
+        LumiWorldUITheme.PlaceTopLeft(detailHeroName.rectTransform, 10f, 82f, RightPaneWidth - 52f, 24f);
 
         // Requirements stack (each shows Art + Name + min(have,req)/req pill, no "owned")
         detailReqs.Clear();
         for (int i = 0; i < 3; i++)
         {
-            detailReqs.Add(CreateDetailRequirementRow(orderDetailPane, 222f + i * 38f, RightPaneWidth - 32f));
+            detailReqs.Add(CreateDetailRequirementRow(orderDetailPane, 202f + i * 35f, RightPaneWidth - 32f));
         }
 
         // Reward pill
         Image rewBg = LumiWorldUITheme.CreateRoundedSurface(orderDetailPane, "RewardPill", LumiWorldUITheme.Well, LumiWorldUITheme.Edge, 12, 1f, 0f, 0f);
-        LumiWorldUITheme.PlaceTopLeft(rewBg.rectTransform, 16f, 344f, RightPaneWidth - 32f, 38f);
+        LumiWorldUITheme.PlaceTopLeft(rewBg.rectTransform, 16f, 316f, RightPaneWidth - 32f, 36f);
         TextMeshProUGUI rewLbl = LumiWorldUITheme.CreateLabel(rewBg.rectTransform, "Label", "Reward", 13f, LumiWorldUITheme.Muted, false, TextAlignmentOptions.MidlineLeft);
-        LumiWorldUITheme.PlaceTopLeft(rewLbl.rectTransform, 14f, 7f, 80f, 24f);
+        LumiWorldUITheme.PlaceTopLeft(rewLbl.rectTransform, 14f, 6f, 80f, 24f);
 
         GameObject rcObj = new GameObject("Coin", typeof(RectTransform), typeof(Image));
         rcObj.transform.SetParent(rewBg.rectTransform, false);
-        LumiWorldUITheme.PlaceTopLeft(rcObj.GetComponent<RectTransform>(), 122f, 10f, 18f, 18f);
+        LumiWorldUITheme.PlaceTopLeft(rcObj.GetComponent<RectTransform>(), 122f, 9f, 18f, 18f);
         Image rcImg = rcObj.GetComponent<Image>();
         rcImg.sprite = EconomyHUD.CoinSprite;
         rcImg.preserveAspect = true;
         rcImg.raycastTarget = false;
 
         detailRewardValue = LumiWorldUITheme.CreateLabel(rewBg.rectTransform, "Value", "0 coins", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
-        LumiWorldUITheme.PlaceTopLeft(detailRewardValue.rectTransform, 142f, 7f, RightPaneWidth - 186f, 24f);
+        LumiWorldUITheme.PlaceTopLeft(detailRewardValue.rectTransform, 142f, 6f, RightPaneWidth - 186f, 24f);
 
         // Primary Deliver CTA
         deliverButton = LumiWorldUITheme.CreatePillButton(
@@ -816,13 +824,13 @@ public class OrderBoardUI : MonoBehaviour
             out deliverBg,
             out _,
             out deliverLabel,
-            18);
-        LumiWorldUITheme.PlaceTopLeft((RectTransform)deliverButton.transform, 16f, 394f, RightPaneWidth - 32f, 44f);
+            21);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)deliverButton.transform, 16f, 360f, RightPaneWidth - 32f, 42f);
 
         discardButton = LumiWorldUITheme.CreatePillButton(
             orderDetailPane,
             "DiscardBtn",
-            "Discard order",
+            "Cancel Order",
             null,
             false,
             12f,
@@ -830,9 +838,9 @@ public class OrderBoardUI : MonoBehaviour
             out Image discBg,
             out _,
             out _,
-            12);
-        LumiWorldUITheme.PlaceTopLeft((RectTransform)discardButton.transform, 16f, 443f, RightPaneWidth - 32f, 24f);
-        discBg.color = LumiWorldUITheme.Window;
+            14);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)discardButton.transform, (RightPaneWidth - 140f) * 0.5f, 412f, 140f, 28f);
+        discBg.color = LumiWorldUITheme.Slot;
     }
 
     private OrderRowView CreateOrderRow(Transform parent, int slot, float y, float width, float height)
@@ -890,12 +898,25 @@ public class OrderBoardUI : MonoBehaviour
         row.rewardText = LumiWorldUITheme.CreateLabel(activeObj.transform, "RewardVal", "60 coins", 14.5f, LumiWorldUITheme.Text, true, TextAlignmentOptions.MidlineRight);
         LumiWorldUITheme.PlaceTopLeft(row.rewardText.rectTransform, width - 98f, 35f, 80f, 24f);
 
-        if (slot != OrderBoardSystem.BaselineSlot)
+        row.skipButton = LumiWorldUITheme.CreatePillButton(activeObj.transform, "Cancel", "Cancel", null, false, 11.5f, () => OnDiscardSlot(captured),
+            out Image skBg, out _, out TextMeshProUGUI cancelLbl, 12);
+        LumiWorldUITheme.PlaceTopLeft((RectTransform)row.skipButton.transform, width - 82f, 85f, 68f, 26f);
+        skBg.color = LumiWorldUITheme.Window;
+
+        row.skipButtonLabel = cancelLbl;
+        if (cancelLbl != null)
         {
-            row.skipButton = LumiWorldUITheme.CreatePillButton(activeObj.transform, "Skip", "Skip", null, false, 11f, () => OnDiscardSlot(captured),
-                out Image skBg, out _, out _, 10);
-            LumiWorldUITheme.PlaceTopLeft((RectTransform)row.skipButton.transform, width - 74f, 86f, 58f, 24f);
-            skBg.color = LumiWorldUITheme.Window;
+            cancelLbl.text = "Cancel";
+            cancelLbl.fontSize = 11.5f;
+            cancelLbl.color = LumiWorldUITheme.Muted;
+            cancelLbl.overflowMode = TextOverflowModes.Overflow;
+            cancelLbl.textWrappingMode = TextWrappingModes.NoWrap;
+            cancelLbl.alignment = TextAlignmentOptions.Center;
+            LumiWorldUITheme.Stretch(cancelLbl.rectTransform, 0f);
+            if (cancelLbl.transform.parent != null)
+            {
+                LumiWorldUITheme.Stretch(cancelLbl.transform.parent.GetComponent<RectTransform>(), 0f);
+            }
         }
 
         GameObject emptyObj = new GameObject("Empty", typeof(RectTransform));
@@ -949,24 +970,24 @@ public class OrderBoardUI : MonoBehaviour
         LumiWorldUITheme.PlaceTopLeft(root.GetComponent<RectTransform>(), 16f, y, width, 32f);
 
         Image rowBg = root.AddComponent<Image>();
-        rowBg.sprite = LumiWorldUITheme.PillSprite;
+        rowBg.sprite = LumiWorldUITheme.GetCapsuleSprite(32);
         rowBg.type = Image.Type.Sliced;
         rowBg.color = LumiWorldUITheme.Window;
         rowBg.raycastTarget = false;
 
         GameObject icObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
         icObj.transform.SetParent(root.transform, false);
-        LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 8f, 5f, 22f, 22f);
+        LumiWorldUITheme.PlaceTopLeft(icObj.GetComponent<RectTransform>(), 12f, 5f, 22f, 22f);
         Image ic = icObj.GetComponent<Image>();
         ic.preserveAspect = true;
         ic.raycastTarget = false;
 
         TextMeshProUGUI nameTxt = LumiWorldUITheme.CreateLabel(root.transform, "Name", "Resource", 12.5f, LumiWorldUITheme.Text, false, TextAlignmentOptions.MidlineLeft);
-        LumiWorldUITheme.PlaceTopLeft(nameTxt.rectTransform, 36f, 4f, width - 114f, 24f);
+        LumiWorldUITheme.PlaceTopLeft(nameTxt.rectTransform, 40f, 4f, width - 122f, 24f);
 
         GameObject pillObj = new GameObject("FracPill", typeof(RectTransform), typeof(Image));
         pillObj.transform.SetParent(root.transform, false);
-        LumiWorldUITheme.PlaceTopLeft(pillObj.GetComponent<RectTransform>(), width - 74f, 5f, 66f, 22f);
+        LumiWorldUITheme.PlaceTopLeft(pillObj.GetComponent<RectTransform>(), width - 76f, 5f, 64f, 22f);
         Image pillBg = pillObj.GetComponent<Image>();
         pillBg.raycastTarget = false;
 
@@ -1059,7 +1080,7 @@ public class OrderBoardUI : MonoBehaviour
 
         // Quantity Stepper
         float stepY = 226f;
-        LumiWorldUITheme.CreatePillButton(sellDetailPane, "MinusBtn", "", "Minus", false, 14f, () => StepSellQuantity(-1), out Image mBg, out _, out _, 14);
+        LumiWorldUITheme.CreatePillButton(sellDetailPane, "MinusBtn", "", "Minus", false, 15f, () => StepSellQuantity(-1), out Image mBg, out _, out _, 19);
         LumiWorldUITheme.PlaceTopLeft((RectTransform)mBg.transform, 40f, stepY, 44f, 38f);
 
         Image qBox = LumiWorldUITheme.CreateRoundedSurface(sellDetailPane, "QtyInput", LumiWorldUITheme.Slot, LumiWorldUITheme.Edge, 12, 1.2f, 0f, 0f, true);
@@ -1088,7 +1109,7 @@ public class OrderBoardUI : MonoBehaviour
             RefreshSellDetail();
         });
 
-        LumiWorldUITheme.CreatePillButton(sellDetailPane, "PlusBtn", "", "Plus", false, 14f, () => StepSellQuantity(1), out Image pBg, out _, out _, 14);
+        LumiWorldUITheme.CreatePillButton(sellDetailPane, "PlusBtn", "", "Plus", false, 15f, () => StepSellQuantity(1), out Image pBg, out _, out _, 19);
         LumiWorldUITheme.PlaceTopLeft((RectTransform)pBg.transform, 206f, stepY, 44f, 38f);
 
         // Total Received Inset (NO "Remaining" row per P-11)
@@ -1213,10 +1234,10 @@ public class OrderBoardUI : MonoBehaviour
     {
         if (greenReqPillSprite != null) return greenReqPillSprite;
         greenReqPillSprite = LumiWorldUITheme.GetBorderedSurfaceSprite(
-            "ReqPillGreen",
+            "ReqPillGreen_R11",
             new Color(0.89f, 0.94f, 0.87f, 1f),
             new Color(0.54f, 0.72f, 0.48f, 1f),
-            10,
+            11,
             1.2f);
         return greenReqPillSprite;
     }
@@ -1225,10 +1246,10 @@ public class OrderBoardUI : MonoBehaviour
     {
         if (redReqPillSprite != null) return redReqPillSprite;
         redReqPillSprite = LumiWorldUITheme.GetBorderedSurfaceSprite(
-            "ReqPillRed",
+            "ReqPillRed_R11",
             new Color(0.96f, 0.89f, 0.88f, 1f),
             new Color(0.80f, 0.45f, 0.42f, 1f),
-            10,
+            11,
             1.2f);
         return redReqPillSprite;
     }

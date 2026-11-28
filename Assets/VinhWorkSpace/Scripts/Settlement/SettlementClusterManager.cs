@@ -532,20 +532,20 @@ public class SettlementClusterManager : MonoBehaviour
         switch (tier)
         {
             case SettlementTier.Hamlet:
-                title = "🌿 Làng Sơ Khai";
-                desc = $"Đã thành lập một ấp nhỏ bình yên ({count} ô).";
+                title = "🌿 Peaceful Hamlet";
+                desc = $"A quiet, peaceful hamlet has been established ({count} tiles).";
                 break;
             case SettlementTier.Town:
-                title = "🏘️ Thị Trấn Mở Rộng";
-                desc = $"Khu định cư đã mở rộng thành Thị trấn với Chợ và Xưởng rèn ({count} ô)!";
+                title = "🏘️ Expanding Town";
+                desc = $"The settlement has grown into a bustling Town with a Market and Forge ({count} tiles)!";
                 break;
             case SettlementTier.GrandCity:
-                title = "🏰 ĐẠI ĐÔ THỊ PHÁO ĐÀI";
-                desc = $"Chúc mừng! Đô thị đã hoàn thiện với Lâu Đài trung tâm và Tường Thành Đá kiên cố ({count} ô)!";
+                title = "🏰 FORTIFIED METROPOLIS";
+                desc = $"Congratulations! The metropolis is complete with a central Castle and fortified Stone Walls ({count} tiles)!";
                 break;
             case SettlementTier.TradingAvenue:
-                title = "🛒 Tuyến Phố Thương Mại";
-                desc = $"Đã hình thành trục giao thương sầm uất kéo dài ({count} ô)!";
+                title = "🛒 Commercial Avenue";
+                desc = $"A thriving trade avenue has been formed ({count} tiles)!";
                 break;
         }
 

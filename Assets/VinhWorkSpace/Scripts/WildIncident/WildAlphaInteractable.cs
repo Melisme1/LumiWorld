@@ -271,18 +271,18 @@ public class WildAlphaInteractable : MonoBehaviour
             $"Tame to clear & earn a creature card.";
 
         // 5. Nút Bấm Hành Động (Bottom Actions - 2 nút lớn 310x56px cân đối, sang trọng)
-        // Nút Xanh: Thuần Hóa
+        // Nút Xanh: Thuần Hóa (Lush Forest Emerald Pill, rõ ràng, nổi bật)
         CreateActionButton(
             panel.transform,
             "TameButton",
             new Vector2(-175f, -255f),
             new Vector2(310f, 56f),
-            skin != null ? skin.buttonPrimary : null,
-            skin != null ? skin.buttonPPU : 8f,
-            new Color(0.24f, 0.52f, 0.30f, 1f),
+            LumiWorld.Acs.LumiWorldUITheme.PillSprite,
+            1f,
+            new Color(0.22f, 0.50f, 0.28f, 1f),
             "Tame",
             fontAsset,
-            skin != null ? skin.ivory : Color.white,
+            Color.white,
             () => {
                 CloseModal();
                 if (associatedIncident != null)
@@ -320,18 +320,18 @@ public class WildAlphaInteractable : MonoBehaviour
             }
         );
 
-        // Nút Cát/Gỗ: Để Lại
+        // Nút Cát/Gỗ: Để Lại (Warm Stone Pill, rõ ràng)
         CreateActionButton(
             panel.transform,
             "ObserveButton",
             new Vector2(175f, -255f),
             new Vector2(310f, 56f),
-            skin != null ? skin.buttonSecondary : null,
-            skin != null ? skin.buttonPPU : 8f,
+            LumiWorld.Acs.LumiWorldUITheme.PillSprite,
+            1f,
             new Color(0.88f, 0.85f, 0.78f, 1f),
             "Leave",
             fontAsset,
-            skin != null ? skin.forest : new Color(0.24f, 0.35f, 0.25f, 1f),
+            new Color(0.24f, 0.35f, 0.25f, 1f),
             CloseModal
         );
     }
@@ -345,17 +345,11 @@ public class WildAlphaInteractable : MonoBehaviour
         rect.anchoredPosition = pos;
 
         Image img = btnObj.AddComponent<Image>();
-        if (sprite != null)
-        {
-            img.sprite = sprite;
-            img.type = Image.Type.Sliced;
-            img.pixelsPerUnitMultiplier = ppu;
-            img.color = Color.white;
-        }
-        else
-        {
-            img.color = fallbackColor;
-        }
+        img.sprite = sprite != null ? sprite : LumiWorld.Acs.LumiWorldUITheme.PillSprite;
+        img.type = Image.Type.Sliced;
+        img.pixelsPerUnitMultiplier = ppu;
+        img.color = fallbackColor;
+        LumiWorld.Acs.LumiWorldUITheme.AddSoftElevation(btnObj, 2.5f, 0.14f);
 
         Button btn = btnObj.AddComponent<Button>();
         btn.targetGraphic = img;

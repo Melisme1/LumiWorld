@@ -144,7 +144,7 @@ Shader "UberStylizedWater"
         HLSLPROGRAM
         
         // Pragmas
-        #pragma target 2.0
+        #pragma target 4.5
         #pragma multi_compile_instancing
         #pragma instancing_options renderinglayer
         #pragma vertex vert
@@ -2924,7 +2924,7 @@ Shader "UberStylizedWater"
         HLSLPROGRAM
         
         // Pragmas
-        #pragma target 3.5
+        #pragma target 4.5
         #pragma multi_compile_instancing
         #pragma vertex vert
         #pragma fragment frag
@@ -4804,7 +4804,7 @@ Shader "UberStylizedWater"
         HLSLPROGRAM
         
         // Pragmas
-        #pragma target 2.0
+        #pragma target 4.5
         #pragma multi_compile_instancing
         #pragma vertex vert
         #pragma fragment frag
@@ -9501,7 +9501,7 @@ Shader "UberStylizedWater"
         HLSLPROGRAM
         
         // Pragmas
-        #pragma target 2.0
+        #pragma target 4.5
         #pragma vertex vert
         #pragma fragment frag
         
@@ -11399,7 +11399,7 @@ Shader "UberStylizedWater"
         HLSLPROGRAM
         
         // Pragmas
-        #pragma target 2.0
+        #pragma target 4.5
         #pragma vertex vert
         #pragma fragment frag
         

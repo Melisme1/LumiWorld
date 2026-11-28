@@ -89,4 +89,8 @@ public static class VisitSession
     /// <summary>Ô đã cháy của đảo đang thăm (rỗng với snapshot cũ hoặc khi không thăm).</summary>
     public static List<HexPointRecord> BurnedTiles =>
         Snapshot != null && Snapshot.burned != null ? Snapshot.burned : new List<HexPointRecord>();
+
+    /// <summary>Thiên tai đang chạy trên đảo đang thăm lúc chủ đảo Share (rỗng với snapshot cũ hoặc khi không thăm).</summary>
+    public static List<SnapshotDisasterTile> DisasterTiles =>
+        Snapshot != null && Snapshot.disasterTiles != null ? Snapshot.disasterTiles : new List<SnapshotDisasterTile>();
 }

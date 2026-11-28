@@ -359,7 +359,7 @@ public class MarketUI : MonoBehaviour
         {
             "G-25",
             "G-26",
-            LumiWorldUITheme.Glyph("G-24") != null ? "G-24" : "G-04"
+            "G-04"
         };
         float[] tabWidths = { 126f, 126f, 186f };
 
@@ -542,6 +542,12 @@ public class MarketUI : MonoBehaviour
         LumiWorldUITheme.PlaceTopLeft(wellRt, 24f, 120f, 572f, 466f);
 
         CreateScrollList(wellRt, 0f, 0f, out _sellScroll, out _sellListContent);
+        VerticalLayoutGroup sellVlg = _sellListContent.GetComponent<VerticalLayoutGroup>();
+        if (sellVlg != null)
+        {
+            sellVlg.padding = new RectOffset(12, 12, 12, 12);
+            sellVlg.spacing = 14f;
+        }
 
         _sellEmptyLabel = LumiWorldUITheme.CreateLabel(
             wellRt, "SellEmpty", "No sellable items in this category.", 15f, LumiWorldUITheme.Muted,
@@ -696,6 +702,12 @@ public class MarketUI : MonoBehaviour
         LumiWorldUITheme.PlaceTopLeft(wellRt, 24f, 120f, 572f, 466f);
 
         CreateScrollList(wellRt, 0f, 0f, out _myScroll, out _myListContent);
+        VerticalLayoutGroup myVlg = _myListContent.GetComponent<VerticalLayoutGroup>();
+        if (myVlg != null)
+        {
+            myVlg.padding = new RectOffset(12, 12, 12, 12);
+            myVlg.spacing = 14f;
+        }
 
         _myEmptyLabel = LumiWorldUITheme.CreateLabel(
             wellRt, "MyEmpty", "You have no active market listings.", 15f, LumiWorldUITheme.Muted,
@@ -1084,9 +1096,10 @@ public class MarketUI : MonoBehaviour
             Image rowImg = LumiWorldUITheme.CreateRoundedSurface(
                 _sellListContent, "SellRow_" + i, LumiWorldUITheme.Surface, LumiWorldUITheme.Edge,
                 radius: 14, borderThickness: 1.2f, shadowDepth: 2f, shadowAlpha: 0.08f, raycastTarget: true);
+            rowImg.rectTransform.sizeDelta = new Vector2(0f, 100f);
             LayoutElement le = rowImg.gameObject.AddComponent<LayoutElement>();
-            le.preferredHeight = 72f;
-            le.minHeight = 72f;
+            le.preferredHeight = 100f;
+            le.minHeight = 100f;
 
             Button btn = rowImg.gameObject.AddComponent<Button>();
             btn.transition = Selectable.Transition.None;
@@ -1476,9 +1489,10 @@ public class MarketUI : MonoBehaviour
             Image rowImg = LumiWorldUITheme.CreateRoundedSurface(
                 _myListContent, "MyRow_" + i, LumiWorldUITheme.Surface, LumiWorldUITheme.Edge,
                 radius: 14, borderThickness: 1.2f, shadowDepth: 2f, shadowAlpha: 0.08f, raycastTarget: true);
+            rowImg.rectTransform.sizeDelta = new Vector2(0f, 100f);
             LayoutElement le = rowImg.gameObject.AddComponent<LayoutElement>();
-            le.preferredHeight = 76f;
-            le.minHeight = 76f;
+            le.preferredHeight = 100f;
+            le.minHeight = 100f;
 
             Button rowBtn = rowImg.gameObject.AddComponent<Button>();
             rowBtn.transition = Selectable.Transition.None;
