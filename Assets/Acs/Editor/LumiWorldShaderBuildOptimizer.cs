@@ -101,6 +101,7 @@ namespace LumiWorld.EditorTools
             if (shader.name.Contains("SG_HexGround_TopSide") ||
                 shader.name.Contains("SG_LowpolyNature") ||
                 shader.name.Equals("Universal Render Pipeline/Lit", StringComparison.Ordinal) ||
+                shader.name.Equals("Universal Render Pipeline/Particles/Unlit", StringComparison.Ordinal) ||
                 shader.name.Contains("UberStylizedWater"))
             {
                 Debug.Log(string.Format("[LumiWorldShaderStripper] Preserved {0} ({1} | {2} | {3}): {4} variants",
