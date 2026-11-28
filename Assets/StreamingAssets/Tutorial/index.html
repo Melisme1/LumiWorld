@@ -13,12 +13,18 @@
 .detail-dialog{overflow:hidden!important}.step-flow{max-height:calc(92vh - 150px);overflow-y:auto;overflow-x:hidden;padding:4px 14px 16px 4px;scrollbar-width:thin;scrollbar-color:#78927b #e8e1d4;cursor:grab}.step-flow:active{cursor:grabbing}.step-flow::-webkit-scrollbar{width:12px}.step-flow::-webkit-scrollbar-track{background:#e8e1d4;border-radius:10px}.step-flow::-webkit-scrollbar-thumb{background:#78927b;border:3px solid #e8e1d4;border-radius:10px}@media(max-height:720px){.step-flow{max-height:calc(96vh - 125px)}}
 .step-flow{padding-right:22px;user-select:none;cursor:grab}.step-flow:active{cursor:grabbing}.step-flow .flow-step{padding-right:18px}.step-flow .flow-arrow{right:0;z-index:2;background:var(--cream);border-radius:50%;padding:0 3px}.step-flow::-webkit-scrollbar{width:16px}.step-flow::-webkit-scrollbar-thumb{background:#78927b;border:3px solid #e8e1d4;border-radius:10px;min-height:38px}.step-flow::-webkit-scrollbar-track{background:#e8e1d4;border-radius:10px}
 .step-flow{padding-left:2px;padding-right:16px;scrollbar-gutter:stable both-edges;justify-content:center;grid-template-columns:repeat(3,minmax(0,1fr))}.step-flow .flow-step{padding-right:0}.step-flow .flow-arrow{right:-18px}
+.tutorial-card-wrap{min-width:0;display:grid;grid-template-columns:1fr}.tutorial-steps{display:block;grid-column:1/-1;margin-top:12px;padding:16px;background:#f1ecdf;border:1px solid var(--line);border-radius:16px}.tutorial-card-wrap>.tutorial-card{grid-column:1}.tutorial-card-wrap .tutorial-card{padding:10px 14px;min-height:68px;display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;justify-items:start}.tutorial-card-wrap .tutorial-card .num,.tutorial-card-wrap .tutorial-card .detail-btn{display:none!important}.tutorial-card-wrap .tutorial-card .art{margin:0}.tutorial-card-wrap .step-flow{max-height:none;overflow:visible;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:8px;scrollbar-gutter:auto;cursor:auto}.tutorial-card-wrap .flow-step{padding:0}.tutorial-card-wrap .flow-arrow{display:none}.tutorial-card-wrap .flow-img{width:100%;max-width:none;aspect-ratio:1/1;height:auto}.tutorial-card-wrap .flow-caption{min-height:60px}@media(max-width:700px){.tutorial-card-wrap .step-flow{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
+.tutorial-list{grid-template-columns:minmax(0,1fr)}.tutorial-card-wrap{width:100%}.tutorial-card-wrap .step-flow{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-flow:row;align-items:start}.tutorial-card-wrap .flow-arrow{display:none}.tutorial-card-wrap .tutorial-steps{width:100%}
+.tutorial-card-wrap>.tutorial-card{width:max-content;min-width:250px;max-width:100%;grid-template-columns:56px max-content;padding-right:22px}.tutorial-card-wrap>.tutorial-card h3{white-space:nowrap}@media(max-width:500px){.tutorial-card-wrap>.tutorial-card{width:100%;grid-template-columns:56px minmax(0,1fr)}.tutorial-card-wrap>.tutorial-card h3{white-space:normal}}
+.tutorial-card-wrap>.tutorial-card{width:fit-content;min-width:0;max-width:100%;grid-template-columns:48px max-content;gap:8px;padding:8px 12px}.tutorial-card-wrap>.tutorial-card .art{width:48px;height:48px}.tutorial-card-wrap>.tutorial-card h3{white-space:nowrap}@media(max-width:500px){.tutorial-card-wrap>.tutorial-card{width:100%;grid-template-columns:48px minmax(0,1fr)}.tutorial-card-wrap>.tutorial-card h3{white-space:normal}}
+.tutorial-card-wrap>.tutorial-card .art{display:none!important}.tutorial-card-wrap>.tutorial-card{grid-template-columns:max-content}.tutorial-card-wrap>.tutorial-card h3{text-transform:uppercase}
+#bat-dau{margin-top:26px}.tutorial-list{margin-top:0}
 </style>
 </head>
 <body><main class="wrap">
-<header class="hero"><div class="eyebrow">LumiWorld · Hướng dẫn người chơi</div><h1>Chào mừng đến<br>với thế giới của bạn</h1><p>Khám phá những hòn đảo lục giác, xây dựng hệ sinh thái, chăm sóc sinh vật và phát triển hòn đảo theo cách của riêng bạn.</p></header>
+<header class="hero"><div class="eyebrow">LumiWorld</div><h1>Hướng Dẫn<br>người chơi mới</h1><p>Khám phá những hòn đảo lục giác, xây dựng hệ sinh thái, chăm sóc sinh vật và phát triển hòn đảo theo cách của riêng bạn.</p></header>
 
-<section id="bat-dau"><h2 class="section-title">Các hướng dẫn</h2><div class="tutorial-layout"><div class="tutorial-list">
+<section id="bat-dau"><div class="tutorial-layout"><div class="tutorial-list">
 <article class="card tutorial-card" data-title="Thẻ bài" data-icon="🃏"><div class="num">1</div><div class="art">🃏</div><div><h3>Thẻ bài</h3></div><button class="detail-btn" type="button">Detail</button></article>
 <article class="card tutorial-card" data-title="Thẻ môi trường" data-icon="⬡"><div class="num">2</div><div class="art">⬡</div><div><h3>Thẻ môi trường</h3></div><button class="detail-btn" type="button">Detail</button></article>
 <article class="card tutorial-card" data-title="Thẻ Thú" data-icon="🌱"><div class="num">3</div><div class="art">🌱</div><div><h3>Thẻ thú</h3></div><button class="detail-btn" type="button">Detail</button></article>
@@ -83,16 +89,14 @@ function tutorialImage(src,alt,fallback){
 }
 document.querySelectorAll('.tutorial-card').forEach(card=>{
  card.querySelector('h3').textContent=card.dataset.title;
- card.querySelector('.detail-btn').addEventListener('click',()=>{
- document.querySelectorAll('.tutorial-card').forEach(item=>item.classList.remove('selected'));
- card.classList.add('selected');
- const steps=tutorialSteps[card.dataset.title] || [];
- detailPanel.innerHTML='<div class="detail-dialog"><button class="close-detail" type="button" aria-label="Đóng">×</button><header class="detail-head"><div><h2>'+card.dataset.title+'</h2></div></header><div class="step-flow">'+steps.map((step,i)=>'<article class="flow-step"><div class="flow-img">'+tutorialImage(step.image,step.text,card.dataset.icon)+'</div><div class="flow-caption"><span class="flow-number">'+(i+1)+'</span>'+step.text+'</div>'+(i<steps.length-1?'<span class="flow-arrow">➜</span>':'')+'</article>').join('')+'</div></div>';
- detailPanel.classList.add('open');
- enableDragScroll(detailPanel.querySelector('.step-flow'));
- detailPanel.querySelectorAll('.flow-img img').forEach(img=>img.addEventListener('error',()=>{img.replaceWith(Object.assign(document.createElement('div'),{className:'image-placeholder',innerHTML:'<strong>＋</strong>Không tải được ảnh. Kiểm tra link.'}));}));
- detailPanel.querySelector('.close-detail').addEventListener('click',()=>detailPanel.classList.remove('open'));
- });
+ const wrap=document.createElement('div');wrap.className='tutorial-card-wrap expanded';
+ card.parentNode.insertBefore(wrap,card);wrap.appendChild(card);
+ const steps=tutorialSteps[card.dataset.title]||[];
+ const stepHost=document.createElement('section');stepHost.className='tutorial-steps';
+ stepHost.innerHTML='<div class="step-flow">'+steps.map((step,i)=>'<article class="flow-step"><div class="flow-img">'+tutorialImage(step.image,step.text,card.dataset.icon)+'</div><div class="flow-caption"><span class="flow-number">'+(i+1)+'</span>'+step.text+'</div>'+(i<steps.length-1?'<span class="flow-arrow">➜</span>':'')+'</article>').join('')+'</div>';
+ wrap.appendChild(stepHost);
+ stepHost.querySelectorAll('.flow-img img').forEach(img=>img.addEventListener('error',()=>{img.replaceWith(Object.assign(document.createElement('div'),{className:'image-placeholder',innerHTML:'<strong>＋</strong>Không tải được ảnh. Kiểm tra link.'}));}));
+ const detailButton=card.querySelector('.detail-btn');if(detailButton)detailButton.remove();
 });
 </script></body></html>
 
