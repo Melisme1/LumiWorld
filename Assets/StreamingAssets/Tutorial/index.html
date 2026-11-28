@@ -12,6 +12,7 @@
 .flow-img{height:auto!important;aspect-ratio:1/1;width:100%;max-width:320px;margin:0 auto}.flow-img img{object-fit:contain}.flow-step{display:flex;flex-direction:column}.flow-caption{width:100%;min-height:76px}.step-flow{gap:20px 28px}@media(max-width:700px){.step-flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow-img{max-width:260px}}
 .detail-dialog{overflow:hidden!important}.step-flow{max-height:calc(92vh - 150px);overflow-y:auto;overflow-x:hidden;padding:4px 14px 16px 4px;scrollbar-width:thin;scrollbar-color:#78927b #e8e1d4;cursor:grab}.step-flow:active{cursor:grabbing}.step-flow::-webkit-scrollbar{width:12px}.step-flow::-webkit-scrollbar-track{background:#e8e1d4;border-radius:10px}.step-flow::-webkit-scrollbar-thumb{background:#78927b;border:3px solid #e8e1d4;border-radius:10px}@media(max-height:720px){.step-flow{max-height:calc(96vh - 125px)}}
 .step-flow{padding-right:22px;user-select:none;cursor:grab}.step-flow:active{cursor:grabbing}.step-flow .flow-step{padding-right:18px}.step-flow .flow-arrow{right:0;z-index:2;background:var(--cream);border-radius:50%;padding:0 3px}.step-flow::-webkit-scrollbar{width:16px}.step-flow::-webkit-scrollbar-thumb{background:#78927b;border:3px solid #e8e1d4;border-radius:10px;min-height:38px}.step-flow::-webkit-scrollbar-track{background:#e8e1d4;border-radius:10px}
+.step-flow{padding-left:2px;padding-right:16px;scrollbar-gutter:stable both-edges;justify-content:center;grid-template-columns:repeat(3,minmax(0,1fr))}.step-flow .flow-step{padding-right:0}.step-flow .flow-arrow{right:-18px}
 </style>
 </head>
 <body><main class="wrap">
@@ -49,8 +50,10 @@ const tutorialSteps={
  'Thẻ Thú':[
   {image:'img/DragCreature.png',text:'Kéo thú vào địa hình đã có Môi trường trên 3 Hex.'},
   {image:'img/Creture.png',text:'Click vào môi trường để hiển thị thông tin của môi trường và click vào thú sẽ hiển thị trạng thái của thú.'},
-  {image:'img/CretureCollection.png',text:'. Những thẻ thú bạn sở hữu sẽ mở khóa ở collection'},
-  {image:'img/CreatureKhaithac.png',text:'. Assign khai thác tài nguyên cần các con thú phù hợp để assign'}
+  {image:'img/CretureCollection.png',text:'Những thẻ thú bạn sở hữu sẽ mở khóa ở collection'},
+  {image:'img/CreatureKhaithac.png',text:'Assign khai thác tài nguyên cần các con thú phù hợp để assign'},
+  {image:'img/CreatureTame.png',text:'Đôi khi sẽ có những thú hoang sẽ xuất hiện ở môi trường của bạn click vào để bắt nhé'}
+  
  ],
  'Thu hút sinh vật':[
   {image:'',text:'Tạo habitat phù hợp với loài thú.'},
