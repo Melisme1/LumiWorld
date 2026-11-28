@@ -90,4 +90,38 @@ public class GemWallet : MonoBehaviour
         Balance = balance;
         Changed?.Invoke(balance, gained);
     }
+
+    private const string LocalGemPrefKey = "LocalPlayerGems";
+
+    /// <summary>Kiểm tra số dư Gem thực tế có đủ không (tuyệt đối không tự cấp gem ảo).</summary>
+    public static bool CanAfford(long amount)
+    {
+        if (amount <= 0) return true;
+        if (Balance >= 0)
+        {
+            return Balance >= amount;
+        }
+        // Khi offline / chưa sync server, kiểm tra số dư gem local đã lưu (mặc định = 0)
+        long local = PlayerPrefs.GetInt(LocalGemPrefKey, 0);
+        return local >= amount;
+    }
+
+    /// <summary>Trừ Gem nếu đủ và cập nhật số dư. Không đủ thì trả về false.</summary>
+    public static bool TrySpend(long amount)
+    {
+        if (!CanAfford(amount)) return false;
+        if (Balance >= 0)
+        {
+            Set(Balance - amount, -amount);
+        }
+        else
+        {
+            long local = PlayerPrefs.GetInt(LocalGemPrefKey, 0);
+            local -= amount;
+            PlayerPrefs.SetInt(LocalGemPrefKey, (int)local);
+            PlayerPrefs.Save();
+            Changed?.Invoke(local, -amount);
+        }
+        return true;
+    }
 }

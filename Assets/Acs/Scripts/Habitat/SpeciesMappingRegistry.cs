@@ -34,37 +34,62 @@ namespace LumiWorld.Acs
     {
         public List<SpeciesMappingEntry> entries = new List<SpeciesMappingEntry>();
 
-        private SpeciesMappingEntry EnsureBraluffEntry()
+        private static readonly (string key, string name, BiomeAffinity pri, BiomeAffinity sec, BiomeAffinity ter)[] s_HybridDefs = new[]
         {
+            ("braluff",      "Braluff",      BiomeAffinity.Leafwood,    BiomeAffinity.Bloomfield,  BiomeAffinity.Windheath),
+            ("bloomhorn",    "Bloomhorn",    BiomeAffinity.Bloomfield,  BiomeAffinity.Windheath,   BiomeAffinity.Leafwood),
+            ("breezehorn",   "Breezehorn",   BiomeAffinity.Bloomfield,  BiomeAffinity.Windheath,   BiomeAffinity.Leafwood),
+            ("featherglide", "Featherglide", BiomeAffinity.Windheath,   BiomeAffinity.Leafwood,    BiomeAffinity.Bloomfield),
+            ("prismagale",   "Prismagale",   BiomeAffinity.Windheath,   BiomeAffinity.Leafwood,    BiomeAffinity.Bloomfield),
+            ("fernbara",     "Fernbara",     BiomeAffinity.Rainleaf,    BiomeAffinity.Streamstone, BiomeAffinity.Reedmarsh),
+            ("mossgarg",     "Mossgarg",     BiomeAffinity.Rainleaf,    BiomeAffinity.Streamstone, BiomeAffinity.Reedmarsh),
+            ("lotriv",       "Lotriv",       BiomeAffinity.Lilywater,   BiomeAffinity.Reedmarsh,   BiomeAffinity.Streamstone),
+            ("seraphin",     "Seraphin",     BiomeAffinity.Lilywater,   BiomeAffinity.Reedmarsh,   BiomeAffinity.Streamstone),
+            ("raincroak",    "Raincroak",    BiomeAffinity.Rainleaf,    BiomeAffinity.Reedmarsh,   BiomeAffinity.Streamstone),
+            ("quetzalcroak", "Quetzalcroak", BiomeAffinity.Rainleaf,    BiomeAffinity.Reedmarsh,   BiomeAffinity.Streamstone)
+        };
+
+        private SpeciesMappingEntry EnsureHybridEntry(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return null;
             if (entries == null) entries = new List<SpeciesMappingEntry>();
-            foreach (var e in entries)
+
+            string lk = key.ToLowerInvariant().Replace("creature_", "").Trim();
+            foreach (var def in s_HybridDefs)
             {
-                if (e != null && (string.Equals(e.gddKey, "braluff", StringComparison.OrdinalIgnoreCase) ||
-                                  string.Equals(e.SpeciesId, "braluff", StringComparison.OrdinalIgnoreCase)))
+                if (lk.Contains(def.key) || def.key.Contains(lk))
                 {
-                    e.primaryAffinity = BiomeAffinity.Leafwood;
-                    e.secondaryAffinity = BiomeAffinity.Bloomfield;
-                    e.tertiaryAffinity = BiomeAffinity.Windheath;
-                    e.integrationStatus = SpeciesIntegrationStatus.Active;
-                    if (e.species == null) e.species = BreedingManager.GetOrCreateBraluffSpecies();
-                    if (e.creatureCard == null) e.creatureCard = BreedingManager.GetOrCreateBraluffCard();
-                    return e;
+                    foreach (var e in entries)
+                    {
+                        if (e != null && (string.Equals(e.gddKey, def.key, StringComparison.OrdinalIgnoreCase) ||
+                                          string.Equals(e.SpeciesId, def.key, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            e.primaryAffinity = def.pri;
+                            e.secondaryAffinity = def.sec;
+                            e.tertiaryAffinity = def.ter;
+                            e.integrationStatus = SpeciesIntegrationStatus.Active;
+                            if (e.species == null) e.species = BreedingManager.GetOrCreateHybridSpecies(def.key, def.name);
+                            if (e.creatureCard == null) e.creatureCard = BreedingManager.ResolveCardSafe(def.name, def.key);
+                            return e;
+                        }
+                    }
+
+                    var newEntry = new SpeciesMappingEntry
+                    {
+                        gddKey = def.key,
+                        displayName = def.name,
+                        species = BreedingManager.GetOrCreateHybridSpecies(def.key, def.name),
+                        creatureCard = BreedingManager.ResolveCardSafe(def.name, def.key),
+                        primaryAffinity = def.pri,
+                        secondaryAffinity = def.sec,
+                        tertiaryAffinity = def.ter,
+                        integrationStatus = SpeciesIntegrationStatus.Active
+                    };
+                    entries.Add(newEntry);
+                    return newEntry;
                 }
             }
-
-            var braluffEntry = new SpeciesMappingEntry
-            {
-                gddKey = "braluff",
-                displayName = "Braluff",
-                species = BreedingManager.GetOrCreateBraluffSpecies(),
-                creatureCard = BreedingManager.GetOrCreateBraluffCard(),
-                primaryAffinity = BiomeAffinity.Leafwood,
-                secondaryAffinity = BiomeAffinity.Bloomfield,
-                tertiaryAffinity = BiomeAffinity.Windheath,
-                integrationStatus = SpeciesIntegrationStatus.Active
-            };
-            entries.Add(braluffEntry);
-            return braluffEntry;
+            return null;
         }
 
         // Resolve only explicit GDD keys/names. Runtime species IDs use a separate lookup.
@@ -72,9 +97,10 @@ namespace LumiWorld.Acs
         {
             entry = null;
             if (string.IsNullOrWhiteSpace(key)) return false;
-            if (key.IndexOf("braluff", StringComparison.OrdinalIgnoreCase) >= 0)
+            var h = EnsureHybridEntry(key);
+            if (h != null)
             {
-                entry = EnsureBraluffEntry();
+                entry = h;
                 return true;
             }
             if (entries == null) return false;
@@ -95,9 +121,10 @@ namespace LumiWorld.Acs
         {
             entry = null;
             if (string.IsNullOrEmpty(speciesId)) return false;
-            if (speciesId.IndexOf("braluff", StringComparison.OrdinalIgnoreCase) >= 0)
+            var h = EnsureHybridEntry(speciesId);
+            if (h != null)
             {
-                entry = EnsureBraluffEntry();
+                entry = h;
                 return true;
             }
             if (entries == null) return false;

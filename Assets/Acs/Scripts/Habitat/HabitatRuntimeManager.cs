@@ -94,16 +94,10 @@ namespace LumiWorld.Acs
             RefreshFromWorld(true);
         }
 
-        private static void EnsureBraluffIfHybrid(CardData card)
+        private static void EnsureHybridCardConfigured(CardData card)
         {
             if (card == null) return;
-            string id = card.cardID ?? "";
-            string nm = card.cardName ?? "";
-            if (id.IndexOf("braluff", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                nm.IndexOf("braluff", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                BreedingManager.EnsureBraluffCardConfigured(card);
-            }
+            BreedingManager.EnsureCardFullyConfigured(card);
         }
 
         private void RefreshFromWorld(bool force)
@@ -163,7 +157,7 @@ namespace LumiWorld.Acs
             foreach (var record in records)
             {
                 if (record.CardType != CardType.Creature) continue;
-                EnsureBraluffIfHybrid(record.cardData);
+                EnsureHybridCardConfigured(record.cardData);
                 var identity = identities[record];
                 string speciesId = record.cardData.animalSpeciesData != null ? record.cardData.animalSpeciesData.speciesID : string.Empty;
                 if (!terrainByHex.TryGetValue(identity.HomeHex, out var home) ||
@@ -240,7 +234,7 @@ namespace LumiWorld.Acs
         public bool CanPlaceCreature(CardData creature, CardData nature, HexCoordinates homeHex, out string reason)
         {
             if (!IsConfigured) { reason = "Creature placement is currently unavailable."; return false; }
-            EnsureBraluffIfHybrid(creature);
+            EnsureHybridCardConfigured(creature);
             if (creature == null || creature.cardType != CardType.Creature || creature.animalSpeciesData == null)
             { reason = "This creature card is not ready to be placed yet."; return false; }
             if (nature == null || !catalog.TryGetHabitat(nature.cardID, out var habitat))

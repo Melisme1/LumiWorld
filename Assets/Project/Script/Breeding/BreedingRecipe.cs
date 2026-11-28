@@ -78,12 +78,13 @@ public class BreedingRecipe : ScriptableObject
         return offspring != null ? offspring : (epicOffspring ?? legendOffspring);
     }
 
-    /// <summary>Formats the success rate display string for Setup view (e.g. '85%' or '98% Featherglide').</summary>
+    /// <summary>Formats the success rate display string for Setup view (e.g. '98% Bloomhorn' or '98% Petaluff').</summary>
     public string GetSuccessRateSummary()
     {
         string goodName = offspring != null ? CreationLabUI.GetCreatureDisplayName(offspring) : "Good";
+        if (goodName == "Braluff") goodName = "Petaluff";
         float pct = goodRate > 0f ? goodRate * 100f : successRate * 100f;
-        if (!string.IsNullOrEmpty(goodName) && goodName != "Good" && goodName != "Braluff")
+        if (!string.IsNullOrEmpty(goodName) && goodName != "Good")
             return $"<b>{pct:0.#}%</b> {goodName}";
         return $"<b>{pct:0.#}%</b>";
     }
@@ -124,19 +125,38 @@ public class BreedingRecipe : ScriptableObject
     {
         if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(pattern)) return false;
         if (id == pattern) return true;
-        if (id.Contains(pattern) || pattern.Contains(id)) return true;
+
+        string cleanId = id.StartsWith("creature_") ? id.Substring(9) : id;
+        string cleanPattern = pattern.StartsWith("creature_") ? pattern.Substring(9) : pattern;
+        if (cleanId == cleanPattern) return true;
+
+        // Strict rejection: Fox is wild and has NO breeding recipe; NEVER match Fernkin / Grassfox!
+        if ((cleanId == "fox" || cleanId.Contains("cáo")) && (cleanPattern.Contains("fernkin") || cleanPattern.Contains("grassfox"))) return false;
+        if ((cleanPattern == "fox" || cleanPattern.Contains("cáo")) && (cleanId.Contains("fernkin") || cleanId.Contains("grassfox"))) return false;
+
+        // Strict rejection: Normal Cow is NOT Highland Cow (Heathorn)!
+        if (cleanId == "cow" && (cleanPattern.Contains("highlandcow") || cleanPattern.Contains("heathorn"))) return false;
+        if (cleanPattern == "cow" && (cleanId.Contains("highlandcow") || cleanId.Contains("heathorn"))) return false;
 
         // Common aliases
         if ((id.Contains("capybara") || id.Contains("pebbara")) && (pattern.Contains("capybara") || pattern.Contains("pebbara"))) return true;
         if ((id.Contains("deer") || id.Contains("bramblet") || id.Contains("nai")) && (pattern.Contains("deer") || pattern.Contains("bramblet") || pattern.Contains("nai"))) return true;
         if ((id.Contains("swan") || id.Contains("lotelle") || id.Contains("thien nga")) && (pattern.Contains("swan") || pattern.Contains("lotelle") || pattern.Contains("thien nga"))) return true;
-        if ((id.Contains("mudskipper") || id.Contains("rivlet") || id.Contains("thoi loi")) && (pattern.Contains("mudskipper") || pattern.Contains("rivlet") || pattern.Contains("thoi loi"))) return true;
-        if ((id.Contains("frog") || id.Contains("reedle") || id.Contains("ech")) && (pattern.Contains("frog") || pattern.Contains("reedle") || pattern.Contains("ech"))) return true;
+        if ((id.Contains("mudskipper") || id.Contains("rivlet") || id.Contains("otter") || id.Contains("thoi loi")) && (pattern.Contains("mudskipper") || pattern.Contains("rivlet") || pattern.Contains("otter") || pattern.Contains("thoi loi"))) return true;
+        if ((id.Contains("frog") || id.Contains("reedle") || id.Contains("puddleaf") || id.Contains("blossomfrog") || id.Contains("ech")) && (pattern.Contains("frog") || pattern.Contains("reedle") || pattern.Contains("puddleaf") || pattern.Contains("blossomfrog") || pattern.Contains("ech"))) return true;
         if ((id.Contains("highlandcow") || id.Contains("heathorn") || id.Contains("bo long dai")) && (pattern.Contains("highlandcow") || pattern.Contains("heathorn") || pattern.Contains("bo long dai"))) return true;
         if ((id.Contains("caterpillar") || id.Contains("petaluff") || id.Contains("sau") || id.Contains("buom")) && (pattern.Contains("caterpillar") || pattern.Contains("petaluff") || pattern.Contains("sau") || pattern.Contains("buom"))) return true;
-        if ((id.Contains("squirrel") || id.Contains("spriglide") || id.Contains("soc")) && (pattern.Contains("squirrel") || pattern.Contains("spriglide") || pattern.Contains("soc"))) return true;
+        if ((id.Contains("squirrel") || id.Contains("spriglide") || id.Contains("flyingsquirrel") || id.Contains("soc")) && (pattern.Contains("squirrel") || pattern.Contains("spriglide") || pattern.Contains("flyingsquirrel") || pattern.Contains("soc"))) return true;
         if ((id.Contains("peacock") || id.Contains("galume") || id.Contains("cong")) && (pattern.Contains("peacock") || pattern.Contains("galume") || pattern.Contains("cong"))) return true;
         if ((id.Contains("dandrift") || id.Contains("flowerdog") || id.Contains("cho hoa") || id.Contains("chó hoa")) && (pattern.Contains("dandrift") || pattern.Contains("flowerdog") || pattern.Contains("cho hoa") || pattern.Contains("chó hoa"))) return true;
+        if ((id.Contains("fernkin") || id.Contains("grassfox")) && (pattern.Contains("fernkin") || pattern.Contains("grassfox"))) return true;
+        if ((id.Contains("heliko") || id.Contains("parrot") || id.Contains("vet")) && (pattern.Contains("heliko") || pattern.Contains("parrot") || pattern.Contains("vet"))) return true;
+
+        if (cleanId.Length > 3 && cleanPattern.Length > 3)
+        {
+            if (cleanId.Contains(cleanPattern) || cleanPattern.Contains(cleanId)) return true;
+        }
+
         return false;
     }
 }

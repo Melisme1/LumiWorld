@@ -118,11 +118,23 @@ public class CreationLabUI : MonoBehaviour
     private Button btnSpeedUp;
     private TextMeshProUGUI progressHatchGuideText;
 
-    // Speed Up Confirm Dialog
+    // Speed Up Options Dialog (300 Coins / Watch Ad / 50 Gems)
     private GameObject speedUpDialog;
-    private TextMeshProUGUI speedUpDialogDesc;
-    private Button btnSpeedUpConfirm;
-    private Button btnSpeedUpCancel;
+    private Button btnSpeedUpCoins;
+    private Button btnSpeedUpAd;
+    private Button btnSpeedUpGems;
+    private Button btnSpeedUpClose;
+
+    // Simulated Rewarded Video Ad Overlay
+    private GameObject adOverlay;
+    private TextMeshProUGUI adTimerText;
+    private Button btnAdSkip;
+    private Image adSkipBg;
+    private TextMeshProUGUI adSkipLabel;
+    private Image adProgressBar;
+    private Button btnAdCloseEarly;
+    private Image adCreatureSpotlight;
+    private Coroutine adRoutine;
 
     // Congrats Popup
     private GameObject congratsPopup;
@@ -268,6 +280,11 @@ public class CreationLabUI : MonoBehaviour
         if (infoNoticeObj != null && infoNoticeObj.activeSelf) ShowInfoNotice(false);
         if (congratsPopup != null && congratsPopup.activeSelf) congratsPopup.SetActive(false);
         if (speedUpDialog != null && speedUpDialog.activeSelf) speedUpDialog.SetActive(false);
+        if (adOverlay != null && adOverlay.activeSelf)
+        {
+            if (adRoutine != null) { StopCoroutine(adRoutine); adRoutine = null; }
+            adOverlay.SetActive(false);
+        }
 
         if (window != null && window.activeSelf)
         {
@@ -321,6 +338,7 @@ public class CreationLabUI : MonoBehaviour
         BuildSetupView(panelRoot);
         BuildProgressView(panelRoot);
         BuildSpeedUpDialog(winRect);
+        BuildAdOverlay(winRect);
         BuildCongratsPopup(winRect);
 
         // Burst flash overlay for egg hatching
@@ -989,7 +1007,93 @@ public class CreationLabUI : MonoBehaviour
         progressHatchGuideText.gameObject.SetActive(false);
     }
 
-    // ─────────────────────── Speed Up Confirmation Dialog ─────────────────────
+    // ─────────────────────── Speed Up Options Dialog ──────────────────────────
+    private static Sprite videoAdIconSprite;
+    private static Sprite gemIconSprite;
+
+    private static Sprite GetOrCreateVideoIcon()
+    {
+        if (videoAdIconSprite != null) return videoAdIconSprite;
+        const int size = 64;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+        Color[] px = new Color[size * size];
+
+        Color screenColor = new Color(0.12f, 0.48f, 0.90f, 1f);
+        Color playColor = Color.white;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float fx = x + 0.5f;
+                float fy = y + 0.5f;
+
+                float dx = Mathf.Max(Mathf.Abs(fx - 32f) - 15f, 0f);
+                float dy = Mathf.Max(Mathf.Abs(fy - 32f) - 10f, 0f);
+                float distBox = Mathf.Sqrt(dx * dx + dy * dy);
+                float alphaBox = Mathf.Clamp01(8f - distBox);
+
+                float triAlpha = 0f;
+                if (fx >= 24f && fx <= 43f)
+                {
+                    float t = (43f - fx) / 19f;
+                    float halfH = 11f * t;
+                    float distY = halfH - Mathf.Abs(fy - 32f);
+                    float distX = Mathf.Min(fx - 24f, 43f - fx);
+                    triAlpha = Mathf.Clamp01(Mathf.Min(distX, distY) + 0.5f);
+                }
+
+                if (triAlpha > 0f)
+                {
+                    px[y * size + x] = Color.Lerp(screenColor, playColor, triAlpha);
+                    px[y * size + x].a = alphaBox;
+                }
+                else
+                {
+                    px[y * size + x] = new Color(screenColor.r, screenColor.g, screenColor.b, alphaBox * screenColor.a);
+                }
+            }
+        }
+
+        tex.SetPixels(px);
+        tex.Apply();
+        videoAdIconSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+        return videoAdIconSprite;
+    }
+
+    private static Sprite GetOrCreateGemIcon()
+    {
+        if (gemIconSprite != null) return gemIconSprite;
+        const int size = 64;
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+        Color top = new Color(0.85f, 0.78f, 1f, 1f), bottom = new Color(0.45f, 0.2f, 0.9f, 1f);
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = Mathf.Abs(x + 0.5f - size / 2f) / (size * 0.42f);
+                float dy = (y + 0.5f - size * 0.62f) / (y >= size * 0.62f ? size * 0.34f : size * 0.6f);
+                float d = dx + Mathf.Abs(dy);
+                float alpha = Mathf.Clamp01((1f - d) * size * 0.2f);
+                Color c = Color.Lerp(bottom, top, (float)y / size);
+                if (x < size / 2) c = Color.Lerp(c, Color.white, 0.12f);
+                c.a = alpha;
+                texture.SetPixel(x, y, c);
+            }
+        }
+        texture.Apply();
+        gemIconSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+        return gemIconSprite;
+    }
+
     private void BuildSpeedUpDialog(RectTransform parent)
     {
         RectTransform root = EconomyHUD.CreateRect("SpeedUpDialog", parent);
@@ -997,68 +1101,338 @@ public class CreationLabUI : MonoBehaviour
         speedUpDialog = root.gameObject;
 
         Image bgDim = root.gameObject.AddComponent<Image>();
-        bgDim.color = new Color(0.02f, 0.05f, 0.10f, 0.75f);
+        bgDim.color = new Color(0.02f, 0.05f, 0.10f, 0.78f);
 
         RectTransform box = EconomyHUD.CreateRect("Box", root);
         box.anchorMin = box.anchorMax = box.pivot = new Vector2(0.5f, 0.5f);
-        box.sizeDelta = new Vector2(490f, 210f);
+        box.sizeDelta = new Vector2(590f, 316f);
         box.anchoredPosition = Vector2.zero;
 
         Image boxBg = box.gameObject.AddComponent<Image>();
         boxBg.sprite = EconomyHUD.RoundedSprite;
         boxBg.type = Image.Type.Sliced;
         boxBg.color = new Color(0.97f, 0.96f, 0.94f, 1f);
+        LumiWorldUITheme.AddSoftElevation(box.gameObject, 4f, 0.22f);
 
+        // Header Title
         TextMeshProUGUI title = EconomyHUD.CreateText("Title", box, 20f, TextDark, TextAlignmentOptions.Center);
-        title.rectTransform.anchorMin = new Vector2(0f, 1f);
-        title.rectTransform.anchorMax = new Vector2(1f, 1f);
+        title.rectTransform.anchorMin = title.rectTransform.anchorMax = new Vector2(0.5f, 1f);
         title.rectTransform.pivot = new Vector2(0.5f, 1f);
-        title.rectTransform.anchoredPosition = new Vector2(0f, -24f);
-        title.rectTransform.sizeDelta = new Vector2(420f, 28f);
+        title.rectTransform.anchoredPosition = new Vector2(0f, -20f);
+        title.rectTransform.sizeDelta = new Vector2(480f, 26f);
         title.text = "<b>SPEED UP INCUBATION</b>";
 
-        speedUpDialogDesc = EconomyHUD.CreateText("Desc", box, 15f, TextDark, TextAlignmentOptions.Center);
-        speedUpDialogDesc.rectTransform.anchorMin = new Vector2(0f, 1f);
-        speedUpDialogDesc.rectTransform.anchorMax = new Vector2(1f, 1f);
-        speedUpDialogDesc.rectTransform.pivot = new Vector2(0.5f, 1f);
-        speedUpDialogDesc.rectTransform.anchoredPosition = new Vector2(0f, -68f);
-        speedUpDialogDesc.rectTransform.sizeDelta = new Vector2(340f, 48f);
-        speedUpDialogDesc.textWrappingMode = TextWrappingModes.Normal;
-        speedUpDialogDesc.text = "Do you want to spend <b><color=#d4a017>300 Coins</color></b>\nto speed up incubation?";
+        // Subtitle
+        TextMeshProUGUI sub = EconomyHUD.CreateText("Sub", box, 13.5f, new Color(0.42f, 0.38f, 0.34f, 1f), TextAlignmentOptions.Center);
+        sub.rectTransform.anchorMin = sub.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+        sub.rectTransform.pivot = new Vector2(0.5f, 1f);
+        sub.rectTransform.anchoredPosition = new Vector2(0f, -46f);
+        sub.rectTransform.sizeDelta = new Vector2(480f, 22f);
+        sub.text = "Choose an option to accelerate breeding progress:";
 
-        // Confirm button (Pill capsule shape with rounded ends and anti-aliasing)
-        RectTransform confBtnRect = EconomyHUD.CreateRect("Btn_Confirm", box);
-        confBtnRect.anchorMin = confBtnRect.anchorMax = confBtnRect.pivot = new Vector2(0.5f, 0.5f);
-        confBtnRect.anchoredPosition = new Vector2(-80f, -52f);
-        confBtnRect.sizeDelta = new Vector2(136f, 40f);
-        btnSpeedUpConfirm = confBtnRect.gameObject.AddComponent<Button>();
-        Image confImg = confBtnRect.gameObject.AddComponent<Image>();
-        confImg.sprite = LumiWorldUITheme.GetCapsuleSprite(40);
-        confImg.type = Image.Type.Sliced;
-        confImg.color = new Color(0.20f, 0.68f, 0.35f, 1f);
-        TextMeshProUGUI confLbl = EconomyHUD.CreateText("ConfLbl", confBtnRect, 15f, Color.white, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(confLbl.rectTransform);
-        confLbl.text = "<b>Confirm</b>";
-        AddButtonFeedback(btnSpeedUpConfirm);
-        btnSpeedUpConfirm.onClick.AddListener(OnConfirmSpeedUp);
+        // Close 'X' Button at top-right
+        RectTransform closeBtnRect = EconomyHUD.CreateRect("Btn_Close", box);
+        closeBtnRect.anchorMin = closeBtnRect.anchorMax = closeBtnRect.pivot = new Vector2(1f, 1f);
+        closeBtnRect.anchoredPosition = new Vector2(-16f, -16f);
+        closeBtnRect.sizeDelta = new Vector2(28f, 28f);
+        btnSpeedUpClose = closeBtnRect.gameObject.AddComponent<Button>();
+        Image closeImg = closeBtnRect.gameObject.AddComponent<Image>();
+        closeImg.sprite = EconomyHUD.CircleSprite;
+        closeImg.color = new Color(0.88f, 0.85f, 0.80f, 1f);
+        TextMeshProUGUI closeLbl = EconomyHUD.CreateText("Lbl", closeBtnRect, 13f, TextDark, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(closeLbl.rectTransform);
+        closeLbl.text = "<b>X</b>";
+        AddButtonFeedback(btnSpeedUpClose);
+        btnSpeedUpClose.onClick.AddListener(() => speedUpDialog.SetActive(false));
 
-        // Cancel button (Pill capsule shape with rounded ends and anti-aliasing)
-        RectTransform canBtnRect = EconomyHUD.CreateRect("Btn_Cancel", box);
-        canBtnRect.anchorMin = canBtnRect.anchorMax = canBtnRect.pivot = new Vector2(0.5f, 0.5f);
-        canBtnRect.anchoredPosition = new Vector2(80f, -52f);
-        canBtnRect.sizeDelta = new Vector2(136f, 40f);
-        btnSpeedUpCancel = canBtnRect.gameObject.AddComponent<Button>();
-        Image canImg = canBtnRect.gameObject.AddComponent<Image>();
-        canImg.sprite = LumiWorldUITheme.GetCapsuleSprite(40);
-        canImg.type = Image.Type.Sliced;
-        canImg.color = new Color(0.50f, 0.48f, 0.45f, 1f);
-        TextMeshProUGUI canLbl = EconomyHUD.CreateText("CanLbl", canBtnRect, 15f, Color.white, TextAlignmentOptions.Center);
-        EconomyHUD.Stretch(canLbl.rectTransform);
-        canLbl.text = "<b>Cancel</b>";
-        AddButtonFeedback(btnSpeedUpCancel);
-        btnSpeedUpCancel.onClick.AddListener(() => speedUpDialog.SetActive(false));
+        // 3 Cards: Coins (-186), Watch Ad (0), Gems (186)
+        // ── Card 1: 300 Coins ──
+        BuildSpeedUpCard(box, new Vector2(-186f, -14f),
+            cardBgKey: "SpeedUp_Coins",
+            cardBgFill: new Color(0.96f, 0.94f, 0.90f, 1f),
+            cardBorder: new Color(0.86f, 0.80f, 0.70f, 1f),
+            badgeText: "COINS",
+            badgeBg: new Color(0.98f, 0.92f, 0.80f, 1f),
+            badgeColor: new Color(0.65f, 0.45f, 0.05f, 1f),
+            icon: EconomyHUD.CoinSprite,
+            titleText: "300 Coins",
+            titleColor: new Color(0.22f, 0.17f, 0.12f, 1f),
+            subText: null,
+            btnLabel: "Use Coins",
+            btnColor: new Color(0.20f, 0.65f, 0.35f, 1f),
+            onClick: OnSpeedUpWithCoins,
+            cardButton: out btnSpeedUpCoins);
+
+        // ── Card 2: Watch Ad ──
+        BuildSpeedUpCard(box, new Vector2(0f, -14f),
+            cardBgKey: "SpeedUp_Ad",
+            cardBgFill: new Color(0.92f, 0.95f, 0.99f, 1f),
+            cardBorder: new Color(0.72f, 0.83f, 0.96f, 1f),
+            badgeText: "FREE AD",
+            badgeBg: new Color(0.82f, 0.93f, 0.85f, 1f),
+            badgeColor: new Color(0.12f, 0.48f, 0.20f, 1f),
+            icon: GetOrCreateVideoIcon(),
+            titleText: "Watch Ad",
+            titleColor: new Color(0.10f, 0.38f, 0.75f, 1f),
+            subText: "30s Video • Free",
+            btnLabel: "Watch (30s)",
+            btnColor: new Color(0.15f, 0.48f, 0.90f, 1f),
+            onClick: OnSpeedUpWithAd,
+            cardButton: out btnSpeedUpAd);
+
+        // ── Card 3: 50 Gems ──
+        BuildSpeedUpCard(box, new Vector2(186f, -14f),
+            cardBgKey: "SpeedUp_Gems",
+            cardBgFill: new Color(0.96f, 0.93f, 0.99f, 1f),
+            cardBorder: new Color(0.85f, 0.74f, 0.95f, 1f),
+            badgeText: "PREMIUM",
+            badgeBg: new Color(0.93f, 0.86f, 0.98f, 1f),
+            badgeColor: new Color(0.45f, 0.15f, 0.70f, 1f),
+            icon: GetOrCreateGemIcon(),
+            titleText: "50 Gems",
+            titleColor: new Color(0.45f, 0.15f, 0.70f, 1f),
+            subText: null,
+            btnLabel: "Use Gems",
+            btnColor: new Color(0.50f, 0.22f, 0.82f, 1f),
+            onClick: OnSpeedUpWithGems,
+            cardButton: out btnSpeedUpGems);
 
         speedUpDialog.SetActive(false);
+    }
+
+    private void BuildSpeedUpCard(RectTransform parent, Vector2 anchoredPos,
+        string cardBgKey, Color cardBgFill, Color cardBorder,
+        string badgeText, Color badgeBg, Color badgeColor,
+        Sprite icon, string titleText, Color titleColor, string subText,
+        string btnLabel, Color btnColor, Action onClick, out Button cardButton)
+    {
+        RectTransform card = EconomyHUD.CreateRect("Card", parent);
+        card.anchorMin = card.anchorMax = card.pivot = new Vector2(0.5f, 0.5f);
+        card.anchoredPosition = anchoredPos;
+        card.sizeDelta = new Vector2(168f, 180f);
+
+        Image cardImg = card.gameObject.AddComponent<Image>();
+        cardImg.sprite = LumiWorldUITheme.GetBorderedSurfaceSprite(cardBgKey, cardBgFill, cardBorder, 18, 1.2f);
+        cardImg.type = Image.Type.Sliced;
+        LumiWorldUITheme.AddSoftElevation(card.gameObject, 2f, 0.12f);
+
+        // Top Badge
+        RectTransform badgeRect = EconomyHUD.CreateRect("Badge", card);
+        badgeRect.anchorMin = badgeRect.anchorMax = badgeRect.pivot = new Vector2(0.5f, 1f);
+        badgeRect.anchoredPosition = new Vector2(0f, -8f);
+        badgeRect.sizeDelta = new Vector2(72f, 18f);
+        Image badgeImg = badgeRect.gameObject.AddComponent<Image>();
+        badgeImg.sprite = LumiWorldUITheme.GetCapsuleSprite(18);
+        badgeImg.type = Image.Type.Sliced;
+        badgeImg.color = badgeBg;
+        TextMeshProUGUI badgeLbl = EconomyHUD.CreateText("Lbl", badgeRect, 10f, badgeColor, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(badgeLbl.rectTransform);
+        badgeLbl.text = $"<b>{badgeText}</b>";
+
+        // Center Icon
+        if (icon != null)
+        {
+            RectTransform iconRect = EconomyHUD.CreateRect("Icon", card);
+            iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = new Vector2(0.5f, 0.5f);
+            iconRect.anchoredPosition = new Vector2(0f, 26f);
+            iconRect.sizeDelta = new Vector2(38f, 38f);
+            Image ic = iconRect.gameObject.AddComponent<Image>();
+            ic.sprite = icon;
+            ic.preserveAspect = true;
+            ic.raycastTarget = false;
+        }
+
+        // Title
+        bool hasSub = !string.IsNullOrEmpty(subText);
+        TextMeshProUGUI title = EconomyHUD.CreateText("Title", card, 15.5f, titleColor, TextAlignmentOptions.Center);
+        title.rectTransform.anchorMin = title.rectTransform.anchorMax = title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        title.rectTransform.anchoredPosition = new Vector2(0f, hasSub ? -6f : -14f);
+        title.rectTransform.sizeDelta = new Vector2(160f, 22f);
+        title.text = $"<b>{titleText}</b>";
+
+        // Subtext
+        TextMeshProUGUI sub = EconomyHUD.CreateText("Sub", card, 11f, new Color(0.48f, 0.44f, 0.40f, 1f), TextAlignmentOptions.Center);
+        sub.rectTransform.anchorMin = sub.rectTransform.anchorMax = sub.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        sub.rectTransform.anchoredPosition = new Vector2(0f, -26f);
+        sub.rectTransform.sizeDelta = new Vector2(160f, 18f);
+        if (hasSub)
+        {
+            sub.text = subText;
+        }
+        else
+        {
+            sub.gameObject.SetActive(false);
+        }
+
+        // Button
+        RectTransform btnRect = EconomyHUD.CreateRect("Btn", card);
+        btnRect.anchorMin = btnRect.anchorMax = btnRect.pivot = new Vector2(0.5f, 0.5f);
+        btnRect.anchoredPosition = new Vector2(0f, -60f);
+        btnRect.sizeDelta = new Vector2(142f, 34f);
+        cardButton = btnRect.gameObject.AddComponent<Button>();
+        Image btnImg = btnRect.gameObject.AddComponent<Image>();
+        btnImg.sprite = LumiWorldUITheme.GetCapsuleSprite(34);
+        btnImg.type = Image.Type.Sliced;
+        btnImg.color = btnColor;
+        TextMeshProUGUI btnLbl = EconomyHUD.CreateText("Lbl", btnRect, 13.5f, Color.white, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(btnLbl.rectTransform);
+        btnLbl.text = $"<b>{btnLabel}</b>";
+        AddButtonFeedback(cardButton);
+        if (onClick != null) cardButton.onClick.AddListener(() => onClick());
+    }
+
+    // ─────────────────────── Rewarded Video Ad Overlay ────────────────────────
+    private void BuildAdOverlay(RectTransform parent)
+    {
+        RectTransform root = EconomyHUD.CreateRect("RewardedAdOverlay", parent);
+        EconomyHUD.Stretch(root);
+        adOverlay = root.gameObject;
+
+        Image bgDim = root.gameObject.AddComponent<Image>();
+        bgDim.color = new Color(0.02f, 0.04f, 0.08f, 0.95f);
+
+        RectTransform box = EconomyHUD.CreateRect("TheaterBox", root);
+        box.anchorMin = box.anchorMax = box.pivot = new Vector2(0.5f, 0.5f);
+        box.sizeDelta = new Vector2(620f, 380f);
+        box.anchoredPosition = Vector2.zero;
+
+        Image boxBg = box.gameObject.AddComponent<Image>();
+        boxBg.sprite = EconomyHUD.RoundedSprite;
+        boxBg.type = Image.Type.Sliced;
+        boxBg.color = new Color(0.08f, 0.10f, 0.16f, 1f);
+        LumiWorldUITheme.AddSoftElevation(box.gameObject, 5f, 0.35f);
+
+        // Top Bar: [AD badge] [Sponsored text] ... [Timer] [Skip button] [Close 'X']
+        // AD badge
+        RectTransform adTagRect = EconomyHUD.CreateRect("Tag_AD", box);
+        adTagRect.anchorMin = adTagRect.anchorMax = new Vector2(0f, 1f);
+        adTagRect.pivot = new Vector2(0f, 1f);
+        adTagRect.anchoredPosition = new Vector2(16f, -14f);
+        adTagRect.sizeDelta = new Vector2(34f, 20f);
+        Image adTagImg = adTagRect.gameObject.AddComponent<Image>();
+        adTagImg.sprite = LumiWorldUITheme.GetCapsuleSprite(20);
+        adTagImg.type = Image.Type.Sliced;
+        adTagImg.color = new Color(0.95f, 0.60f, 0.05f, 1f);
+        TextMeshProUGUI adTagLbl = EconomyHUD.CreateText("Lbl", adTagRect, 10f, Color.white, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(adTagLbl.rectTransform);
+        adTagLbl.text = "<b>AD</b>";
+
+        // Sponsored Title
+        TextMeshProUGUI sponLbl = EconomyHUD.CreateText("Sponsored", box, 12.5f, new Color(0.65f, 0.72f, 0.85f, 1f), TextAlignmentOptions.Left);
+        sponLbl.rectTransform.anchorMin = sponLbl.rectTransform.anchorMax = new Vector2(0f, 1f);
+        sponLbl.rectTransform.pivot = new Vector2(0f, 1f);
+        sponLbl.rectTransform.anchoredPosition = new Vector2(56f, -15f);
+        sponLbl.rectTransform.sizeDelta = new Vector2(200f, 20f);
+        sponLbl.text = "<b>LumiWorld Spotlight</b>";
+
+        // Countdown Timer Text
+        adTimerText = EconomyHUD.CreateText("Timer", box, 13.5f, new Color(1f, 0.82f, 0.20f, 1f), TextAlignmentOptions.Right);
+        adTimerText.rectTransform.anchorMin = adTimerText.rectTransform.anchorMax = new Vector2(1f, 1f);
+        adTimerText.rectTransform.pivot = new Vector2(1f, 1f);
+        adTimerText.rectTransform.anchoredPosition = new Vector2(-170f, -15f);
+        adTimerText.rectTransform.sizeDelta = new Vector2(140f, 20f);
+        adTimerText.text = "Reward in: <b>30s</b>";
+
+        // Skip Button (Top Right)
+        RectTransform skipBtnRect = EconomyHUD.CreateRect("Btn_Skip", box);
+        skipBtnRect.anchorMin = skipBtnRect.anchorMax = new Vector2(1f, 1f);
+        skipBtnRect.pivot = new Vector2(1f, 1f);
+        skipBtnRect.anchoredPosition = new Vector2(-46f, -11f);
+        skipBtnRect.sizeDelta = new Vector2(116f, 28f);
+        btnAdSkip = skipBtnRect.gameObject.AddComponent<Button>();
+        adSkipBg = skipBtnRect.gameObject.AddComponent<Image>();
+        adSkipBg.sprite = LumiWorldUITheme.GetCapsuleSprite(28);
+        adSkipBg.type = Image.Type.Sliced;
+        adSkipBg.color = new Color(0.25f, 0.28f, 0.35f, 1f);
+        btnAdSkip.interactable = false;
+        adSkipLabel = EconomyHUD.CreateText("Lbl", skipBtnRect, 12f, Color.white, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(adSkipLabel.rectTransform);
+        adSkipLabel.text = "<b>Skip in 30s</b>";
+        AddButtonFeedback(btnAdSkip);
+        btnAdSkip.onClick.AddListener(OnAdCompleted);
+
+        // Early Close 'X' Button
+        RectTransform closeEarlyRect = EconomyHUD.CreateRect("Btn_CloseEarly", box);
+        closeEarlyRect.anchorMin = closeEarlyRect.anchorMax = closeEarlyRect.pivot = new Vector2(1f, 1f);
+        closeEarlyRect.anchoredPosition = new Vector2(-14f, -13f);
+        closeEarlyRect.sizeDelta = new Vector2(24f, 24f);
+        btnAdCloseEarly = closeEarlyRect.gameObject.AddComponent<Button>();
+        Image closeEarlyImg = closeEarlyRect.gameObject.AddComponent<Image>();
+        closeEarlyImg.sprite = EconomyHUD.CircleSprite;
+        closeEarlyImg.color = new Color(0.20f, 0.24f, 0.32f, 1f);
+        TextMeshProUGUI closeEarlyLbl = EconomyHUD.CreateText("Lbl", closeEarlyRect, 12f, Color.white, TextAlignmentOptions.Center);
+        EconomyHUD.Stretch(closeEarlyLbl.rectTransform);
+        closeEarlyLbl.text = "<b>X</b>";
+        AddButtonFeedback(btnAdCloseEarly);
+        btnAdCloseEarly.onClick.AddListener(OnAdCancelled);
+
+        // Video Screen Monitor Box
+        RectTransform monitor = EconomyHUD.CreateRect("Monitor", box);
+        monitor.anchorMin = monitor.anchorMax = monitor.pivot = new Vector2(0.5f, 0.5f);
+        monitor.anchoredPosition = new Vector2(0f, -8f);
+        monitor.sizeDelta = new Vector2(586f, 266f);
+        Image monBg = monitor.gameObject.AddComponent<Image>();
+        monBg.sprite = EconomyHUD.RoundedSprite;
+        monBg.type = Image.Type.Sliced;
+        monBg.color = new Color(0.04f, 0.06f, 0.10f, 1f);
+
+        // Creature Spotlight inside monitor
+        RectTransform spotRect = EconomyHUD.CreateRect("Spotlight", monitor);
+        spotRect.anchorMin = spotRect.anchorMax = spotRect.pivot = new Vector2(0.5f, 0.5f);
+        spotRect.anchoredPosition = new Vector2(0f, 44f);
+        spotRect.sizeDelta = new Vector2(86f, 86f);
+        adCreatureSpotlight = spotRect.gameObject.AddComponent<Image>();
+        adCreatureSpotlight.preserveAspect = true;
+        adCreatureSpotlight.raycastTarget = false;
+
+        // Headline
+        TextMeshProUGUI head = EconomyHUD.CreateText("Headline", monitor, 18f, new Color(0.98f, 0.84f, 0.32f, 1f), TextAlignmentOptions.Center);
+        head.rectTransform.anchorMin = head.rectTransform.anchorMax = head.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        head.rectTransform.anchoredPosition = new Vector2(0f, -14f);
+        head.rectTransform.sizeDelta = new Vector2(540f, 26f);
+        head.text = "<b>LUMIWORLD ADVENTURE</b>";
+
+        // Subheadline
+        TextMeshProUGUI subhead = EconomyHUD.CreateText("Subhead", monitor, 12.5f, new Color(0.85f, 0.90f, 0.98f, 1f), TextAlignmentOptions.Center);
+        subhead.rectTransform.anchorMin = subhead.rectTransform.anchorMax = subhead.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        subhead.rectTransform.anchoredPosition = new Vector2(0f, -38f);
+        subhead.rectTransform.sizeDelta = new Vector2(540f, 20f);
+        subhead.text = "\"Breed and discover magnificent hybrid creatures!\"";
+
+        // Features badge
+        TextMeshProUGUI feat = EconomyHUD.CreateText("Features", monitor, 11.5f, new Color(0.55f, 0.75f, 0.98f, 1f), TextAlignmentOptions.Center);
+        feat.rectTransform.anchorMin = feat.rectTransform.anchorMax = feat.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        feat.rectTransform.anchoredPosition = new Vector2(0f, -60f);
+        feat.rectTransform.sizeDelta = new Vector2(540f, 18f);
+        feat.text = "★ ★ ★ ★ ★   10+ Special Hybrids • Cozy Sanctuary Building";
+
+        // Playback Progress Bar (Horizontal line at bottom of monitor)
+        RectTransform barTrack = EconomyHUD.CreateRect("BarTrack", monitor);
+        barTrack.anchorMin = barTrack.anchorMax = new Vector2(0.5f, 0f);
+        barTrack.pivot = new Vector2(0.5f, 0f);
+        barTrack.anchoredPosition = new Vector2(0f, 6f);
+        barTrack.sizeDelta = new Vector2(574f, 6f);
+        Image barTrackImg = barTrack.gameObject.AddComponent<Image>();
+        barTrackImg.color = new Color(0.18f, 0.22f, 0.30f, 1f);
+
+        RectTransform barFill = EconomyHUD.CreateRect("BarFill", barTrack);
+        EconomyHUD.Stretch(barFill);
+        adProgressBar = barFill.gameObject.AddComponent<Image>();
+        adProgressBar.color = new Color(0.25f, 0.65f, 1.0f, 1f);
+        adProgressBar.type = Image.Type.Filled;
+        adProgressBar.fillMethod = Image.FillMethod.Horizontal;
+        adProgressBar.fillOrigin = 0;
+        adProgressBar.fillAmount = 0f;
+
+        // Bottom Footer
+        TextMeshProUGUI foot = EconomyHUD.CreateText("Footer", box, 11.5f, new Color(0.55f, 0.62f, 0.72f, 1f), TextAlignmentOptions.Center);
+        foot.rectTransform.anchorMin = foot.rectTransform.anchorMax = new Vector2(0.5f, 0f);
+        foot.rectTransform.pivot = new Vector2(0.5f, 0f);
+        foot.rectTransform.anchoredPosition = new Vector2(0f, 10f);
+        foot.rectTransform.sizeDelta = new Vector2(580f, 20f);
+        foot.text = "<i>Watch 30s video to accelerate your incubation progress!</i>";
+
+        adOverlay.SetActive(false);
     }
 
     // ─────────────────────── Congrats Popup Modal ────────────────────────────
@@ -1372,13 +1746,28 @@ public class CreationLabUI : MonoBehaviour
         if (card == null) return false;
         if (IsOffspringOrHybrid(card)) return false;
 
+        string id = (card.cardID ?? "").ToLowerInvariant();
+        string name = (card.cardName ?? "").ToLowerInvariant();
+        string assetName = (card.name ?? "").ToLowerInvariant();
+
+        // Fox (Cáo lửa) is a wild creature without any breeding recipe - strictly reject!
+        if (id == "creature_fox" || name == "fox" || assetName == "fox" || id.Contains("cáo") || name.Contains("cáo"))
+        {
+            if (!id.Contains("fernkin") && !id.Contains("grassfox") && !name.Contains("fernkin"))
+                return false;
+        }
+
+        // Cow is a farm animal, not Highland Cow (Heathorn)
+        if (id == "creature_cow" || name == "cow" || assetName == "cow")
+            return false;
+
         if (BreedingManager.Instance != null)
         {
             BreedingManager.Instance.EnsureDefaultRecipes();
             return BreedingManager.Instance.HasRecipeWithParent(card);
         }
 
-        return true;
+        return false;
     }
 
     private List<CardData> GetOwnedCreatureCards()
@@ -1411,7 +1800,7 @@ public class CreationLabUI : MonoBehaviour
             var fallbackPatterns = new string[] {
                 "pebbara", "capybara", "bramblet", "deer", "lotelle", "rivlet", "mudskipper",
                 "reedle", "heathorn", "highlandcow", "petaluff", "caterpillar", "spriglide", "squirrel",
-                "galume", "peacock", "dandrift", "flowerdog"
+                "galume", "peacock", "dandrift", "flowerdog", "fernkin", "grassfox", "heliko", "parrot"
             };
             foreach (var p in fallbackPatterns)
             {
@@ -1436,6 +1825,10 @@ public class CreationLabUI : MonoBehaviour
             string id = (c.cardID ?? "").ToLowerInvariant();
             string nm = (c.cardName ?? "").ToLowerInvariant();
             string an = (c.name ?? "").ToLowerInvariant();
+
+            // Strictly reject wild Fox when searching for breeding candidates
+            if (id == "creature_fox" || nm == "fox" || an == "fox") continue;
+
             foreach (var p in patterns)
             {
                 if (id.Contains(p) || nm.Contains(p) || an.Contains(p)) return c;
@@ -1752,25 +2145,160 @@ public class CreationLabUI : MonoBehaviour
         }
     }
 
-    private void OnConfirmSpeedUp()
+    private void OnSpeedUpWithCoins()
     {
-        if (speedUpDialog != null) speedUpDialog.SetActive(false);
-
-        var ch = BreedingManager.Instance?.GetChamber(activeChamberIndex);
-        if (ch == null || !ch.IsBusy) return;
-
         const int speedUpCost = 300;
         var wallet = CurrencyWallet.Instance;
-        if (wallet != null && !wallet.CanAfford(speedUpCost))
+        if (wallet == null || !wallet.CanAfford(speedUpCost) || !wallet.TrySpend(speedUpCost, CoinReason.PlacementFee))
         {
             GameDialogUI.ShowNotice($"Not enough coins! Need {speedUpCost} Coins to speed up.");
             return;
         }
 
-        if (wallet != null)
+        if (speedUpDialog != null) speedUpDialog.SetActive(false);
+        ApplySpeedUpBoost("300 Coins");
+    }
+
+    private void OnSpeedUpWithGems()
+    {
+        const int gemCost = 50;
+        if (!GemWallet.CanAfford(gemCost) || !GemWallet.TrySpend(gemCost))
         {
-            wallet.TrySpend(speedUpCost, CoinReason.PlacementFee);
+            GameDialogUI.ShowNotice($"Not enough gems! Need {gemCost} Gems to speed up.");
+            return;
         }
+
+        if (speedUpDialog != null) speedUpDialog.SetActive(false);
+        ApplySpeedUpBoost("50 Gems");
+    }
+
+    private void OnSpeedUpWithAd()
+    {
+        if (speedUpDialog != null) speedUpDialog.SetActive(false);
+        StartAdSequence();
+    }
+
+    private void StartAdSequence()
+    {
+        if (adOverlay == null) return;
+        adOverlay.SetActive(true);
+        adOverlay.transform.SetAsLastSibling();
+
+        if (adRoutine != null) StopCoroutine(adRoutine);
+        adRoutine = StartCoroutine(AdWatchRoutine());
+    }
+
+    private IEnumerator AdWatchRoutine()
+    {
+        float totalSeconds = 30f;
+        float elapsed = 0f;
+
+        // Reset UI
+        if (btnAdSkip != null) btnAdSkip.interactable = false;
+        if (adSkipBg != null) adSkipBg.color = new Color(0.25f, 0.28f, 0.35f, 1f);
+        if (adSkipLabel != null) adSkipLabel.text = "<b>Skip in 30s</b>";
+        if (adProgressBar != null) adProgressBar.fillAmount = 0f;
+
+        // Random spotlight creature avatar
+        string[] featuredCreatures = new string[] { "Avatar_Fernbara", "Avatar_Bloomhorn", "Avatar_Lotriv", "Avatar_Featherglide", "Avatar_Raincroak" };
+        string chosen = featuredCreatures[UnityEngine.Random.Range(0, featuredCreatures.Length)];
+        if (adCreatureSpotlight != null)
+        {
+            Sprite sp = LoadSpriteSafe("CreatureAvatars/" + chosen) ??
+                        LoadSpriteSafe("UI_Breeding/Cards/fernbara_good_card") ??
+                        LoadSpriteSafe("UI Cards/UI Cards/17_Braluff");
+            if (sp != null)
+            {
+                adCreatureSpotlight.sprite = sp;
+                adCreatureSpotlight.color = Color.white;
+            }
+            else
+            {
+                adCreatureSpotlight.color = Color.clear;
+            }
+        }
+
+        while (elapsed < totalSeconds)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float remaining = Mathf.Max(0f, totalSeconds - elapsed);
+            int remSec = Mathf.CeilToInt(remaining);
+
+            if (adTimerText != null)
+                adTimerText.text = $"Reward in: <b>{remSec}s</b>";
+
+            if (adSkipLabel != null && (btnAdSkip == null || !btnAdSkip.interactable))
+                adSkipLabel.text = $"<b>Skip in {remSec}s</b>";
+
+            if (adProgressBar != null)
+                adProgressBar.fillAmount = Mathf.Clamp01(elapsed / totalSeconds);
+
+#if UNITY_EDITOR
+            // In Unity Editor, allow clicking skip after 3 seconds for rapid iteration and testing
+            if (elapsed >= 3f && btnAdSkip != null && !btnAdSkip.interactable)
+            {
+                btnAdSkip.interactable = true;
+                if (adSkipBg != null) adSkipBg.color = new Color(0.18f, 0.68f, 0.32f, 1f);
+                if (adSkipLabel != null) adSkipLabel.text = $"<b>Skip ({remSec}s) [Dev]</b>";
+            }
+#endif
+
+            yield return null;
+        }
+
+        // Ad is finished! Enable Skip / Claim
+        if (adTimerText != null)
+            adTimerText.text = "<b><color=#4ADE80>Reward Ready!</color></b>";
+
+        if (btnAdSkip != null)
+        {
+            btnAdSkip.interactable = true;
+            if (adSkipBg != null) adSkipBg.color = new Color(0.18f, 0.75f, 0.32f, 1f);
+        }
+
+        if (adSkipLabel != null)
+            adSkipLabel.text = "<b>Skip Ad >></b>";
+
+        if (adProgressBar != null)
+            adProgressBar.fillAmount = 1f;
+
+        adRoutine = null;
+    }
+
+    private void OnAdCompleted()
+    {
+        if (adRoutine != null)
+        {
+            StopCoroutine(adRoutine);
+            adRoutine = null;
+        }
+        if (adOverlay != null) adOverlay.SetActive(false);
+
+        ApplySpeedUpBoost("Rewarded Ad");
+    }
+
+    private void OnAdCancelled()
+    {
+        // If already ready, treat as completed
+        if (btnAdSkip != null && btnAdSkip.interactable && (adTimerText != null && adTimerText.text.Contains("Ready")))
+        {
+            OnAdCompleted();
+            return;
+        }
+
+        if (adRoutine != null)
+        {
+            StopCoroutine(adRoutine);
+            adRoutine = null;
+        }
+        if (adOverlay != null) adOverlay.SetActive(false);
+        GameDialogUI.ShowNotice("Ad cancelled. Watch full 30s video to claim reward.");
+    }
+
+    private void ApplySpeedUpBoost(string sourceLabel)
+    {
+        var ch = BreedingManager.Instance?.GetChamber(activeChamberIndex);
+        if (ch == null || !ch.IsBusy) return;
 
         // Random roll boost: 30%, 50%, 70%, 100%
         float[] boosts = new float[] { 0.30f, 0.50f, 0.70f, 1.00f };
@@ -1784,7 +2312,7 @@ public class CreationLabUI : MonoBehaviour
             ch.status = BreedingChamberState.Status.Done;
         }
 
-        GameDialogUI.ShowNotice($"Speed Up! +{boostPct}% Incubation Progress!");
+        GameDialogUI.ShowNotice($"Speed Up ({sourceLabel})! +{boostPct}% Incubation Progress!");
         if (currentViewMode == 0) RefreshShelfView();
         else RefreshProgressView();
     }

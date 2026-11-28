@@ -216,6 +216,28 @@ public class BreedingManager : MonoBehaviour
         return go;
     }
 
+    private static readonly Dictionary<string, AnimalSpeciesData> s_HybridSpeciesCache = new Dictionary<string, AnimalSpeciesData>(StringComparer.OrdinalIgnoreCase);
+
+    public static AnimalSpeciesData GetOrCreateHybridSpecies(string speciesKey, string displayName, AnimalLocomotionType loco = AnimalLocomotionType.Ground)
+    {
+        if (string.IsNullOrEmpty(speciesKey)) return null;
+        string lk = speciesKey.ToLowerInvariant().Replace("creature_", "").Trim();
+        if (s_HybridSpeciesCache.TryGetValue(lk, out var existing) && existing != null)
+            return existing;
+
+        var sp = ScriptableObject.CreateInstance<AnimalSpeciesData>();
+        sp.name = displayName ?? speciesKey;
+        sp.speciesID = lk;
+        sp.speciesName = displayName ?? speciesKey;
+        sp.description = $"{displayName} hybrid creature.";
+        sp.locomotionType = loco;
+        sp.baseWalkSpeed = 0.52f;
+        sp.baseRunSpeed = 1.1f;
+        sp.personalRadius = 0.38f;
+        s_HybridSpeciesCache[lk] = sp;
+        return sp;
+    }
+
     public static void EnsureCardFullyConfigured(CardData card)
     {
         if (card == null) return;
@@ -230,12 +252,16 @@ public class BreedingManager : MonoBehaviour
 
         card.cardType = CardType.Creature;
         card.occupiesTile = true;
+        if (card.allowedTilePrefabs == null) card.allowedTilePrefabs = new List<GameObject>();
 
         if (id.Contains("fernbara") || nm.Contains("fernbara"))
         {
             card.cardID = "creature_fernbara";
             card.cardName = "Fernbara";
             card.rarity = CardRarity.Common;
+            card.islandId = "wet";
+            card.baseScore = 6;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("fernbara", "Fernbara");
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/fernbara_good_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Fernbara");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/thulai_thuong/Animated/Fernbara_anm.glb");
         }
@@ -244,6 +270,9 @@ public class BreedingManager : MonoBehaviour
             card.cardID = "creature_lotriv";
             card.cardName = "Lotriv";
             card.rarity = CardRarity.Common;
+            card.islandId = "wet";
+            card.baseScore = 6;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("lotriv", "Lotriv");
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/lotriv_good_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Lotriv");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/thulai_thuong/Animated/Lotriv_anm.glb");
         }
@@ -252,6 +281,9 @@ public class BreedingManager : MonoBehaviour
             card.cardID = "creature_bloomhorn";
             card.cardName = "Bloomhorn";
             card.rarity = CardRarity.Common;
+            card.islandId = "starter";
+            card.baseScore = 6;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("bloomhorn", "Bloomhorn");
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/bloomhorn_good_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Bloomhorn");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/thulai_thuong/Animated/Bloomhorn_anm.glb");
         }
@@ -260,6 +292,9 @@ public class BreedingManager : MonoBehaviour
             card.cardID = "creature_raincroak";
             card.cardName = "Raincroak";
             card.rarity = CardRarity.Common;
+            card.islandId = "wet";
+            card.baseScore = 6;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("raincroak", "Raincroak", AnimalLocomotionType.Amphibian);
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/raincroak_good_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Raincroak");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/thulai_thuong/Animated/Raincroak_anm.glb");
         }
@@ -268,6 +303,9 @@ public class BreedingManager : MonoBehaviour
             card.cardID = "creature_featherglide";
             card.cardName = "Featherglide";
             card.rarity = CardRarity.Common;
+            card.islandId = "starter";
+            card.baseScore = 6;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("featherglide", "Featherglide", AnimalLocomotionType.Flying);
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/featherglide_good_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Featherglide");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/thulai_thuong/Animated/Featherglide_anm.glb");
         }
@@ -276,6 +314,9 @@ public class BreedingManager : MonoBehaviour
             card.cardID = "creature_mossgarg";
             card.cardName = "Mossgarg";
             card.rarity = CardRarity.Epic;
+            card.islandId = "wet";
+            card.baseScore = 8;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("mossgarg", "Mossgarg");
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/mossgarg_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Mossgarg");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/model_thulai_caocap/Animated/Mossgarg_anm.glb");
         }
@@ -283,7 +324,10 @@ public class BreedingManager : MonoBehaviour
         {
             card.cardID = "creature_seraphin";
             card.cardName = "Seraphin";
-            card.rarity = CardRarity.Epic;
+            card.rarity = CardRarity.Legend;
+            card.islandId = "wet";
+            card.baseScore = 10;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("seraphin", "Seraphin", AnimalLocomotionType.Flying);
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/seraphin_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Seraphin");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/model_thulai_caocap/Animated/Seraphin_anm.glb");
         }
@@ -291,7 +335,10 @@ public class BreedingManager : MonoBehaviour
         {
             card.cardID = "creature_breezehorn";
             card.cardName = "Breezehorn";
-            card.rarity = CardRarity.Epic;
+            card.rarity = CardRarity.Legend;
+            card.islandId = "starter";
+            card.baseScore = 10;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("breezehorn", "Breezehorn");
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/breezehorn_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Breezehorn");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/model_thulai_caocap/Animated/Breezehorn_anm.glb");
         }
@@ -300,6 +347,9 @@ public class BreedingManager : MonoBehaviour
             card.cardID = "creature_prismagale";
             card.cardName = "Prismagale";
             card.rarity = CardRarity.Legend;
+            card.islandId = "starter";
+            card.baseScore = 10;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("prismagale", "Prismagale", AnimalLocomotionType.Flying);
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/prismagale_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Prismagale");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/model_thulai_caocap/Animated/Prismagale_anm.glb");
         }
@@ -307,9 +357,17 @@ public class BreedingManager : MonoBehaviour
         {
             card.cardID = "creature_quetzalcroak";
             card.cardName = "Quetzalcroak";
-            card.rarity = CardRarity.Legend;
+            card.rarity = CardRarity.Epic;
+            card.islandId = "wet";
+            card.baseScore = 8;
+            if (card.animalSpeciesData == null) card.animalSpeciesData = GetOrCreateHybridSpecies("quetzalcroak", "Quetzalcroak", AnimalLocomotionType.Amphibian);
             if (card.cardImage == null) card.cardImage = CreationLabUI.LoadSpriteSafe("UI_Breeding/Cards/quetzalcroak_card") ?? CreationLabUI.LoadSpriteSafe("CreatureAvatars/Avatar_Quetzalcroak");
             if (card.prefabToPlace == null) card.prefabToPlace = LoadPrefabSafe("Assets/model_thulai_caocap/Animated/Quetzalcroak_anm.glb");
+        }
+
+        if (card.animalSpeciesData == null && !string.IsNullOrEmpty(card.cardName))
+        {
+            card.animalSpeciesData = GetOrCreateHybridSpecies(card.cardName.ToLowerInvariant(), card.cardName);
         }
     }
 
@@ -340,19 +398,48 @@ public class BreedingManager : MonoBehaviour
 
     public static CardData ResolveCardSafe(string cardName, params string[] searchKeys)
     {
+        if (string.IsNullOrEmpty(cardName)) return null;
+
+        // Try main catalog first
+        CardData fromCat = FindCardFromMainCatalog(cardName, searchKeys);
+        if (fromCat != null) return fromCat;
+
         CardData c = Resources.Load<CardData>($"Cards/{cardName}");
         if (c != null) return c;
+        c = Resources.Load<CardData>($"Cards/Creature/{cardName}");
+        if (c != null) return c;
+
         var all = Resources.LoadAll<CardData>("");
+        string targetLower = cardName.ToLowerInvariant();
+
+        // Pass 1: Exact matches
         foreach (var item in all)
         {
             if (item == null) continue;
             string id = item.cardID?.ToLowerInvariant() ?? "";
             string nm = item.cardName?.ToLowerInvariant() ?? "";
             string fn = item.name.ToLowerInvariant();
+            if (fn == targetLower || nm == targetLower || id == targetLower || id == $"creature_{targetLower}")
+                return item;
+        }
+
+        // Pass 2: Search keys match (strictly never match Fox for Fernkin)
+        foreach (var item in all)
+        {
+            if (item == null) continue;
+            string id = item.cardID?.ToLowerInvariant() ?? "";
+            string nm = item.cardName?.ToLowerInvariant() ?? "";
+            string fn = item.name.ToLowerInvariant();
+
+            if (targetLower.Contains("fernkin") && (fn == "fox" || nm == "fox" || id == "creature_fox"))
+                continue;
+
             foreach (var k in searchKeys)
             {
                 if (string.IsNullOrEmpty(k)) continue;
                 string lk = k.ToLowerInvariant();
+                if (lk == "fox" && targetLower.Contains("fernkin")) continue;
+
                 if (id.Contains(lk) || nm.Contains(lk) || fn.Contains(lk))
                     return item;
             }
@@ -367,255 +454,97 @@ public class BreedingManager : MonoBehaviour
     {
         if (recipes == null) recipes = new List<BreedingRecipe>();
 
-        // Strictly prune any obsolete or invalid Dandrift/Galume pairings
+        // Remove any obsolete or conflicting recipes
         recipes.RemoveAll(r => r != null && (
+            r.name.Contains("Capybara_Deer") ||
+            r.name.Contains("BlossomFrog_HighlandCow") ||
+            r.name.Contains("BlossomFrog_Caterpillar") ||
             (r.name.Contains("Dandrift") && !r.name.Contains("Heathorn")) ||
             (r.name.Contains("Peacock") && !r.name.Contains("Squirrel") && !r.name.Contains("Spriglide")) ||
             (r.name.Contains("Galume") && !r.name.Contains("Squirrel") && !r.name.Contains("Spriglide"))
         ));
 
-        bool hasFernbara = false;
-        foreach (var r in recipes)
+        // Resolve all 10 Parent Cards (Strict search keys, never include wild Fox!)
+        CardData dandriftCard   = ResolveCardSafe("Dandrift", "creature_flowerdog", "flowerdog", "dandrift");
+        CardData heathornCard   = ResolveCardSafe("Heathorn", "creature_highlandcow", "highlandcow", "heathorn");
+        CardData galumeCard     = ResolveCardSafe("Galume", "creature_peacock", "peacock", "galume");
+        CardData spriglideCard  = ResolveCardSafe("Spriglide", "creature_flyingsquirrel", "flyingsquirrel", "spriglide");
+        CardData fernkinCard    = ResolveCardSafe("Fernkin", "creature_grassfox", "grassfox", "fernkin");
+        CardData pebbaraCard    = ResolveCardSafe("Pebbara", "creature_capybara", "capybara", "pebbara");
+        CardData lotelleCard    = ResolveCardSafe("Lotelle", "creature_swan", "lotelle", "swan");
+        CardData rivletCard     = ResolveCardSafe("Rivlet", "creature_mudskipper", "rivlet", "mudskipper", "otter");
+        CardData puddleafCard   = ResolveCardSafe("Puddleaf", "creature_blossomfrog", "puddleaf", "blossomfrog");
+        CardData helikoCard     = ResolveCardSafe("Heliko", "creature_parrot", "heliko", "parrot");
+
+        // Resolve all 10 Offspring Cards
+        CardData bloomhornCard    = ResolveCardSafe("Bloomhorn", "bloomhorn");
+        CardData breezehornCard   = ResolveCardSafe("Breezehorn", "breezehorn");
+        CardData featherglideCard = ResolveCardSafe("Featherglide", "featherglide");
+        CardData prismagaleCard   = ResolveCardSafe("Prismagale", "prismagale");
+        CardData fernbaraCard     = ResolveCardSafe("Fernbara", "fernbara");
+        CardData mossgargCard     = ResolveCardSafe("Mossgarg", "mossgarg");
+        CardData lotrivCard       = ResolveCardSafe("Lotriv", "lotriv");
+        CardData seraphinCard     = ResolveCardSafe("Seraphin", "seraphin");
+        CardData raincroakCard    = ResolveCardSafe("Raincroak", "raincroak");
+        CardData quetzalcroakCard = ResolveCardSafe("Quetzalcroak", "quetzalcroak");
+
+        // Helper to check and add recipe
+        System.Action<string, CardData, CardData, CardData, CardData, CardData, float, float, float, float, int, string> ensureRecipe =
+            (recName, pA, pB, goodOff, epicOff, legOff, gRate, eRate, lRate, sec, fee, dur) =>
         {
-            if (r != null && r.offspring != null && 
-                (r.offspring.cardID == "creature_fernbara" || r.offspring.cardName == "Fernbara"))
+            if (pA == null || pB == null) return;
+            var existing = recipes.Find(r => r != null && r.name == recName);
+            if (existing == null)
             {
-                hasFernbara = true;
-                break;
+                existing = ScriptableObject.CreateInstance<BreedingRecipe>();
+                existing.name = recName;
+                recipes.Add(existing);
             }
+            existing.parentA = pA;
+            existing.parentB = pB;
+            existing.offspring = goodOff;
+            existing.epicOffspring = epicOff;
+            existing.legendOffspring = legOff;
+            existing.goodRate = gRate;
+            existing.epicRate = eRate;
+            existing.legendRate = lRate;
+            existing.incubationSeconds = sec;
+            existing.feeCoins = fee;
+            existing.durationDisplay = dur;
+        };
+
+        // Pair 1: Dandrift + Heathorn -> Bloomhorn (~95%/98%), Breezehorn (~0.5%/1.5% Legendary)
+        ensureRecipe("Recipe_Dandrift_Heathorn_Bloomhorn", dandriftCard, heathornCard,
+            bloomhornCard, mossgargCard, breezehornCard, 0.98f, 0.015f, 0.005f, 6300f, 55, "01h 45m");
+
+        // Pair 2: Galume + Spriglide -> Featherglide (~95%/98%), Prismagale (~0.5%/1.5% Legendary)
+        ensureRecipe("Recipe_Galume_Spriglide_Featherglide", galumeCard, spriglideCard,
+            featherglideCard, breezehornCard, prismagaleCard, 0.98f, 0.015f, 0.005f, 4800f, 50, "01h 20m");
+
+        // Pair 3: Fernkin + Pebbara -> Fernbara (~95%/98%), Mossgarg (~0.5%/1.5% Epic)
+        ensureRecipe("Recipe_Fernkin_Pebbara_Fernbara", fernkinCard, pebbaraCard,
+            fernbaraCard, mossgargCard, prismagaleCard, 0.98f, 0.015f, 0.005f, 8100f, 65, "02h 15m");
+
+        // Pair 4: Lotelle + Rivlet -> Lotriv (~95%/98%), Seraphin (~0.5%/1.5% Legendary)
+        ensureRecipe("Recipe_Lotelle_Rivlet_Lotriv", lotelleCard, rivletCard,
+            lotrivCard, mossgargCard, seraphinCard, 0.98f, 0.015f, 0.005f, 9900f, 75, "02h 45m");
+
+        // Pair 5: Puddleaf + Heliko -> Raincroak (~95%/98%), Quetzalcroak (~0.5%/1.5% Epic)
+        ensureRecipe("Recipe_Puddleaf_Heliko_Raincroak", puddleafCard, helikoCard,
+            raincroakCard, quetzalcroakCard, seraphinCard, 0.98f, 0.015f, 0.005f, 7200f, 60, "02h 00m");
+
+        // Recipe 0: Starter (Bramblet + Petaluff -> 98% Petaluff)
+        CardData deerCard = ResolveCardSafe("Bramblet", "creature_deer", "deer", "bramblet");
+        CardData caterCard = ResolveCardSafe("Petaluff", "creature_caterpillar", "caterpillar", "petaluff");
+        CardData targetOffspring = caterCard != null ? caterCard : GetOrCreateBraluffCard();
+        if (targetOffspring != null)
+        {
+            targetOffspring.cardName = "Petaluff";
         }
-
-        if (!hasFernbara)
+        if (deerCard != null && caterCard != null)
         {
-            CardData capyCard = ResolveCardSafe("Capybara", "capybara", "pebbara");
-            CardData deerCard = ResolveCardSafe("Deer", "deer", "bramblet");
-            CardData lotusCard = ResolveCardSafe("Lotelle", "lotelle", "swan");
-            CardData rivletCard = ResolveCardSafe("Rivlet", "rivlet", "mudskipper");
-            CardData frogCard = ResolveCardSafe("Reedle", "reedle", "frog", "blossomfrog");
-            CardData cowCard = ResolveCardSafe("HighlandCow", "highlandcow", "heathorn");
-            CardData caterCard = ResolveCardSafe("Caterpillar", "caterpillar", "petaluff");
-            CardData squirrelCard = ResolveCardSafe("FlyingSquirrel", "squirrel", "spriglide");
-            CardData peacockCard = ResolveCardSafe("Peacock", "peacock", "galume");
-            CardData dandriftCard = ResolveCardSafe("FlowerDog", "flowerdog", "dandrift", "chohoa", "chó hoa");
-
-            CardData fernbaraCard = ResolveCardSafe("Fernbara", "fernbara");
-            CardData lotrivCard = ResolveCardSafe("Lotriv", "lotriv");
-            CardData bloomhornCard = ResolveCardSafe("Bloomhorn", "bloomhorn");
-            CardData raincroakCard = ResolveCardSafe("Raincroak", "raincroak");
-            CardData featherglideCard = ResolveCardSafe("Featherglide", "featherglide");
-
-            CardData mossgargCard = ResolveCardSafe("Mossgarg", "mossgarg");
-            CardData prismagaleCard = ResolveCardSafe("Prismagale", "prismagale");
-            CardData seraphinCard = ResolveCardSafe("Seraphin", "seraphin");
-            CardData breezehornCard = ResolveCardSafe("Breezehorn", "breezehorn");
-            CardData quetzalcroakCard = ResolveCardSafe("Quetzalcroak", "quetzalcroak");
-
-            // Recipe 1: Fernbara (Capybara + Deer -> 98% Fernbara, 1.5% Mossgarg Epic, 0.5% Prismagale Legend)
-            var r1 = ScriptableObject.CreateInstance<BreedingRecipe>();
-            r1.name = "Recipe_Capybara_Deer_Fernbara";
-            r1.parentA = capyCard;
-            r1.parentB = deerCard;
-            r1.offspring = fernbaraCard;
-            r1.goodRate = 0.98f;
-            r1.epicOffspring = mossgargCard;
-            r1.epicRate = 0.015f;
-            r1.legendOffspring = prismagaleCard;
-            r1.legendRate = 0.005f;
-            r1.durationDisplay = "02h 15m";
-            r1.incubationSeconds = 8100f; // 135 mins
-            r1.feeCoins = 65;
-            recipes.Add(r1);
-
-            // Recipe 2: Lotriv (Lotus Swan + Mudskipper -> 97.5% Lotriv, 1.8% Seraphin Epic, 0.7% Prismagale Legend)
-            var r2 = ScriptableObject.CreateInstance<BreedingRecipe>();
-            r2.name = "Recipe_Lotelle_Rivlet_Lotriv";
-            r2.parentA = lotusCard;
-            r2.parentB = rivletCard;
-            r2.offspring = lotrivCard;
-            r2.goodRate = 0.975f;
-            r2.epicOffspring = seraphinCard;
-            r2.epicRate = 0.018f;
-            r2.legendOffspring = prismagaleCard;
-            r2.legendRate = 0.007f;
-            r2.durationDisplay = "02h 45m";
-            r2.incubationSeconds = 9900f; // 165 mins
-            r2.feeCoins = 75;
-            recipes.Add(r2);
-
-            // Recipe 3: Bloomhorn (Blossom Frog + Highland Cow -> 98% Bloomhorn, 1.5% Breezehorn Epic, 0.5% Mossgarg Legend)
-            var r3 = ScriptableObject.CreateInstance<BreedingRecipe>();
-            r3.name = "Recipe_BlossomFrog_HighlandCow_Bloomhorn";
-            r3.parentA = frogCard;
-            r3.parentB = cowCard;
-            r3.offspring = bloomhornCard;
-            r3.goodRate = 0.98f;
-            r3.epicOffspring = breezehornCard;
-            r3.epicRate = 0.015f;
-            r3.legendOffspring = mossgargCard;
-            r3.legendRate = 0.005f;
-            r3.durationDisplay = "02h 30m";
-            r3.incubationSeconds = 9000f; // 150 mins
-            r3.feeCoins = 70;
-            recipes.Add(r3);
-
-            // Recipe 4: Raincroak (Blossom Frog + Caterpillar -> 97.8% Raincroak, 1.6% Quetzalcroak Epic, 0.6% Seraphin Legend)
-            var r4 = ScriptableObject.CreateInstance<BreedingRecipe>();
-            r4.name = "Recipe_BlossomFrog_Caterpillar_Raincroak";
-            r4.parentA = frogCard;
-            r4.parentB = caterCard;
-            r4.offspring = raincroakCard;
-            r4.goodRate = 0.978f;
-            r4.epicOffspring = quetzalcroakCard;
-            r4.epicRate = 0.016f;
-            r4.legendOffspring = seraphinCard;
-            r4.legendRate = 0.006f;
-            r4.durationDisplay = "02h 00m";
-            r4.incubationSeconds = 7200f; // 120 mins
-            r4.feeCoins = 60;
-            recipes.Add(r4);
-
-            // Recipe 5: Featherglide (Flying Squirrel + Peacock -> 98% Featherglide, 1.5% Breezehorn Epic, 0.5% Quetzalcroak Legend)
-            var r5 = ScriptableObject.CreateInstance<BreedingRecipe>();
-            r5.name = "Recipe_FlyingSquirrel_Peacock_Featherglide";
-            r5.parentA = squirrelCard;
-            r5.parentB = peacockCard;
-            r5.offspring = featherglideCard;
-            r5.goodRate = 0.98f;
-            r5.epicOffspring = breezehornCard;
-            r5.epicRate = 0.015f;
-            r5.legendOffspring = quetzalcroakCard;
-            r5.legendRate = 0.005f;
-            r5.durationDisplay = "01h 20m";
-            r5.incubationSeconds = 4800f; // 80 mins
-            r5.feeCoins = 50;
-            recipes.Add(r5);
-
-            // Recipe 6: Dandrift + Heathorn (Highland Cow) -> Bloomhorn (Good 98%, Breezehorn Epic 1.5%, Mossgarg Legend 0.5%)
-            if (dandriftCard != null && cowCard != null)
-            {
-                var r6 = ScriptableObject.CreateInstance<BreedingRecipe>();
-                r6.name = "Recipe_Dandrift_Heathorn_Bloomhorn";
-                r6.parentA = dandriftCard;
-                r6.parentB = cowCard;
-                r6.offspring = bloomhornCard;
-                r6.goodRate = 0.98f;
-                r6.epicOffspring = breezehornCard;
-                r6.epicRate = 0.015f;
-                r6.legendOffspring = mossgargCard;
-                r6.legendRate = 0.005f;
-                r6.durationDisplay = "01h 45m";
-                r6.incubationSeconds = 6300f; // 105 mins
-                r6.feeCoins = 55;
-                recipes.Add(r6);
-            }
-
-            // Recipe 0: Braluff (Deer + Caterpillar)
-            CardData braluffCard = GetOrCreateBraluffCard();
-            var r0 = ScriptableObject.CreateInstance<BreedingRecipe>();
-            r0.name = "Recipe_Bramblet_Petaluff_Braluff";
-            r0.parentA = deerCard;
-            r0.parentB = caterCard;
-            r0.offspring = braluffCard;
-            r0.goodRate = 0.85f;
-            r0.durationDisplay = "01h 00m";
-            r0.incubationSeconds = 3600f; // 60 mins
-            r0.feeCoins = 40;
-            recipes.Add(r0);
-        }
-
-        // Guarantee Dandrift + Heathorn exists regardless of initial recipe cache
-        bool hasDandriftHeathorn = false;
-        foreach (var r in recipes)
-        {
-            if (r != null && r.name == "Recipe_Dandrift_Heathorn_Bloomhorn")
-            {
-                hasDandriftHeathorn = true;
-                break;
-            }
-        }
-        if (!hasDandriftHeathorn)
-        {
-            CardData cowCard = ResolveCardSafe("HighlandCow", "highlandcow", "heathorn");
-            CardData dandriftCard = ResolveCardSafe("FlowerDog", "flowerdog", "dandrift", "chohoa", "chó hoa");
-            CardData bloomhornCard = ResolveCardSafe("Bloomhorn", "bloomhorn");
-            CardData breezehornCard = ResolveCardSafe("Breezehorn", "breezehorn");
-            CardData mossgargCard = ResolveCardSafe("Mossgarg", "mossgarg");
-            if (dandriftCard != null && cowCard != null)
-            {
-                var r6 = ScriptableObject.CreateInstance<BreedingRecipe>();
-                r6.name = "Recipe_Dandrift_Heathorn_Bloomhorn";
-                r6.parentA = dandriftCard;
-                r6.parentB = cowCard;
-                r6.offspring = bloomhornCard;
-                r6.goodRate = 0.98f;
-                r6.epicOffspring = breezehornCard;
-                r6.epicRate = 0.015f;
-                r6.legendOffspring = mossgargCard;
-                r6.legendRate = 0.005f;
-                r6.durationDisplay = "01h 45m";
-                r6.incubationSeconds = 6300f; // 105 mins
-                r6.feeCoins = 55;
-                recipes.Add(r6);
-            }
-        }
-
-        // Enforce synchronized durations and fees across ALL recipes
-        foreach (var r in recipes)
-        {
-            if (r == null) continue;
-            string rName = r.name ?? "";
-            if (rName.Contains("Capybara") && rName.Contains("Deer"))
-            {
-                r.incubationSeconds = 8100f;
-                r.durationDisplay = "02h 15m";
-                r.feeCoins = 65;
-            }
-            else if (rName.Contains("Lotelle") && rName.Contains("Rivlet"))
-            {
-                r.incubationSeconds = 9900f;
-                r.durationDisplay = "02h 45m";
-                r.feeCoins = 75;
-            }
-            else if (rName.Contains("BlossomFrog") && rName.Contains("HighlandCow"))
-            {
-                r.incubationSeconds = 9000f;
-                r.durationDisplay = "02h 30m";
-                r.feeCoins = 70;
-            }
-            else if (rName.Contains("BlossomFrog") && rName.Contains("Caterpillar"))
-            {
-                r.incubationSeconds = 7200f;
-                r.durationDisplay = "02h 00m";
-                r.feeCoins = 60;
-            }
-            else if (rName.Contains("FlyingSquirrel") && rName.Contains("Peacock"))
-            {
-                r.incubationSeconds = 4800f;
-                r.durationDisplay = "01h 20m";
-                r.feeCoins = 50;
-            }
-            else if (rName.Contains("Dandrift") && rName.Contains("Heathorn"))
-            {
-                r.incubationSeconds = 6300f;
-                r.durationDisplay = "01h 45m";
-                r.feeCoins = 55;
-            }
-            else if (rName.Contains("Braluff"))
-            {
-                r.incubationSeconds = 3600f;
-                r.durationDisplay = "01h 00m";
-                r.feeCoins = 40;
-            }
-            else
-            {
-                if (r.incubationSeconds > 0f && r.incubationSeconds < 600f)
-                {
-                    r.incubationSeconds *= 60f;
-                }
-                int h = Mathf.FloorToInt(r.incubationSeconds / 3600f);
-                int m = Mathf.FloorToInt((r.incubationSeconds % 3600f) / 60f);
-                r.durationDisplay = $"{h:D2}h {m:D2}m";
-            }
+            ensureRecipe("Recipe_Bramblet_Petaluff_Braluff", deerCard, caterCard,
+                targetOffspring, null, null, 0.98f, 0f, 0f, 3600f, 40, "01h 00m");
         }
 
         // Ensure all hybrid cards and Braluff are fully configured
