@@ -2020,9 +2020,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreTutorialController
   progressKey: LumiWorld.ScoreTutorial.v1
-  steps: []
-  replayCompletedSteps: 0
-  overlay: {fileID: 1976809966}
+  steps:
+  - scoreThreshold: 10
+    purpose: Test huong dan
+    customHighlightArea: {fileID: 0}
+    holePadding: 1
+    pointerMode: 0
+    dragStartOffset: {x: 0, y: 0}
+  - scoreThreshold: 15
+    purpose: 22222222222222222222
+    customHighlightArea: {fileID: 0}
+    holePadding: 1
+    pointerMode: 0
+    dragStartOffset: {x: 0, y: 0}
+  replayCompletedSteps: 1
+  overlay: {fileID: 0}
 --- !u!1 &1357980047
 GameObject:
   m_ObjectHideFlags: 0
@@ -2854,7 +2866,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1976809965
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2874,7 +2886,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 186, y: 38}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1976809966
@@ -2884,7 +2896,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1976809964}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 798e37626c8006441bb47b87daf840dc, type: 3}
   m_Name: 

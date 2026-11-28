@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
 
 public class MainMenuController : MonoBehaviour
 {
@@ -53,10 +54,35 @@ public class MainMenuController : MonoBehaviour
         }
 
         BuildAccountBar();
+        BindTutorialButton();
         RefreshAccountBar();
 
         // Continue resumes the current save; New Game replaces it after confirmation.
         if (continueButton != null) continueButton.gameObject.SetActive(true);
+    }
+
+    private void BindTutorialButton()
+    {
+        Button button = null;
+        foreach (GameObject root in gameObject.scene.GetRootGameObjects())
+        {
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name != "Tutorial") continue;
+                button = child.GetComponent<Button>();
+                if (button != null) break;
+            }
+            if (button != null) break;
+        }
+
+        if (button == null)
+        {
+            Debug.LogWarning("MainMenuController: Tutorial button was not found under the menu hierarchy.");
+            return;
+        }
+
+        button.onClick.RemoveListener(OnTutorial);
+        button.onClick.AddListener(OnTutorial);
     }
 
 
@@ -125,6 +151,19 @@ public class MainMenuController : MonoBehaviour
     }
 
     public void OnContinue() => OnPlay();
+
+    /// <summary>Open the bundled LumiWorld tutorial page in the user's default browser.</summary>
+    public void OnTutorial()
+    {
+        string tutorialPath = Path.Combine(Application.streamingAssetsPath, "Tutorial", "index.html");
+        if (!File.Exists(tutorialPath))
+        {
+            Debug.LogError($"MainMenuController: Tutorial page not found at '{tutorialPath}'.");
+            return;
+        }
+
+        Application.OpenURL(new System.Uri(tutorialPath).AbsoluteUri);
+    }
 
 
     // ========================================

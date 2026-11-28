@@ -95,6 +95,20 @@ namespace LumiWorld.EditorTools
             string passName = snippet.passName ?? "";
             bool isDiag = IsTargetDiagnosticShader(shader);
 
+            // These shaders are used by world terrain, nature props, and the ocean.
+            // Keep their variants: stripping every ForwardLit fragment variant makes
+            // affected meshes render as flat fallback colors in Player builds.
+            if (shader.name.Contains("SG_HexGround_TopSide") ||
+                shader.name.Contains("SG_LowpolyNature") ||
+                shader.name.Equals("Universal Render Pipeline/Lit", StringComparison.Ordinal) ||
+                shader.name.Equals("Universal Render Pipeline/Particles/Unlit", StringComparison.Ordinal) ||
+                shader.name.Contains("UberStylizedWater"))
+            {
+                Debug.Log(string.Format("[LumiWorldShaderStripper] Preserved {0} ({1} | {2} | {3}): {4} variants",
+                    shader.name, passName, snippet.shaderType, snippet.passType, beforeCount));
+                return;
+            }
+
             if (passName.IndexOf("MotionVectors", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 passName.IndexOf("Universal 2D", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 passName.IndexOf("Universal2D", StringComparison.OrdinalIgnoreCase) >= 0 ||
