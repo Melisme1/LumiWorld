@@ -9,6 +9,8 @@ using LumiWorld.Acs;
 [DisallowMultipleComponent]
 public sealed class CreatureCollectionUI : MonoBehaviour
 {
+    private const string BackCardResourcePath = "Project/Art/BackCard";
+    private static Sprite backCardSprite;
     private static CreatureCollectionUI instance;
     public static CreatureCollectionUI Instance => instance;
 
@@ -25,6 +27,9 @@ public sealed class CreatureCollectionUI : MonoBehaviour
     // Match CardShopUI's fixed design stage.
     private const float PanelWidth = 880f;
     private const float PanelHeight = 560f;
+    private const float CardArtWidth = 150f;
+    private const float CardArtHeight = 133f;
+    private const float BackCardScale = 1.4f;
 
     public bool IsOpen => backdrop != null && backdrop.activeSelf;
 
@@ -100,8 +105,8 @@ public sealed class CreatureCollectionUI : MonoBehaviour
         content.anchoredPosition = Vector2.zero;
         GridLayoutGroup grid = cg.GetComponent<GridLayoutGroup>();
         grid.cellSize = new Vector2(184, 200);
-        grid.spacing = new Vector2(12, 12);
-        grid.padding = new RectOffset(16, 16, 12, 12);
+        grid.spacing = new Vector2(15, 15);
+        grid.padding = new RectOffset(18, 16, 12, 12);
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount; grid.constraintCount = 4;
         ContentSizeFitter fitter = cg.GetComponent<ContentSizeFitter>(); fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize; fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         scroll.viewport = vp.GetComponent<RectTransform>(); scroll.content = content;
@@ -201,21 +206,13 @@ public sealed class CreatureCollectionUI : MonoBehaviour
         GameObject imageObj = new GameObject("Artwork", typeof(RectTransform), typeof(Image)); imageObj.transform.SetParent(bg.transform, false);
         RectTransform artRect = imageObj.GetComponent<RectTransform>();
         artRect.anchorMin = new Vector2(.5f, 1f); artRect.anchorMax = new Vector2(.5f, 1f); artRect.pivot = new Vector2(.5f, 1f);
-        artRect.anchoredPosition = new Vector2(0f, -10f); artRect.sizeDelta = new Vector2(150f, 142f);
-        Image art = imageObj.GetComponent<Image>(); art.sprite = card.cardImage; art.preserveAspect = true; art.raycastTarget = false;
-        if (!isDiscovered)
-        {
-            GameObject overlay = new GameObject("UndiscoveredOverlay", typeof(RectTransform), typeof(Image));
-            overlay.transform.SetParent(imageObj.transform, false);
-            RectTransform overlayRect = overlay.GetComponent<RectTransform>();
-            overlayRect.anchorMin = Vector2.zero; overlayRect.anchorMax = Vector2.one; overlayRect.offsetMin = Vector2.zero; overlayRect.offsetMax = Vector2.zero;
-            Image overlayImage = overlay.GetComponent<Image>();
-            overlayImage.color = new Color(0.08f, 0.10f, 0.13f, 0.78f);
-            overlayImage.raycastTarget = false;
-
-            TextMeshProUGUI mystery = LumiWorldUITheme.CreateLabel(overlay.transform, "Mystery", "?", 48, Color.white, true, TextAlignmentOptions.Center);
-            LumiWorldUITheme.Stretch(mystery.rectTransform);
-        }
+        artRect.anchoredPosition = new Vector2(0f, -10f);
+        float artScale = isDiscovered ? 1f : BackCardScale;
+        artRect.sizeDelta = new Vector2(CardArtWidth * artScale, CardArtHeight * artScale);
+        Image art = imageObj.GetComponent<Image>();
+        art.sprite = isDiscovered ? card.cardImage : GetBackCardSprite();
+        art.preserveAspect = true;
+        art.raycastTarget = false;
         TextMeshProUGUI name = LumiWorldUITheme.CreateLabel(bg.transform, "Name", isDiscovered ? card.cardName : "?", 18, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center, wrap: true);
         RectTransform nameRect = name.rectTransform;
         nameRect.anchorMin = new Vector2(0f, 0f); nameRect.anchorMax = new Vector2(1f, 0f); nameRect.pivot = new Vector2(.5f, 0f);
@@ -224,5 +221,12 @@ public sealed class CreatureCollectionUI : MonoBehaviour
         RectTransform rarityRect = rarity.rectTransform;
         rarityRect.anchorMin = new Vector2(0f, 0f); rarityRect.anchorMax = new Vector2(1f, 0f); rarityRect.pivot = new Vector2(.5f, 0f);
         rarityRect.offsetMin = new Vector2(10f, 8f); rarityRect.offsetMax = new Vector2(-10f, 28f);
+    }
+
+    private static Sprite GetBackCardSprite()
+    {
+        if (backCardSprite == null)
+            backCardSprite = Resources.Load<Sprite>(BackCardResourcePath);
+        return backCardSprite;
     }
 }
