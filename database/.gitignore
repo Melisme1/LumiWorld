@@ -1,4 +1,0 @@
-.env
-backups/*
-!backups/.gitkeep
-tools/*.exe
