@@ -68,18 +68,18 @@ public class TerraformToolController : MonoBehaviour
     private Material highlightMaterial;
     private MaterialPropertyBlock propBlock;
 
-    // Floating Warm-Stone HUD Bar
+    // Floating Warm-Stone HUD Bar (vector-mesh capsules — zero stretched-sprite scratching)
     private Canvas hudCanvas;
     private RectTransform hudBarRect;
     private Button raiseBtn;
-    private Image raiseBtnBg;
+    private RoundedCapsuleGraphic raiseBtnBg;
     private TextMeshProUGUI raiseBtnLabel;
     private Button lowerBtn;
-    private Image lowerBtnBg;
+    private RoundedCapsuleGraphic lowerBtnBg;
     private TextMeshProUGUI lowerBtnLabel;
     private TextMeshProUGUI infoText;
     private Button applyBtn;
-    private Image applyBtnBg;
+    private RoundedCapsuleGraphic applyBtnBg;
     private TextMeshProUGUI applyBtnLabel;
     private Button cancelBtn;
 
@@ -148,6 +148,7 @@ public class TerraformToolController : MonoBehaviour
         }
 
         EnsureSceneRefs();
+        SyncHudPositionAboveCardTray();
         EnsureHudBuilt();
 
         isActive = true;
@@ -217,6 +218,7 @@ public class TerraformToolController : MonoBehaviour
         }
 
         EnsureSceneRefs();
+        SyncHudPositionAboveCardTray();
 
         var kb = Keyboard.current;
         var mouse = Mouse.current;
@@ -595,57 +597,127 @@ public class TerraformToolController : MonoBehaviour
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.matchWidthOrHeight = 0.5f;
 
-        Image barImg = LumiWorldUITheme.CreateRoundedSurface(
-            cGo.transform,
-            "P04_TerraformModeBar",
-            LumiWorldUITheme.Surface,
-            LumiWorldUITheme.Edge,
-            radius: 18,
-            borderThickness: 1.4f,
-            shadowDepth: 4f,
-            shadowAlpha: 0.18f,
-            raycastTarget: true);
-
-        hudBarRect = barImg.rectTransform;
+        GameObject barObj = new GameObject("P04_TerraformModeBar", typeof(RectTransform), typeof(RoundedCapsuleGraphic));
+        barObj.transform.SetParent(cGo.transform, false);
+        hudBarRect = (RectTransform)barObj.transform;
         hudBarRect.anchorMin = new Vector2(0.5f, 0f);
         hudBarRect.anchorMax = new Vector2(0.5f, 0f);
         hudBarRect.pivot = new Vector2(0.5f, 0f);
-        hudBarRect.anchoredPosition = new Vector2(0f, 224f);
-        hudBarRect.sizeDelta = new Vector2(676f, 52f);
+        hudBarRect.anchoredPosition = new Vector2(0f, 326f);
+        hudBarRect.sizeDelta = new Vector2(684f, 54f);
 
-        raiseBtn = LumiWorldUITheme.CreatePillButton(hudBarRect, "RaiseBtn", "▲ Raise", null, false, 14f, () => TrySetDirection(1), out raiseBtnBg, out _, out raiseBtnLabel, 14);
-        LumiWorldUITheme.PlaceTopLeft(raiseBtn.GetComponent<RectTransform>(), 10f, 8f, 102f, 36f);
+        RoundedCapsuleGraphic barGraphic = barObj.GetComponent<RoundedCapsuleGraphic>();
+        barGraphic.ConfigurePill(
+            fill: LumiWorldUITheme.Surface,
+            border: LumiWorldUITheme.Edge,
+            radius: 27f,
+            fullCapsule: true,
+            borderWidth: 1.5f,
+            shadowAlpha: 0.18f,
+            shadowDepth: 4f,
+            shadowBlur: 7f);
+        barGraphic.raycastTarget = true;
 
-        lowerBtn = LumiWorldUITheme.CreatePillButton(hudBarRect, "LowerBtn", "▼ Lower", null, false, 14f, () => TrySetDirection(-1), out lowerBtnBg, out _, out lowerBtnLabel, 14);
-        LumiWorldUITheme.PlaceTopLeft(lowerBtn.GetComponent<RectTransform>(), 118f, 8f, 102f, 36f);
+        raiseBtn = CreateVectorPillButton(hudBarRect, "RaiseBtn", "▲ Raise", 104f, 36f, () => TrySetDirection(1), out raiseBtnBg, out raiseBtnLabel);
+        LumiWorldUITheme.PlaceTopLeft(raiseBtn.GetComponent<RectTransform>(), 12f, 9f, 104f, 36f);
+
+        lowerBtn = CreateVectorPillButton(hudBarRect, "LowerBtn", "▼ Lower", 104f, 36f, () => TrySetDirection(-1), out lowerBtnBg, out lowerBtnLabel);
+        LumiWorldUITheme.PlaceTopLeft(lowerBtn.GetComponent<RectTransform>(), 122f, 9f, 104f, 36f);
 
         infoText = LumiWorldUITheme.CreateLabel(hudBarRect, "InfoText", "Click tiles · 0 selected", 13.5f, LumiWorldUITheme.Text, false, TextAlignmentOptions.Center);
-        LumiWorldUITheme.PlaceTopLeft(infoText.rectTransform, 228f, 6f, 240f, 40f);
+        LumiWorldUITheme.PlaceTopLeft(infoText.rectTransform, 232f, 7f, 240f, 40f);
 
-        applyBtn = LumiWorldUITheme.CreatePillButton(hudBarRect, "ApplyBtn", "Apply", null, true, 14f, ApplySelection, out applyBtnBg, out _, out applyBtnLabel, 14);
-        LumiWorldUITheme.PlaceTopLeft(applyBtn.GetComponent<RectTransform>(), 474f, 8f, 104f, 36f);
+        applyBtn = CreateVectorPillButton(hudBarRect, "ApplyBtn", "Apply", 106f, 36f, ApplySelection, out applyBtnBg, out applyBtnLabel);
+        LumiWorldUITheme.PlaceTopLeft(applyBtn.GetComponent<RectTransform>(), 478f, 9f, 106f, 36f);
 
-        cancelBtn = LumiWorldUITheme.CreatePillButton(hudBarRect, "CancelBtn", "Done", null, false, 14f, Deactivate, out _, out _, out _, 14);
-        LumiWorldUITheme.PlaceTopLeft(cancelBtn.GetComponent<RectTransform>(), 584f, 8f, 82f, 36f);
+        cancelBtn = CreateVectorPillButton(hudBarRect, "CancelBtn", "Done", 82f, 36f, Deactivate, out var cancelBg, out var cancelLbl);
+        LumiWorldUITheme.PlaceTopLeft(cancelBtn.GetComponent<RectTransform>(), 590f, 9f, 82f, 36f);
+        cancelBg.ConfigurePill(LumiWorldUITheme.Inset, new Color(0.84f, 0.81f, 0.77f, 1f), 18f, true, 1.1f, 0f);
+        cancelLbl.color = LumiWorldUITheme.Text;
 
+        Canvas.ForceUpdateCanvases();
+        SyncHudPositionAboveCardTray();
         hudBarRect.gameObject.SetActive(false);
+    }
+
+    private static Button CreateVectorPillButton(
+        Transform parent,
+        string name,
+        string text,
+        float w,
+        float h,
+        UnityEngine.Events.UnityAction onClick,
+        out RoundedCapsuleGraphic pill,
+        out TextMeshProUGUI label)
+    {
+        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(RoundedCapsuleGraphic), typeof(Button));
+        obj.transform.SetParent(parent, false);
+        RectTransform rt = (RectTransform)obj.transform;
+        rt.sizeDelta = new Vector2(w, h);
+
+        pill = obj.GetComponent<RoundedCapsuleGraphic>();
+        pill.ConfigurePill(LumiWorldUITheme.Inset, new Color(0.84f, 0.81f, 0.77f, 1f), h * 0.5f, true, 1.1f, 0f);
+        pill.raycastTarget = true;
+
+        Button btn = obj.GetComponent<Button>();
+        btn.targetGraphic = pill;
+        LumiWorldUITheme.ApplyButtonDisabledNeutral(btn);
+        btn.onClick.AddListener(onClick);
+
+        label = LumiWorldUITheme.CreateLabel(rt, "Label", text, 14f, LumiWorldUITheme.Text, true, TextAlignmentOptions.Center);
+        LumiWorldUITheme.Stretch(label.rectTransform, 6f);
+        return btn;
+    }
+
+    private void SyncHudPositionAboveCardTray()
+    {
+        if (hudBarRect == null || hudCanvas == null) return;
+
+        float scaleFactor = hudCanvas.scaleFactor > 0.01f ? hudCanvas.scaleFactor : 1f;
+        float trayTopCanvasY;
+
+        if (CardDeskController.Instance != null)
+        {
+            float trayTopScreenPx = CardDeskController.Instance.GetTrayTopScreenPixels();
+            trayTopCanvasY = trayTopScreenPx / scaleFactor;
+        }
+        else
+        {
+            Vector2 pixels = ((RectTransform)hudCanvas.transform).rect.size * scaleFactor;
+            float fit = ResourceInventoryUILayout.FitScale(pixels.x, pixels.y);
+            trayTopCanvasY = (203f * fit) / scaleFactor;
+        }
+
+        // Sit cleanly 22 ref-px above the live Card Tray top (chevron dome / collapsed pill) so Nature/Creature/Building/Special tabs are never covered
+        float targetY = Mathf.Max(72f, trayTopCanvasY + 22f);
+        Vector2 pos = hudBarRect.anchoredPosition;
+        if (Mathf.Abs(pos.y - targetY) > 0.5f)
+        {
+            hudBarRect.anchoredPosition = new Vector2(0f, targetY);
+        }
     }
 
     private void RefreshHud()
     {
         if (hudBarRect == null || activeCardData == null) return;
+        SyncHudPositionAboveCardTray();
 
         Color raiseActiveColor = new Color(0.32f, 0.56f, 0.24f, 1f);
         Color lowerActiveColor = new Color(0.18f, 0.49f, 0.78f, 1f);
         Color idleColor = LumiWorldUITheme.Inset;
         Color dimBg = new Color(0.86f, 0.84f, 0.80f, 0.60f);
+        Color subtleEdge = new Color(0.82f, 0.79f, 0.75f, 1f);
 
         raiseBtn.interactable = canRaise;
-        raiseBtnBg.color = !canRaise ? dimBg : (activeDirection > 0 ? raiseActiveColor : idleColor);
+        Color raiseFill = !canRaise ? dimBg : (activeDirection > 0 ? raiseActiveColor : idleColor);
+        raiseBtnBg.FillColor = raiseFill;
+        raiseBtnBg.BorderColor = activeDirection > 0 && canRaise ? new Color(0.24f, 0.44f, 0.18f, 1f) : subtleEdge;
         raiseBtnLabel.color = !canRaise ? LumiWorldUITheme.Muted : (activeDirection > 0 ? Color.white : LumiWorldUITheme.Text);
 
         lowerBtn.interactable = canLower;
-        lowerBtnBg.color = !canLower ? dimBg : (activeDirection < 0 ? lowerActiveColor : idleColor);
+        Color lowerFill = !canLower ? dimBg : (activeDirection < 0 ? lowerActiveColor : idleColor);
+        lowerBtnBg.FillColor = lowerFill;
+        lowerBtnBg.BorderColor = activeDirection < 0 && canLower ? new Color(0.13f, 0.37f, 0.62f, 1f) : subtleEdge;
         lowerBtnLabel.color = !canLower ? LumiWorldUITheme.Muted : (activeDirection < 0 ? Color.white : LumiWorldUITheme.Text);
 
         int feePerTile = Mathf.Max(0, activeCardData.placementFee);
@@ -671,7 +743,8 @@ public class TerraformToolController : MonoBehaviour
 
         bool canApply = count > 0 && affordable;
         applyBtn.interactable = canApply;
-        applyBtnBg.color = canApply ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
+        applyBtnBg.FillColor = canApply ? LumiWorldUITheme.Primary : new Color(0.62f, 0.59f, 0.55f, 1f);
+        applyBtnBg.BorderColor = canApply ? new Color(0.20f, 0.19f, 0.17f, 1f) : new Color(0.55f, 0.52f, 0.48f, 1f);
         applyBtnLabel.color = Color.white;
         applyBtnLabel.text = count > 0 ? $"Apply ({total})" : "Apply";
     }

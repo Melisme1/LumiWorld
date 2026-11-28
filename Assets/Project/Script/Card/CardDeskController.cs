@@ -86,6 +86,27 @@ public class CardDeskController : MonoBehaviour
 
     private TrayCategory activeCategory = TrayCategory.Nature;
     private bool isTrayExpanded = true;
+
+    public bool IsTrayExpanded => isTrayExpanded;
+    public float CurrentTrayTopDesignUnits => isTrayExpanded
+        ? (TrayBottomMargin + TrayExpandedTotalHeight)
+        : (TrayBottomMargin + (trayShapeGraphic != null ? trayShapeGraphic.CollapsedHeight : 26f));
+
+    public float GetTrayTopScreenPixels()
+    {
+        if (trayMonolithRect != null && trayMonolithRect.gameObject.activeInHierarchy)
+        {
+            Vector3[] corners = new Vector3[4];
+            trayMonolithRect.GetWorldCorners(corners);
+            if (corners[1].y > 1f) return corners[1].y;
+        }
+
+        Canvas rootCanvas = deskRectTransform != null ? deskRectTransform.GetComponentInParent<Canvas>()?.rootCanvas : null;
+        Vector2 pixels = rootCanvas != null && rootCanvas.scaleFactor > 0.01f
+            ? ((RectTransform)rootCanvas.transform).rect.size * rootCanvas.scaleFactor
+            : new Vector2(Screen.width, Screen.height);
+        return CurrentTrayTopDesignUnits * ResourceInventoryUILayout.FitScale(pixels.x, pixels.y);
+    }
     private float currentShelfWidth = TrayShelfMinWidth;
     private int lastVisibleCardCount;
     private RectTransform deskRectTransform;
